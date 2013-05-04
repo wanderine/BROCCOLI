@@ -21,8 +21,8 @@
 //#include <cutil_inline.h>
 //#include <shrUtils.h>
 //#include <shrQATest.h>
-#include "wabaacuda_lib.h"
-#include "wabaacuda_kernel.cu"
+#include "BROCCOLI_lib.h"
+#include "BROCCOLI_kernel.cu"
 
 #include "nifti1.h"
 #include "nifti1_io.h"
@@ -50,7 +50,7 @@ slice timing correction
 
 
 
-WABAACUDA_LIB::WABAACUDA_LIB()
+BROCCOLI_LIB::BROCCOLI_LIB()
 {
 	PREPROCESSED = MOTION_COMPENSATION;
 
@@ -198,7 +198,7 @@ WABAACUDA_LIB::WABAACUDA_LIB()
 	ReadSmoothingFilters();	
 }
 
-WABAACUDA_LIB::~WABAACUDA_LIB()
+BROCCOLI_LIB::~BROCCOLI_LIB()
 {
 	// Free all the allocated memory
 	
@@ -249,63 +249,63 @@ WABAACUDA_LIB::~WABAACUDA_LIB()
 }
 
 
-void WABAACUDA_LIB::SetDataType(int type)
+void BROCCOLI_LIB::SetDataType(int type)
 {
 	DATA_TYPE = type;
 }
 
-void WABAACUDA_LIB::SetFileType(int type)
+void BROCCOLI_LIB::SetFileType(int type)
 {
 	FILE_TYPE = type;
 }
 
-void WABAACUDA_LIB::SetNumberOfIterationsForMotionCompensation(int N)
+void BROCCOLI_LIB::SetNumberOfIterationsForMotionCompensation(int N)
 {
 	NUMBER_OF_ITERATIONS_FOR_MOTION_COMPENSATION = N;
 }
 
-void WABAACUDA_LIB::SetfMRIDataSliceLocationX(int location)
+void BROCCOLI_LIB::SetfMRIDataSliceLocationX(int location)
 {
 	X_SLICE_LOCATION_fMRI_DATA = location;
 }
 			
-void WABAACUDA_LIB::SetfMRIDataSliceLocationY(int location)
+void BROCCOLI_LIB::SetfMRIDataSliceLocationY(int location)
 {
 	Y_SLICE_LOCATION_fMRI_DATA = location;
 }
 		
-void WABAACUDA_LIB::SetfMRIDataSliceLocationZ(int location)
+void BROCCOLI_LIB::SetfMRIDataSliceLocationZ(int location)
 {
 	Z_SLICE_LOCATION_fMRI_DATA = location;
 }
 
-void WABAACUDA_LIB::SetfMRIDataSliceTimepoint(int timepoint)
+void BROCCOLI_LIB::SetfMRIDataSliceTimepoint(int timepoint)
 {
 	TIMEPOINT_fMRI_DATA = timepoint;
 }
 
-int WABAACUDA_LIB::GetfMRIDataSliceLocationX()
+int BROCCOLI_LIB::GetfMRIDataSliceLocationX()
 {
 	return X_SLICE_LOCATION_fMRI_DATA;
 }
 			
-int WABAACUDA_LIB::GetfMRIDataSliceLocationY()
+int BROCCOLI_LIB::GetfMRIDataSliceLocationY()
 {
 	return Y_SLICE_LOCATION_fMRI_DATA;
 }
 		
-int WABAACUDA_LIB::GetfMRIDataSliceLocationZ()
+int BROCCOLI_LIB::GetfMRIDataSliceLocationZ()
 {
 	return Z_SLICE_LOCATION_fMRI_DATA;
 }
 			
 
-void WABAACUDA_LIB::SetActivityThreshold(float threshold)
+void BROCCOLI_LIB::SetActivityThreshold(float threshold)
 {
 	ACTIVITY_THRESHOLD = threshold;
 }
 
-void WABAACUDA_LIB::SetThresholdStatus(bool status)
+void BROCCOLI_LIB::SetThresholdStatus(bool status)
 {
 	THRESHOLD_ACTIVITY_MAP = status;
 }
@@ -339,7 +339,7 @@ float CalculateMin(float *data, int N)
 
 
 
-void WABAACUDA_LIB::CalculateSlicesActivityData()
+void BROCCOLI_LIB::CalculateSlicesActivityData()
 {
 	float max = CalculateMax(h_Activity_Volume, DATA_W * DATA_H * DATA_D);
 	float min = CalculateMin(h_Activity_Volume, DATA_W * DATA_H * DATA_D);
@@ -415,7 +415,7 @@ void WABAACUDA_LIB::CalculateSlicesActivityData()
 	}
 }
 
-void WABAACUDA_LIB::CalculateSlicesfMRIData()
+void BROCCOLI_LIB::CalculateSlicesfMRIData()
 {
 	float max = CalculateMax(h_fMRI_Volumes, DATA_W * DATA_H * DATA_D * DATA_T);
 	float min = CalculateMin(h_fMRI_Volumes, DATA_W * DATA_H * DATA_D * DATA_T);
@@ -449,7 +449,7 @@ void WABAACUDA_LIB::CalculateSlicesfMRIData()
 	}
 }
 
-void WABAACUDA_LIB::CalculateSlicesPreprocessedfMRIData()
+void BROCCOLI_LIB::CalculateSlicesPreprocessedfMRIData()
 {
 	float* pointer;
 
@@ -499,180 +499,180 @@ void WABAACUDA_LIB::CalculateSlicesPreprocessedfMRIData()
 	}
 }
 
-double WABAACUDA_LIB::GetProcessingTimeSliceTimingCorrection()
+double BROCCOLI_LIB::GetProcessingTimeSliceTimingCorrection()
 {
 	return processing_times[SLICE_TIMING_CORRECTION];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeMotionCompensation()
+double BROCCOLI_LIB::GetProcessingTimeMotionCompensation()
 {
 	return processing_times[MOTION_COMPENSATION];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeSmoothing()
+double BROCCOLI_LIB::GetProcessingTimeSmoothing()
 {
 	return processing_times[SMOOTHING];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeDetrending()
+double BROCCOLI_LIB::GetProcessingTimeDetrending()
 {
 	return processing_times[DETRENDING];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeStatisticalAnalysis()
+double BROCCOLI_LIB::GetProcessingTimeStatisticalAnalysis()
 {
 	return processing_times[STATISTICAL_ANALYSIS];
 }
 
-double WABAACUDA_LIB::GetProcessingTimePermutationTest()
+double BROCCOLI_LIB::GetProcessingTimePermutationTest()
 {
 	return processing_times[PERMUTATION_TEST];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeCopy()
+double BROCCOLI_LIB::GetProcessingTimeCopy()
 {
 	return processing_times[COPY];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeConvolution()
+double BROCCOLI_LIB::GetProcessingTimeConvolution()
 {
 	return processing_times[CONVOLVE];
 }
 
-double WABAACUDA_LIB::GetProcessingTimePhaseDifferences()
+double BROCCOLI_LIB::GetProcessingTimePhaseDifferences()
 {
 	return processing_times[PHASEDC];
 }
 
-double WABAACUDA_LIB::GetProcessingTimePhaseGradients()
+double BROCCOLI_LIB::GetProcessingTimePhaseGradients()
 {
 	return processing_times[PHASEG];
 }
 
-double WABAACUDA_LIB::WABAACUDA_LIB::GetProcessingTimeAH()
+double BROCCOLI_LIB::BROCCOLI_LIB::GetProcessingTimeAH()
 {
 	return processing_times[AH2D];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeEquationSystem()
+double BROCCOLI_LIB::GetProcessingTimeEquationSystem()
 {
 	return processing_times[EQSYSTEM];
 }
 
-double WABAACUDA_LIB::GetProcessingTimeInterpolation()
+double BROCCOLI_LIB::GetProcessingTimeInterpolation()
 {
 	return processing_times[INTERPOLATION];
 }
 
 
-int WABAACUDA_LIB::GetWidth()
+int BROCCOLI_LIB::GetWidth()
 {
 	return DATA_W;
 }
 
-int WABAACUDA_LIB::GetHeight()
+int BROCCOLI_LIB::GetHeight()
 {
 	return DATA_H;
 }
 
-int WABAACUDA_LIB::GetDepth()
+int BROCCOLI_LIB::GetDepth()
 {
 	return DATA_D;
 }
 
-int WABAACUDA_LIB::GetTimepoints()
+int BROCCOLI_LIB::GetTimepoints()
 {
 	return DATA_T;
 }
 
-float WABAACUDA_LIB::GetXSize()
+float BROCCOLI_LIB::GetXSize()
 {
 	return x_size;
 }
 
-float WABAACUDA_LIB::GetYSize()
+float BROCCOLI_LIB::GetYSize()
 {
 	return y_size;
 }
 
-float WABAACUDA_LIB::GetZSize()
+float BROCCOLI_LIB::GetZSize()
 {
 	return z_size;
 }
 
-float WABAACUDA_LIB::GetTR()
+float BROCCOLI_LIB::GetTR()
 {
 	return TR;
 }
 
-unsigned char* WABAACUDA_LIB::GetZSlicefMRIData()
+unsigned char* BROCCOLI_LIB::GetZSlicefMRIData()
 {
 	return z_slice_fMRI_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetYSlicefMRIData()
+unsigned char* BROCCOLI_LIB::GetYSlicefMRIData()
 {
 	return y_slice_fMRI_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetXSlicefMRIData()
+unsigned char* BROCCOLI_LIB::GetXSlicefMRIData()
 {
 	return x_slice_fMRI_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetZSlicePreprocessedfMRIData()
+unsigned char* BROCCOLI_LIB::GetZSlicePreprocessedfMRIData()
 {
 	return z_slice_preprocessed_fMRI_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetYSlicePreprocessedfMRIData()
+unsigned char* BROCCOLI_LIB::GetYSlicePreprocessedfMRIData()
 {
 	return y_slice_preprocessed_fMRI_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetXSlicePreprocessedfMRIData()
+unsigned char* BROCCOLI_LIB::GetXSlicePreprocessedfMRIData()
 {
 	return x_slice_preprocessed_fMRI_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetZSliceActivityData()
+unsigned char* BROCCOLI_LIB::GetZSliceActivityData()
 {
 	return z_slice_activity_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetYSliceActivityData()
+unsigned char* BROCCOLI_LIB::GetYSliceActivityData()
 {
 	return y_slice_activity_data;
 }
 
-unsigned char* WABAACUDA_LIB::GetXSliceActivityData()
+unsigned char* BROCCOLI_LIB::GetXSliceActivityData()
 {
 	return x_slice_activity_data;
 }
 
 
-double* WABAACUDA_LIB::GetMotionParametersX()
+double* BROCCOLI_LIB::GetMotionParametersX()
 {
 	return motion_parameters_x;
 }
 
-double* WABAACUDA_LIB::GetMotionParametersY()
+double* BROCCOLI_LIB::GetMotionParametersY()
 {
 	return motion_parameters_y;
 }
 
-double* WABAACUDA_LIB::GetMotionParametersZ()
+double* BROCCOLI_LIB::GetMotionParametersZ()
 {
 	return motion_parameters_z;
 }
 
-double* WABAACUDA_LIB::GetPlotValuesX()
+double* BROCCOLI_LIB::GetPlotValuesX()
 {
 	return plot_values_x;
 }
 
 
-double* WABAACUDA_LIB::GetMotionCompensatedCurve()
+double* BROCCOLI_LIB::GetMotionCompensatedCurve()
 {
 	for (int t = 0; t < DATA_T; t++)
 	{
@@ -682,7 +682,7 @@ double* WABAACUDA_LIB::GetMotionCompensatedCurve()
 	return motion_compensated_curve;
 }
 
-double* WABAACUDA_LIB::GetSmoothedCurve()
+double* BROCCOLI_LIB::GetSmoothedCurve()
 {
 	for (int t = 0; t < DATA_T; t++)
 	{
@@ -692,7 +692,7 @@ double* WABAACUDA_LIB::GetSmoothedCurve()
 	return smoothed_curve;
 }
 
-double* WABAACUDA_LIB::GetDetrendedCurve()
+double* BROCCOLI_LIB::GetDetrendedCurve()
 {
 	for (int t = 0; t < DATA_T; t++)
 	{
@@ -702,105 +702,105 @@ double* WABAACUDA_LIB::GetDetrendedCurve()
 	return detrended_curve;
 }
 
-void WABAACUDA_LIB::SetSmoothingAmount(int amount)
+void BROCCOLI_LIB::SetSmoothingAmount(int amount)
 {
 	SMOOTHING_AMOUNT_MM = amount;
 	ReadSmoothingFilters();
 }
 
-void WABAACUDA_LIB::SetSmoothingDimensionality(int dimensionality)
+void BROCCOLI_LIB::SetSmoothingDimensionality(int dimensionality)
 {
 	SMOOTHING_DIMENSIONALITY = dimensionality;
 	ReadSmoothingFilters();
 }
 
-void WABAACUDA_LIB::SetNumberOfBasisFunctionsDetrending(int N)
+void BROCCOLI_LIB::SetNumberOfBasisFunctionsDetrending(int N)
 {
 	NUMBER_OF_DETRENDING_BASIS_FUNCTIONS = N;
 }
 
-void WABAACUDA_LIB::SetfMRIDataFilename(std::string filename)
+void BROCCOLI_LIB::SetfMRIDataFilename(std::string filename)
 {
 	filename_fMRI_data = filename;
 }
 
-std::string WABAACUDA_LIB::GetfMRIDataFilename()
+std::string BROCCOLI_LIB::GetfMRIDataFilename()
 {
 	return filename_fMRI_data;
 }
 
-void WABAACUDA_LIB::SetAnalysisMethod(int method)
+void BROCCOLI_LIB::SetAnalysisMethod(int method)
 {
 	ANALYSIS_METHOD = method;
 	ReadSmoothingFilters();
 }
 
-void WABAACUDA_LIB::SetWriteStatus(bool status)
+void BROCCOLI_LIB::SetWriteStatus(bool status)
 {
 	WRITE_DATA = status;
 }
 
-void WABAACUDA_LIB::SetShowPreprocessedType(int value)
+void BROCCOLI_LIB::SetShowPreprocessedType(int value)
 {
 	PREPROCESSED = value;
 }
 
-void WABAACUDA_LIB::SetWidth(int w)
+void BROCCOLI_LIB::SetWidth(int w)
 {
 	DATA_W = w;
 }
 			
-void WABAACUDA_LIB::SetHeight(int h)
+void BROCCOLI_LIB::SetHeight(int h)
 {
 	DATA_H = h;
 }
 
-void WABAACUDA_LIB::SetDepth(int d)
+void BROCCOLI_LIB::SetDepth(int d)
 {
 	DATA_D = d;
 }
 
-void WABAACUDA_LIB::SetTimepoints(int t)
+void BROCCOLI_LIB::SetTimepoints(int t)
 {
 	DATA_T = t;
 }
 
-void WABAACUDA_LIB::SetXSize(float value)
+void BROCCOLI_LIB::SetXSize(float value)
 {
 	x_size = value;
 }
 
-void WABAACUDA_LIB::SetYSize(float value)
+void BROCCOLI_LIB::SetYSize(float value)
 {
 	y_size = value;
 }
 
-void WABAACUDA_LIB::SetZSize(float value)
+void BROCCOLI_LIB::SetZSize(float value)
 {
 	z_size = value;
 }
 
-void WABAACUDA_LIB::SetTR(float value)
+void BROCCOLI_LIB::SetTR(float value)
 {
 	TR = value;
 }
 
-void WABAACUDA_LIB::SetSignificanceThreshold(float value)
+void BROCCOLI_LIB::SetSignificanceThreshold(float value)
 {
 	significance_threshold = value;
 }
 
-void WABAACUDA_LIB::SetNumberOfPermutations(int value)
+void BROCCOLI_LIB::SetNumberOfPermutations(int value)
 {
 	NUMBER_OF_PERMUTATIONS = value;
 }
 
-float WABAACUDA_LIB::GetPermutationThreshold()
+float BROCCOLI_LIB::GetPermutationThreshold()
 {
 	return permutation_test_threshold;
 }
 
-void WABAACUDA_LIB::PerformPreprocessingAndCalculateActivityMap()
+void BROCCOLI_LIB::PerformPreprocessingAndCalculateActivityMap()
 {
     //PerformSliceTimingCorrection();
 	PerformMotionCompensation();
@@ -811,7 +811,7 @@ void WABAACUDA_LIB::PerformPreprocessingAndCalculateActivityMap()
 	CalculateSlicesPreprocessedfMRIData();
 }
 
-void WABAACUDA_LIB::SmoothingSingleVolume(float* d_Smoothed_Volume, float* d_Volume, float* d_Certainty, float* d_Smoothed_Alpha_Certainty, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+void BROCCOLI_LIB::SmoothingSingleVolume(float* d_Smoothed_Volume, float* d_Volume, float* d_Certainty, float* d_Smoothed_Alpha_Certainty, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
 {
 	float  *d_Filter_Response_Rows, *d_Filter_Response_Columns;
 
@@ -878,7 +878,7 @@ void WABAACUDA_LIB::SmoothingSingleVolume(float* d_Smoothed_Volume, float* d_Vol
 	cudaFree(d_Filter_Response_Columns);
 }
 
-void WABAACUDA_LIB::GeneratePermutationMatrix()
+void BROCCOLI_LIB::GeneratePermutationMatrix()
 {
     for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
     {
@@ -897,7 +897,7 @@ void WABAACUDA_LIB::GeneratePermutationMatrix()
     }
 }
 
-void WABAACUDA_LIB::PerformDetrendingPriorPermutation()
+void BROCCOLI_LIB::PerformDetrendingPriorPermutation()
 {	
 	int threadsInX = 32;
 	int threadsInY = 8;
@@ -918,7 +918,7 @@ void WABAACUDA_LIB::PerformDetrendingPriorPermutation()
 	DetrendCubic<<<dimGrid, dimBlock>>>(d_Detrended_fMRI_Volumes_1, d_Motion_Compensated_fMRI_Volumes, d_Brain_Voxels, DATA_W, DATA_H, DATA_D, DATA_T, blocksInY, 1.0f/((float)blocksInY), timeMultiples, timeRest);
 }
 
-void WABAACUDA_LIB::CreateBOLDRegressedVolumes()
+void BROCCOLI_LIB::CreateBOLDRegressedVolumes()
 {	
 	int threadsInX = 32;
 	int threadsInY = 8;
@@ -938,7 +938,7 @@ void WABAACUDA_LIB::CreateBOLDRegressedVolumes()
 }
 
 
-void WABAACUDA_LIB::PerformWhiteningPriorPermutation()
+void BROCCOLI_LIB::PerformWhiteningPriorPermutation()
 {
 	int threadsInX = 32;
 	int threadsInY = 8;
@@ -960,7 +960,7 @@ void WABAACUDA_LIB::PerformWhiteningPriorPermutation()
 	ApplyWhiteningAR4<<<dimGrid, dimBlock>>>(d_Whitened_fMRI_Volumes, d_BOLD_Regressed_fMRI_Volumes, d_Smoothed_Alphas_1, d_Smoothed_Alphas_2, d_Smoothed_Alphas_3, d_Smoothed_Alphas_4, d_Brain_Voxels, DATA_W, DATA_H, DATA_D, DATA_T, blocksInY, 1.0f/(float)blocksInY);
 }
 
-void WABAACUDA_LIB::GeneratePermutedfMRIVolumes()
+void BROCCOLI_LIB::GeneratePermutedfMRIVolumes()
 {
 	int threadsInX = 32;
     int threadsInY = 8;
@@ -977,7 +977,7 @@ void WABAACUDA_LIB::GeneratePermutedfMRIVolumes()
 	GeneratePermutedfMRIVolumesAR4<<<dimGrid, dimBlock>>>(d_Permuted_fMRI_Volumes, d_Smoothed_Alphas_1, d_Smoothed_Alphas_2, d_Smoothed_Alphas_3, d_Smoothed_Alphas_4, d_Whitened_fMRI_Volumes, d_Brain_Voxels, DATA_W, DATA_H, DATA_D, DATA_T, blocksInY, 1.0f/((float)blocksInY));
 }
 
-void WABAACUDA_LIB::SetupParametersPermutation()
+void BROCCOLI_LIB::SetupParametersPermutation()
 {	
 	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
 	{
@@ -1037,7 +1037,7 @@ void WABAACUDA_LIB::SetupParametersPermutation()
 	device_pointers_permutation[PERMUTED_VOLUMES] = d_Permuted_fMRI_Volumes;
 }
 
-float WABAACUDA_LIB::FindMaxTestvaluePermutationOld()
+float BROCCOLI_LIB::FindMaxTestvaluePermutationOld()
 {	
 	float* h_Slice_Max = (float*)malloc(sizeof(float) * DATA_D);
 	float* d_Slice_Max; 
@@ -1072,7 +1072,7 @@ float WABAACUDA_LIB::FindMaxTestvaluePermutationOld()
 	return max;	
 }
 
-float WABAACUDA_LIB::FindMaxTestvaluePermutation()
+float BROCCOLI_LIB::FindMaxTestvaluePermutation()
 {
 	cudaMemcpy(h_Activity_Volume, d_Activity_Volume, DATA_W * DATA_H * DATA_D * sizeof(float), cudaMemcpyDeviceToHost);
 	thrust::host_vector<float> h_vec(h_Activity_Volume, &h_Activity_Volume[DATA_W * DATA_H * DATA_D]); 
@@ -1083,12 +1083,12 @@ float WABAACUDA_LIB::FindMaxTestvaluePermutation()
     return thrust::reduce(d_vec.begin(), d_vec.end(), -1000.0f, thrust::maximum<float>());
 }
 
-int WABAACUDA_LIB::GetNumberOfSignificantlyActiveVoxels()
+int BROCCOLI_LIB::GetNumberOfSignificantlyActiveVoxels()
 {
 	return NUMBER_OF_SIGNIFICANTLY_ACTIVE_VOXELS;
 }
 
-void WABAACUDA_LIB::CalculatePermutationTestThreshold()
+void BROCCOLI_LIB::CalculatePermutationTestThreshold()
 {
 	SetupParametersPermutation();
 	GeneratePermutationMatrix();
@@ -1142,7 +1142,7 @@ void WABAACUDA_LIB::CalculatePermutationTestThreshold()
 }
 
 
-std::string WABAACUDA_LIB::PrintGPUInfo()
+std::string BROCCOLI_LIB::PrintGPUInfo()
 {
 	int deviceCount = 0;
 	int driverVersion = 0;
@@ -1173,7 +1173,7 @@ std::string WABAACUDA_LIB::PrintGPUInfo()
 
 // Read functions
 
-void WABAACUDA_LIB::ReadRealDataInt32(int* data, std::string filename, int N)
+void BROCCOLI_LIB::ReadRealDataInt32(int* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::in | std::ios::binary);
 	int current_value;
@@ -1194,7 +1194,7 @@ void WABAACUDA_LIB::ReadRealDataInt32(int* data, std::string filename, int N)
 	file.close();
 }
 
-void WABAACUDA_LIB::ReadRealDataInt16(short int* data, std::string filename, int N)
+void BROCCOLI_LIB::ReadRealDataInt16(short int* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::in | std::ios::binary);
 	short int current_value;
@@ -1215,7 +1215,7 @@ void WABAACUDA_LIB::ReadRealDataInt16(short int* data, std::string filename, int
 	file.close();
 }
 
-void WABAACUDA_LIB::ReadRealDataUint32(unsigned int* data, std::string filename, int N)
+void BROCCOLI_LIB::ReadRealDataUint32(unsigned int* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::in | std::ios::binary);
 	unsigned int current_value;
@@ -1236,7 +1236,7 @@ void WABAACUDA_LIB::ReadRealDataUint32(unsigned int* data, std::string filename,
 	file.close();
 }
 
-void WABAACUDA_LIB::ReadRealDataUint16(unsigned short int* data, std::string filename, int N)
+void BROCCOLI_LIB::ReadRealDataUint16(unsigned short int* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::in | std::ios::binary);
 	unsigned short int current_value;
@@ -1258,7 +1258,7 @@ void WABAACUDA_LIB::ReadRealDataUint16(unsigned short int* data, std::string fil
 }
 
 
-void WABAACUDA_LIB::ReadRealDataFloat(float* data, std::string filename, int N)
+void BROCCOLI_LIB::ReadRealDataFloat(float* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::in | std::ios::binary);
 	float current_value;
@@ -1279,7 +1279,7 @@ void WABAACUDA_LIB::ReadRealDataFloat(float* data, std::string filename, int N)
 	file.close();
 }
 
-void WABAACUDA_LIB::ReadRealDataDouble(double* data, std::string filename, int N)
+void BROCCOLI_LIB::ReadRealDataDouble(double* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::in | std::ios::binary);
 	double current_value;
@@ -1300,7 +1300,7 @@ void WABAACUDA_LIB::ReadRealDataDouble(double* data, std::string filename, int N
 	file.close();
 }
 
-void WABAACUDA_LIB::WriteRealDataUint16(unsigned short int* data, std::string filename, int N)
+void BROCCOLI_LIB::WriteRealDataUint16(unsigned short int* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::out | std::ios::binary);
 	unsigned short int current_value;
@@ -1321,7 +1321,7 @@ void WABAACUDA_LIB::WriteRealDataUint16(unsigned short int* data, std::string fi
 	file.close();
 }
 
-void WABAACUDA_LIB::WriteRealDataFloat(float* data, std::string filename, int N)
+void BROCCOLI_LIB::WriteRealDataFloat(float* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::out | std::ios::binary);
 	float current_value;
@@ -1342,7 +1342,7 @@ void WABAACUDA_LIB::WriteRealDataFloat(float* data, std::string filename, int N)
 	file.close();
 }
 
-void WABAACUDA_LIB::WriteRealDataDouble(double* data, std::string filename, int N)
+void BROCCOLI_LIB::WriteRealDataDouble(double* data, std::string filename, int N)
 {
 	std::fstream file(filename, std::ios::out | std::ios::binary);
 	double current_value;
@@ -1363,7 +1363,7 @@ void WABAACUDA_LIB::WriteRealDataDouble(double* data, std::string filename, int 
 	file.close();
 }
 
-void WABAACUDA_LIB::ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
+void BROCCOLI_LIB::ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
 {
 	std::fstream real_file(real_filename, std::ios::in | std::ios::binary);
 	std::fstream imag_file(imag_filename, std::ios::in | std::ios::binary);
@@ -1399,7 +1399,7 @@ void WABAACUDA_LIB::ReadComplexData(Complex* data, std::string real_filename, st
 	imag_file.close();
 }
 
-void WABAACUDA_LIB::WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
+void BROCCOLI_LIB::WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
 {
 	std::fstream real_file(real_filename, std::ios::out | std::ios::binary);
 	std::fstream imag_file(imag_filename, std::ios::out | std::ios::binary);
@@ -1435,7 +1435,7 @@ void WABAACUDA_LIB::WriteComplexData(Complex* data, std::string real_filename, s
 	imag_file.close();
 }
 
-void WABAACUDA_LIB::SetupParametersReadData()
+void BROCCOLI_LIB::SetupParametersReadData()
 {
 	// Reset all pointers
 	
@@ -1565,7 +1565,7 @@ void WABAACUDA_LIB::SetupParametersReadData()
 
 
 
-void WABAACUDA_LIB::ReadfMRIDataRAW()
+void BROCCOLI_LIB::ReadfMRIDataRAW()
 {
 	SetupParametersReadData();
 	
@@ -1642,7 +1642,7 @@ void WABAACUDA_LIB::ReadfMRIDataRAW()
 	CalculateSlicesfMRIData();
 }
 
-void WABAACUDA_LIB::ReadfMRIDataNIFTI()
+void BROCCOLI_LIB::ReadfMRIDataNIFTI()
 {
 	nifti_data = new nifti_image;
 	// Read nifti data
@@ -1754,7 +1754,7 @@ void WABAACUDA_LIB::ReadfMRIDataNIFTI()
 
 
 
-void WABAACUDA_LIB::ReadNIFTIHeader()
+void BROCCOLI_LIB::ReadNIFTIHeader()
 {
 	// Read nifti header only
 	nifti_data = nifti_image_read(filename_fMRI_data.c_str(), 0);
@@ -1773,7 +1773,7 @@ void WABAACUDA_LIB::ReadNIFTIHeader()
 
 
 
-void WABAACUDA_LIB::ReadMotionCompensationFilters()
+void BROCCOLI_LIB::ReadMotionCompensationFilters()
 {
 	// Read the quadrature filters from file
 	ReadComplexData(h_Quadrature_Filter_1, filename_real_quadrature_filter_1, filename_imag_quadrature_filter_1, MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE);
@@ -1786,7 +1786,7 @@ void WABAACUDA_LIB::ReadMotionCompensationFilters()
 	cudaMemcpyToSymbol(c_Quadrature_Filter_3, h_Quadrature_Filter_3, sizeof(Complex) * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE);
 }
 
-void WABAACUDA_LIB::ReadSmoothingFilters()
+void BROCCOLI_LIB::ReadSmoothingFilters()
 {
 	// Read smoothing filters from file
 	std::string mm_string;
@@ -1821,7 +1821,7 @@ void WABAACUDA_LIB::ReadSmoothingFilters()
 
 // Help functions
 
-void WABAACUDA_LIB::Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N)
+void BROCCOLI_LIB::Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -1832,7 +1832,7 @@ void WABAACUDA_LIB::Convert4FloatToFloat4(float4* floats, float* float_1, float*
 	}
 }
 
-void WABAACUDA_LIB::Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N)
+void BROCCOLI_LIB::Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -1841,7 +1841,7 @@ void WABAACUDA_LIB::Convert2FloatToFloat2(float2* floats, float* float_1, float*
 	}
 }
 
-void WABAACUDA_LIB::ConvertRealToComplex(Complex* complex_data, float* real_data, int N)
+void BROCCOLI_LIB::ConvertRealToComplex(Complex* complex_data, float* real_data, int N)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -1850,7 +1850,7 @@ void WABAACUDA_LIB::ConvertRealToComplex(Complex* complex_data, float* real_data
 	}
 }
 
-void WABAACUDA_LIB::ExtractRealData(float* real_data, Complex* complex_data, int N)
+void BROCCOLI_LIB::ExtractRealData(float* real_data, Complex* complex_data, int N)
 {
 	for (int i = 0; i < N; i++)
 	{
@@ -1858,7 +1858,7 @@ void WABAACUDA_LIB::ExtractRealData(float* real_data, Complex* complex_data, int
 	}
 }
 
-void WABAACUDA_LIB::Calculate_Block_Differences2D(int& xBlockDifference, int& yBlockDifference, int DATA_W, int DATA_H, int threadsInX, int threadsInY)
+void BROCCOLI_LIB::Calculate_Block_Differences2D(int& xBlockDifference, int& yBlockDifference, int DATA_W, int DATA_H, int threadsInX, int threadsInY)
 {
 	if ( (DATA_W % threadsInX) == 0)
 	{
@@ -1879,7 +1879,7 @@ void WABAACUDA_LIB::Calculate_Block_Differences2D(int& xBlockDifference, int& yB
 	}
 }
 
-void WABAACUDA_LIB::Calculate_Block_Differences3D(int& xBlockDifference, int& yBlockDifference, int& zBlockDifference, int DATA_W, int DATA_H, int DATA_D, int threadsInX, int threadsInY, int threadsInZ)
+void BROCCOLI_LIB::Calculate_Block_Differences3D(int& xBlockDifference, int& yBlockDifference, int& zBlockDifference, int DATA_W, int DATA_H, int DATA_D, int threadsInX, int threadsInY, int threadsInZ)
 {
 	if ( (DATA_W % threadsInX) == 0)
 	{
@@ -1909,7 +1909,7 @@ void WABAACUDA_LIB::Calculate_Block_Differences3D(int& xBlockDifference, int& yB
 	}
 }
 
-void WABAACUDA_LIB::Invert_Matrix(float* inverse_matrix, float* matrix, int N)
+void BROCCOLI_LIB::Invert_Matrix(float* inverse_matrix, float* matrix, int N)
 {      
     int i = 0;
     int j = 0;
@@ -2045,7 +2045,7 @@ void WABAACUDA_LIB::Invert_Matrix(float* inverse_matrix, float* matrix, int N)
 	free(X);
 }
 
-void WABAACUDA_LIB::Calculate_Square_Root_of_Matrix(float* sqrt_matrix, float* matrix, int N)
+void BROCCOLI_LIB::Calculate_Square_Root_of_Matrix(float* sqrt_matrix, float* matrix, int N)
 {
 	float* tempinv = (float*)malloc(sizeof(float) * N * N); 
 
@@ -2071,7 +2071,7 @@ void WABAACUDA_LIB::Calculate_Square_Root_of_Matrix(float* sqrt_matrix, float* m
 	free(tempinv);
 }
 
-void WABAACUDA_LIB::SolveEquationSystem(float* h_A_matrix, float* h_inverse_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N)
+void BROCCOLI_LIB::SolveEquationSystem(float* h_A_matrix, float* h_inverse_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N)
 {
 	Invert_Matrix(h_inverse_A_matrix, h_A_matrix, N);
 
@@ -2086,7 +2086,7 @@ void WABAACUDA_LIB::SolveEquationSystem(float* h_A_matrix, float* h_inverse_A_ma
 	}
 }
 
-void WABAACUDA_LIB::SetupDetrendingBasisFunctions()
+void BROCCOLI_LIB::SetupDetrendingBasisFunctions()
 {
 	/*
 	Matlab equivalent
@@ -2202,7 +2202,7 @@ void WABAACUDA_LIB::SetupDetrendingBasisFunctions()
 	cudaMemcpyToSymbol(c_xtxxt_Detrend, h_xtxxt_Detrend, sizeof(float) * NUMBER_OF_DETRENDING_BASIS_FUNCTIONS * DATA_T);
 }
 
-void WABAACUDA_LIB::SegmentBrainData()
+void BROCCOLI_LIB::SegmentBrainData()
 {
 	int threadsInX = 32;
 	int threadsInY = 8;
@@ -2236,7 +2236,7 @@ float Gpdf(double value, double shape, double scale)
 
 
 
-void WABAACUDA_LIB::CreateHRF()
+void BROCCOLI_LIB::CreateHRF()
 {
 	/*
 	% p    - parameters of the response function (two gamma functions)
@@ -2334,7 +2334,7 @@ void WABAACUDA_LIB::CreateHRF()
 }
 
 
-void WABAACUDA_LIB::ConvolveWithHRF(float* temp_GLM)
+void BROCCOLI_LIB::ConvolveWithHRF(float* temp_GLM)
 {
 	// Calculate derivative of hrf
 	float* hrf_diff = (float*)malloc(sizeof(float) * hrf_length);
@@ -2366,7 +2366,7 @@ void WABAACUDA_LIB::ConvolveWithHRF(float* temp_GLM)
 	free(hrf_diff);
 }
 
-void WABAACUDA_LIB::SetupStatisticalAnalysisBasisFunctions()
+void BROCCOLI_LIB::SetupStatisticalAnalysisBasisFunctions()
 {
 	/* Matlab equivalent
 	% GLM
@@ -2546,7 +2546,7 @@ void WABAACUDA_LIB::SetupStatisticalAnalysisBasisFunctions()
 
 // Preprocessing
 
-void WABAACUDA_LIB::PerformSliceTimingCorrection()
+void BROCCOLI_LIB::PerformSliceTimingCorrection()
 {
 	int NUMBER_OF_VOXELS = DATA_W * DATA_H * DATA_D;
 
@@ -2651,7 +2651,7 @@ void Set_float30_to_zeros(float30& x)
 	x.dd = 0.0f;
 }
 
-void WABAACUDA_LIB::PerformMotionCompensation()
+void BROCCOLI_LIB::PerformMotionCompensation()
 {
 	if (!MOTION_COMPENSATED)
 	{
@@ -3139,7 +3139,7 @@ void WABAACUDA_LIB::PerformMotionCompensation()
 
 
 
-void WABAACUDA_LIB::PerformSmoothing()
+void BROCCOLI_LIB::PerformSmoothing()
 {
 	sdkCreateTimer(&hTimer);
 
@@ -3607,7 +3607,7 @@ void WABAACUDA_LIB::PerformSmoothing()
 	sdkDeleteTimer(&hTimer);
 }
 
-void WABAACUDA_LIB::PerformDetrending()
+void BROCCOLI_LIB::PerformDetrending()
 {
 	sdkCreateTimer(&hTimer);
 
@@ -3790,7 +3790,7 @@ void WABAACUDA_LIB::PerformDetrending()
 	sdkDeleteTimer(&hTimer);
 }
 
-void WABAACUDA_LIB::CalculateActivityMap()
+void BROCCOLI_LIB::CalculateActivityMap()
 {
 	sdkCreateTimer(&hTimer);
 
@@ -3893,7 +3893,7 @@ void WABAACUDA_LIB::CalculateActivityMap()
 
 
 
-void WABAACUDA_LIB::PerformSmoothingPermutation()
+void BROCCOLI_LIB::PerformSmoothingPermutation()
 {
 	// CCA 2D
 	if ( (ANALYSIS_METHOD == CCA) && (SMOOTHING_DIMENSIONALITY == SMOOTHING_2D) )
@@ -4218,7 +4218,7 @@ void WABAACUDA_LIB::PerformSmoothingPermutation()
 	}
 }
 
-void WABAACUDA_LIB::PerformDetrendingPermutation()
+void BROCCOLI_LIB::PerformDetrendingPermutation()
 {
 	if ( (ANALYSIS_METHOD == CCA) && (SMOOTHING_DIMENSIONALITY == SMOOTHING_2D) )
 	{
@@ -4283,7 +4283,7 @@ void WABAACUDA_LIB::PerformDetrendingPermutation()
 	}
 }
 
-void WABAACUDA_LIB::CalculateActivityMapPermutation()
+void BROCCOLI_LIB::CalculateActivityMapPermutation()
 {
 	// CCA 2D
 	if ( (ANALYSIS_METHOD == CCA) && (SMOOTHING_DIMENSIONALITY == SMOOTHING_2D) )
