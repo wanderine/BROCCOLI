@@ -16,4 +16,4 @@ Eklund, A., Andersson, M., Knutsson, H., Phase Based Volume Registration Using C
 
 --------------------------------------------------------------------
 
-The software is made with OpenCL and QT.
+The software is made with OpenCL and QT. BROCCOLI runs on Windows, Linux and Mac.
