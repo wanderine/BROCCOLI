@@ -143,7 +143,7 @@ class BROCCOLI_LIB
 		BROCCOLI_LIB();
 		~BROCCOLI_LIB();
 
-		// Set functions
+		// Set functions for GUI
 		void SetfMRIDataFilename(std::string filename);
 			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);
@@ -179,7 +179,7 @@ class BROCCOLI_LIB
 		void SetNumberOfPermutations(int value);
 		void SetSignificanceThreshold(float value);
 
-		// Get functions
+		// Get functions for GUI
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCompensation();
 		double GetProcessingTimeSmoothing();
@@ -274,7 +274,7 @@ class BROCCOLI_LIB
 		StopWatchInterface* hTimer;
 		StopWatchInterface* hTimer2;
 
-		// Read and wrte functions
+		// Read and write functions
 		void SetupParametersReadData();
 
 		void ReadRealDataInt32(int* data, std::string filename, int N);
@@ -515,9 +515,6 @@ class BROCCOLI_LIB
 		std::string		filename_detrended_fMRI_volumes_4;
 		std::string		filename_activity_volume;
 };
-
-
-
 
 
 #endif
