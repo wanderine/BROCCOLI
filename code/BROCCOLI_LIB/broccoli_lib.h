@@ -28,13 +28,13 @@
 #include "cuda_runtime.h"
 #include <string>
 
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-#include <thrust/generate.h>
-#include <thrust/reduce.h>
-#include <thrust/functional.h>
-#include <thrust/transform_reduce.h>
-#include <cstdlib>
+//#include <thrust/host_vector.h>
+//#include <thrust/device_vector.h>
+//#include <thrust/generate.h>
+//#include <thrust/reduce.h>
+//#include <thrust/functional.h>
+//#include <thrust/transform_reduce.h>
+//#include <cstdlib>
 
 
 typedef float2 Complex;
@@ -251,27 +251,36 @@ class BROCCOLI_LIB
 		std::string GetfMRIDataFilename();
 
 		int GetNumberOfSignificantlyActiveVoxels();
+		int GetNumberOfSignificantlyActiveClusters();
 
+		std::string PrintDeviceInfo();
+
+		// Read functions
 		void ReadfMRIDataRAW();
 		void ReadfMRIDataNIFTI();
 		void ReadNIFTIHeader();
 
-		// Calculations
-		void PerformPreprocessingAndCalculateActivityMap();
-		void CalculatePermutationTestThreshold();
-
-		std::string PrintGPUInfo();
-
-		// Calculations		
+		// Write functions
+		void WritefMRIDataNIFTI();
+		
+		// Preprocessing
+		void PerformRegistrationEPIT1();
+		void PerformRegistrationT1MNI();
 		void PerformSliceTimingCorrection();
 		void PerformMotionCompensation();
 		void PerformDetrending();
 		void PerformSmoothing(); 
+		
+		// Processing
+		void PerformPreprocessingAndCalculateActivityMap();				
 		void CalculateActivityMap();
-
-			
-		void SetupParametersPermutation();
-		void GeneratePermutationMatrix();
+		void CalculateGroupMap();
+		void CalculatePermutationTestThresholdSingleSubject();
+		void CalculatePermutationTestThresholdMultiSubject();
+		
+		// Permutation single subject	
+		void SetupParametersPermutationSingleSubject();
+		void GeneratePermutationMatrixSingleSubject();
 		void PerformDetrendingPriorPermutation();
 		void CreateBOLDRegressedVolumes();
 		void SmoothingSingleVolume(float* d_Smoothed_Volume, float* d_Volume, float* d_Certainty, float* d_Smoothed_Alpha_Certainty, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE);
@@ -280,35 +289,38 @@ class BROCCOLI_LIB
 		void PerformDetrendingPermutation();
 		void PerformSmoothingPermutation(); 
 		void CalculateActivityMapPermutation();
-		float FindMaxTestvaluePermutation();
-		float FindMaxTestvaluePermutationOld();
 
+		// Permutation multi subject	
+		void SetupParametersPermutationMultiSubject();
+		void GeneratePermutationMatrixMultiSubject();
+		
+
+		void CalculateGroupMapPermutation();
+		float FindMaxTestvaluePermutation();
+		
 		void CalculateSlicesfMRIData();
 		void CalculateSlicesPreprocessedfMRIData();
 		void CalculateSlicesActivityData();
 
 	private:
 
-		StopWatchInterface* hTimer;
-		StopWatchInterface* hTimer2;
-
-		// Read and write functions
-		void SetupParametersReadData();
-
+		// Read functions
 		void ReadRealDataInt32(int* data, std::string filename, int N);
 		void ReadRealDataInt16(short int* data, std::string filename, int N);
 		void ReadRealDataUint32(unsigned int* data, std::string filename, int N);
 		void ReadRealDataUint16(unsigned short int* data, std::string filename, int N);
-
 		void ReadRealDataFloat(float* data, std::string filename, int N);
 		void ReadRealDataDouble(double* data, std::string filename, int N);
+		void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
+		void ReadMotionCompensationFilters();
+		void ReadSmoothingFilters();
+		void SetupParametersReadData();
+
+		// Write functions
 		void WriteRealDataUint16(unsigned short int* data, std::string filename, int N);
 		void WriteRealDataFloat(float* data, std::string filename, int N);
 		void WriteRealDataDouble(double* data, std::string filename, int N);
-		void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
 		void WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
-		void ReadMotionCompensationFilters();
-		void ReadSmoothingFilters();
 
 		// Help functions
 		void ConvertRealToComplex(Complex* complex_data, float* real_data, int N);
@@ -358,20 +370,19 @@ class BROCCOLI_LIB
 		float TR;
 		bool SLICE_TIMING_CORRECTED;
 
-		// Motion compensation
-		bool MOTION_COMPENSATED;
-		int NUMBER_OF_ITERATIONS_FOR_MOTION_COMPENSATION;
-		int MOTION_COMPENSATION_FILTER_SIZE;
+		// Motion correction
+		bool MOTION_CORRECTED;
+		int NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
+		int MOTION_CORRECTION_FILTER_SIZE;
 		int	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS;
 		
 		double* motion_parameters_x;
 		double* motion_parameters_y;
 		double* motion_parameters_z;
 
-		double* motion_compensated_curve;
+		double* motion_corrected_curve;
 
 		// Smoothing
-		int SMOOTHING_DIMENSIONALITY;
 		int	SMOOTHING_FILTER_SIZE;
 		int	SMOOTHING_AMOUNT_MM;
 			
@@ -397,9 +408,9 @@ class BROCCOLI_LIB
 		float permutation_test_threshold;
 		int NUMBER_OF_SIGNIFICANTLY_ACTIVE_VOXELS;
 		
-		/*--------------------------------------------------*/
+		//--------------------------------------------------
 		// Host pointers
-		/*--------------------------------------------------*/
+		//--------------------------------------------------
 			
 		void		*host_pointers[NUMBER_OF_HOST_POINTERS];
 		void		*host_pointers_static[NUMBER_OF_HOST_POINTERS];
@@ -459,9 +470,9 @@ class BROCCOLI_LIB
 		float		*h_Variance_Smoothing_Kernel;
 		float		*h_Smoothed_Variance_Certainty;
 
-		/*--------------------------------------------------*/
+		//--------------------------------------------------
 		// Device pointers
-		/*--------------------------------------------------*/
+		//--------------------------------------------------
 
 		float		*device_pointers[NUMBER_OF_DEVICE_POINTERS];
 		float		*device_pointers_permutation[NUMBER_OF_DEVICE_POINTERS];
@@ -479,12 +490,14 @@ class BROCCOLI_LIB
 			
 		// Smoothing
 		float		*d_Smoothed_Certainty;
+		float		*d_Smoothed_fMRI_Volumes;
 		float		*d_Smoothed_fMRI_Volumes_1;
 		float		*d_Smoothed_fMRI_Volumes_2;
 		float		*d_Smoothed_fMRI_Volumes_3;
 		float		*d_Smoothed_fMRI_Volumes_4;
 
 		// Detrending
+		float		*d_Detrended_fMRI_Volumes;
 		float		*d_Detrended_fMRI_Volumes_1;
 		float		*d_Detrended_fMRI_Volumes_2;
 		float		*d_Detrended_fMRI_Volumes_3;
@@ -493,7 +506,7 @@ class BROCCOLI_LIB
 		// Statistical analysis
 		float		*d_Activity_Volume;
 
-		// Random permutations
+		// Paraneters for single subject permutations
 		float		*d_Alphas_1, *d_Alphas_2, *d_Alphas_3, *d_Alphas_4;
 		float		*d_Smoothed_Alphas_1, *d_Smoothed_Alphas_2, *d_Smoothed_Alphas_3, *d_Smoothed_Alphas_4;
 			
@@ -502,9 +515,10 @@ class BROCCOLI_LIB
 		float		*d_Permuted_fMRI_Volumes;
 
 
-		/*--------------------------------------------------*/
+		//--------------------------------------------------
 		// Filenames
-		/*--------------------------------------------------*/
+		//--------------------------------------------------
+
 		std::string		filename_real_quadrature_filter_1;
 		std::string		filename_real_quadrature_filter_2;
 		std::string		filename_real_quadrature_filter_3;
