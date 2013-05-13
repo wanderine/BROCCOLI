@@ -25,6 +25,7 @@
 #include <cuda.h>
 #include <helper_functions.h> // Helper functions (utilities, parsing, timing)
 #include "cuda_runtime.h"
+#include <opencl.h>
 
 #include <string>
 
@@ -293,6 +294,16 @@ class BROCCOLI_LIB
 		void CalculateSlicesfMRIData();
 		void CalculateSlicesPreprocessedfMRIData();
 		void CalculateSlicesActivityData();
+
+		void OpenCLTest();
+
+		cl_context context;
+		cl_command_queue commandQueue;
+		cl_program program;
+		cl_device_id device;
+		cl_kernel kernel;
+		cl_mem memObjects[3];
+		cl_int errNum;
 
 	private:
 

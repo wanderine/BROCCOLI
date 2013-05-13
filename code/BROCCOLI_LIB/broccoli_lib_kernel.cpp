@@ -17,18 +17,25 @@
 */
 
 #include "broccoli_lib.h"
+#include <opencl.h>
 
 
 
-
-inline __device__ int Calculate_3D_Index(int a, int b, int c, int DATA_A, int DATA_B)
+int Calculate_3D_Index(int a, int b, int c, int DATA_A, int DATA_B)
 {
 	return a + b * DATA_A + c * DATA_A * DATA_B;
 }
 
-inline __device__ int Calculate_4D_Index(int a, int b, int c, int d, int DATA_A, int DATA_B, int DATA_C)
+int Calculate_4D_Index(int a, int b, int c, int d, int DATA_A, int DATA_B, int DATA_C)
 {
 	return a + b * DATA_A + c * DATA_A * DATA_B + d * DATA_A * DATA_B * DATA_C;
+}
+
+__kernel void AddVectors(__global const float *a, __global const float *b, __global float *c)
+{
+	int id = get_global_id(0);
+
+	c[id] = a[id] + b[id];
 }
 
 /*
