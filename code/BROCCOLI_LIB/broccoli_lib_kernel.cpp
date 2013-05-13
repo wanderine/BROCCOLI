@@ -31,6 +31,7 @@ inline __device__ int Calculate_4D_Index(int a, int b, int c, int d, int DATA_A,
 	return a + b * DATA_A + c * DATA_A * DATA_B + d * DATA_A * DATA_B * DATA_C;
 }
 
+/*
 extern "C" __global__ void convolutionRows(float *Filter_Responses, float* fMRI_Volumes, float* Brain_Voxels, int t, int DATA_W, int DATA_H, int DATA_D, int xBlockDifference, int yBlockDifference, int zBlockDifference)
 {
 	volatile int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -1061,7 +1062,7 @@ extern "C" __global__ void convolutionRodsNew(float* __restrict__ Filter_Respons
 		}
 	}
 }
-
+*/
 
 
 

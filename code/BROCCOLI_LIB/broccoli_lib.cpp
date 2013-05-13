@@ -30,8 +30,8 @@
 
 //#include <shrUtils.h>
 //#include <shrQATest.h>
-#include "BROCCOLI_lib.h"
-#include "BROCCOLI_kernel.cu"
+#include "broccoli_lib.h"
+#include "broccoli_lib_kernel.cpp"
 
 #include "nifti1.h"
 #include "nifti1_io.h"
@@ -55,7 +55,7 @@ slice timing correction
 // Constructor
 BROCCOLI_LIB::BROCCOLI_LIB()
 {
-	PREPROCESSED = MOTION_COMPENSATION;
+	PREPROCESSED = MOTION_CORRECTION;
 
 	FILE_TYPE = RAW;
 	DATA_TYPE = FLOAT;
@@ -81,10 +81,6 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	filename_imag_quadrature_filter_3 = "filters\\quadrature_filter_3_imag.raw";
 
 	filename_GLM_filter = "filters\\GLM_smoothing_filter_";
-	filename_CCA_2D_filter_1 = "filters\\CCA_2D_smoothing_filter_1_";
-	filename_CCA_2D_filter_2 = "filters\\CCA_2D_smoothing_filter_2_";
-	filename_CCA_2D_filter_3 = "filters\\CCA_2D_smoothing_filter_3_";
-	filename_CCA_2D_filter_4 = "filters\\CCA_2D_smoothing_filter_4_";
 	filename_CCA_3D_filter_1 = "filters\\CCA_3D_smoothing_filter_1_";
 	filename_CCA_3D_filter_2 = "filters\\CCA_3D_smoothing_filter_2_";
 	filename_fMRI_data = "fMRI_data.raw";
@@ -94,23 +90,18 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	filename_motion_compensated_fMRI_volumes = "output\\motion_compensated_fMRI_volumes.raw";
 	filename_smoothed_fMRI_volumes_1 = "output\\smoothed_fMRI_volumes_1.raw";
 	filename_smoothed_fMRI_volumes_2 = "output\\smoothed_fMRI_volumes_2.raw";
-	filename_smoothed_fMRI_volumes_3 = "output\\smoothed_fMRI_volumes_3.raw";
-	filename_smoothed_fMRI_volumes_4 = "output\\smoothed_fMRI_volumes_4.raw";
 	filename_detrended_fMRI_volumes_1 = "output\\detrended_fMRI_volumes_1.raw";
 	filename_detrended_fMRI_volumes_2 = "output\\detrended_fMRI_volumes_2.raw";
-	filename_detrended_fMRI_volumes_3 = "output\\detrended_fMRI_volumes_3.raw";
-	filename_detrended_fMRI_volumes_4 = "output\\detrended_fMRI_volumes_4.raw";
 	filename_activity_volume = "output\\activity_volume.raw";
 
 	THRESHOLD_ACTIVITY_MAP = false;
 	ACTIVITY_THRESHOLD = 0.5f;
 
-	MOTION_COMPENSATED = false;
-	MOTION_COMPENSATION_FILTER_SIZE = 7;
-	NUMBER_OF_ITERATIONS_FOR_MOTION_COMPENSATION = 3;
+	MOTION_CORRECTED = false;
+	MOTION_CORRECTION_FILTER_SIZE = 7;
+	NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 3;
 	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS = 30;
 	
-	SMOOTHING_DIMENSIONALITY = 2;
 	SMOOTHING_AMOUNT_MM = 8;
 	SMOOTHING_FILTER_SIZE = 9;
 	
@@ -125,8 +116,8 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	PRINT = VERBOSE;
 	WRITE_DATA = NO;
 
-	int DATA_SIZE_QUADRATURE_FILTER_REAL = sizeof(float) * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE;
-	int DATA_SIZE_QUADRATURE_FILTER_COMPLEX = sizeof(Complex) * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE;
+	int DATA_SIZE_QUADRATURE_FILTER_REAL = sizeof(float) * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE;
+	int DATA_SIZE_QUADRATURE_FILTER_COMPLEX = sizeof(Complex) * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE;
 
 	int DATA_SIZE_SMOOTHING_FILTER_2D_CCA = sizeof(float) * SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE;
 	int DATA_SIZE_SMOOTHING_FILTERS_2D_CCA = sizeof(float4) * SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE;
@@ -169,11 +160,6 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	h_Quadrature_Filter_2 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
 	h_Quadrature_Filter_3 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
 
-	h_CCA_2D_Filter_1 = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_2D_CCA);
-	h_CCA_2D_Filter_2 = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_2D_CCA);
-	h_CCA_2D_Filter_3 = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_2D_CCA);
-	h_CCA_2D_Filter_4 = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_2D_CCA);
-	h_CCA_2D_Filters = (float4*)malloc(DATA_SIZE_SMOOTHING_FILTERS_2D_CCA);
 	h_CCA_3D_Filter_1 = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_3D_CCA);
 	h_CCA_3D_Filter_2 = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_3D_CCA);
 	h_CCA_3D_Filters = (float2*)malloc(DATA_SIZE_SMOOTHING_FILTERS_3D_CCA);
@@ -188,16 +174,11 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	host_pointers_static[QF1]    = (void*)h_Quadrature_Filter_1;
 	host_pointers_static[QF2]    = (void*)h_Quadrature_Filter_2;
 	host_pointers_static[QF3]	 = (void*)h_Quadrature_Filter_3;
-	host_pointers_static[CCA2D1] = (void*)h_CCA_2D_Filter_1;
-	host_pointers_static[CCA2D2] = (void*)h_CCA_2D_Filter_2;
-	host_pointers_static[CCA2D3] = (void*)h_CCA_2D_Filter_3;
-	host_pointers_static[CCA2D4] = (void*)h_CCA_2D_Filter_4;
-	host_pointers_static[CCA2D]  = (void*)h_CCA_2D_Filters;
 	host_pointers_static[CCA3D1] = (void*)h_CCA_3D_Filter_1;
 	host_pointers_static[CCA3D2] = (void*)h_CCA_3D_Filter_2;
 	host_pointers_static[CCA3D]  = (void*)h_CCA_3D_Filters;
 	
-	ReadMotionCompensationFilters();
+	ReadMotionCorrectionFilters();
 	ReadSmoothingFilters();	
 }
 
@@ -272,7 +253,7 @@ void BROCCOLI_LIB::SetFileType(int type)
 
 void BROCCOLI_LIB::SetNumberOfIterationsForMotionCompensation(int N)
 {
-	NUMBER_OF_ITERATIONS_FOR_MOTION_COMPENSATION = N;
+	NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = N;
 }
 
 void BROCCOLI_LIB::SetfMRIDataSliceLocationX(int location)
@@ -309,12 +290,6 @@ void BROCCOLI_LIB::SetThresholdStatus(bool status)
 void BROCCOLI_LIB::SetSmoothingAmount(int amount)
 {
 	SMOOTHING_AMOUNT_MM = amount;
-	ReadSmoothingFilters();
-}
-
-void BROCCOLI_LIB::SetSmoothingDimensionality(int dimensionality)
-{
-	SMOOTHING_DIMENSIONALITY = dimensionality;
 	ReadSmoothingFilters();
 }
 
@@ -402,7 +377,7 @@ void BROCCOLI_LIB::SetNumberOfPermutations(int value)
 
 
 
-// Get functions for GUI
+// Get functions for GUI / Wrappers
 
 int BROCCOLI_LIB::GetfMRIDataSliceLocationX()
 {
@@ -428,7 +403,7 @@ double BROCCOLI_LIB::GetProcessingTimeSliceTimingCorrection()
 // Returns the processing time for motion correction			
 double BROCCOLI_LIB::GetProcessingTimeMotionCorrection()
 {
-	return processing_times[MOTION_COMPENSATION];
+	return processing_times[MOTION_CORRECTION];
 }
 
 // Returns the processing time for smoothing	
@@ -460,37 +435,37 @@ double BROCCOLI_LIB::GetProcessingTimeCopy()
 	return processing_times[COPY];
 }
 
-// Returns the processing time for convolution in the motion correction	
+// Returns the processing time for convolution in the motion correction	step
 double BROCCOLI_LIB::GetProcessingTimeConvolution()
 {
 	return processing_times[CONVOLVE];
 }
 
-// Returns the processing time for calculation of phase differences in the motion correction
+// Returns the processing time for calculation of phase differences in the motion correction step
 double BROCCOLI_LIB::GetProcessingTimePhaseDifferences()
 {
 	return processing_times[PHASEDC];
 }
 
-// Returns the processing time for calculation of phase gradients in the motion correction
+// Returns the processing time for calculation of phase gradients in the motion correction step
 double BROCCOLI_LIB::GetProcessingTimePhaseGradients()
 {
 	return processing_times[PHASEG];
 }
 
-// Returns the processing time for calculation of A-matrix and h-vector in the motion correction
-double BROCCOLI_LIB::BROCCOLI_LIB::GetProcessingTimeAH()
+// Returns the processing time for calculation of A-matrix and h-vector in the motion correction step
+double BROCCOLI_LIB::GetProcessingTimeAH()
 {
 	return processing_times[AH2D];
 }
 
-// Returns the processing time for solving the equation system in the motion correction
+// Returns the processing time for solving the equation system in the motion correction step
 double BROCCOLI_LIB::GetProcessingTimeEquationSystem()
 {
 	return processing_times[EQSYSTEM];
 }
 
-// Returns the processing time for the interpolation step in the motion correction
+// Returns the processing time for the interpolation step in the motion correction step
 double BROCCOLI_LIB::GetProcessingTimeInterpolation()
 {
 	return processing_times[INTERPOLATION];
@@ -622,14 +597,14 @@ double* BROCCOLI_LIB::GetPlotValuesX()
 }
 
 // Returns the timeseries of the motion corrected data for the current mouse location in the GUI
-double* BROCCOLI_LIB::GetMotionCompensatedCurve()
+double* BROCCOLI_LIB::GetMotionCorrectedCurve()
 {
 	for (int t = 0; t < DATA_T; t++)
 	{
-		motion_compensated_curve[t] = (double)h_Motion_Compensated_fMRI_Volumes[X_SLICE_LOCATION_fMRI_DATA + Y_SLICE_LOCATION_fMRI_DATA * DATA_W + Z_SLICE_LOCATION_fMRI_DATA * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D];
+		motion_corrected_curve[t] = (double)h_Motion_Corrected_fMRI_Volumes[X_SLICE_LOCATION_fMRI_DATA + Y_SLICE_LOCATION_fMRI_DATA * DATA_W + Z_SLICE_LOCATION_fMRI_DATA * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D];
 	}
 
-	return motion_compensated_curve;
+	return motion_corrected_curve;
 }
 
 // Returns the timeseries of the smoothed data for the current mouse location in the GUI
@@ -681,7 +656,8 @@ int BROCCOLI_LIB::GetNumberOfSignificantlyActiveClusters()
 // Returns a string containing info about the device(s) used for computations
 std::string BROCCOLI_LIB::PrintDeviceInfo()
 {
-
+	std::string s;
+	return s;
 }
 
 
@@ -708,7 +684,7 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1()
 	
 }
 
-// Performs registration between one high resolution T1 volume and a high resolution MNI volume
+// Performs registration between one high resolution T1 volume and a high resolution MNI volume (brain template)
 void BROCCOLI_LIB::PerformRegistrationT1MNI()
 {
 	
@@ -772,8 +748,8 @@ void BROCCOLI_LIB::CalculateGroupMap()
 // Calculates a significance threshold for a single subject
 void BROCCOLI_LIB::CalculatePermutationTestThresholdSingleSubject()
 {
-	SetupParametersPermutation();
-	GeneratePermutationMatrix();
+	SetupParametersPermutationSingleSubject();
+	GeneratePermutationMatrixSingleSubject();
 
 	// Make the timeseries white prior to the random permutations (if single subject)
 	PerformDetrendingPriorPermutation();
@@ -811,8 +787,8 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSingleSubject()
 // Calculates a significance threshold for a group of subjects
 void BROCCOLI_LIB::CalculatePermutationTestThresholdMultiSubject()
 {
-	SetupParametersPermutation();
-	GeneratePermutationMatrix();
+	SetupParametersPermutationMultiSubject();
+	GeneratePermutationMatrixMultiSubject();
 
     // Loop over all the permutations, save the maximum test value from each permutation
     for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
@@ -909,15 +885,16 @@ void BROCCOLI_LIB::CalculateActivityMapPermutation()
 float BROCCOLI_LIB::FindMaxTestvaluePermutation()
 {
 	cudaMemcpy(h_Activity_Volume, d_Activity_Volume, DATA_W * DATA_H * DATA_D * sizeof(float), cudaMemcpyDeviceToHost);
-	thrust::host_vector<float> h_vec(h_Activity_Volume, &h_Activity_Volume[DATA_W * DATA_H * DATA_D]); 
+	//thrust::host_vector<float> h_vec(h_Activity_Volume, &h_Activity_Volume[DATA_W * DATA_H * DATA_D]); 
 	
-	thrust::device_vector<float> d_vec = h_vec;
+	//thrust::device_vector<float> d_vec = h_vec;
 	//thrust::device_vector<float> d_vec(d_Activity_Volume, &d_Activity_Volume[DATA_W * DATA_H * DATA_D]);
 
-    return thrust::reduce(d_vec.begin(), d_vec.end(), -1000.0f, thrust::maximum<float>());
+    //return thrust::reduce(d_vec.begin(), d_vec.end(), -1000.0f, thrust::maximum<float>());
+	return 1.0f;
 }
 
-// Functions for permutations, single subject
+// Functions for permutations, multi subject
 
 void BROCCOLI_LIB::SetupParametersPermutationMultiSubject()
 {	
@@ -1327,15 +1304,15 @@ void BROCCOLI_LIB::ReadComplexData(Complex* data, std::string real_filename, std
 	imag_file.close();
 }
 
-void BROCCOLI_LIB::ReadMotionCompensationFiltersFromFile()
+void BROCCOLI_LIB::ReadMotionCorrectionFilters()
 {
 	// Read the quadrature filters from file
-	ReadComplexData(h_Quadrature_Filter_1, filename_real_quadrature_filter_1, filename_imag_quadrature_filter_1, MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE);
-	ReadComplexData(h_Quadrature_Filter_2, filename_real_quadrature_filter_2, filename_imag_quadrature_filter_2, MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE);
-	ReadComplexData(h_Quadrature_Filter_3, filename_real_quadrature_filter_3, filename_imag_quadrature_filter_3, MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE * MOTION_COMPENSATION_FILTER_SIZE);
+	ReadComplexData(h_Quadrature_Filter_1, filename_real_quadrature_filter_1, filename_imag_quadrature_filter_1, MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE);
+	ReadComplexData(h_Quadrature_Filter_2, filename_real_quadrature_filter_2, filename_imag_quadrature_filter_2, MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE);
+	ReadComplexData(h_Quadrature_Filter_3, filename_real_quadrature_filter_3, filename_imag_quadrature_filter_3, MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE);
 }
 
-void BROCCOLI_LIB::ReadSmoothingFiltersFromFile()
+void BROCCOLI_LIB::ReadSmoothingFilters()
 {
 	// Read smoothing filters from file
 	std::string mm_string;
@@ -1346,16 +1323,6 @@ void BROCCOLI_LIB::ReadSmoothingFiltersFromFile()
 	std::string filename_GLM = filename_GLM_filter + mm_string + "mm.raw";
 	ReadRealDataFloat(h_GLM_Filter, filename_GLM, SMOOTHING_FILTER_SIZE);
 	
-	std::string filename_CCA_2D_1 = filename_CCA_2D_filter_1 + mm_string + "mm.raw";
-	std::string filename_CCA_2D_2 = filename_CCA_2D_filter_2 + mm_string + "mm.raw";
-	std::string filename_CCA_2D_3 = filename_CCA_2D_filter_3 + mm_string + "mm.raw";
-	std::string filename_CCA_2D_4 = filename_CCA_2D_filter_4 + mm_string + "mm.raw";
-	ReadRealDataFloat(h_CCA_2D_Filter_1, filename_CCA_2D_1, SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE);
-	ReadRealDataFloat(h_CCA_2D_Filter_2, filename_CCA_2D_2, SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE);
-	ReadRealDataFloat(h_CCA_2D_Filter_3, filename_CCA_2D_3, SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE);
-	ReadRealDataFloat(h_CCA_2D_Filter_4, filename_CCA_2D_4, SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE);
-	Convert4FloatToFloat4(h_CCA_2D_Filters, h_CCA_2D_Filter_1, h_CCA_2D_Filter_2, h_CCA_2D_Filter_3, h_CCA_2D_Filter_4, SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE);
-
 	std::string filename_CCA_3D_1 = filename_CCA_3D_filter_1 + mm_string + "mm.raw";
 	std::string filename_CCA_3D_2 = filename_CCA_3D_filter_2 + mm_string + "mm.raw";
 	ReadRealDataFloat(h_CCA_3D_Filter_1, filename_CCA_3D_1, SMOOTHING_FILTER_SIZE);
@@ -1403,7 +1370,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 	int DATA_SIZE_COVARIANCE_MATRIX = sizeof(float) * 4;
 
 	h_fMRI_Volumes = (float*)malloc(DATA_SIZE_fMRI_VOLUMES);
-	h_Motion_Compensated_fMRI_Volumes = (float*)malloc(DATA_SIZE_fMRI_VOLUMES);
+	h_Motion_Corrected_fMRI_Volumes = (float*)malloc(DATA_SIZE_fMRI_VOLUMES);
 	h_Smoothed_fMRI_Volumes_1 = (float*)malloc(DATA_SIZE_fMRI_VOLUMES);
 	h_Detrended_fMRI_Volumes_1 = (float*)malloc(DATA_SIZE_fMRI_VOLUMES);
 	
@@ -1419,7 +1386,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 	h_Activity_Volume = (float*)malloc(DATA_SIZE_fMRI_VOLUME);
 	
 	host_pointers[fMRI_VOLUMES] = (void*)h_fMRI_Volumes;
-	host_pointers[MOTION_COMPENSATED_VOLUMES] = (void*)h_Motion_Compensated_fMRI_Volumes;
+	host_pointers[MOTION_CORRECTED_VOLUMES] = (void*)h_Motion_Corrected_fMRI_Volumes;
 	host_pointers[SMOOTHED1] = (void*)h_Smoothed_fMRI_Volumes_1;
 	host_pointers[DETRENDED1] = (void*)h_Detrended_fMRI_Volumes_1;
 	host_pointers[XDETREND1] = (void*)h_X_Detrend;
@@ -1447,7 +1414,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 	motion_parameters_y = (double*)malloc(sizeof(double) * DATA_T);
 	motion_parameters_z = (double*)malloc(sizeof(double) * DATA_T);
 	plot_values_x = (double*)malloc(sizeof(double) * DATA_T);
-	motion_compensated_curve = (double*)malloc(sizeof(double) * DATA_T);
+	motion_corrected_curve = (double*)malloc(sizeof(double) * DATA_T);
 	smoothed_curve = (double*)malloc(sizeof(double) * DATA_T);
 	detrended_curve = (double*)malloc(sizeof(double) * DATA_T);
 
@@ -1464,7 +1431,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 	host_pointers[MOTION_PARAMETERS_Y] = (void*)motion_parameters_y;
 	host_pointers[MOTION_PARAMETERS_Z] = (void*)motion_parameters_z;
 	host_pointers[PLOT_VALUES_X] = (void*)plot_values_x;
-	host_pointers[MOTION_COMPENSATED_CURVE] = (void*)motion_compensated_curve;
+	host_pointers[MOTION_CORRECTED_CURVE] = (void*)motion_corrected_curve;
 	host_pointers[SMOOTHED_CURVE] = (void*)smoothed_curve;
 	host_pointers[DETRENDED_CURVE] = (void*)detrended_curve;
 
@@ -1488,7 +1455,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 	dim3 dimGrid = dim3(blocksInX, blocksInY*blocksInZ);
 	dim3 dimBlock = dim3(threadsInX, threadsInY, threadsInZ);
 
-	MyMemset<<<dimGrid, dimBlock>>>(d_Smoothed_Certainty, 1.0f, DATA_W, DATA_H, DATA_D, blocksInY, 1/((float)blocksInY));
+	//MyMemset<<<dimGrid, dimBlock>>>(d_Smoothed_Certainty, 1.0f, DATA_W, DATA_H, DATA_D, blocksInY, 1/((float)blocksInY));
 }
 
 
@@ -1818,11 +1785,11 @@ void BROCCOLI_LIB::CalculateSlicesfMRIData()
 
 void BROCCOLI_LIB::CalculateSlicesPreprocessedfMRIData()
 {
-	float* pointer;
+	float* pointer = NULL;
 
-	if (PREPROCESSED == MOTION_COMPENSATION)
+	if (PREPROCESSED == MOTION_CORRECTION)
 	{
-		pointer = h_Motion_Compensated_fMRI_Volumes;
+		pointer = h_Motion_Corrected_fMRI_Volumes;
 	}
 	else if (PREPROCESSED == SMOOTHING)
 	{
@@ -2243,8 +2210,8 @@ void BROCCOLI_LIB::SetupDetrendingBasisFunctions()
 		h_xtxxt_Detrend[t + 3 * DATA_T] = inv_xtx[12] * h_X_Detrend[t + 0 * DATA_T] + inv_xtx[13] * h_X_Detrend[t + 1 * DATA_T] + inv_xtx[14] * h_X_Detrend[t + 2 * DATA_T] + inv_xtx[15] * h_X_Detrend[t + 3 * DATA_T];
 	}
 
-	cudaMemcpyToSymbol(c_X_Detrend, h_X_Detrend, sizeof(float) * NUMBER_OF_DETRENDING_BASIS_FUNCTIONS * DATA_T);
-	cudaMemcpyToSymbol(c_xtxxt_Detrend, h_xtxxt_Detrend, sizeof(float) * NUMBER_OF_DETRENDING_BASIS_FUNCTIONS * DATA_T);
+	//cudaMemcpyToSymbol(c_X_Detrend, h_X_Detrend, sizeof(float) * NUMBER_OF_DETRENDING_BASIS_FUNCTIONS * DATA_T);
+	//cudaMemcpyToSymbol(c_xtxxt_Detrend, h_xtxxt_Detrend, sizeof(float) * NUMBER_OF_DETRENDING_BASIS_FUNCTIONS * DATA_T);
 }
 
 void BROCCOLI_LIB::SegmentBrainData()

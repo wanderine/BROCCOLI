@@ -24,8 +24,8 @@
 
 #include <cuda.h>
 #include <helper_functions.h> // Helper functions (utilities, parsing, timing)
-
 #include "cuda_runtime.h"
+
 #include <string>
 
 //#include <thrust/host_vector.h>
@@ -45,9 +45,6 @@ typedef unsigned short int uint16;
 #define CCA 0
 #define GLM 1
 
-#define SMOOTHING_2D 2
-#define SMOOTHING_3D 3
-
 #define SILENT 0
 #define VERBOSE 1
 
@@ -66,7 +63,7 @@ typedef unsigned short int uint16;
 #define UINT8 6
 
 #define SLICE_TIMING_CORRECTION 0
-#define MOTION_COMPENSATION 1
+#define MOTION_CORRECTION 1
 #define SMOOTHING 2
 #define DETRENDING 3
 #define STATISTICAL_ANALYSIS 4
@@ -88,11 +85,6 @@ typedef unsigned short int uint16;
 #define QF1  6
 #define QF2  7
 #define QF3  8
-#define CCA2D1 9
-#define CCA2D2 10
-#define CCA2D3 11
-#define CCA2D4 12
-#define CCA2D 13
 #define CCA3D1 14
 #define CCA3D2 15
 #define CCA3D 16
@@ -106,7 +98,7 @@ typedef unsigned short int uint16;
 #define CONTRAST_VECTOR 24
 #define ACTIVITY_VOLUME 25
 #define BRAIN_VOXELS 26
-#define MOTION_COMPENSATED_VOLUMES 27
+#define MOTION_CORRECTED_VOLUMES 27
 #define REGISTRATION_PARAMETERS 28
 #define SMOOTHED1 29
 #define SMOOTHED2 30
@@ -129,7 +121,7 @@ typedef unsigned short int uint16;
 #define MOTION_PARAMETERS_Y 47
 #define MOTION_PARAMETERS_Z 48
 #define PLOT_VALUES_X 49
-#define MOTION_COMPENSATED_CURVE 50
+#define MOTION_CORRECTED_CURVE 50
 #define SMOOTHED_CURVE 51
 #define DETRENDED_CURVE 52	
 #define ALPHAS1 53
@@ -161,7 +153,7 @@ class BROCCOLI_LIB
 		BROCCOLI_LIB();
 		~BROCCOLI_LIB();
 
-		// Set functions for GUI
+		// Set functions for GUI / Wrappers
 		void SetfMRIDataFilename(std::string filename);
 			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);
@@ -197,9 +189,9 @@ class BROCCOLI_LIB
 		void SetNumberOfPermutations(int value);
 		void SetSignificanceThreshold(float value);
 
-		// Get functions for GUI
+		// Get functions for GUI / Wrappers
 		double GetProcessingTimeSliceTimingCorrection();
-		double GetProcessingTimeMotionCompensation();
+		double GetProcessingTimeMotionCorrection();
 		double GetProcessingTimeSmoothing();
 		double GetProcessingTimeDetrending();
 		double GetProcessingTimeStatisticalAnalysis();
@@ -232,7 +224,7 @@ class BROCCOLI_LIB
 		double* GetMotionParametersZ();
 		double* GetPlotValuesX();
 
-		double* GetMotionCompensatedCurve();
+		double* GetMotionCorrectedCurve();
 		double* GetSmoothedCurve();
 		double* GetDetrendedCurve();
 			
@@ -267,7 +259,7 @@ class BROCCOLI_LIB
 		void PerformRegistrationEPIT1();
 		void PerformRegistrationT1MNI();
 		void PerformSliceTimingCorrection();
-		void PerformMotionCompensation();
+		void PerformMotionCorrection();
 		void PerformDetrending();
 		void PerformSmoothing(); 
 		
@@ -312,7 +304,7 @@ class BROCCOLI_LIB
 		void ReadRealDataFloat(float* data, std::string filename, int N);
 		void ReadRealDataDouble(double* data, std::string filename, int N);
 		void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
-		void ReadMotionCompensationFilters();
+		void ReadMotionCorrectionFilters();
 		void ReadSmoothingFilters();
 		void SetupParametersReadData();
 
@@ -335,6 +327,10 @@ class BROCCOLI_LIB
 		void SetupDetrendingBasisFunctions();
 		void SetupStatisticalAnalysisBasisFunctions();
 		void SegmentBrainData();
+		float CalculateMax(float *data, int N);
+		float CalculateMin(float *data, int N);
+		float Gpdf(double value, double shape, double scale);
+		float loggamma(int value);
 
 		void ConvolveWithHRF(float* temp_GLM);
 		void CreateHRF();
@@ -343,6 +339,7 @@ class BROCCOLI_LIB
 		nifti_image *nifti_data;
 
 		int DATA_W, DATA_H, DATA_D, DATA_T, DATA_T_PADDED;
+		int NUMBER_OF_SUBJECTS;
 		float SEGMENTATION_THRESHOLD;
 		float x_size, y_size, z_size;
 		int PRINT;
@@ -407,6 +404,7 @@ class BROCCOLI_LIB
 		float significance_threshold;
 		float permutation_test_threshold;
 		int NUMBER_OF_SIGNIFICANTLY_ACTIVE_VOXELS;
+		int NUMBER_OF_SIGNIFICANTLY_ACTIVE_CLUSTERS;
 		
 		//--------------------------------------------------
 		// Host pointers
@@ -427,14 +425,10 @@ class BROCCOLI_LIB
 		// Motion compensation
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag; 		
 		Complex     *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
-		float		*h_Motion_Compensated_fMRI_Volumes;
+		float		*h_Motion_Corrected_fMRI_Volumes;
 		float		*h_Registration_Parameters;
 
 		// Smoothing
-		float		*h_CCA_2D_Filter_1;
-		float		*h_CCA_2D_Filter_2;
-		float		*h_CCA_2D_Filter_3;
-		float		*h_CCA_2D_Filter_4;
 		float4		*h_CCA_2D_Filters;
 		float		*h_CCA_3D_Filter_1;
 		float		*h_CCA_3D_Filter_2;
@@ -442,8 +436,6 @@ class BROCCOLI_LIB
 		float		*h_GLM_Filter;
 		float		*h_Smoothed_fMRI_Volumes_1;
 		float		*h_Smoothed_fMRI_Volumes_2;
-		float		*h_Smoothed_fMRI_Volumes_3;
-		float		*h_Smoothed_fMRI_Volumes_4;
 
 		// Detrending
 		float		*h_X_Detrend, *h_xtxxt_Detrend;
@@ -485,23 +477,20 @@ class BROCCOLI_LIB
 		float		*d_Shifters;
 		float		*d_Slice_Timing_Corrected_fMRI_Volumes;
 
-		// Motion compensation
-		float		*d_Motion_Compensated_fMRI_Volumes;
+		// Motion correction
+		float		*d_Motion_Corrected_fMRI_Volumes;
 			
 		// Smoothing
 		float		*d_Smoothed_Certainty;
 		float		*d_Smoothed_fMRI_Volumes;
 		float		*d_Smoothed_fMRI_Volumes_1;
 		float		*d_Smoothed_fMRI_Volumes_2;
-		float		*d_Smoothed_fMRI_Volumes_3;
-		float		*d_Smoothed_fMRI_Volumes_4;
+
 
 		// Detrending
 		float		*d_Detrended_fMRI_Volumes;
 		float		*d_Detrended_fMRI_Volumes_1;
 		float		*d_Detrended_fMRI_Volumes_2;
-		float		*d_Detrended_fMRI_Volumes_3;
-		float		*d_Detrended_fMRI_Volumes_4;
 
 		// Statistical analysis
 		float		*d_Activity_Volume;
@@ -526,10 +515,6 @@ class BROCCOLI_LIB
 		std::string		filename_imag_quadrature_filter_2;
 		std::string		filename_imag_quadrature_filter_3;
 		std::string		filename_GLM_filter;
-		std::string		filename_CCA_2D_filter_1;
-		std::string		filename_CCA_2D_filter_2;
-		std::string		filename_CCA_2D_filter_3;
-		std::string		filename_CCA_2D_filter_4;
 		std::string		filename_CCA_3D_filter_1;
 		std::string		filename_CCA_3D_filter_2;
 		std::string		filename_fMRI_data;
@@ -539,12 +524,8 @@ class BROCCOLI_LIB
 		std::string		filename_motion_compensated_fMRI_volumes;
 		std::string		filename_smoothed_fMRI_volumes_1;
 		std::string		filename_smoothed_fMRI_volumes_2;
-		std::string		filename_smoothed_fMRI_volumes_3;
-		std::string		filename_smoothed_fMRI_volumes_4;
 		std::string		filename_detrended_fMRI_volumes_1;
 		std::string		filename_detrended_fMRI_volumes_2;
-		std::string		filename_detrended_fMRI_volumes_3;
-		std::string		filename_detrended_fMRI_volumes_4;
 		std::string		filename_activity_volume;
 };
 
