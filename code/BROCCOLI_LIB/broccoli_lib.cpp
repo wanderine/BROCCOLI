@@ -58,6 +58,16 @@ slice timing correction
 // Constructor
 BROCCOLI_LIB::BROCCOLI_LIB()
 {
+	OpenCLInitiate();
+	SetStartValues();
+	ResetAllPointers();
+	AllocateMemoryForFilters();
+	ReadMotionCorrectionFilters();
+	ReadSmoothingFilters();	
+}
+
+void BROCCOLI_LIB::SetStartValues()
+{
 	PREPROCESSED = MOTION_CORRECTION;
 
 	FILE_TYPE = RAW;
@@ -86,19 +96,30 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	filename_GLM_filter = "filters\\GLM_smoothing_filter_";
 	filename_CCA_3D_filter_1 = "filters\\CCA_3D_smoothing_filter_1_";
 	filename_CCA_3D_filter_2 = "filters\\CCA_3D_smoothing_filter_2_";
-	filename_fMRI_data = "fMRI_data.raw";
 
-	filename_slice_timing_corrected_fMRI_volumes = "output\\slice_timing_corrected_fMRI_volumes.raw";
-	filename_registration_parameters = "output\\registration_parameters.raw";
-	filename_motion_compensated_fMRI_volumes = "output\\motion_compensated_fMRI_volumes.raw";
-	filename_smoothed_fMRI_volumes_1 = "output\\smoothed_fMRI_volumes_1.raw";
-	filename_smoothed_fMRI_volumes_2 = "output\\smoothed_fMRI_volumes_2.raw";
-	filename_detrended_fMRI_volumes_1 = "output\\detrended_fMRI_volumes_1.raw";
-	filename_detrended_fMRI_volumes_2 = "output\\detrended_fMRI_volumes_2.raw";
-	filename_activity_volume = "output\\activity_volume.raw";
-
+	filename_fMRI_data_raw = "fMRI_data.raw";
+	filename_slice_timing_corrected_fMRI_volumes_raw = "output\\slice_timing_corrected_fMRI_volumes.raw";
+	filename_registration_parameters_raw = "output\\registration_parameters.raw";
+	filename_motion_corrected_fMRI_volumes_raw = "output\\motion_compensated_fMRI_volumes.raw";
+	filename_smoothed_fMRI_volumes_1_raw = "output\\smoothed_fMRI_volumes_1.raw";
+	filename_smoothed_fMRI_volumes_2_raw = "output\\smoothed_fMRI_volumes_2.raw";
+	filename_detrended_fMRI_volumes_1_raw = "output\\detrended_fMRI_volumes_1.raw";
+	filename_detrended_fMRI_volumes_2_raw = "output\\detrended_fMRI_volumes_2.raw";
+	filename_activity_volume_raw = "output\\activity_volume.raw";
+	
+	filename_fMRI_data_nii = "fMRI_data.nii";
+	filename_slice_timing_corrected_fMRI_volumes_nifti = "output\\slice_timing_corrected_fMRI_volumes.nii";
+	filename_registration_parameters_nifti = "output\\registration_parameters.nii";
+	filename_motion_corrected_fMRI_volumes_nifti = "output\\motion_compensated_fMRI_volumes.nii";
+	filename_smoothed_fMRI_volumes_1_nifti = "output\\smoothed_fMRI_volumes_1.nii";
+	filename_smoothed_fMRI_volumes_2_nifti = "output\\smoothed_fMRI_volumes_2.nii";
+	filename_detrended_fMRI_volumes_1_nifti = "output\\detrended_fMRI_volumes_1.nii";
+	filename_detrended_fMRI_volumes_2_nifti = "output\\detrended_fMRI_volumes_2.nii";
+	filename_activity_volume_nifti = "output\\activity_volume.nii";
+	
+	
 	THRESHOLD_ACTIVITY_MAP = false;
-	ACTIVITY_THRESHOLD = 0.5f;
+	ACTIVITY_THRESHOLD = 0.05f;
 
 	MOTION_CORRECTED = false;
 	MOTION_CORRECTION_FILTER_SIZE = 7;
@@ -122,12 +143,13 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	int DATA_SIZE_QUADRATURE_FILTER_REAL = sizeof(float) * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE;
 	int DATA_SIZE_QUADRATURE_FILTER_COMPLEX = sizeof(Complex) * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE;
 
-	int DATA_SIZE_SMOOTHING_FILTER_2D_CCA = sizeof(float) * SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE;
-	int DATA_SIZE_SMOOTHING_FILTERS_2D_CCA = sizeof(float4) * SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE;
 	int DATA_SIZE_SMOOTHING_FILTER_3D_CCA = sizeof(float) * SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE;
 	int DATA_SIZE_SMOOTHING_FILTERS_3D_CCA = sizeof(float2) * SMOOTHING_FILTER_SIZE * SMOOTHING_FILTER_SIZE;
 	int DATA_SIZE_SMOOTHING_FILTER_GLM = sizeof(float) * SMOOTHING_FILTER_SIZE;
+}
 
+void BROCCOLI_LIB::ResetAllPointers()
+{
 	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
 	{	
 		host_pointers[i] = NULL;
@@ -152,7 +174,10 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	{
 		device_pointers_permutation[i] = NULL;
 	}
-	
+}
+
+void BROCCOLI_LIB::AllocateMemoryForFilters()
+{
 	h_Quadrature_Filter_1_Real = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
 	h_Quadrature_Filter_1_Imag = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
 	h_Quadrature_Filter_2_Real = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
@@ -180,10 +205,7 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	host_pointers_static[CCA3D1] = (void*)h_CCA_3D_Filter_1;
 	host_pointers_static[CCA3D2] = (void*)h_CCA_3D_Filter_2;
 	host_pointers_static[CCA3D]  = (void*)h_CCA_3D_Filters;
-	
-	ReadMotionCorrectionFilters();
-	ReadSmoothingFilters();	
-}
+}	
 
 // Destructor
 BROCCOLI_LIB::~BROCCOLI_LIB()
@@ -222,7 +244,7 @@ BROCCOLI_LIB::~BROCCOLI_LIB()
 		float* pointer = device_pointers[i];
 		if (pointer != NULL)
 		{
-			cudaFree(pointer);
+			//clReleaseMemObject();
 		}
 	}
 	
@@ -231,11 +253,157 @@ BROCCOLI_LIB::~BROCCOLI_LIB()
 		float* pointer = device_pointers_permutation[i];
 		if (pointer != NULL)
 		{
-			cudaFree(pointer);
+			//clReleaseMemObject();
 		}
 	}
 }
 
+void BROCCOLI_LIB::OpenCLInitiate()
+{
+	int err;
+	int gpu = 1;
+	clGetDeviceIDs(NULL, gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device, NULL);
+	context = clCreateContext(0, 1, &device, NULL, NULL, &err);
+
+	size_t dataBytes;
+	errcode = clGetContextInfo(clGPUContext, CL_CONTEXT_DEVICES, 0, NULL, &dataBytes);
+	cl_device_id *clDevices = (cl_device_id *) malloc(dataBytes);
+	errcode |= clGetContextInfo(clGPUContext, CL_CONTEXT_DEVICES, dataBytes, clDevices, NULL);
+
+	commandQueue = clCreateCommandQueue(context, device, 0, &err);
+
+	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
+	std::ostringstream oss;
+	oss << kernelFile.rdbuf();
+	std::string src = oss.str();
+	const char *srcstr = src.c_str();
+
+	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &err);
+	clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+
+	// Kernels for convolution
+	convolutionRowsKernel = clCreateKernel(program,"convolutionRows",&err);
+	convolutionColumnsKernel = clCreateKernel(program,"convolutionColumns",&err);
+	convolutionRodsKernel = clCreateKernel(program,"convolutionRods",&err);	
+	convolutionNonSeparable3DComplexKernel = clCreateKernel(program,"convolutionNonSeparable3DComplex",&err);
+	
+	// Kernels for statistical analysis
+	calculateActivityMapGLMKernel = clCreateKernel(program,"CalculateActivityMapGLM",&err);
+	calculateActivityMapCCAKernel = clCreateKernel(program,"CalculateActivityMapCCA",&err);
+
+	SetGlobalAndLocalWorkSizes();
+}
+
+void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
+{
+	// Total number of threads
+	globalWorkSizeConvolutionRows[0] = DATA_W;
+	globalWorkSizeConvolutionRows[1] = DATA_H;
+	globalWorkSizeConvolutionRows[2] = DATA_D;
+		
+	// Number of threads per block
+	
+	localWorkSizeConvolutionRows[0] = 32;
+	localWorkSizeConvolutionRows[1] = 8;
+	localWorkSizeConvolutionRows[2] = 2;
+
+	localWorkSizeConvolutionColumns[0] = 32;
+	localWorkSizeConvolutionColumns[1] = 8;
+	localWorkSizeConvolutionColumns[2] = 2;
+
+	localWorkSizeConvolutionRods[0] = 32;
+	localWorkSizeConvolutionRods[1] = 2;
+	localWorkSizeConvolutionRods[2] = 8;
+
+	localWorkSizeCalculateActivityMapGLM[0] = 32;
+	localWorkSizeCalculateActivityMapGLM[1] = 8;
+	localWorkSizeCalculateActivityMapGLM[2] = 1;
+
+	localWorkSizeCalculateActivityMapCCA[0] = 32;
+	localWorkSizeCalculateActivityMapCCA[1] = 4;
+	localWorkSizeCalculateActivityMapCCA[2] = 1;
+
+
+
+}
+
+void BROCCOLI_LIB::OpenCLCleanup()
+{
+	//clReleaseMemObject(aa);
+    //clReleaseMemObject(bb);
+	//clReleaseMemObject(cc);
+    clReleaseProgram(program);
+    clReleaseKernel(kernel);
+    clReleaseCommandQueue(commandQueue);
+    clReleaseContext(context);
+}
+
+void BROCCOLI_LIB::OpenCLTest()
+{
+	int err;
+	int gpu = 1;
+	clGetDeviceIDs(NULL, gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device, NULL);
+	context = clCreateContext(0, 1, &device, NULL, NULL, &err);
+	commandQueue = clCreateCommandQueue(context, device, 0, &err);
+
+	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
+	std::ostringstream oss;
+	oss << kernelFile.rdbuf();
+	std::string src = oss.str();
+	const char *srcstr = src.c_str();
+
+	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &err);
+	clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+	kernel = clCreateKernel(program,"AddVectors",&err);
+
+	float result[10];
+	float a[10];
+	float b[10];
+	for (int i = 0; i < 10; i++)
+	{
+		a[i] = i;
+		b[i] = 2*i;
+	}
+
+	cl_mem aa;
+	cl_mem bb;
+	cl_mem cc;
+	// Allocate memory on device
+	aa = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * 10, NULL, NULL);
+	bb = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * 10, NULL, NULL);
+	cc = clCreateBuffer(context, CL_MEM_WRITE_ONLY,  sizeof(float) * 10, NULL, NULL);
+
+	// Copy data from host to device
+	clEnqueueWriteBuffer(commandQueue, aa, CL_TRUE, 0, sizeof(float) * 10, a, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, bb, CL_TRUE, 0, sizeof(float) * 10, b, 0, NULL, NULL);
+
+	// Set arguments for the kernel
+	clSetKernelArg(kernel, 0, sizeof(cl_mem), &aa);
+	clSetKernelArg(kernel, 1, sizeof(cl_mem), &bb);
+	clSetKernelArg(kernel, 2, sizeof(cl_mem), &cc);
+
+	size_t globalWorkSize[1] = {10}; // Number of thread blocks
+	size_t localWorkSize[1] = {1}; // Number of blocks per thread
+
+	// Add the kernel to the command queue
+	clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+
+	// Wait until the code has been processed
+	clFinish(commandQueue);
+
+	// Copy data from device to host
+	clEnqueueReadBuffer(commandQueue, cc, CL_TRUE, 0, 10 * sizeof(float), result, 0, NULL, NULL);
+
+	clReleaseMemObject(aa);
+    clReleaseMemObject(bb);
+	clReleaseMemObject(cc);
+    clReleaseProgram(program);
+    clReleaseKernel(kernel);
+    clReleaseCommandQueue(commandQueue);
+    clReleaseContext(context);
+
+
+}
 
 
 
@@ -705,10 +873,35 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	
 }
 
-// Performs smoothing of an fMRI dataset
+// Performs smoothing of a single fMRI dataset
 void BROCCOLI_LIB::PerformSmoothing()
 {
+	if (ANALYSIS_METHOD == GLM)
+	{
+		// Set arguments for the kernel
+		clSetKernelArg(convolutionRowsKernel, 0, sizeof(cl_mem), (void *)&d_Convolved);
+		clSetKernelArg(convolutionRowsKernel, 1, sizeof(cl_mem), (void *)&d_fMRI_Volumes);
+		clSetKernelArg(convolutionRowsKernel, 2, sizeof(cl_mem), (void *)&c_Smoothing_Filter_Y);
+		clSetKernelArg(convolutionRowsKernel, 2, sizeof(cl_mem), (void *)&c_Smoothing_Filter_Y);
+
 	
+
+		
+		for (int t = 0; t < DATA_T; t++)
+		{
+			clSetKernelArg(convolutionRowsKernel, 3, sizeof(int), (void *)&t);
+			clEnqueueNDRangeKernel(commandQueue, convolutionRowsKernel, 1, NULL, globalWorkSizeConvolutionRows, localWorkSizeConvolutionRows, 0, NULL, NULL);
+			clFinish(commandQueue);
+
+			clSetKernelArg(convolutionColumnsKernel, 3, sizeof(int), (void *)&t);
+			clEnqueueNDRangeKernel(commandQueue, convolutionColumnsKernel, 1, NULL, globalWorkSizeConvolutionColumns, localWorkSizeConvolutionColumns, 0, NULL, NULL);
+			clFinish(commandQueue);
+	
+			clSetKernelArg(convolutionRodsKernel, 3, sizeof(int), (void *)&t);
+			clEnqueueNDRangeKernel(commandQueue, convolutionRodsKernel, 1, NULL, globalWorkSizeConvolutionRods, localWorkSizeConvolutionRods, 0, NULL, NULL);
+			clFinish(commandQueue);
+		}
+	}
 }
 
 // Performs detrending of an fMRI dataset
@@ -737,7 +930,49 @@ void BROCCOLI_LIB::PerformPreprocessingAndCalculateActivityMap()
 // Calculates an activity map for a single subject
 void BROCCOLI_LIB::CalculateActivityMap()
 {
-	
+	// CCA
+	if ( (ANALYSIS_METHOD == CCA) )
+	{
+		// Total number of threads
+		globalWorkSize[0] = DATA_W;
+		globalWorkSize[1] = DATA_H;
+		globalWorkSize[2] = DATA_D;
+		
+  	    // Number of threads per block
+		localWorkSize[0] = 32;
+		localWorkSize[1] = 4;
+		localWorkSize[2] = 1;		
+
+		clSetKernelArg(calculateActivityMapCCA, 0, sizeof(cl_mem), (void *)&d_Activity_Map);
+		clSetKernelArg(calculateActivityMapCCA, 1, sizeof(cl_mem), (void *)&d_Detrended_fMRI_Volumes_1);
+		clSetKernelArg(calculateActivityMapCCA, 2, sizeof(cl_mem), (void *)&d_Detrended_fMRI_Volumes_2);
+		clSetKernelArg(calculateActivityMapCCA, 3, sizeof(cl_mem), (void *)&d_Brain_Voxels);
+
+
+		//CalculateActivityMapCCA3D<<<dimGrid, dimBlock>>>(d_Activity_Volume, d_Detrended_fMRI_Volumes_1, d_Detrended_fMRI_Volumes_2, d_Brain_Voxels, DATA_W, DATA_H, DATA_D, DATA_T, blocksInY, 1.0f/((float)blocksInY), timeMultiples, timeRest);
+
+		clEnqueueNDRangeKernel(commandQueue, calculateActicityMapCCA, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+	// GLM
+	else if (ANALYSIS_METHOD == GLM)
+	{
+		int threadsInX = 32;
+		int threadsInY = 8;
+		int threadsInZ = 1;
+
+		int blocksInX = (DATA_W+threadsInX-1)/threadsInX;
+		int blocksInY = (DATA_H+threadsInY-1)/threadsInY;
+		int blocksInZ = (DATA_D+threadsInZ-1)/threadsInZ;
+		dim3 dimGrid = dim3(blocksInX, blocksInY*blocksInZ);
+		dim3 dimBlock = dim3(threadsInX, threadsInY, threadsInZ);
+
+		// Calculate how many time multiples there are
+		int timeMultiples = DATA_T / threadsInY;
+		int timeRest = DATA_T - timeMultiples * threadsInY;
+
+		CalculateActivityMapGLM<<<dimGrid, dimBlock>>>(d_Activity_Volume, d_Detrended_fMRI_Volumes_1, d_Brain_Voxels, h_ctxtxc, DATA_W, DATA_H, DATA_D, DATA_T, blocksInY, 1.0f/(float)blocksInY, timeMultiples, timeRest);
+	}
 }
 
 // Calculates an activity map for a group analysis
@@ -930,68 +1165,6 @@ void BROCCOLI_LIB::GeneratePermutationMatrixMultiSubject()
 }
 
 
-
-
-void BROCCOLI_LIB::OpenCLTest()
-{
-	int err;
-	int gpu = 1;
-	clGetDeviceIDs(NULL, gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device, NULL);
-	context = clCreateContext(0, 1, &device, NULL, NULL, &err);
-	commandQueue = clCreateCommandQueue(context, device, 0, &err);
-
-	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
-	std::ostringstream oss;
-	oss << kernelFile.rdbuf();
-	std::string src = oss.str();
-	const char *srcstr = src.c_str();
-
-	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &err);
-	clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-	kernel = clCreateKernel(program,"AddVectors",&err);
-
-	float result[10];
-	float a[10];
-	float b[10];
-	for (int i = 0; i < 10; i++)
-	{
-		a[i] = i;
-		b[i] = 2*i;
-	}
-
-	cl_mem aa;
-	cl_mem bb;
-	cl_mem cc;
-	aa = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * 10, NULL, NULL);
-	bb = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * 10, NULL, NULL);
-	cc = clCreateBuffer(context, CL_MEM_WRITE_ONLY,  sizeof(float) * 10, NULL, NULL);
-
-	clEnqueueWriteBuffer(commandQueue, aa, CL_TRUE, 0, sizeof(float) * 10, a, 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, bb, CL_TRUE, 0, sizeof(float) * 10, b, 0, NULL, NULL);
-
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), &aa);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), &bb);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), &cc);
-
-	size_t globalWorkSize[1] = {10}; // Number of thread blocks
-	size_t localWorkSize[1] = {1}; // Number of blocks per thread
-
-	clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-
-	clFinish(commandQueue);
-
-	clEnqueueReadBuffer(commandQueue, cc, CL_TRUE, 0, 10 * sizeof(float), result, 0, NULL, NULL);
-
-	clReleaseMemObject(aa);
-    clReleaseMemObject(bb);
-	clReleaseMemObject(cc);
-    clReleaseProgram(program);
-    clReleaseKernel(kernel);
-    clReleaseCommandQueue(commandQueue);
-    clReleaseContext(context);
-
-
-}
 
 
 
