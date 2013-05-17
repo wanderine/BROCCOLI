@@ -21,17 +21,17 @@
 
 
 // Help functions
-int Calculate_3D_Index(int a, int b, int c, int DATA_A, int DATA_B)
+int Calculate3DIndex(int a, int b, int c, int DATA_A, int DATA_B)
 {
 	return a + b * DATA_A + c * DATA_A * DATA_B;
 }
 
-int Calculate_4D_Index(int a, int b, int c, int d, int DATA_A, int DATA_B, int DATA_C)
+int Calculate4DIndex(int a, int b, int c, int d, int DATA_A, int DATA_B, int DATA_C)
 {
 	return a + b * DATA_A + c * DATA_A * DATA_B + d * DATA_A * DATA_B * DATA_C;
 }
 
-void Get_Parameter_Indices_Kernel(int& i, int& j, int parameter)
+void GetParameterIndices(int& i, int& j, int parameter)
 {
 	switch(parameter)
 	{
@@ -186,7 +186,7 @@ typedef struct DATA_PARAMETERS
 
 // Separable 3D convolution
 
-__kernel void convolutionRows(__global float *Convolved, __global const float* fMRI_Volumes, __constant float *c_Smoothing_Filter_Y, int t, __constant struct DATA_PARAMETERS* DATA)
+__kernel void SeparableConvolutionRows(__global float *Convolved, __global const float* fMRI_Volumes, __constant float *c_Smoothing_Filter_Y, int t, __constant struct DATA_PARAMETERS* DATA)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -335,7 +335,7 @@ __kernel void convolutionRows(__global float *Convolved, __global const float* f
 	}
 }
 
-__kernel void convolutionColumns(__global float *Convolved, __global const float* fMRI_Volume, __constant float *c_Smoothing_Filter_X, int t, __constant struct DATA_PARAMETERS *DATA)
+__kernel void SeparableConvolutionColumns(__global float *Convolved, __global const float* fMRI_Volume, __constant float *c_Smoothing_Filter_X, int t, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_local_size(0) * get_group_id(0) / 32 * 24 + get_local_id(0);;
 	int y = get_local_size(1) * get_group_id(1) * 2 + get_local_id(2);
@@ -552,7 +552,7 @@ __kernel void convolutionColumns(__global float *Convolved, __global const float
 	}
 }
 
-__kernel void convolutionRods(__global float *Convolved, __global const float* fMRI_Volume, __constant float *c_Smoothing_Filter_Z, int t, __constant struct DATA_PARAMETERS *DATA)
+__kernel void SeparableConvolutionRods(__global float *Convolved, __global const float* fMRI_Volume, __constant float *c_Smoothing_Filter_Z, int t, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
 	int y = get_local_size(1) * get_group_id(1) * 4 + get_local_id(1); 
@@ -703,7 +703,7 @@ __kernel void convolutionRods(__global float *Convolved, __global const float* f
 
 // Non-separable 3D convolution
 
-__kernel void convolutionNonseparable3DComplex(float2 *Filter_Response_1, float2 *Filter_Response_2, float2 *Filter_Response_3, const float* Volume, __constant float2 *c_Quadrature_Filter_1, __constant float2 *c_Quadrature_Filter_2, __constant float2 *c_Quadrature_Filter_3, __constant struct DATA_PARAMETERS *DATA)
+__kernel void NonseparableConvolution3DComplex(__global float2 *Filter_Response_1, __global float2 *Filter_Response_2, __global float2 *Filter_Response_3, __global const float* Volume, __constant float2 *c_Quadrature_Filter_1, __constant float2 *c_Quadrature_Filter_2, __constant float2 *c_Quadrature_Filter_3, __constant struct DATA_PARAMETERS *DATA)
 {   
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3209,8 +3209,1191 @@ __kernel void convolutionNonseparable3DComplex(float2 *Filter_Response_1, float2
 	}	
 }
 
+// Functions for motion correction
 
-__kernel void CalculateActivityMapGLM(float* Activity_Map, const float* fMRI_Volumes, const float* Brain_Voxels, float ctxtxc, __constant float *c_X_GLM, __constant float* *c_xtxxt_GLM, __constant float* c_Contrast_Vector, __constant struct DATA_PARAMETERS *DATA)
+__kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Differences, __global float* Certainties, __global const float2* q11, __global const float2* q21, int DATA_W, int DATA_H, int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+	
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
+		return;
+
+	int idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+	float2 complex_product;
+	float a, b, c, d, phase_difference;
+
+	// q1 = a + i * b
+	// q2 = c + i * d
+	a = q11[idx].x;
+	b = q11[idx].y;
+	c = q21[idx].x;
+	d = q21[idx].y;
+
+	// phase difference = arg (q1 * (complex conjugate of q2))
+	complex_product.x = a * c + b * d;
+	complex_product.y = b * c - a * d;
+
+	phase_difference = atan2f(complex_product.y, complex_product.x);
+
+	complex_product.x = a * c - b * d;
+  	complex_product.y = b * c + a * d;
+
+	c = __cosf( phase_difference * 0.5f );
+	Phase_Differences[idx] = phase_difference;
+	Certainties[idx] = sqrtf(complex_product.x * complex_product.x + complex_product.y * complex_product.y) * c * c;
+}
+
+__kernel void CalculatePhaseGradientsX_(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, int DATA_W, int DATA_H, int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_glboal_id(1);
+	int z = get_global_id(2);
+	
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
+			return;
+
+	float2 total_complex_product;
+	float a, b, c, d;
+	int idx_minus_1, idx_plus_1, idx;
+
+	idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+	// X
+	idx_minus_1 = Calculate_3D_Index(x - 1, y, z, DATA_W, DATA_H);
+	idx_plus_1 = Calculate_3D_Index(x + 1, y, z, DATA_W, DATA_H);
+
+	total_complex_product.x = 0.0f;
+	total_complex_product.y = 0.0f;
+
+	a = q11[idx_plus_1].x;
+	b = q11[idx_plus_1].y;
+	c = q11[idx].x;
+	d = q11[idx].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = c;
+	b = d;
+	c = q11[idx_minus_1].x;
+	d = q11[idx_minus_1].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = q21[idx_plus_1].x;
+	b = q21[idx_plus_1].y;
+	c = q21[idx].x;
+	d = q21[idx].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = c;
+	b = d;
+	c = q21[idx_minus_1].x;
+	d = q21[idx_minus_1].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
+}
+
+__kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, int DATA_W, int DATA_H, int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+	
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
+			return;
+
+	float2 total_complex_product;
+	float a, b, c, d;
+	int idx_minus_1, idx_plus_1, idx;
+
+	idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+	// Y
+
+	idx_plus_1 =  Calculate_3D_Index(x, y + 1, z, DATA_W, DATA_H);
+	idx_minus_1 =  Calculate_3D_Index(x, y - 1, z, DATA_W, DATA_H);
+
+	total_complex_product.x = 0.0f;
+	total_complex_product.y = 0.0f;
+
+	a = q12[idx_plus_1].x;
+	b = q12[idx_plus_1].y;
+	c = q12[idx].x;
+	d = q12[idx].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = c;
+	b = d;
+	c = q12[idx_minus_1].x;
+	d = q12[idx_minus_1].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = q22[idx_plus_1].x;
+	b = q22[idx_plus_1].y;
+	c = q22[idx].x;
+	d = q22[idx].y;
+	
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = c;
+	b = d;
+	c = q22[idx_minus_1].x;
+	d = q22[idx_minus_1].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
+}
+
+__kernel void CalculatePhaseGradientsZ_(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, int DATA_W, int DATA_H, int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+	
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
+			return;
+
+	float2 total_complex_product;
+	float a, b, c, d;
+	int idx_minus_1, idx_plus_1, idx;
+
+	idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+	// Z
+
+	idx_plus_1 = Calculate_3D_Index(x, y, z + 1, DATA_W, DATA_H);
+	idx_minus_1 = Calculate_3D_Index(x, y, z - 1, DATA_W, DATA_H);
+
+	total_complex_product.x = 0.0f;
+	total_complex_product.y = 0.0f;
+
+	a = q13[idx_plus_1].x;
+	b = q13[idx_plus_1].y;
+	c = q13[idx].x;
+	d = q13[idx].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = c;
+	b = d;
+	c = q13[idx_minus_1].x;
+	d = q13[idx_minus_1].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = q23[idx_plus_1].x;
+	b = q23[idx_plus_1].y;
+	c = q23[idx].x;
+	d = q23[idx].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	a = c;
+	b = d;
+	c = q23[idx_minus_1].x;
+	d = q23[idx_minus_1].y;
+
+	total_complex_product.x += a * c + b * d;
+	total_complex_product.y += b * c - a * d;
+
+	Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
+}
+
+__kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (((x >= (FILTER_SIZE - 1)/2) && (x < DATA_W - (FILTER_SIZE - 1)/2)) && ((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
+	{
+		float2 total_complex_product;
+		float a, b, c, d;
+		int idx_minus_1, idx_plus_1, idx;
+
+		idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+		// X
+		idx_minus_1 = Calculate_3D_Index(x - 1, y, z, DATA_W, DATA_H);
+		idx_plus_1 = Calculate_3D_Index(x + 1, y, z, DATA_W, DATA_H);
+
+		total_complex_product.x = 0.0f;
+		total_complex_product.y = 0.0f;
+
+		a = q11[idx_plus_1].x;
+		b = q11[idx_plus_1].y;
+		c = q11[idx].x;
+		d = q11[idx].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = c;
+		b = d;
+		c = q11[idx_minus_1].x;
+		d = q11[idx_minus_1].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = q21[idx_plus_1].x;
+		b = q21[idx_plus_1].y;
+		c = q21[idx].x;
+		d = q21[idx].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = c;
+		b = d;
+		c = q21[idx_minus_1].x;
+		d = q21[idx_minus_1].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
+	}
+}
+
+__kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (((x >= (FILTER_SIZE - 1)/2) && (x < DATA_W - (FILTER_SIZE - 1)/2)) && ((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
+	{
+		float2 total_complex_product;
+		float a, b, c, d;
+		int idx_minus_1, idx_plus_1, idx;
+
+		idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+		// Y
+
+		idx_plus_1 =  Calculate_3D_Index(x, y + 1, z, DATA_W, DATA_H);
+		idx_minus_1 =  Calculate_3D_Index(x, y - 1, z, DATA_W, DATA_H);
+
+		total_complex_product.x = 0.0f;
+		total_complex_product.y = 0.0f;
+
+		a = q12[idx_plus_1].x;
+		b = q12[idx_plus_1].y;
+		c = q12[idx].x;
+		d = q12[idx].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = c;
+		b = d;
+		c = q12[idx_minus_1].x;
+		d = q12[idx_minus_1].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = q22[idx_plus_1].x;
+		b = q22[idx_plus_1].y;
+		c = q22[idx].x;
+		d = q22[idx].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = c;
+		b = d;
+		c = q22[idx_minus_1].x;
+		d = q22[idx_minus_1].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
+	}
+}
+
+
+__kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (((x >= (FILTER_SIZE - 1)/2) && (x < DATA_W - (FILTER_SIZE - 1)/2)) && ((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
+	{
+		float2 total_complex_product;
+		float a, b, c, d;
+		int idx_minus_1, idx_plus_1, idx;
+
+		idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+		// Z
+
+		idx_plus_1 = Calculate_3D_Index(x, y, z + 1, DATA_W, DATA_H);
+		idx_minus_1 = Calculate_3D_Index(x, y, z - 1, DATA_W, DATA_H);
+
+		total_complex_product.x = 0.0f;
+		total_complex_product.y = 0.0f;
+
+		a = q13[idx_plus_1].x;
+		b = q13[idx_plus_1].y;
+		c = q13[idx].x;
+		d = q13[idx].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = c;
+		b = d;
+		c = q13[idx_minus_1].x;
+		d = q13[idx_minus_1].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = q23[idx_plus_1].x;
+		b = q23[idx_plus_1].y;
+		c = q23[idx].x;
+		d = q23[idx].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		a = c;
+		b = d;
+		c = q23[idx_minus_1].x;
+		d = q23[idx_minus_1].y;
+
+		total_complex_product.x += a * c + b * d;
+		total_complex_product.y += b * c - a * d;
+
+		Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
+	}
+}
+
+
+// dimBlock.x = DATA_H; dimBlock.y = 1; dimBlock.z = 1;
+// dimGrid.x = DATA_D; dimGrid.y = 1;
+
+__kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+
+{
+	int y = get_local_id(0);
+	int z = get_group_id(0); 
+				
+	//volatile int y = blockIdx.x * blockDim.x + threadIdx.x;
+	//volatile int z = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
+	{
+		float yf, zf;
+		int matrix_element_idx, vector_element_idx;
+		float A_matrix_2D_value[10], h_vector_2D_value[4];
+
+    	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+		zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+		// X
+
+		A_matrix_2D_value[0] = 0.0f;
+		A_matrix_2D_value[1] = 0.0f;
+		A_matrix_2D_value[2] = 0.0f;
+		A_matrix_2D_value[3] = 0.0f;
+		A_matrix_2D_value[4] = 0.0f;
+		A_matrix_2D_value[5] = 0.0f;
+		A_matrix_2D_value[6] = 0.0f;
+		A_matrix_2D_value[7] = 0.0f;
+		A_matrix_2D_value[8] = 0.0f;
+		A_matrix_2D_value[9] = 0.0f;
+
+		h_vector_2D_value[0] = 0.0f;
+		h_vector_2D_value[1] = 0.0f;
+		h_vector_2D_value[2] = 0.0f;
+		h_vector_2D_value[3] = 0.0f;
+
+		for (int x = (FILTER_SIZE - 1)/2; x < (DATA_W - (FILTER_SIZE - 1)/2); x++)
+		{
+			float xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+			int idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+			float phase_difference = Phase_Differences[idx];
+			float phase_gradient = Phase_Gradients[idx];
+			float certainty = Certainties[idx];
+			float c_pg_pg = certainty * phase_gradient * phase_gradient;
+			float c_pg_pd = certainty * phase_gradient * phase_difference;
+
+			A_matrix_2D_value[0] += c_pg_pg;
+			A_matrix_2D_value[1] += xf * c_pg_pg;
+			A_matrix_2D_value[2] += yf * c_pg_pg;
+			A_matrix_2D_value[3] += zf * c_pg_pg;
+			A_matrix_2D_value[4] += xf * xf * c_pg_pg;
+			A_matrix_2D_value[5] += xf * yf * c_pg_pg;
+			A_matrix_2D_value[6] += xf * zf * c_pg_pg;
+			A_matrix_2D_value[7] += yf * yf * c_pg_pg;
+			A_matrix_2D_value[8] += yf * zf * c_pg_pg;
+			A_matrix_2D_value[9] += zf * zf * c_pg_pg;
+
+			h_vector_2D_value[0] += c_pg_pd;
+			h_vector_2D_value[1] += xf * c_pg_pd;
+			h_vector_2D_value[2] += yf * c_pg_pd;
+			h_vector_2D_value[3] += zf * c_pg_pd;
+		}
+
+		matrix_element_idx = y + z * DATA_H;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[0];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[1];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[2];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[3];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[4];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[5];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[6];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[7];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[8];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[9];
+
+		vector_element_idx = y + z * DATA_H;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[0];
+		vector_element_idx += 3 * DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[1];
+		vector_element_idx += DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[2];
+		vector_element_idx += DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[3];
+	}
+}
+
+__kernel void CalculateAMatrixAndHVector2DValuesX_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D)
+
+{
+	int y = get_local_id(0);
+	int z = get_group_id(0);
+
+	//volatile int y = blockIdx.x * blockDim.x + threadIdx.x;
+	//volatile int z = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if ( (y >= DATA_H) || (z >= DATA_D))
+			return;
+
+	float yf, zf;
+	int matrix_element_idx, vector_element_idx;
+	float A_matrix_2D_value[10], h_vector_2D_value[4];
+
+    yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f + 3.0f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f + 3.0f;
+
+	// X
+	
+	A_matrix_2D_value[0] = 0.0f;
+	A_matrix_2D_value[1] = 0.0f;
+	A_matrix_2D_value[2] = 0.0f;
+	A_matrix_2D_value[3] = 0.0f;
+	A_matrix_2D_value[4] = 0.0f;
+	A_matrix_2D_value[5] = 0.0f;
+	A_matrix_2D_value[6] = 0.0f;
+	A_matrix_2D_value[7] = 0.0f;
+	A_matrix_2D_value[8] = 0.0f;
+	A_matrix_2D_value[9] = 0.0f;
+
+	h_vector_2D_value[0] = 0.0f;
+	h_vector_2D_value[1] = 0.0f;
+	h_vector_2D_value[2] = 0.0f;
+	h_vector_2D_value[3] = 0.0f;
+
+	for (int x = 0; x < DATA_W; x++)
+	{
+		float xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f + 3.0f;
+		int idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+		
+		float phase_difference = Phase_Differences[idx];
+		float phase_gradient = Phase_Gradients[idx];
+		float certainty = Certainties[idx];
+		float c_pg_pg = certainty * phase_gradient * phase_gradient;
+		float c_pg_pd = certainty * phase_gradient * phase_difference;
+
+		A_matrix_2D_value[0] += c_pg_pg;
+		A_matrix_2D_value[1] += xf * c_pg_pg;
+		A_matrix_2D_value[2] += yf * c_pg_pg;
+		A_matrix_2D_value[3] += zf * c_pg_pg;
+		A_matrix_2D_value[4] += xf * xf * c_pg_pg;
+		A_matrix_2D_value[5] += xf * yf * c_pg_pg;
+		A_matrix_2D_value[6] += xf * zf * c_pg_pg;
+		A_matrix_2D_value[7] += yf * yf * c_pg_pg;
+		A_matrix_2D_value[8] += yf * zf * c_pg_pg;
+		A_matrix_2D_value[9] += zf * zf * c_pg_pg;
+
+		h_vector_2D_value[0] += c_pg_pd;
+		h_vector_2D_value[1] += xf * c_pg_pd;
+		h_vector_2D_value[2] += yf * c_pg_pd;
+		h_vector_2D_value[3] += zf * c_pg_pd;
+	}
+
+	matrix_element_idx = y + z * DATA_H;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[0];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[1];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[2];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[3];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[4];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[5];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[6];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[7];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[8];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[9];
+
+	vector_element_idx = y + z * DATA_H;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[0];
+	vector_element_idx += 3 * DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[1];
+	vector_element_idx += DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[2];
+	vector_element_idx += DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[3];
+}
+
+__kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __glocal const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int y = get_local_id(0);
+	int z = get_group_id(0);
+
+	if (((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
+	{
+		float yf, zf;
+		int matrix_element_idx, vector_element_idx;
+		float A_matrix_2D_value[10], h_vector_2D_value[4];
+
+    	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+		zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+		// Y
+
+		A_matrix_2D_value[0] = 0.0f;
+		A_matrix_2D_value[1] = 0.0f;
+		A_matrix_2D_value[2] = 0.0f;
+		A_matrix_2D_value[3] = 0.0f;
+		A_matrix_2D_value[4] = 0.0f;
+		A_matrix_2D_value[5] = 0.0f;
+		A_matrix_2D_value[6] = 0.0f;
+		A_matrix_2D_value[7] = 0.0f;
+		A_matrix_2D_value[8] = 0.0f;
+		A_matrix_2D_value[9] = 0.0f;
+
+		h_vector_2D_value[0] = 0.0f;
+		h_vector_2D_value[1] = 0.0f;
+		h_vector_2D_value[2] = 0.0f;
+		h_vector_2D_value[3] = 0.0f;
+
+		for (int x = (FILTER_SIZE - 1)/2; x < (DATA_W - (FILTER_SIZE - 1)/2); x++)
+		{
+			float xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+			int idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+			float phase_difference = Phase_Differences[idx];
+			float phase_gradient = Phase_Gradients[idx];
+			float certainty = Certainties[idx];
+			float c_pg_pg = certainty * phase_gradient * phase_gradient;
+			float c_pg_pd = certainty * phase_gradient * phase_difference;
+
+			A_matrix_2D_value[0] += c_pg_pg;
+			A_matrix_2D_value[1] += xf * c_pg_pg;
+			A_matrix_2D_value[2] += yf * c_pg_pg;
+			A_matrix_2D_value[3] += zf * c_pg_pg;
+			A_matrix_2D_value[4] += xf * xf * c_pg_pg;
+			A_matrix_2D_value[5] += xf * yf * c_pg_pg;
+			A_matrix_2D_value[6] += xf * zf * c_pg_pg;
+			A_matrix_2D_value[7] += yf * yf * c_pg_pg;
+			A_matrix_2D_value[8] += yf * zf * c_pg_pg;
+			A_matrix_2D_value[9] += zf * zf * c_pg_pg;
+
+			h_vector_2D_value[0] += c_pg_pd;
+			h_vector_2D_value[1] += xf * c_pg_pd;
+			h_vector_2D_value[2] += yf * c_pg_pd;
+			h_vector_2D_value[3] += zf * c_pg_pd;
+		}
+
+		matrix_element_idx = y + z * DATA_H + 10 * DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[0];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[1];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[2];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[3];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[4];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[5];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[6];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[7];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[8];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[9];
+
+		vector_element_idx = y + z * DATA_H + DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[0];
+		vector_element_idx += 5 * DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[1];
+		vector_element_idx += DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[2];
+		vector_element_idx += DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[3];
+	}
+}
+
+
+__kernel void CalculateAMatrixAndHVector2DValuesY_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D)
+{
+	int y = get_local_id(0);
+	int z = get_group_id(0);
+
+	if ( (y >= DATA_H) || (z >= DATA_D))
+			return;
+
+	float yf, zf;
+	int matrix_element_idx, vector_element_idx;
+	float A_matrix_2D_value[10], h_vector_2D_value[4];
+
+    yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f + 3.0f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f + 3.0f;
+
+	// Y
+
+	A_matrix_2D_value[0] = 0.0f;
+	A_matrix_2D_value[1] = 0.0f;
+	A_matrix_2D_value[2] = 0.0f;
+	A_matrix_2D_value[3] = 0.0f;
+	A_matrix_2D_value[4] = 0.0f;
+	A_matrix_2D_value[5] = 0.0f;
+	A_matrix_2D_value[6] = 0.0f;
+	A_matrix_2D_value[7] = 0.0f;
+	A_matrix_2D_value[8] = 0.0f;
+	A_matrix_2D_value[9] = 0.0f;
+
+	h_vector_2D_value[0] = 0.0f;
+	h_vector_2D_value[1] = 0.0f;
+	h_vector_2D_value[2] = 0.0f;
+	h_vector_2D_value[3] = 0.0f;
+
+	for (int x = 0; x < DATA_W; x++)
+	{
+		float xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f + 3.0f;
+		int idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+		float phase_difference = Phase_Differences[idx];
+		float phase_gradient = Phase_Gradients[idx];
+		float certainty = Certainties[idx];
+		float c_pg_pg = certainty * phase_gradient * phase_gradient;
+		float c_pg_pd = certainty * phase_gradient * phase_difference;
+
+		A_matrix_2D_value[0] += c_pg_pg;
+		A_matrix_2D_value[1] += xf * c_pg_pg;
+		A_matrix_2D_value[2] += yf * c_pg_pg;
+		A_matrix_2D_value[3] += zf * c_pg_pg;
+		A_matrix_2D_value[4] += xf * xf * c_pg_pg;
+		A_matrix_2D_value[5] += xf * yf * c_pg_pg;
+		A_matrix_2D_value[6] += xf * zf * c_pg_pg;
+		A_matrix_2D_value[7] += yf * yf * c_pg_pg;
+		A_matrix_2D_value[8] += yf * zf * c_pg_pg;
+		A_matrix_2D_value[9] += zf * zf * c_pg_pg;
+
+		h_vector_2D_value[0] += c_pg_pd;
+		h_vector_2D_value[1] += xf * c_pg_pd;
+		h_vector_2D_value[2] += yf * c_pg_pd;
+		h_vector_2D_value[3] += zf * c_pg_pd;
+	}
+
+	matrix_element_idx = y + z * DATA_H + 10 * DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[0];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[1];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[2];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[3];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[4];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[5];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[6];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[7];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[8];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[9];
+
+	vector_element_idx = y + z * DATA_H + DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[0];
+	vector_element_idx += 5 * DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[1];
+	vector_element_idx += DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[2];
+	vector_element_idx += DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[3];
+}
+
+
+__kernel void CalculateAMatrixAndHVector2DValues_Z(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+
+{
+	int y = get_local_id(0);
+	int z = get_group_id(0);
+
+	//volatile int y = blockIdx.x * blockDim.x + threadIdx.x;
+	//volatile int z = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if (((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
+	{
+	    float yf, zf;
+		int matrix_element_idx, vector_element_idx;
+		float A_matrix_2D_value[10], h_vector_2D_value[4];
+
+    	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+		zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+		// Z
+
+		A_matrix_2D_value[0] = 0.0f;
+		A_matrix_2D_value[1] = 0.0f;
+		A_matrix_2D_value[2] = 0.0f;
+		A_matrix_2D_value[3] = 0.0f;
+		A_matrix_2D_value[4] = 0.0f;
+		A_matrix_2D_value[5] = 0.0f;
+		A_matrix_2D_value[6] = 0.0f;
+		A_matrix_2D_value[7] = 0.0f;
+		A_matrix_2D_value[8] = 0.0f;
+		A_matrix_2D_value[9] = 0.0f;
+
+		h_vector_2D_value[0] = 0.0f;
+		h_vector_2D_value[1] = 0.0f;
+		h_vector_2D_value[2] = 0.0f;
+		h_vector_2D_value[3] = 0.0f;
+
+		for (int x = (FILTER_SIZE - 1)/2; x < (DATA_W - (FILTER_SIZE - 1)/2); x++)
+		{
+			float xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+			int idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+			float phase_difference = Phase_Differences[idx];
+			float phase_gradient = Phase_Gradients[idx];
+			float certainty = Certainties[idx];
+			float c_pg_pg = certainty * phase_gradient * phase_gradient;
+			float c_pg_pd = certainty * phase_gradient * phase_difference;
+
+			A_matrix_2D_value[0] += c_pg_pg;
+			A_matrix_2D_value[1] += xf * c_pg_pg;
+			A_matrix_2D_value[2] += yf * c_pg_pg;
+			A_matrix_2D_value[3] += zf * c_pg_pg;
+			A_matrix_2D_value[4] += xf * xf * c_pg_pg;
+			A_matrix_2D_value[5] += xf * yf * c_pg_pg;
+			A_matrix_2D_value[6] += xf * zf * c_pg_pg;
+			A_matrix_2D_value[7] += yf * yf * c_pg_pg;
+			A_matrix_2D_value[8] += yf * zf * c_pg_pg;
+			A_matrix_2D_value[9] += zf * zf * c_pg_pg;
+
+			h_vector_2D_value[0] += c_pg_pd;
+			h_vector_2D_value[1] += xf * c_pg_pd;
+			h_vector_2D_value[2] += yf * c_pg_pd;
+			h_vector_2D_value[3] += zf * c_pg_pd;
+		}
+
+
+		matrix_element_idx = y + z * DATA_H + 20 * DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[0];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[1];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[2];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[3];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[4];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[5];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[6];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[7];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[8];
+		matrix_element_idx += DATA_H * DATA_D;
+		A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[9];
+
+		vector_element_idx = y + z * DATA_H + 2 * DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[0];
+		vector_element_idx += 7 * DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[1];
+		vector_element_idx += DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[2];
+		vector_element_idx += DATA_H * DATA_D;
+		h_vector_2D_values[vector_element_idx] = h_vector_2D_value[3];
+	}
+}
+
+
+
+__kernel void	Calculate_A_matrix_and_h_vector_2D_values_Z_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D)
+{
+	int y = get_local_id(0);
+	int z = get_group_id(0);
+
+	if ( (y >= DATA_H) || (z >= DATA_D))
+			return;
+
+    float yf, zf;
+	int matrix_element_idx, vector_element_idx;
+	float A_matrix_2D_value[10], h_vector_2D_value[4];
+
+   	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f + 3.0f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f + 3.0f;
+
+	// Z
+
+	A_matrix_2D_value[0] = 0.0f;
+	A_matrix_2D_value[1] = 0.0f;
+	A_matrix_2D_value[2] = 0.0f;
+	A_matrix_2D_value[3] = 0.0f;
+	A_matrix_2D_value[4] = 0.0f;
+	A_matrix_2D_value[5] = 0.0f;
+	A_matrix_2D_value[6] = 0.0f;
+	A_matrix_2D_value[7] = 0.0f;
+	A_matrix_2D_value[8] = 0.0f;
+	A_matrix_2D_value[9] = 0.0f;
+
+	h_vector_2D_value[0] = 0.0f;
+	h_vector_2D_value[1] = 0.0f;
+	h_vector_2D_value[2] = 0.0f;
+	h_vector_2D_value[3] = 0.0f;
+
+	for (int x = 0; x < DATA_W; x++)
+	{
+		float xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f + 3.0f;
+		int idx = Calculate_3D_Index(x, y, z, DATA_W, DATA_H);
+
+		float phase_difference = Phase_Differences[idx];
+		float phase_gradient = Phase_Gradients[idx];
+		float certainty = Certainties[idx];
+		float c_pg_pg = certainty * phase_gradient * phase_gradient;
+		float c_pg_pd = certainty * phase_gradient * phase_difference;
+
+		A_matrix_2D_value[0] += c_pg_pg;
+		A_matrix_2D_value[1] += xf * c_pg_pg;
+		A_matrix_2D_value[2] += yf * c_pg_pg;
+		A_matrix_2D_value[3] += zf * c_pg_pg;
+		A_matrix_2D_value[4] += xf * xf * c_pg_pg;
+		A_matrix_2D_value[5] += xf * yf * c_pg_pg;
+		A_matrix_2D_value[6] += xf * zf * c_pg_pg;
+		A_matrix_2D_value[7] += yf * yf * c_pg_pg;
+		A_matrix_2D_value[8] += yf * zf * c_pg_pg;
+		A_matrix_2D_value[9] += zf * zf * c_pg_pg;
+
+		h_vector_2D_value[0] += c_pg_pd;
+		h_vector_2D_value[1] += xf * c_pg_pd;
+		h_vector_2D_value[2] += yf * c_pg_pd;
+		h_vector_2D_value[3] += zf * c_pg_pd;
+	}
+
+	matrix_element_idx = y + z * DATA_H + 20 * DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[0];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[1];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[2];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[3];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[4];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[5];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[6];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[7];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[8];
+	matrix_element_idx += DATA_H * DATA_D;
+	A_matrix_2D_values[matrix_element_idx] = A_matrix_2D_value[9];
+
+	vector_element_idx = y + z * DATA_H + 2 * DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[0];
+	vector_element_idx += 7 * DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[1];
+	vector_element_idx += DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[2];
+	vector_element_idx += DATA_H * DATA_D;
+	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[3];
+}
+
+
+// dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
+// dimGrid.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimGrid.y = 1;
+
+__kernel void CalculateAMatrix1DValues(__global float* A_matrix_1D_values, __global const float* A_matrix_2D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int z = get_local_id(0);
+	
+	if (z >= (FILTER_SIZE - 1)/2 && z < (DATA_D - (FILTER_SIZE - 1)/2))
+	{
+		int A_matrix_element   = blockIdx.x; // 144 element (12 x 12 matrix) (30 that are != 0)
+		int matrix_element_idx = z + A_matrix_element * DATA_D;
+		int idx;
+		float matrix_1D_value = 0.0f;
+
+		idx = z * DATA_H + A_matrix_element * DATA_H * DATA_D;
+		// Sum over all y positions
+		for (int y = (FILTER_SIZE - 1)/2; y < (DATA_H - (FILTER_SIZE - 1)/2); y++)
+		{
+			matrix_1D_value += A_matrix_2D_values[idx + y];
+		}
+
+		A_matrix_1D_values[matrix_element_idx] = matrix_1D_value;
+	}
+}
+
+__kernel void CalculateAMatrix1DValues_(__global float* A_matrix_1D_values, __global const float* A_matrix_2D_values, int DATA_W, int DATA_H, int DATA_D)
+{
+	int z = get_local_id(0);
+
+	if (z >= DATA_D)
+		return;
+
+	int A_matrix_element   = blockIdx.x; // 144 element (12 x 12 matrix) (30 that are != 0)
+	int matrix_element_idx = z + A_matrix_element * DATA_D;
+	int idx;
+	float matrix_1D_value = 0.0f;
+
+	idx = z * DATA_H + A_matrix_element * DATA_H * DATA_D;
+	// Sum over all y positions
+	for (int y = 0; y < DATA_H; y++)
+	{
+		matrix_1D_value += A_matrix_2D_values[idx + y];
+	}
+
+	A_matrix_1D_values[matrix_element_idx] = matrix_1D_value;
+}
+
+// dimBlock.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimBlock.y = 1; dimBlock.z = 1;
+// dimGrid.x = 1; dimGrid.y = 1;
+
+__kernel void Calculate_A_matrix(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int A_matrix_element = get_local_id(0);
+	int idx, i, j;
+
+	float matrix_value = 0.0f;
+
+	idx = A_matrix_element * DATA_D;
+
+	// Sum over all z positions
+	//#pragma unroll 128
+	for (int z = (FILTER_SIZE - 1)/2; z < (DATA_D - (FILTER_SIZE - 1)/2); z++)
+	{
+		matrix_value += A_matrix_1D_values[idx + z];
+	}
+
+	Get_Parameter_Indices_Filter(i,j,A_matrix_element);
+	A_matrix_element = i + j * NUMBER_OF_MOTION_CORRECTION_PARAMETERS;
+
+	A_matrix[A_matrix_element] = matrix_value;
+}
+
+__kernel void Calculate_A_matrix_(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D)
+{
+	int A_matrix_element = get_local_id(0);
+	int idx, i, j;
+
+	float matrix_value = 0.0f;
+
+	idx = A_matrix_element * DATA_D;
+
+	// Sum over all z positions
+	//#pragma unroll 128
+	for (int z = 0; z < DATA_D; z++)
+	{
+		matrix_value += A_matrix_1D_values[idx + z];
+	}
+
+	Get_Parameter_Indices_Filter(i,j,A_matrix_element);
+	A_matrix_element = i + j * NUMBER_OF_MOTION_CORRECTION_PARAMETERS;
+
+	A_matrix[A_matrix_element] = matrix_value;
+}
+
+__kernel void Reset_A_matrix(__global float* A_matrix)
+{
+	int i = get_local_id(0);
+
+	A_matrix[i] = 0.0f;
+}
+
+__kernel void Reset_h_vector(__global float* h_vector)
+{
+	int i = get_local_id(0);
+
+	h_vector[i] = 0.0f;
+}
+
+
+// dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
+// dimGrid.x = NUMBER_OF_PARAMETERS; dimGrid.y = 1;
+
+__kernel void Calculate_h_vector_1D_values(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int z = get_local_id(0);
+
+	if (z >= (FILTER_SIZE - 1)/2 && z < (DATA_D - (FILTER_SIZE - 1)/2))
+	{
+		int h_vector_element   = blockIdx.x; // 12 parameters
+		int vector_element_idx = z + h_vector_element * DATA_D;
+		int idx;
+
+		float vector_1D_value = 0.0f;
+
+		idx = z * DATA_H + h_vector_element * DATA_H * DATA_D;
+		// Sum over all y positions
+		for (int y = (FILTER_SIZE - 1)/2; y < (DATA_H - (FILTER_SIZE - 1)/2); y++)
+		{
+			vector_1D_value += h_vector_2D_values[idx + y];
+		}
+
+		h_vector_1D_values[vector_element_idx] = vector_1D_value;
+	}
+}
+
+__kernel void Calculate_h_vector_1D_values_(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D)
+{
+	int z = get_local_id(0);
+
+	if (z >= DATA_D)
+		return;
+
+	int h_vector_element   = blockIdx.x; // 12 parameters
+	int vector_element_idx = z + h_vector_element * DATA_D;
+	int idx;
+
+	float vector_1D_value = 0.0f;
+
+	idx = z * DATA_H + h_vector_element * DATA_H * DATA_D;
+	// Sum over all y positions
+	for (int y = 0; y < DATA_H; y++)
+	{
+		vector_1D_value += h_vector_2D_values[idx + y];
+	}
+
+	h_vector_1D_values[vector_element_idx] = vector_1D_value;
+}
+
+// dimBlock.x = NUMBER_OF_PARAMETERS; dimBlock.y = 1; dimBlock.z = 1;
+// dimGrid.x = 1; dimGrid.y = 1;
+
+__kernel void Calculate_h_vector(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+{
+	int h_vector_element = get_local_id(0);
+	int idx;
+
+	float vector_value = 0.0f;
+	idx = h_vector_element * DATA_D;
+
+	// Sum over all z positions
+	for (int z = (FILTER_SIZE - 1)/2; z < (DATA_D - (FILTER_SIZE - 1)/2); z++)
+	{
+		vector_value += h_vector_1D_values[idx + z];
+	}
+
+	h_vector[h_vector_element] = vector_value;
+}
+
+__kernel void Calculate_h_vector_(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D)
+{
+	int h_vector_element = get_local_id(0);
+	int idx;
+
+	float vector_value = 0.0f;
+	idx = h_vector_element * DATA_D;
+
+	// Sum over all z positions
+	for (int z = 0; z < DATA_D; z++)
+	{
+		vector_value += h_vector_1D_values[idx + z];
+	}
+
+	h_vector[h_vector_element] = vector_value;
+}
+
+__kernel void InterpolateVolumeTriLinear(__global float* Volume, int DATA_W, int DATA_H, int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate_3D_Index(x,y,z,DATA_W, DATA_H);
+	float3 Motion_Vector;
+	float xf, yf, zf;
+
+    // (motion_vector.x)   (p0)   (p3  p4  p5)   (x)
+	// (motion_vector.y) = (p1) + (p6  p7  p8) * (y)
+ 	// (motion_vector.z)   (p2)   (p9 p10 p11)   (z)
+
+	// Change to coordinate system with origo in (sx - 1)/2 (sy - 1)/2 (sz - 1)/2
+	xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+	Motion_Vector.x = x + c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf + 0.5f;
+	Motion_Vector.y = y + c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf + 0.5f;
+	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;
+
+	//Volume[idx] = tex3D(tex_Modified_Volume, Motion_Vector.x, Motion_Vector.y, Motion_Vector.z);
+}
+
+// Statistical functions
+
+__kernel void CalculateActivityMapGLM(__global float* Activity_Map, __global const float* fMRI_Volumes, __global const float* Brain_Voxels, float ctxtxc, __constant float *c_X_GLM, __constant float* *c_xtxxt_GLM, __constant float* c_Contrast_Vector, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3262,7 +4445,7 @@ __kernel void CalculateActivityMapGLM(float* Activity_Map, const float* fMRI_Vol
 	Activity_Map[Calculate_3D_Index(x,y,z,DATA_W,DATA_H)] = (c_Contrast_Vector[0] * beta1 + c_Contrast_Vector[1] * beta2)  * rsqrtf(vareps * ctxtxc);
 }
 
-__kernel void GeneratePermutedfMRIVolumesAR4(float* Permuted_fMRI_Volumes, const float4* Alpha_Volumes, const float* Whitened_fMRI_Volumes, const float* Brain_Voxels, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float4* Alpha_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* Brain_Voxels, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3304,13 +4487,11 @@ __kernel void GeneratePermutedfMRIVolumesAR4(float* Permuted_fMRI_Volumes, const
     }
 }
 
-__kernel void ApplyWhiteningAR4(float* Whitened_fMRI_Volumes, const float* Detrended_fMRI_Volumes, const float4 *Alpha_Volumes, const float* Brain_Voxels, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* Detrended_fMRI_Volumes, __global const float4 *Alpha_Volumes, __global const float* Brain_Voxels, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 	int z = get_global_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
 
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
@@ -3400,7 +4581,7 @@ void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
 }
 
 
-__kernel void EstimateAR4BrainVoxels(float4 *alpha_volumes, const float* detrended_fMRI_volumes, const float* Brain_Voxels, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void EstimateAR4BrainVoxels(__global float4 *alpha_volumes, __global const float* detrended_fMRI_volumes, __global const float* Brain_Voxels, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3496,9 +4677,9 @@ __kernel void EstimateAR4BrainVoxels(float4 *alpha_volumes, const float* detrend
             Invert_4x4(matrix, inv_matrix);
 
             alphas.x = inv_matrix[0][0] * r.x + inv_matrix[0][1] * r.y + inv_matrix[0][2] * r.z + inv_matrix[0][3] * r.w;
-            alphas.y = inv_matrix[1][0] * r.y + inv_matrix[1][1] * r.y + inv_matrix[1][2] * r.z + inv_matrix[1][3] * r.w;
-            alphas.z = inv_matrix[2][0] * r.z + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
-            alphas.w = inv_matrix[3][0] * r.w + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
+            alphas.y = inv_matrix[1][0] * r.x + inv_matrix[1][1] * r.y + inv_matrix[1][2] * r.z + inv_matrix[1][3] * r.w;
+            alphas.z = inv_matrix[2][0] * r.x + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
+            alphas.w = inv_matrix[3][0] * r.x + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
 
             alpha_volumes[x + y * DATA_W + z * DATA_W * DATA_H] = alphas;
         }
