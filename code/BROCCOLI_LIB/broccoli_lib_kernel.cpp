@@ -21,14 +21,23 @@
 
 
 // Help functions
-int Calculate3DIndex(int a, int b, int c, int DATA_A, int DATA_B)
+int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H)
 {
-	return a + b * DATA_A + c * DATA_A * DATA_B;
+	return x + y * DATA_W + z * DATA_W * DATA_H;
 }
 
-int Calculate4DIndex(int a, int b, int c, int d, int DATA_A, int DATA_B, int DATA_C)
+int Calculate4DIndex(int x, int y, int z, int t, int DATA_W, int DATA_H, int DATA_D)
 {
-	return a + b * DATA_A + c * DATA_A * DATA_B + d * DATA_A * DATA_B * DATA_C;
+	// Return a 3D index if t = -1, to make it possible to run the separable convolution functions for
+	// a 4D dataset or 3D dataset
+	if (t == -1)
+	{
+		return x + y * DATA_W + z * DATA_W * DATA_H;
+	}
+	else
+	{
+		return x + y * DATA_W + z * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D;
+	}
 }
 
 void GetParameterIndices(int& i, int& j, int parameter)
@@ -186,7 +195,7 @@ typedef struct DATA_PARAMETERS
 
 // Separable 3D convolution
 
-__kernel void SeparableConvolutionRows(__global float *Convolved, __global const float* fMRI_Volumes, __constant float *c_Smoothing_Filter_Y, int t, __constant struct DATA_PARAMETERS* DATA)
+__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Y, int t, __constant struct DATA_PARAMETERS* DATA)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -222,44 +231,44 @@ __kernel void SeparableConvolutionRows(__global float *Convolved, __global const
 
 	if ( (x < DATA->DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && (z < DATA->DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y - 4,z,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA->DATA_D)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA->DATA_D)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y - 4,z + 2,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA->DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 2,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA->DATA_D)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y - 4,z + 4,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 4,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y - 4,z + 6,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 6,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
 	}
 
 	// Second half main data + lower apron
 
 	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && (z < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y + 4,z,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y + 4,z + 2,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 2,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y + 4,z + 4,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 4,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = fMRI_Volumes[Calculate_4D_Index(x,y + 4,z + 6,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 6,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
 	}
 
 	// Make sure all threads have written to local memory
@@ -280,7 +289,7 @@ __kernel void SeparableConvolutionRows(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Convolved[Calculate_3D_Index(x,y,z,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z,DATA->DATA_W, DATA->DATA_H)] = sum;
 	}
 
 	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
@@ -297,7 +306,7 @@ __kernel void SeparableConvolutionRows(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Convolved[Calculate_3D_Index(x,y,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
 	}
 
 	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
@@ -314,7 +323,7 @@ __kernel void SeparableConvolutionRows(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Convolved[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
 	}
 
 	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
@@ -331,11 +340,11 @@ __kernel void SeparableConvolutionRows(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Convolved[Calculate_3D_Index(x,y,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
 	}
 }
 
-__kernel void SeparableConvolutionColumns(__global float *Convolved, __global const float* fMRI_Volume, __constant float *c_Smoothing_Filter_X, int t, __constant struct DATA_PARAMETERS *DATA)
+__kernel void SeparableConvolutionColumns(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_X, int t, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_local_size(0) * get_group_id(0) / 32 * 24 + get_local_id(0);;
 	int y = get_local_size(1) * get_group_id(1) * 2 + get_local_id(2);
@@ -368,44 +377,44 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && (z < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y,z,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y,z + 2,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 2,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y,z + 6,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 6,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && (z < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y + 8,z,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y + 8,z + 2,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 2,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y + 8,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x - 4,y + 8,z + 6,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 6,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	// Make sure all threads have written to local memory
@@ -428,7 +437,7 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y,z,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 
 		if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
@@ -445,7 +454,7 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z + 2][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 2][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 
 		if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
@@ -462,7 +471,7 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 
 		if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
@@ -479,7 +488,7 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z + 6][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 6][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 
 		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && (z < DATA->DATA_D) )
@@ -496,7 +505,7 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y + 8,z,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 
 		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
@@ -513,7 +522,7 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y + 8,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 
 		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
@@ -530,7 +539,7 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y + 8,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 
 		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
@@ -547,12 +556,12 @@ __kernel void SeparableConvolutionColumns(__global float *Convolved, __global co
 			sum += l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Convolved[Calculate_3D_Index(x,y + 8,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
 		}
 	}
 }
 
-__kernel void SeparableConvolutionRods(__global float *Convolved, __global const float* fMRI_Volume, __constant float *c_Smoothing_Filter_Z, int t, __constant struct DATA_PARAMETERS *DATA)
+__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Z, int t, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
 	int y = get_local_size(1) * get_group_id(1) * 4 + get_local_id(1); 
@@ -588,44 +597,44 @@ __kernel void SeparableConvolutionRods(__global float *Convolved, __global const
 
 	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x,y,z - 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 2) < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 2][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y + 2,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 2][tIdx.x] = Volume[Calculate_3D_Index(x,y + 2,z - 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 4][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y + 4,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 4][tIdx.x] = Volume[Calculate_3D_Index(x,y + 4,z - 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 6) < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 6][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y + 6,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 6][tIdx.x] = Volume[Calculate_3D_Index(x,y + 6,z - 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	// Second half main data + below apron
 
 	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 2) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y + 2,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] = Volume[Calculate_3D_Index(x,y + 2,z + 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y + 4,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] = Volume[Calculate_3D_Index(x,y + 4,z + 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 6) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] = fMRI_Volume[Calculate_3D_Index(x,y + 6,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] = Volume[Calculate_3D_Index(x,y + 6,z + 4,DATA->DATA_W, DATA->DATA_H)];
 	}
 
 	// Make sure all threads have written to local memory
@@ -646,7 +655,7 @@ __kernel void SeparableConvolutionRods(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Responses[Calculate_4D_Index(x,y,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 2) < DATA->DATA_H) && (z < DATA->DATA_D) )
@@ -663,7 +672,7 @@ __kernel void SeparableConvolutionRods(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Convolved[Calculate_4D_Index(x,y + 2,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y + 2,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && (z < DATA->DATA_D) )
@@ -680,7 +689,7 @@ __kernel void SeparableConvolutionRods(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Convolved[Calculate_4D_Index(x,y + 4,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y + 4,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
 	}
 
 	if ( (x < DATA->DATA_W) && ((y + 6) < DATA->DATA_H) && (z < DATA->DATA_D) )
@@ -697,7 +706,7 @@ __kernel void SeparableConvolutionRods(__global float *Convolved, __global const
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Convolved[Calculate_4D_Index(x,y + 6,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y + 6,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
 	}
 }
 
