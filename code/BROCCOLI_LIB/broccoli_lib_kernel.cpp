@@ -4402,7 +4402,7 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, int DATA_W, int
 
 // Statistical functions
 
-__kernel void CalculateActivityMapGLM(__global float* Activity_Map, __global const float* fMRI_Volumes, __global const float* Brain_Voxels, float ctxtxc, __constant float *c_X_GLM, __constant float* *c_xtxxt_GLM, __constant float* c_Contrast_Vector, __constant struct DATA_PARAMETERS *DATA)
+__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Residual_Volumes, __global const float* Volumes, __global const float* Mask, float ctxtxc, __constant float *c_X_GLM, __constant float* *c_xtxxt_GLM, __constant float* c_Contrast_Vector, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4411,47 +4411,80 @@ __kernel void CalculateActivityMapGLM(__global float* Activity_Map, __global con
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	if ( Brain_Voxels[x + y * DATA_W + z * DATA_W * DATA_H] == 0.0f )
+	if ( Mask[Calculate3DIndex(x,y,z,c,DATA_W,DATA_H)] == 0.0f )
 	{
-		activity_map[x + y * DATA_W + z * DATA_W * DATA_H] = 0.0f;
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
 		return;
 	}
 
 	int t = 0;
-	float beta1 = 0.0f;
-	float beta2 = 0.0f;
+	float beta[NUMBER_OF_REGRESSORS];
 	float eps, meaneps, vareps;
 
-	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
-	for (t = 0; t < DATA_T; t ++)
+	// Reset all beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{
-		// Sum and multiply the values in shared memory
-		float temp = fMRI_Volumes[Calculate_4D_Index(x,y,z,t,DATA_W,DATA_H,DATA_D)];
-		beta1 += temp * c_xtxxt_GLM[t];
-		beta2 += temp * c_xtxxt_GLM[DATA_T + t];
+		beta[r] = 0.0f;
+	}
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+		}
 	}
 
 	// Calculate the mean of the error eps
 	meaneps = 0.0f;
-	for (t = 0; t < DATA_T; t ++)
+	// Loop over volumes
+	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		meaneps += fMRI_Volumes[Calculate_4D_Index(x,y,z,t,DATA_W,DATA_H,DATA_D)] - beta1 * c_X_GLM[t] - beta2 * c_X_GLM[DATA_T + t];
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= beta[r] * c_X_GLM[NUMBER_OF_VALUES * r + v];
+		}
+		meaneps += eps;
+		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
 	}
 	meaneps /= (float)DATA_T;
 
 	// Now calculate the variance of eps
 	vareps = 0.0f;
-	for (t = 0; t < DATA_T; t ++)
+	// Loop over volumes
+	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		eps = fMRI_Volumes[Calculate_4D_Index(x,y,z,t,DATA_W,DATA_H,DATA_D)];
-		eps -= beta1 * c_X_GLM[t];
-		eps -= beta2 * c_X_GLM[DATA_T + t];
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= beta[r] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
+		}
 		vareps += (eps - meaneps) * (eps - meaneps);
 	}
 
-	vareps /= ((float)DATA_T - 3.0f);
+	vareps /= ((float)DATA_T - (float)NUMBER_OF_REGRESSORS);
 	
-	Activity_Map[Calculate_3D_Index(x,y,z,DATA_W,DATA_H)] = (c_Contrast_Vector[0] * beta1 + c_Contrast_Vector[1] * beta2)  * rsqrtf(vareps * ctxtxc);
+	// Loop over contrasts
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		contrast_value = 0.0f;
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			contrast_value += c_Contrast_Vector[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}	
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrtf(vareps * ctxtxc);
+	}
 }
 
 __kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float4* Alpha_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* Brain_Voxels, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)

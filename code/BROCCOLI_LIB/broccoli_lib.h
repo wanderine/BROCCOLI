@@ -354,20 +354,18 @@ class BROCCOLI_LIB
 
 		cl_int errNum;
 
-		size_t localWorkSizeConvolutionRows[3];
-		size_t localWorkSizeConvolutionColumns[3];
-		size_t localWorkSizeConvolutionRods[3];
-		size_t localWorkSizeConvolutionNonseparable3DComplex[3];
-		size_t localWorkSizeCalculateActivityMapGLM[3];
-		size_t localWorkSizeCalculateActivityMapCCA[3];
-
+		size_t localWorkSizeSeparableConvolutionRows[3];
+		size_t localWorkSizeSeparableConvolutionColumns[3];
+		size_t localWorkSizeSeparableConvolutionRods[3];
+		size_t localWorkSizeNonseparableConvolution3DComplex[3];
+		size_t localWorkSizeCalculateStatisticalMapGLM[3];
+		
 		size_t globalWorkSizeConvolutionRows[3];
 		size_t globalWorkSizeConvolutionColumns[3];
 		size_t globalWorkSizeConvolutionRods[3];
 		size_t globalWorkSizeConvolutionNonseparable3DComplex[3];
-		size_t globalWorkSizeCalculateActivityMapGLM[3];
-		size_t globalWorkSizeCalculateActivityMapCCA[3];
-
+		size_t globalWorkSizeCalculateStatisticalMapGLM[3];
+		
 		size_t localWorkSize[3];
 
 		// General
@@ -470,28 +468,19 @@ class BROCCOLI_LIB
 		float		*h_Registration_Parameters;
 
 		// Smoothing
-		float4		*h_CCA_2D_Filters;
-		float		*h_CCA_3D_Filter_1;
-		float		*h_CCA_3D_Filter_2;
-		float2		*h_CCA_3D_Filters;
 		float		*h_GLM_Filter;
-		float		*h_Smoothed_fMRI_Volumes_1;
-		float		*h_Smoothed_fMRI_Volumes_2;
-
+		float		*h_Smoothed_fMRI_Volumes;
+		
 		// Detrending
 		float		*h_X_Detrend, *h_xtxxt_Detrend;
-		float		*h_Detrended_fMRI_Volumes_1;
-		float		*h_Detrended_fMRI_Volumes_2;
-		float		*h_Detrended_fMRI_Volumes_3;
-		float		*h_Detrended_fMRI_Volumes_4;
+		float		*h_Detrended_fMRI_Volumes;
 			
 		// Statistical analysis
 		float		*hrf;
 		int			 hrf_length;
-		float		*h_Cxx, *h_sqrt_inv_Cxx;
 		float		*h_X_GLM, *h_xtxxt_GLM;
 		float		 h_ctxtxc;			
-		float		*h_Activity_Volume;
+		float		*h_Statistical_Maps;
 			
 		// Random permutations
 		float		*h_Alpha_Smoothing_Kernel;
@@ -511,6 +500,7 @@ class BROCCOLI_LIB
 		float		*device_pointers_permutation[NUMBER_OF_DEVICE_POINTERS];
 		
 		cl_mem		*d_fMRI_Volumes;
+
 		cl_mem		*d_Brain_Voxels;
 			
 		// Slice timing correction
@@ -524,17 +514,13 @@ class BROCCOLI_LIB
 		// Smoothing
 		cl_mem		*d_Smoothed_Certainty;
 		cl_mem		*d_Smoothed_fMRI_Volumes;
-		cl_mem		*d_Smoothed_fMRI_Volumes_1;
-		cl_mem		*d_Smoothed_fMRI_Volumes_2;
-
+		
 
 		// Detrending
 		cl_mem		*d_Detrended_fMRI_Volumes;
-		cl_mem		*d_Detrended_fMRI_Volumes_1;
-		cl_mem		*d_Detrended_fMRI_Volumes_2;
-
+		
 		// Statistical analysis
-		cl_mem		*d_Activity_Volume;
+		cl_mem		*d_Statistical_Maps;
 
 		// Paraneters for single subject permutations
 		cl_mem		*d_Alphas_1, *d_Alphas_2, *d_Alphas_3, *d_Alphas_4;
@@ -556,27 +542,21 @@ class BROCCOLI_LIB
 		std::string		filename_imag_quadrature_filter_2;
 		std::string		filename_imag_quadrature_filter_3;
 		std::string		filename_GLM_filter;
-		std::string		filename_CCA_3D_filter_1;
-		std::string		filename_CCA_3D_filter_2;
 
 		std::string		filename_fMRI_data_raw;
 		std::string		filename_slice_timing_corrected_fMRI_volumes_raw;
 		std::string		filename_registration_parameters_raw;
 		std::string		filename_motion_compensated_fMRI_volumes_raw;
-		std::string		filename_smoothed_fMRI_volumes_1_raw;
-		std::string		filename_smoothed_fMRI_volumes_2_raw;
-		std::string		filename_detrended_fMRI_volumes_1_raw;
-		std::string		filename_detrended_fMRI_volumes_2_raw;
+		std::string		filename_smoothed_fMRI_volumes_raw;
+		std::string		filename_detrended_fMRI_volumes_raw;
 		std::string		filename_activity_volume_raw;
 
 		std::string		filename_fMRI_data_nifti;
 		std::string		filename_slice_timing_corrected_fMRI_volumes_nifti;
 		std::string		filename_registration_parameters_nifti;
 		std::string		filename_motion_compensated_fMRI_volumes_nifti;
-		std::string		filename_smoothed_fMRI_volumes_1_nifti;
-		std::string		filename_smoothed_fMRI_volumes_2_nifti;
-		std::string		filename_detrended_fMRI_volumes_1_nifti;
-		std::string		filename_detrended_fMRI_volumes_2_nifti;
+		std::string		filename_smoothed_fMRI_volumes_nifti;
+		std::string		filename_detrended_fMRI_volumes_nifti;
 		std::string		filename_activity_volume_nifti;
 
 };
