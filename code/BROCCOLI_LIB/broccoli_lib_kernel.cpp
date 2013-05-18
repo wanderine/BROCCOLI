@@ -4402,7 +4402,7 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, int DATA_W, int
 
 // Statistical functions
 
-__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Residual_Volumes, __global const float* Volumes, __global const float* Mask, float ctxtxc, __constant float *c_X_GLM, __constant float* *c_xtxxt_GLM, __constant float* c_Contrast_Vector, __constant struct DATA_PARAMETERS *DATA)
+__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Beta_Volumes, __global float* Residual_Volumes, __global const float* Volumes, __global const float* Mask, float ctxtxc, __constant float *c_X_GLM, __constant float* *c_xtxxt_GLM, __constant float* c_Contrast_Vectors, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4417,6 +4417,17 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 		{
 			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
+		
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+	
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
 		return;
 	}
 
@@ -4442,6 +4453,12 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 		}
 	}
 
+	// Save beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
+	}
+	
 	// Calculate the mean of the error eps
 	meaneps = 0.0f;
 	// Loop over volumes
@@ -4471,7 +4488,6 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 		}
 		vareps += (eps - meaneps) * (eps - meaneps);
 	}
-
 	vareps /= ((float)DATA_T - (float)NUMBER_OF_REGRESSORS);
 	
 	// Loop over contrasts
@@ -4481,13 +4497,13 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 		// Loop over regressors
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			contrast_value += c_Contrast_Vector[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+			contrast_value += c_Contrast_Vectors[NUMBER_OF_REGRESSORS * c + r] * beta[r];
 		}	
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrtf(vareps * ctxtxc);
 	}
 }
 
-__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float4* Alpha_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* Brain_Voxels, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float4* Alpha_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* Mask, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4496,21 +4512,21 @@ __kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volum
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-    if ( Brain_Voxels[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 1.0f )
     {
         int t = 0;
 		float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-		float4 alphas = Alpha_Volumes[x + y * DATA_W + z * DATA_W * DATA_H];
+		float4 alphas = Alpha_Volumes[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
         
         old_value1 = Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[0], DATA_W, DATA_H, DATA_D)];
 		old_value2 = alphas.x * old_value1  + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[1], DATA_W, DATA_H, DATA_D)];
 		old_value3 = alphas.x * old_value2  + alphas.y * old_value1 + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[2], DATA_W, DATA_H, DATA_D)];
 		old_value4 = alphas.x * old_value3  + alphas.y * old_value2 + alphas.z * old_value1 + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[3], DATA_W, DATA_H, DATA_D)];
 
-        permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)] =  old_value1;
-        permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)] =  old_value2;
-        permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)] =  old_value3;
-        permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)] =  old_value4;
+        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)] =  old_value1;
+        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)] =  old_value2;
+        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)] =  old_value3;
+        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)] =  old_value4;
 
         // Read the data in a permuted order and apply an inverse whitening transform
         for (t = 4; t < DATA_T; t++)
@@ -4518,7 +4534,7 @@ __kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volum
             // Calculate the unwhitened, permuted, timeseries
             old_value5 = alphas.x * old_value4 + alphas.y * old_value3 + alphas.z * old_value2 + alphas.w * old_value1 + whitened_fMRI_volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
 			
-            permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value5;
+            Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value5;
 
             // Save old values
 			old_value_1 = old_value_2;
@@ -4529,7 +4545,7 @@ __kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volum
     }
 }
 
-__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* Detrended_fMRI_Volumes, __global const float4 *Alpha_Volumes, __global const float* Brain_Voxels, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* Detrended_fMRI_Volumes, __global const float4 *Alpha_Volumes, __global const float* Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4538,11 +4554,11 @@ __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global 
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-    if ( Brain_Voxels[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 1.0f )
     {
         int t = 0;
 		float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-        float4 alphas = alpha_volumes[x + y * DATA_W + z * DATA_W * DATA_H];
+        float4 alphas = Alpha_Volumes[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
         
         // Calculate the whitened timeseries
 
@@ -4632,7 +4648,7 @@ __kernel void EstimateAR4BrainVoxels(__global float4 *alpha_volumes, __global co
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-    if ( Brain_Voxels[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 1.0f )
     {
         int t = 0;
 		float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
@@ -4723,7 +4739,7 @@ __kernel void EstimateAR4BrainVoxels(__global float4 *alpha_volumes, __global co
             alphas.z = inv_matrix[2][0] * r.x + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
             alphas.w = inv_matrix[3][0] * r.x + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
 
-            alpha_volumes[x + y * DATA_W + z * DATA_W * DATA_H] = alphas;
+            Alpha_Volumes[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = alphas;
         }
         else
         {
@@ -4731,7 +4747,7 @@ __kernel void EstimateAR4BrainVoxels(__global float4 *alpha_volumes, __global co
 			alphas.y = 0.0f;
 			alphas.z = 0.0f;
 			alphas.w = 0.0f;
-            alpha_volumes[x + y * DATA_W + z * DATA_W * DATA_H] = alphas;
+            Alpha_Volumes[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas;
         }
     }
     else
@@ -4740,6 +4756,7 @@ __kernel void EstimateAR4BrainVoxels(__global float4 *alpha_volumes, __global co
 		alphas.y = 0.0f;
 		alphas.z = 0.0f;
 		alphas.w = 0.0f;
-        alpha_volumes[x + y * DATA_W + z * DATA_W * DATA_H] = alphas;
+        Alpha_Volumes[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas;
     }
 }
+
