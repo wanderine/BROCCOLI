@@ -28,16 +28,7 @@ int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H)
 
 int Calculate4DIndex(int x, int y, int z, int t, int DATA_W, int DATA_H, int DATA_D)
 {
-	// Return a 3D index if t = -1, to make it possible to run the separable convolution functions for
-	// a 4D dataset or 3D dataset
-	if (t == -1)
-	{
-		return x + y * DATA_W + z * DATA_W * DATA_H;
-	}
-	else
-	{
-		return x + y * DATA_W + z * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D;
-	}
+	return x + y * DATA_W + z * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D;
 }
 
 void GetParameterIndices(int& i, int& j, int parameter)
@@ -712,7 +703,7 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 
 // Non-separable 3D convolution
 
-__kernel void NonseparableConvolution3DComplex(__global float2 *Filter_Response_1, __global float2 *Filter_Response_2, __global float2 *Filter_Response_3, __global const float* Volume, __constant float2 *c_Quadrature_Filter_1, __constant float2 *c_Quadrature_Filter_2, __constant float2 *c_Quadrature_Filter_3, __constant struct DATA_PARAMETERS *DATA)
+__kernel void Nonseparable3DConvolutionComplex(__global float2 *Filter_Response_1, __global float2 *Filter_Response_2, __global float2 *Filter_Response_3, __global const float* Volume, __constant float2 *c_Quadrature_Filter_1, __constant float2 *c_Quadrature_Filter_2, __constant float2 *c_Quadrature_Filter_3, __constant struct DATA_PARAMETERS *DATA)
 {   
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4400,8 +4391,43 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, int DATA_W, int
 	//Volume[idx] = tex3D(tex_Modified_Volume, Motion_Vector.x, Motion_Vector.y, Motion_Vector.z);
 }
 
+__kernel void RemoveLinearFit(__global float* Residuals, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_Detrend, __constant struct DATA_PARAMETERS *DATA)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,c,DATA_W,DATA_H)] == 0.0f )
+	{
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+
+	// Calculate the residual
+	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{ 
+			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
+		}
+		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+}
+
+
 // Statistical functions
-__kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global const float* Volumes, __global const float* Mask, __constant float* *c_xtxxt_GLM, __constant struct DATA_PARAMETERS *DATA)
+__kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global const float* Volumes, __global const float* Mask, __constant float* c_xtxxt_GLM, __constant float* c_Censor, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4432,11 +4458,14 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 	// Loop over volumes
 	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		// Loop over regressors
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		if (c_Censor[v] == 0.0f)
 		{
-			beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+			float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			// Loop over regressors
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+			}
 		}
 	}
 
@@ -4448,7 +4477,7 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 }
 
 
-__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Beta_Contrasts, __global float* Residual_Volumes, __global float* Residual_Variances, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_GLM, __constant float* c_Contrast_Vectors, __constant float* ctxtxc, __constant struct DATA_PARAMETERS *DATA)
+__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Beta_Contrasts, __global float* Residual_Volumes, __global float* Residual_Variances, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_GLM, __constant float* c_Contrast_Vectors, __constant float* ctxtxc, __constant float* c_Censor, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4487,13 +4516,16 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	meaneps = 0.0f;
 	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{ 
-			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VALUES * r + v];
+		if (c_Censor[v] == 0.0f)
+		{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{ 
+				eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
+			}
+			meaneps += eps;
+			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
 		}
-		meaneps += eps;
-		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
 	}
 	meaneps /= (float)DATA_T;
 
@@ -4501,14 +4533,17 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	vareps = 0.0f;
 	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		if (c_Censor[v] == 0.0f)
 		{
-			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
+			}
+			vareps += (eps - meaneps) * (eps - meaneps);
 		}
-		vareps += (eps - meaneps) * (eps - meaneps);
 	}
-	vareps /= ((float)DATA_T - (float)NUMBER_OF_REGRESSORS);
+	vareps /= ((float)DATA_T - (float)NUMBER_OF_REGRESSORS); // correct for number of censor points?
 	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
 
 	// Loop over contrasts and calculate t-values
@@ -4591,86 +4626,94 @@ __kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical
 }
 
 
-__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float4* Alpha_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* Mask, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* Mask, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 
-    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
         return;
 
-    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 1.0f )
+    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 0.0f )
+		return;
+
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+	float4 alphas;
+	alphas.x = AR1_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+    alphas.y = AR2_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+    alphas.z = AR3_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+    alphas.w = AR4_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+
+    old_value1 = Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[0], DATA_W, DATA_H, DATA_D)];
+	old_value2 = alphas.x * old_value1  + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[1], DATA_W, DATA_H, DATA_D)];
+	old_value3 = alphas.x * old_value2  + alphas.y * old_value1 + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[2], DATA_W, DATA_H, DATA_D)];
+	old_value4 = alphas.x * old_value3  + alphas.y * old_value2 + alphas.z * old_value1 + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[3], DATA_W, DATA_H, DATA_D)];
+
+    Permuted_fMRI_Volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)] =  old_value1;
+    Permuted_fMRI_Volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)] =  old_value2;
+    Permuted_fMRI_Volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)] =  old_value3;
+    Permuted_fMRI_Volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)] =  old_value4;
+
+    // Read the data in a permuted order and apply an inverse whitening transform
+    for (t = 4; t < DATA_T; t++)
     {
-        int t = 0;
-		float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-		float4 alphas = Alpha_Volumes[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
-        
-        old_value1 = Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[0], DATA_W, DATA_H, DATA_D)];
-		old_value2 = alphas.x * old_value1  + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[1], DATA_W, DATA_H, DATA_D)];
-		old_value3 = alphas.x * old_value2  + alphas.y * old_value1 + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[2], DATA_W, DATA_H, DATA_D)];
-		old_value4 = alphas.x * old_value3  + alphas.y * old_value2 + alphas.z * old_value1 + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[3], DATA_W, DATA_H, DATA_D)];
-
-        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)] =  old_value1;
-        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)] =  old_value2;
-        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)] =  old_value3;
-        Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)] =  old_value4;
-
-        // Read the data in a permuted order and apply an inverse whitening transform
-        for (t = 4; t < DATA_T; t++)
-        {
-            // Calculate the unwhitened, permuted, timeseries
-            old_value5 = alphas.x * old_value4 + alphas.y * old_value3 + alphas.z * old_value2 + alphas.w * old_value1 + whitened_fMRI_volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
+        // Calculate the unwhitened, permuted, timeseries
+        old_value5 = alphas.x * old_value4 + alphas.y * old_value3 + alphas.z * old_value2 + alphas.w * old_value1 + Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
 			
-            Permuted_fMRI_volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value5;
+        Permuted_fMRI_Volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value5;
 
-            // Save old values
-			old_value_1 = old_value_2;
-            old_value_2 = old_value_3;
-            old_value_3 = old_value_4;
-            old_value_4 = old_value_5;
-        }
+        // Save old values
+		old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
     }
 }
 
-__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* Detrended_fMRI_Volumes, __global const float4 *Alpha_Volumes, __global const float* Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* fMRI_Volumes, __global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 
-    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
         return;
 
-    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 1.0f )
+    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 0.0f )
+		return;
+
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+    float4 alphas;
+	alphas.x = AR1_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+    alphas.y = AR2_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+    alphas.z = AR3_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+    alphas.w = AR4_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
+
+    // Calculate the whitened timeseries
+
+    old_value_1 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)] = old_value_1;
+    old_value_2 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)] = old_value_2  - alphas.x * old_value_0;
+    old_value_3 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)] = old_value_3 - alphas.x * old_value_2 - alphas.y * old_value_1;
+    old_value_4 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)] = old_value_4 - alphas.x * old_value_3 - alphas.y * old_value_2 - alphas.z * old_value_1;
+
+    for (t = 4; t < DATA_T; t++)
     {
-        int t = 0;
-		float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-        float4 alphas = Alpha_Volumes[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)];
-        
-        // Calculate the whitened timeseries
+        old_value_5 = fMRI_Volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)];
 
-        old_value_1 = Detrended_fMRI_Volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)];
-        Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)] = old_value_1;
-        old_value_2 = Detrended_fMRI_Volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
-        Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)] = old_value_2  - alphas.x * old_value_0;
-        old_value_3 = Detrended_fMRI_Volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)];
-        Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)] = old_value_3 - alphas.x * old_value_2 - alphas.y * old_value_1;
-        old_value_4 = Detrended_fMRI_Volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)];
-        Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)] = old_value_4 - alphas.x * old_value_3 - alphas.y * old_value_2 - alphas.z * old_value_1;
+        Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
 
-        for (t = 4; t < DATA_T; t++)
-        {
-            old_value_5 = Detrended_fMRI_Volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)];
-
-            Whitened_fMRI_Volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
-
-			// Save old values
-            old_value_1 = old_value_2;
-            old_value_2 = old_value_3;
-            old_value_3 = old_value_4;
-            old_value_4 = old_value_5;
-        }
+		// Save old values
+        old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
     }
 }
 
@@ -4727,7 +4770,7 @@ void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
 }
 
 
-__kernel void EstimateAR4BrainVoxels(__global float4 *alpha_volumes, __global const float* detrended_fMRI_volumes, __global const float* Brain_Voxels, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void EstimateAR4Models(__global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* fMRI_Volumes, __global const float* Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4736,115 +4779,116 @@ __kernel void EstimateAR4BrainVoxels(__global float4 *alpha_volumes, __global co
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 1.0f )
+    if ( Mask[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] == 0.0f )
+	{
+        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+
+		return;
+	}
+
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+	float c0 = 0.0f;
+    float c1 = 0.0f;
+    float c2 = 0.0f;
+    float c3 = 0.0f;
+    float c4 = 0.0f;
+
+    old_value_1 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_1 * old_value_1;
+    old_value_2 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_2 * old_value_2;
+    c1 += old_value_2 * old_value_1;
+    old_value_3 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_3 * old_value_3;
+    c1 += old_value_3 * old_value_2;
+    c2 += old_value_3 * old_value_1;
+    old_value_4 = fMRI_Volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_4 * old_value_4;
+    c1 += old_value_4 * old_value_3;
+    c2 += old_value_4 * old_value_2;
+    c3 += old_value_4 * old_value_1;
+
+    // Estimate c0, c1, c2, c3, c4
+    for (t = 4; t < DATA_T; t++)
     {
-        int t = 0;
-		float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-		float c0 = 0.0f;
-        float c1 = 0.0f;
-        float c2 = 0.0f;
-        float c3 = 0.0f;
-        float c4 = 0.0f;
-
-        old_value_1 = detrendedfMRIVolumes[Calculate_4D_Index(x, y, z, 0, DATA_W, DATA_H, DATA_D)];
-        c0 += old_value_1 * old_value_1;
-        old_value_2 = detrended_fMRI_volumes[Calculate_4D_Index(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
-        c0 += old_value_2 * old_value_2;
-        c1 += old_value_2 * old_value_1;
-        old_value_3 = detrended_fMRI_volumes[Calculate_4D_Index(x, y, z, 2, DATA_W, DATA_H, DATA_D)];
-        c0 += old_value_3 * old_value_3;
-        c1 += old_value_3 * old_value_2;
-        c2 += old_value_3 * old_value_1;
-        old_value_4 = detrended_fMRI_volumes[Calculate_4D_Index(x, y, z, 3, DATA_W, DATA_H, DATA_D)];
-        c0 += old_value_4 * old_value_4;
-        c1 += old_value_4 * old_value_3;
-        c2 += old_value_4 * old_value_2;
-        c3 += old_value_4 * old_value_1;
-
-        // Estimate c0, c1, c2, c3, c4
-        for (t = 4; t < DATA_T; t++)
-        {
-            // Read data into shared memory
-            old_value_5 = detrended_fMRI_volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+        // Read data into shared memory
+        old_value_5 = fMRI_Volumes[Calculate_4D_Index(x, y, z, t, DATA_W, DATA_H, DATA_D)];
         
-            // Sum and multiply the values in shared memory
-            c0 += old_value_5 * old_value_5;
-            c1 += old_value_5 * old_value_4;
-            c2 += old_value_5 * old_value_3;
-            c3 += old_value_5 * old_value_2;
-            c4 += old_value_5 * old_value_1;
+        // Sum and multiply the values in shared memory
+        c0 += old_value_5 * old_value_5;
+        c1 += old_value_5 * old_value_4;
+        c2 += old_value_5 * old_value_3;
+        c3 += old_value_5 * old_value_2;
+        c4 += old_value_5 * old_value_1;
 
-			// Save old values
-            old_value_1 = old_value_2;
-            old_value_2 = old_value_3;
-            old_value_3 = old_value_4;
-            old_value_4 = old_value_5;
-        }
+		// Save old values
+        old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
+    }
 
-        c0 /= ((float)(DATA_T) - 1.0f);
-        c1 /= ((float)(DATA_T) - 2.0f);
-        c2 /= ((float)(DATA_T) - 3.0f);
-        c3 /= ((float)(DATA_T) - 4.0f);
-        c4 /= ((float)(DATA_T) - 5.0f);
+    c0 /= ((float)(DATA_T) - 1.0f);
+    c1 /= ((float)(DATA_T) - 2.0f);
+    c2 /= ((float)(DATA_T) - 3.0f);
+    c3 /= ((float)(DATA_T) - 4.0f);
+    c4 /= ((float)(DATA_T) - 5.0f);
 
-        // Calculate alphas
-        float4 r, alphas;
+    // Calculate alphas
+    float4 r, alphas;
 
-        if (c0 != 0.0f)
-        {
-            r.x = c1/c0;
-            r.y = c2/c0;
-            r.z = c3/c0;
-            r.w = c4/c0;
+    if (c0 != 0.0f)
+    {
+        r.x = c1/c0;
+        r.y = c2/c0;
+        r.z = c3/c0;
+        r.w = c4/c0;
 
-            float matrix[4][4];
-            matrix[0][0] = 1.0f;
-            matrix[1][0] = r.x + 0.001f;
-            matrix[2][0] = r.y + 0.001f;
-            matrix[3][0] = r.z + 0.001f;
+        float matrix[4][4];
+        matrix[0][0] = 1.0f;
+        matrix[1][0] = r.x + 0.001f;
+        matrix[2][0] = r.y + 0.001f;
+        matrix[3][0] = r.z + 0.001f;
 
-            matrix[0][1] = r.x + 0.001f;
-            matrix[1][1] = 1.0f;
-            matrix[2][1] = r.x + 0.001f;
-            matrix[3][1] = r.y + 0.001f;
+        matrix[0][1] = r.x + 0.001f;
+        matrix[1][1] = 1.0f;
+        matrix[2][1] = r.x + 0.001f;
+        matrix[3][1] = r.y + 0.001f;
 
-            matrix[0][2] = r.y + 0.001f;
-            matrix[1][2] = r.x + 0.001f;
-            matrix[2][2] = 1.0f;
-            matrix[3][2] = r.x + 0.001f;
+        matrix[0][2] = r.y + 0.001f;
+        matrix[1][2] = r.x + 0.001f;
+        matrix[2][2] = 1.0f;
+        matrix[3][2] = r.x + 0.001f;
 
-            matrix[0][3] = r.z + 0.001f;
-            matrix[1][3] = r.y + 0.001f;
-            matrix[2][3] = r.x + 0.001f;
-            matrix[3][3] = 1.0f;
+        matrix[0][3] = r.z + 0.001f;
+        matrix[1][3] = r.y + 0.001f;
+        matrix[2][3] = r.x + 0.001f;
+        matrix[3][3] = 1.0f;
 
-            float inv_matrix[4][4];
+		float inv_matrix[4][4];
 
-            Invert_4x4(matrix, inv_matrix);
+        Invert_4x4(matrix, inv_matrix);
 
-            alphas.x = inv_matrix[0][0] * r.x + inv_matrix[0][1] * r.y + inv_matrix[0][2] * r.z + inv_matrix[0][3] * r.w;
-            alphas.y = inv_matrix[1][0] * r.x + inv_matrix[1][1] * r.y + inv_matrix[1][2] * r.z + inv_matrix[1][3] * r.w;
-            alphas.z = inv_matrix[2][0] * r.x + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
-            alphas.w = inv_matrix[3][0] * r.x + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
+        alphas.x = inv_matrix[0][0] * r.x + inv_matrix[0][1] * r.y + inv_matrix[0][2] * r.z + inv_matrix[0][3] * r.w;
+        alphas.y = inv_matrix[1][0] * r.x + inv_matrix[1][1] * r.y + inv_matrix[1][2] * r.z + inv_matrix[1][3] * r.w;
+        alphas.z = inv_matrix[2][0] * r.x + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
+        alphas.w = inv_matrix[3][0] * r.x + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
 
-            Alpha_Volumes[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = alphas;
-        }
-        else
-        {
-			alphas.x = 0.0f;
-			alphas.y = 0.0f;
-			alphas.z = 0.0f;
-			alphas.w = 0.0f;
-            Alpha_Volumes[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas;
-        }
+        AR1_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = alphas.x;
+		AR2_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = alphas.y;
+		AR3_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = alphas.z;
+		AR4_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = alphas.w;
     }
     else
     {
-		alphas.x = 0.0f;
-		alphas.y = 0.0f;
-		alphas.z = 0.0f;
-		alphas.w = 0.0f;
-        Alpha_Volumes[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas;
+		AR1_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = 0.0f;
+        AR2_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR3_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR4_Estimates[Calculate_3D_Index(x, y, z, DATA_W, DATA_H)] = 0.0f;
     }
 }
 

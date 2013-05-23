@@ -276,7 +276,7 @@ class BROCCOLI_LIB
 		void GeneratePermutationMatrixSingleSubject();
 		void PerformDetrendingPriorPermutation();
 		void CreateBOLDRegressedVolumes();
-		void PerformWhiteningPriorPermutation();
+		void WhitenfMRIVolumes();
 		void GeneratePermutedfMRIVolumes();
 		void PerformDetrendingPermutation();
 		void PerformSmoothingPermutation(); 
