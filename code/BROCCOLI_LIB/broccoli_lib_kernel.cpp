@@ -4416,7 +4416,6 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 		{
 			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
-	
 		return;
 	}
 

@@ -266,8 +266,8 @@ class BROCCOLI_LIB
 		
 		// Processing
 		void PerformPreprocessingAndCalculateActivityMap();				
-		void CalculateActivityMap();
-		void CalculateGroupMap();
+		void CalculateStatisticalMapGLMFirstLevel();
+		void CalculateStatisticalMapGLMSecondLevel();
 		void CalculatePermutationTestThresholdSingleSubject();
 		void CalculatePermutationTestThresholdMultiSubject();
 		
@@ -276,7 +276,6 @@ class BROCCOLI_LIB
 		void GeneratePermutationMatrixSingleSubject();
 		void PerformDetrendingPriorPermutation();
 		void CreateBOLDRegressedVolumes();
-		void SmoothingSingleVolume(float* d_Smoothed_Volume, float* d_Volume, float* d_Certainty, float* d_Smoothed_Alpha_Certainty, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE);
 		void PerformWhiteningPriorPermutation();
 		void GeneratePermutedfMRIVolumes();
 		void PerformDetrendingPermutation();
@@ -350,7 +349,7 @@ class BROCCOLI_LIB
 		cl_command_queue commandQueue;
 		cl_program program;
 		cl_device_id device;
-		cl_kernel convolutionRowsKernel, convolutionColumnsKernel, convolutionRodsKernel, convolutionNonseparable3DComplexKernel;		
+		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel, NonseparableConvolution3DComplexKernel;		
 
 		cl_int errNum;
 
@@ -358,15 +357,16 @@ class BROCCOLI_LIB
 		size_t localWorkSizeSeparableConvolutionColumns[3];
 		size_t localWorkSizeSeparableConvolutionRods[3];
 		size_t localWorkSizeNonseparableConvolution3DComplex[3];
+		size_t localWorkSizeCalculateBetaVolumesGLM[3];
 		size_t localWorkSizeCalculateStatisticalMapGLM[3];
-		
-		size_t globalWorkSizeConvolutionRows[3];
-		size_t globalWorkSizeConvolutionColumns[3];
-		size_t globalWorkSizeConvolutionRods[3];
-		size_t globalWorkSizeConvolutionNonseparable3DComplex[3];
+
+		size_t globalWorkSizeSeparableConvolutionRows[3];
+		size_t globalWorkSizeSeparableConvolutionColumns[3];
+		size_t globalWorkSizeSeparableConvolutionRods[3];
+		size_t globalWorkSizeNonseparableConvolution3DComplex[3];
+		size_t globalWorkSizeCalculateBetaVolumesGLM[3];
 		size_t globalWorkSizeCalculateStatisticalMapGLM[3];
 		
-		size_t localWorkSize[3];
 
 		// General
 		nifti_image *nifti_data;
@@ -374,8 +374,6 @@ class BROCCOLI_LIB
 		int DATA_W, DATA_H, DATA_D, DATA_T, DATA_T_PADDED;
 		int DATA_SIZE_QUADRATURE_FILTER_REAL;
 		int DATA_SIZE_QUADRATURE_FILTER_COMPLEX;
-		int DATA_SIZE_SMOOTHING_FILTER_3D_CCA;
-		int DATA_SIZE_SMOOTHING_FILTERS_3D_CCA;
 		int DATA_SIZE_SMOOTHING_FILTER_GLM;
 
 		int NUMBER_OF_SUBJECTS;
@@ -500,8 +498,8 @@ class BROCCOLI_LIB
 		float		*device_pointers_permutation[NUMBER_OF_DEVICE_POINTERS];
 		
 		cl_mem		*d_fMRI_Volumes;
-
-		cl_mem		*d_Brain_Voxels;
+		cl_mem		*d_Volumes;
+		cl_mem		*d_Mask;
 			
 		// Slice timing correction
 		cl_mem		*d_fMRI_Volumes_Complex;

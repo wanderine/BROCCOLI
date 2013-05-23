@@ -410,7 +410,7 @@ void BROCCOLI_LIB::OpenCLTest()
 
 
 
-// Set functions for GUI
+// Set functions for GUI / Wrappers
 
 void BROCCOLI_LIB::SetDataType(int type)
 {
@@ -446,7 +446,6 @@ void BROCCOLI_LIB::SetfMRIDataSliceTimepoint(int timepoint)
 {
 	TIMEPOINT_fMRI_DATA = timepoint;
 }
-
 
 void BROCCOLI_LIB::SetActivityThreshold(float threshold)
 {
@@ -913,7 +912,7 @@ void BROCCOLI_LIB::PerformDetrending()
 // Processing
 
 // Runs all the preprocessing steps and the statistical analysis for one subject
-void BROCCOLI_LIB::PerformPreprocessingAndCalculateActivityMap()
+void BROCCOLI_LIB::PerformPreprocessingAndCalculateStatisticalMaps()
 {
 	PerformRegistrationEPIT1();
 	PerformRegistrationT1MNI();
@@ -922,66 +921,69 @@ void BROCCOLI_LIB::PerformPreprocessingAndCalculateActivityMap()
 	PerformMotionCorrection();
 	PerformSmoothing();	
 	PerformDetrending();
-	CalculateActivityMap();
+	CalculateStatisticalMapsFirstLevel();
 
 	CalculateSlicesPreprocessedfMRIData();
 }
 
-// Calculates an activity map for a single subject
-void BROCCOLI_LIB::CalculateActivityMap()
+// Calculates a statistical map for first level analysis
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMFirstLevel()
 {
-	// CCA
-	if ( (ANALYSIS_METHOD == CCA) )
-	{
-		// Total number of threads
-		globalWorkSize[0] = DATA_W;
-		globalWorkSize[1] = DATA_H;
-		globalWorkSize[2] = DATA_D;
-		
-  	    // Number of threads per block
-		localWorkSize[0] = 32;
-		localWorkSize[1] = 4;
-		localWorkSize[2] = 1;		
+	// Calculate beta values
+	clSetKernelArg(calculateBetaVolumesGLM, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(calculateBetaVolumesGLM, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(calculateBetaVolumesGLM, 2, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(calculateBetaVolumesGLM, 2, sizeof(cl_mem), &c_xtxxt_GLM);
+	clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuespGLM, 1, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
 
-		clSetKernelArg(calculateActivityMapCCA, 0, sizeof(cl_mem), (void *)&d_Activity_Map);
-		clSetKernelArg(calculateActivityMapCCA, 1, sizeof(cl_mem), (void *)&d_Detrended_fMRI_Volumes_1);
-		clSetKernelArg(calculateActivityMapCCA, 2, sizeof(cl_mem), (void *)&d_Detrended_fMRI_Volumes_2);
-		clSetKernelArg(calculateActivityMapCCA, 3, sizeof(cl_mem), (void *)&d_Brain_Voxels);
+	// Calculate t-values and residuals
+	clSetKernelArg(calculateStatisticalMapsGLM, 0, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(calculateStatisticalMapsGLM, 1, sizeof(cl_mem), &d_Beta_Contrasts);
+	clSetKernelArg(calculateStatisticalMapsGLM, 2, sizeof(cl_mem), &d_Residual_Volumes);
+	clSetKernelArg(calculateStatisticalMapsGLM, 3, sizeof(cl_mem), &d_Residual_Variances);
+	clSetKernelArg(calculateStatisticalMapsGLM, 4, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(calculateStatisticalMapsGLM, 5, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(calculateStatisticalMapsGLM, 6, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(calculateStatisticalMapsGLM, 7, sizeof(cl_mem), &c_X_GLM);
+	clSetKernelArg(calculateStatisticalMapsGLM, 8, sizeof(cl_mem), &c_Contrast_Vectors);
+	clSetKernelArg(calculateStatisticalMapsGLM, 9, sizeof(cl_mem), &ctxtxc);
+	clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLM, 1, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Estimate auto correlation from residuals
+
+	// Remove auto correlation from regressors and data
 
 
-		//CalculateActivityMapCCA3D<<<dimGrid, dimBlock>>>(d_Activity_Volume, d_Detrended_fMRI_Volumes_1, d_Detrended_fMRI_Volumes_2, d_Brain_Voxels, DATA_W, DATA_H, DATA_D, DATA_T, blocksInY, 1.0f/((float)blocksInY), timeMultiples, timeRest);
-
-		clEnqueueNDRangeKernel(commandQueue, calculateActicityMapCCA, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-		clFinish(commandQueue);
-	}
-	// GLM
-	else if (ANALYSIS_METHOD == GLM)
-	{
-		int threadsInX = 32;
-		int threadsInY = 8;
-		int threadsInZ = 1;
-
-		int blocksInX = (DATA_W+threadsInX-1)/threadsInX;
-		int blocksInY = (DATA_H+threadsInY-1)/threadsInY;
-		int blocksInZ = (DATA_D+threadsInZ-1)/threadsInZ;
-		dim3 dimGrid = dim3(blocksInX, blocksInY*blocksInZ);
-		dim3 dimBlock = dim3(threadsInX, threadsInY, threadsInZ);
-
-		// Calculate how many time multiples there are
-		int timeMultiples = DATA_T / threadsInY;
-		int timeRest = DATA_T - timeMultiples * threadsInY;
-
-		CalculateActivityMapGLM<<<dimGrid, dimBlock>>>(d_Activity_Volume, d_Detrended_fMRI_Volumes_1, d_Brain_Voxels, h_ctxtxc, DATA_W, DATA_H, DATA_D, DATA_T, blocksInY, 1.0f/(float)blocksInY, timeMultiples, timeRest);
-	}
 }
 
-// Calculates an activity map for a group analysis
-void BROCCOLI_LIB::CalculateGroupMap()
+// Calculates a statistical map for second level analysis
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMSecondLevel()
 {
-	// First calculate activity values for each subject ?
+	// Calculate beta values
+	clSetKernelArg(calculateBetaVolumesGLM, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(calculateBetaVolumesGLM, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(calculateBetaVolumesGLM, 2, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(calculateBetaVolumesGLM, 2, sizeof(cl_mem), &c_xtxxt_GLM);
+	clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuespGLM, 1, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
 
-	PerformPreprocessingAndCalculateActivityMap();
+	// Calculate t-values and residuals
+	clSetKernelArg(calculateStatisticalMapsGLM, 0, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(calculateStatisticalMapsGLM, 1, sizeof(cl_mem), &d_Beta_Contrasts);
+	clSetKernelArg(calculateStatisticalMapsGLM, 2, sizeof(cl_mem), &d_Residual_Volumes);
+	clSetKernelArg(calculateStatisticalMapsGLM, 3, sizeof(cl_mem), &d_Residual_Variances);
+	clSetKernelArg(calculateStatisticalMapsGLM, 4, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(calculateStatisticalMapsGLM, 5, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(calculateStatisticalMapsGLM, 6, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(calculateStatisticalMapsGLM, 7, sizeof(cl_mem), &c_X_GLM);
+	clSetKernelArg(calculateStatisticalMapsGLM, 8, sizeof(cl_mem), &c_Contrast_Vectors);
+	clSetKernelArg(calculateStatisticalMapsGLM, 9, sizeof(cl_mem), &ctxtxc);
+	clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLM, 1, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
 }
+
 
 // Calculates a significance threshold for a single subject
 void BROCCOLI_LIB::CalculatePermutationTestThresholdSingleSubject()
