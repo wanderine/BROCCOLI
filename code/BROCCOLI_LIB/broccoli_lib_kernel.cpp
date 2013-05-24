@@ -168,25 +168,11 @@ __kernel void AddVectors(__global const float *a, __global const float *b, __glo
 	c[id] = a[id] + b[id];
 }
 
-// Some useful parameters
-
-typedef struct DATA_PARAMETERS
-{
-    int DATA_W;
-    int DATA_H;
-	int DATA_D;
-	int DATA_T;
-    int xBlockDifference;
-	int yBlockDifference;
-	int zBlockDifference;
-} DATA_PARAMETERS;
-
-
 // Convolution functions
 
 // Separable 3D convolution
 
-__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Y, int t, __constant struct DATA_PARAMETERS* DATA)
+__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -198,7 +184,7 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 	//volatile int y = blockIdx.y * blockDim.y + tIdx.y;
 	//volatile int z = blockIdx.z * blockDim.z * 4 + tIdx.z;
 
-    if (x >= (DATA->DATA_W + DATA->xBlockDifference) || y >= (DATA->DATA_H + DATA->yBlockDifference) || z >= (DATA->DATA_D + DATA->zBlockDifference))
+    if (x >= (DATA_W + xBlockDifference) || y >= (DATA_H + yBlockDifference) || z >= (DATA_D + zBlockDifference))
         return;
 
 	// 8 * 8 * 32 valid filter responses = 2048
@@ -220,53 +206,53 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 
 	// Upper apron + first half main data
 
-	if ( (x < DATA->DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && (z < DATA->DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && (z < DATA->DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA->DATA_D)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z,t,DATA_W, DATA_H, DATA->DATA_D)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 2,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA->DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 2,t,DATA_W, DATA_H, DATA->DATA_D)];
 	}
 
-	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 4,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 4,t,DATA_W, DATA_H, DATA_D)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 6,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate_4D_Index(x,y - 4,z + 6,t,DATA_W, DATA_H, DATA_D)];
 	}
 
 	// Second half main data + lower apron
 
-	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 4) < DATA_H) && (z < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z,t,DATA_W, DATA_H, DATA_D)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 2,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 2,t,DATA_W, DATA_H, DATA_D)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 4,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 4,t,DATA_W, DATA_H, DATA_D)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 6,t,DATA->DATA_W, DATA->DATA_H, DATA->DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate_4D_Index(x,y + 4,z + 6,t,DATA_W, DATA_H, DATA_D)];
 	}
 
 	// Make sure all threads have written to local memory
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
 	// Only threads within the volume do the convolution
-	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( (x < DATA_W) && (y < DATA_H) && (z < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -280,10 +266,10 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Filter_Response[Calculate_3D_Index(x,y,z,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z,DATA_W, DATA_H)] = sum;
 	}
 
-	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
+	if ( (x < DATA_W) && (y < DATA_H) && ((z + 2) < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -297,10 +283,10 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Filter_Response[Calculate_3D_Index(x,y,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z + 2,DATA_W, DATA_H)] = sum;
 	}
 
-	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && (y < DATA_H) && ((z + 4) < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -314,10 +300,10 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Filter_Response[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z + 4,DATA_W, DATA_H)] = sum;
 	}
 
-	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
+	if ( (x < DATA_W) && (y < DATA_H) && ((z + 6) < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -331,11 +317,11 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Filter_Response[Calculate_3D_Index(x,y,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
+		Filter_Response[Calculate_3D_Index(x,y,z + 6,DATA_W, DATA_H)] = sum;
 	}
 }
 
-__kernel void SeparableConvolutionColumns(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_X, int t, __constant struct DATA_PARAMETERS *DATA)
+__kernel void SeparableConvolutionColumns(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_X, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
 {
 	int x = get_local_size(0) * get_group_id(0) / 32 * 24 + get_local_id(0);;
 	int y = get_local_size(1) * get_group_id(1) * 2 + get_local_id(2);
@@ -347,7 +333,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 	//volatile int y = blockIdx.y * blockDim.y * 2 + tIdx.y;
 	//volatile int z = blockIdx.z * blockDim.z * 4 + tIdx.z;
 
-    if (x >= (DATA->DATA_W + DATA->xBlockDifference) || y >= (DATA->DATA_H + DATA->yBlockDifference) || z >= (DATA->DATA_D + DATA->zBlockDifference))
+    if (x >= (DATA_W + DATA->xBlockDifference) || y >= (DATA_H + DATA->yBlockDifference) || z >= (DATA_D + DATA->zBlockDifference))
         return;
 
 	// 8 * 8 * 32 valid filter responses = 2048
@@ -366,46 +352,46 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 
 	// Read data into shared memory
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && (y < DATA_H) && (z < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z,DATA_W, DATA_H)];
 	}
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && (y < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 2,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 2,DATA_W, DATA_H)];
 	}
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && (y < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 4,DATA_W, DATA_H)];
 	}
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && (y < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 6,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y,z + 6,DATA_W, DATA_H)];
 	}
 
 
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && ((y + 8) < DATA_H) && (z < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z,DATA_W, DATA_H)];
 	}
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && ((y + 8) < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 2,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 2,DATA_W, DATA_H)];
 	}
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && ((y + 8) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 4,DATA_W, DATA_H)];
 	}
 
-	if ( ((x - 4) >= 0) && ((x - 4) < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
+	if ( ((x - 4) >= 0) && ((x - 4) < DATA_W) && ((y + 8) < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 6,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate_3D_Index(x - 4,y + 8,z + 6,DATA_W, DATA_H)];
 	}
 
 	// Make sure all threads have written to local memory
@@ -414,7 +400,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 	// Only threads within the volume do the convolution
 	if (get_local_id(1) < 24)
 	{
-		if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && (z < DATA->DATA_D) )
+		if ( (x < DATA_W) && (y < DATA_H) && (z < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -428,10 +414,10 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y,z,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z,DATA_W, DATA_H)] = sum;
 		}
 
-		if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
+		if ( (x < DATA_W) && (y < DATA_H) && ((z + 2) < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -445,10 +431,10 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z + 2][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 2][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z + 2,DATA_W, DATA_H)] = sum;
 		}
 
-		if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+		if ( (x < DATA_W) && (y < DATA_H) && ((z + 4) < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -462,10 +448,10 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z + 4,DATA_W, DATA_H)] = sum;
 		}
 
-		if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
+		if ( (x < DATA_W) && (y < DATA_H) && ((z + 6) < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -479,10 +465,10 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z + 6][tIdx.y][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 6][tIdx.y][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y,z + 6,DATA_W, DATA_H)] = sum;
 		}
 
-		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && (z < DATA->DATA_D) )
+		if ( (x < DATA_W) && ((y + 8) < DATA_H) && (z < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -496,10 +482,10 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y + 8,z,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z,DATA_W, DATA_H)] = sum;
 		}
 
-		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 2) < DATA->DATA_D) )
+		if ( (x < DATA_W) && ((y + 8) < DATA_H) && ((z + 2) < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -513,10 +499,10 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y + 8,z + 2,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z + 2,DATA_W, DATA_H)] = sum;
 		}
 
-		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+		if ( (x < DATA_W) && ((y + 8) < DATA_H) && ((z + 4) < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -530,10 +516,10 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y + 8,z + 4,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z + 4,DATA_W, DATA_H)] = sum;
 		}
 
-		if ( (x < DATA->DATA_W) && ((y + 8) < DATA->DATA_H) && ((z + 6) < DATA->DATA_D) )
+		if ( (x < DATA_W) && ((y + 8) < DATA_H) && ((z + 6) < DATA_D) )
 		{
 		    float sum = 0.0f;
 
@@ -547,12 +533,12 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 			sum += l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x + 7] * c_Smoothing_Filter_X[1];
 			sum += l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x + 8] * c_Smoothing_Filter_X[0];
 
-			Filter_Response[Calculate_3D_Index(x,y + 8,z + 6,DATA->DATA_W, DATA->DATA_H)] = sum;
+			Filter_Response[Calculate_3D_Index(x,y + 8,z + 6,DATA_W, DATA_H)] = sum;
 		}
 	}
 }
 
-__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Z, int t, __constant struct DATA_PARAMETERS *DATA)
+__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
 {
 	int x = get_global_id(0);
 	int y = get_local_size(1) * get_group_id(1) * 4 + get_local_id(1); 
@@ -564,7 +550,7 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 	//volatile int y = blockIdx.y * blockDim.y * 4 + tIdx.y;
 	//volatile int z = blockIdx.z * blockDim.z + tIdx.z;
 
-    if (x >= (DATA->DATA_W + DATA->xBlockDifference) || y >= (DATA->DATA_H + DATA->yBlockDifference) || z >= (DATA->DATA_D + DATA->zBlockDifference))
+    if (x >= (DATA_W + DATA->xBlockDifference) || y >= (DATA_H + DATA->yBlockDifference) || z >= (DATA_D + DATA->zBlockDifference))
         return;
 
 	// 8 * 8 * 32 valid filter responses = 2048
@@ -586,53 +572,53 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 
 	// Above apron + first half main data
 
-	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && (y < DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x,y,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x,y,z - 4,DATA_W, DATA_H)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 2) < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 2) < DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 2][tIdx.x] = Volume[Calculate_3D_Index(x,y + 2,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 2][tIdx.x] = Volume[Calculate_3D_Index(x,y + 2,z - 4,DATA_W, DATA_H)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 4][tIdx.x] = Volume[Calculate_3D_Index(x,y + 4,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 4][tIdx.x] = Volume[Calculate_3D_Index(x,y + 4,z - 4,DATA_W, DATA_H)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 6) < DATA->DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 6) < DATA_H) && ((z - 4) >= 0) && ((z - 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 6][tIdx.x] = Volume[Calculate_3D_Index(x,y + 6,z - 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z][tIdx.y + 6][tIdx.x] = Volume[Calculate_3D_Index(x,y + 6,z - 4,DATA_W, DATA_H)];
 	}
 
 	// Second half main data + below apron
 
-	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && (y < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x,y,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] = Volume[Calculate_3D_Index(x,y,z + 4,DATA_W, DATA_H)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 2) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 2) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] = Volume[Calculate_3D_Index(x,y + 2,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] = Volume[Calculate_3D_Index(x,y + 2,z + 4,DATA_W, DATA_H)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] = Volume[Calculate_3D_Index(x,y + 4,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] = Volume[Calculate_3D_Index(x,y + 4,z + 4,DATA_W, DATA_H)];
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 6) < DATA->DATA_H) && ((z + 4) < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 6) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] = Volume[Calculate_3D_Index(x,y + 6,z + 4,DATA->DATA_W, DATA->DATA_H)];
+		l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] = Volume[Calculate_3D_Index(x,y + 6,z + 4,DATA_W, DATA_H)];
 	}
 
 	// Make sure all threads have written to local memory
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Only threads within the volume do the convolution
-	if ( (x < DATA->DATA_W) && (y < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( (x < DATA_W) && (y < DATA_H) && (z < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -646,10 +632,10 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate_4D_Index(x,y,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y,z,t,DATA_W,DATA_H,DATA_D)] = sum;
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 2) < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 2) < DATA_H) && (z < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -663,10 +649,10 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate_4D_Index(x,y + 2,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y + 2,z,t,DATA_W,DATA_H,DATA_D)] = sum;
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 4) < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 4) < DATA_H) && (z < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -680,10 +666,10 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate_4D_Index(x,y + 4,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y + 4,z,t,DATA_W,DATA_H,DATA_D)] = sum;
 	}
 
-	if ( (x < DATA->DATA_W) && ((y + 6) < DATA->DATA_H) && (z < DATA->DATA_D) )
+	if ( (x < DATA_W) && ((y + 6) < DATA_H) && (z < DATA_D) )
 	{
 	    float sum = 0.0f;
 
@@ -697,13 +683,13 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate_4D_Index(x,y + 6,z,t,DATA->DATA_W,DATA->DATA_H,DATA->DATA_D)] = sum;
+		Filter_Response[Calculate_4D_Index(x,y + 6,z,t,DATA_W,DATA_H,DATA_D)] = sum;
 	}
 }
 
 // Non-separable 3D convolution
 
-__kernel void Nonseparable3DConvolutionComplex(__global float2 *Filter_Response_1, __global float2 *Filter_Response_2, __global float2 *Filter_Response_3, __global const float* Volume, __constant float2 *c_Quadrature_Filter_1, __constant float2 *c_Quadrature_Filter_2, __constant float2 *c_Quadrature_Filter_3, __constant struct DATA_PARAMETERS *DATA)
+__kernel void Nonseparable3DConvolutionComplex(__global float2 *Filter_Response_1, __global float2 *Filter_Response_2, __global float2 *Filter_Response_3, __global const float* Volume, __constant float2 *c_Quadrature_Filter_1, __constant float2 *c_Quadrature_Filter_2, __constant float2 *c_Quadrature_Filter_3, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
 {   
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3211,7 +3197,7 @@ __kernel void Nonseparable3DConvolutionComplex(__global float2 *Filter_Response_
 
 // Functions for motion correction
 
-__kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Differences, __global float* Certainties, __global const float2* q11, __global const float2* q21, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Differences, __global float* Certainties, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3246,7 +3232,7 @@ __kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Diff
 	Certainties[idx] = sqrtf(complex_product.x * complex_product.x + complex_product.y * complex_product.y) * c * c;
 }
 
-__kernel void CalculatePhaseGradientsX_(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculatePhaseGradientsX_(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_glboal_id(1);
@@ -3303,7 +3289,7 @@ __kernel void CalculatePhaseGradientsX_(__global float* Phase_Gradients, __globa
 	Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
 }
 
-__kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3361,7 +3347,7 @@ __kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __globa
 	Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
 }
 
-__kernel void CalculatePhaseGradientsZ_(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculatePhaseGradientsZ_(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3419,7 +3405,7 @@ __kernel void CalculatePhaseGradientsZ_(__global float* Phase_Gradients, __globa
 	Phase_Gradients[idx] = atan2f(total_complex_product.y, total_complex_product.x);
 }
 
-__kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3476,7 +3462,7 @@ __kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global
 	}
 }
 
-__kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3535,7 +3521,7 @@ __kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global
 }
 
 
-__kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3597,7 +3583,7 @@ __kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global
 // dimBlock.x = DATA_H; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = DATA_D; dimGrid.y = 1;
 
-__kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 
 {
 	int y = get_local_id(0);
@@ -3693,7 +3679,7 @@ __kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_va
 	}
 }
 
-__kernel void CalculateAMatrixAndHVector2DValuesX_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateAMatrixAndHVector2DValuesX_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 
 {
 	int y = get_local_id(0);
@@ -3789,7 +3775,7 @@ __kernel void CalculateAMatrixAndHVector2DValuesX_(__global float* A_matrix_2D_v
 	h_vector_2D_values[vector_element_idx] = h_vector_2D_value[3];
 }
 
-__kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __glocal const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __glocal const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int y = get_local_id(0);
 	int z = get_group_id(0);
@@ -3882,7 +3868,7 @@ __kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_va
 }
 
 
-__kernel void CalculateAMatrixAndHVector2DValuesY_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateAMatrixAndHVector2DValuesY_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int y = get_local_id(0);
 	int z = get_group_id(0);
@@ -4074,7 +4060,7 @@ __kernel void CalculateAMatrixAndHVector2DValues_Z(__global float* A_matrix_2D_v
 
 
 
-__kernel void	Calculate_A_matrix_and_h_vector_2D_values_Z_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, int DATA_W, int DATA_H, int DATA_D)
+__kernel void	Calculate_A_matrix_and_h_vector_2D_values_Z_(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int y = get_local_id(0);
 	int z = get_group_id(0);
@@ -4170,7 +4156,7 @@ __kernel void	Calculate_A_matrix_and_h_vector_2D_values_Z_(__global float* A_mat
 // dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimGrid.y = 1;
 
-__kernel void CalculateAMatrix1DValues(__global float* A_matrix_1D_values, __global const float* A_matrix_2D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateAMatrix1DValues(__global float* A_matrix_1D_values, __global const float* A_matrix_2D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int z = get_local_id(0);
 	
@@ -4192,7 +4178,7 @@ __kernel void CalculateAMatrix1DValues(__global float* A_matrix_1D_values, __glo
 	}
 }
 
-__kernel void CalculateAMatrix1DValues_(__global float* A_matrix_1D_values, __global const float* A_matrix_2D_values, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateAMatrix1DValues_(__global float* A_matrix_1D_values, __global const float* A_matrix_2D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int z = get_local_id(0);
 
@@ -4217,7 +4203,7 @@ __kernel void CalculateAMatrix1DValues_(__global float* A_matrix_1D_values, __gl
 // dimBlock.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = 1; dimGrid.y = 1;
 
-__kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A_matrix_1D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int A_matrix_element = get_local_id(0);
 	int idx, i, j;
@@ -4239,7 +4225,7 @@ __kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A
 	A_matrix[A_matrix_element] = matrix_value;
 }
 
-__kernel void CalculateAMatrix_(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateAMatrix_(__global float* A_matrix, __global const float* A_matrix_1D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int A_matrix_element = get_local_id(0);
 	int idx, i, j;
@@ -4279,7 +4265,7 @@ __kernel void ResetHVector(__global float* h_vector)
 // dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = NUMBER_OF_PARAMETERS; dimGrid.y = 1;
 
-__kernel void CalculateHVector1DValues(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateHVector1DValues(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int z = get_local_id(0);
 
@@ -4302,7 +4288,7 @@ __kernel void CalculateHVector1DValues(__global float* h_vector_1D_values, __glo
 	}
 }
 
-__kernel void CalculateHVector1DValues_(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateHVector1DValues_(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int z = get_local_id(0);
 
@@ -4328,7 +4314,7 @@ __kernel void CalculateHVector1DValues_(__global float* h_vector_1D_values, __gl
 // dimBlock.x = NUMBER_OF_PARAMETERS; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = 1; dimGrid.y = 1;
 
-__kernel void CalculateHVector(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateHVector(__global float* h_vector, __global const float* h_vector_1D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int h_vector_element = get_local_id(0);
 	int idx;
@@ -4345,7 +4331,7 @@ __kernel void CalculateHVector(__global float* h_vector, __global const float* h
 	h_vector[h_vector_element] = vector_value;
 }
 
-__kernel void CalculateHVector_(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateHVector_(__global float* h_vector, __global const float* h_vector_1D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int h_vector_element = get_local_id(0);
 	int idx;
@@ -4365,7 +4351,7 @@ __kernel void CalculateHVector_(__global float* h_vector, __global const float* 
 __constant sampler_t volume_sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 	
 
-__kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector,  int DATA_W, int DATA_H, int DATA_D)
+__kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4633,7 +4619,7 @@ __kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical
 }
 
 
-__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* Mask, __constant unsignet int *c_Permutation_Vector, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* Mask, __constant unsignet int *c_Permutation_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4679,7 +4665,7 @@ __kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volum
     }
 }
 
-__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* fMRI_Volumes, __global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* fMRI_Volumes, __global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* Mask, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4777,7 +4763,7 @@ void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
 }
 
 
-__kernel void EstimateAR4Models(__global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* fMRI_Volumes, __global const float* Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+__kernel void EstimateAR4Models(__global const float* AR1_Estimates, __global_const float* AR2_Estimates, __global_const float* AR3_Estimates, __global_const float* AR4_Estimates, __global const float* fMRI_Volumes, __global const float* Mask, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);

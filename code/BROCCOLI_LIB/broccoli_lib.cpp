@@ -875,8 +875,7 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	cl_mem				  d_A_Matrix, d_h_Vector, d_A_Matrix_2D_Values, d_A_Matrix_1D_Values, d_h_Vector_2D_Values, d_h_Vector_1D_Values;
 	cl_mem 				  d_Phase_Differences, d_Phase_Gradients, d_Certainties;
 	cl_mem                d_q11, d_q12, d_q13, d_q21, d_q22, d_q23;
-	cudaExtent            VOLUME_SIZE;
-
+	
 	// Allocate memory on the host
 	h_A_matrix = (float *)malloc(sizeof(float) * NUMBER_OF_MOTION_CORRECTION_PARAMETERS * NUMBER_OF_MOTION_CORRECTION_PARAMETERS);
 	h_inverse_A_matrix = (float *)malloc(sizeof(float) * NUMBER_OF_MOTION_CORRECTION_PARAMETERS * NUMBER_OF_MOTION_CORRECTION_PARAMETERS);
@@ -1185,6 +1184,7 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	// Free all the allocated memory on the device
 	clReleaseMemObject(d_Reference_Volume);
 	clReleaseMemObject(d_Corrected_Volume);
+	clReleaseMemObject(d_Modified_Volume);
 
 	clReleaseMemObject(d_q11);
 	clReleaseMemObject(d_q12);
