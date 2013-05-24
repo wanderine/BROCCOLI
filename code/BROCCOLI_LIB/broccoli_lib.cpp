@@ -871,10 +871,9 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 {
 	float				  *h_A_Matrix, *h_Inverse_A_Matrix, *h_h_Vector;
 	float 				  h_Parameter_Vector[12], h_Parameter_Vector_Total[12];
-	cl_mem                d_Reference_Volume, d_Corrected_Volume;
+	cl_mem                d_Reference_Volume, d_Corrected_Volume, d_Modified_Volume;
 	cl_mem				  d_A_Matrix, d_h_Vector, d_A_Matrix_2D_Values, d_A_Matrix_1D_Values, d_h_Vector_2D_Values, d_h_Vector_1D_Values;
 	cl_mem 				  d_Phase_Differences, d_Phase_Gradients, d_Certainties;
-	cudaArray			  d_Modified_Volume;
 	cl_mem                d_q11, d_q12, d_q13, d_q21, d_q22, d_q23;
 	cudaExtent            VOLUME_SIZE;
 
@@ -883,6 +882,12 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	h_inverse_A_matrix = (float *)malloc(sizeof(float) * NUMBER_OF_MOTION_CORRECTION_PARAMETERS * NUMBER_OF_MOTION_CORRECTION_PARAMETERS);
 	h_h_vector = (float *)malloc(sizeof(float) * NUMBER_OF_MOTION_CORRECTION_PARAMETERS);
 
+	// Create a 3D image (texture) for fast interpolation
+	cl_image_format format;
+	format.image_channel_data_type = CL_FLOAT;
+	format.image_channel_order = CL_INTENSITY;
+	d_Modified_Volume = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+	
 	// Allocate memory on the device
 	d_Corrected_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_SIZE_VOLUME, NULL, NULL);
 	d_Reference_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_SIZE_VOLUME, NULL, NULL);
@@ -906,19 +911,13 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	
 	d_h_Vector_2D_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * DATA_H * DATA_D * NUMBER_OF_MOTION_CORRECTION_PARAMETERS, NULL, NULL);
 	d_h_Vector_1D_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * DATA_D * NUMBER_OF_MOTION_CORRECTION_PARAMETERS, NULL, NULL);
-	
-	const cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
 
-	// Set texture parameters
-	tex_Modified_Volume.normalized = false;                       // do not access with normalized texture coordinates
-	tex_Modified_Volume.filterMode = cudaFilterModeLinear;        // linear interpolation
+	// Allocate constant memory
+	c_Quadrature_Filter_1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE, NULL, NULL);
+	c_Quadrature_Filter_2 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE, NULL, NULL);
+	c_Quadrature_Filter_3 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE, NULL, NULL);
+	c_Parameter_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float) * NUMBER_OF_MOTION_CORRECTION_PARAMETERS, NULL, NULL);
 
-	// Allocate 3D array for modified volume (for fast interpolation)
-	VOLUME_SIZE = make_cudaExtent(DATA_W, DATA_H, DATA_D);
-	cudaMalloc3DArray(&d_Modified_Volume, &channelDesc, VOLUME_SIZE);
-
-	// Bind the array to the 3D texture
-	cudaBindTextureToArray(tex_Modified_Volume, d_Modified_Volume, channelDesc);
 
 	// Set all kernel arguments
 
@@ -926,12 +925,15 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	clSetKernelArg(Nonseparable3DConvolutionComplex, 1, sizeof(cl_mem), &d_q12);
 	clSetKernelArg(Nonseparable3DConvolutionComplex, 2, sizeof(cl_mem), &d_q13);
 	clSetKernelArg(Nonseparable3DConvolutionComplex, 3, sizeof(cl_mem), &d_Reference_Volume);
-	clSetKernelArg(Nonseparable3DConvolutionComplex, 4, sizeof(int), &DATA_W);
-	clSetKernelArg(Nonseparable3DConvolutionComplex, 5, sizeof(int), &DATA_H);
-	clSetKernelArg(Nonseparable3DConvolutionComplex, 6, sizeof(int), &DATA_D);
-	clSetKernelArg(Nonseparable3DConvolutionComplex, 7, sizeof(int), &xBlockDifference);
-	clSetKernelArg(Nonseparable3DConvolutionComplex, 8, sizeof(int), &yBlockDifference);
-	clSetKernelArg(Nonseparable3DConvolutionComplex, 9, sizeof(int), &zBlockDifference);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 4, sizeof(cl_mem), &c_Quadrature_Filter_1);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 5, sizeof(cl_mem), &c_Quadrature_Filter_2);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 6, sizeof(cl_mem), &c_Quadrature_Filter_3);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 7, sizeof(int), &DATA_W);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 8, sizeof(int), &DATA_H);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 9, sizeof(int), &DATA_D);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 10, sizeof(int), &xBlockDifference);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 11, sizeof(int), &yBlockDifference);
+	clSetKernelArg(Nonseparable3DConvolutionComplex, 12, sizeof(int), &zBlockDifference);
 
 	clSetKernelArg(CalculatePhaseGradientsX, 0, sizeof(cl_mem), &d_Phase_Gradients);
 	clSetKernelArg(CalculatePhaseGradientsX, 1, sizeof(cl_mem), &d_q11);
@@ -964,7 +966,6 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 6, sizeof(int), &DATA_D);
 	clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 7, sizeof(int), &MOTION_CORRECTION_FILTER_SIZE);
 
-
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesX, 0, sizeof(cl_mem), &d_A_Matrix_2D_Values);
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesX, 1, sizeof(cl_mem), &d_h_Vector_2D_Values);
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesX, 2, sizeof(cl_mem), &d_Phase_Differences);
@@ -995,22 +996,50 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZ, 7, sizeof(int), &DATA_D);
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZ, 8, sizeof(int), &MOTION_CORRECTION_FILTER_SIZE);
 
+	clSetKernelArg(CalculateAMatrix1DValues, 0, sizeof(cl_mem), &d_A_Matrix_1D_Values);
+	clSetKernelArg(CalculateAMatrix1DValues, 1, sizeof(cl_mem), &d_A_Matrix_2D_Values);
+	clSetKernelArg(CalculateAMatrix1DValues, 2, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateAMatrix1DValues, 3, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateAMatrix1DValues, 4, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateAMatrix1DValues, 5, sizeof(int), &MOTION_CORRECTION_FILTER_SIZE);
+
+	clSetKernelArg(CalculateHVector1DValues, 0, sizeof(cl_mem), &d_H_Vector_1D_Values);
+	clSetKernelArg(CalculateHVector1DValues, 1, sizeof(cl_mem), &d_H_Vector_2D_Values);
+	clSetKernelArg(CalculateHVector1DValues, 2, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateHVector1DValues, 3, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateHVector1DValues, 4, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateHVector1DValues, 5, sizeof(int), &MOTION_CORRECTION_FILTER_SIZE);
+
+	clSetKernelArg(ResetAMatrix, 0, sizeof(cl_mem), &d_A_Matrix);
 	
+	clSetKernelArg(CalculateAMatrix, 0, sizeof(cl_mem), &d_A_Matrix);
+	clSetKernelArg(CalculateAMatrix, 1, sizeof(cl_mem), &d_A_Matrix_1D_Values);
+	clSetKernelArg(CalculateAMatrix, 2, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateAMatrix, 3, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateAMatrix, 4, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateAMatrix, 5, sizeof(int), &MOTION_CORRECTION_FILTER_SIZE);
+		
+	clSetKernelArg(CalculateHVector, 0, sizeof(cl_mem), &d_H_Vector);
+	clSetKernelArg(CalculateHVector, 1, sizeof(cl_mem), &d_H_Vector_1D_Values);
+	clSetKernelArg(CalculateHVector, 2, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateHVector, 3, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateHVector, 4, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateHVector, 5, sizeof(int), &MOTION_CORRECTION_FILTER_SIZE);
 
+	clSetKernelArg(InterpolateVolumeTrilinear, 0, sizeof(cl_mem), &d_Corrected_Volume);
+	clSetKernelArg(InterpolateVolumeTrilinear, 1, sizeof(cl_mem), &d_Modified_Volume);
+	clSetKernelArg(InterpolateVolumeTrilinear, 2, sizeof(cl_mem), &c_Parameter_Vector);
+	clSetKernelArg(InterpolateVolumeTrilinear, 3, sizeof(int), &DATA_W);
+	clSetKernelArg(InterpolateVolumeTrilinear, 4, sizeof(int), &DATA_H);
+	clSetKernelArg(InterpolateVolumeTrilinear, 5, sizeof(int), &DATA_D);
+	
 	// ------------------------------------------------------
-
-
-	for (int p = 0; p < NUMBER_OF_MOTION_CORRECTION_PARAMETERS; p++)
-	{
-		h_Parameter_Vector_Total[p] = 0.0f;
-	}
-
 	
 	// Set the first volume as the reference volume
 	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Reference_Volume, 0, 0, DATA_SIZE_VOLUME, 0, NULL, NULL);
 
 	// Calculate the filter responses for the reference volume (only needed once)
-	clEnqueueNDRangeKernel(commandQueue, NonSeparableConvolution3DComplexKernel, 1, NULL, globalWorkSizeNonseparable3DConvolutionComplex, localWorkSizeNonseparable3DConvolutionComplex, 0, NULL, NULL);
+	clEnqueueNDRangeKernel(commandQueue, NonSeparableConvolution3DComplex, 3, NULL, globalWorkSizeNonseparable3DConvolutionComplex, localWorkSizeNonseparable3DConvolutionComplex, 0, NULL, NULL);
 
 	// Set kernel arguments for following convolutions
 	clSetKernelArg(Nonseparable3DConvolutionComplex, 0, sizeof(cl_mem), &d_q21);
@@ -1031,21 +1060,19 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 		// Set a new volume as the modified volume
 		clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Corrected_Volume, t * DATA_W * DATA_H * DATA_D, 0, DATA_SIZE_VOLUME, 0, NULL, NULL);
 
+		// Also copy the current volume to an image (texture)
+		size_t origin[3] = {0, 0, 0};
+		size_t region[3] = {DATA_W, DATA_H, DATA_D};
+		clEnqueueCopyBufferToImage(commandQueue, d_fMRI_Volumes, d_Modified_Volume, t * DATA_W * DATA_H * DATA_D, origin, region, 0, NULL, NULL);
 		
-		cudaMemcpy3DParms copyParams = {0};
-		copyParams.srcPtr   = make_cudaPitchedPtr((void*)(&d_fMRI_Volumes[t * DATA_W * DATA_H * DATA_D]), sizeof(float)*DATA_W , DATA_W, DATA_H);
-		copyParams.dstArray = d_Modified_Volume;
-		copyParams.extent   = VOLUME_SIZE;
-		copyParams.kind     = cudaMemcpyDeviceToDevice;
-		cudaMemcpy3D(&copyParams);
-
-		// Run the registration algorithm
+		// Run the registration algorithm for a number of iterations
 		for (int it = 0; it < NUMBER_OF_ITERATIONS_FOR_MOTION_COMPENSATION; it++)
 		{
-			clEnqueueNDRangeKernel(commandQueue, NonSeparableConvolution3DComplex, 1, NULL, globalWorkSizeNonseparable3DConvolutionComplex, localWorkSizeNonseparable3DConvolutionComplex, 0, NULL, NULL);
+			// Apply convolution with 3 quadrature filters
+			clEnqueueNDRangeKernel(commandQueue, NonSeparableConvolution3DComplex, 3, NULL, globalWorkSizeNonseparable3DConvolutionComplex, localWorkSizeNonseparable3DConvolutionComplex, 0, NULL, NULL);
 			clFinish(commandQueue);
 
-			// X
+			// Calculate phase differences, certainties and phase gradients in the X direction
 			clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 2, sizeof(cl_mem), &d_q11);
 			clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 3, sizeof(cl_mem), &d_q21);
 			clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesAndCertainties, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
@@ -1054,10 +1081,11 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 			clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsX, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
 			clFinish(commandQueue);
 
+			// Calculate values for the A-matrix and h-vector in the X direction
 			clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesX, 1, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesX, localWorkSizeCalculateAMatrixAndHVector2DValuesX, 0, NULL, NULL);
 			clFinish(commandQueue);
 
-			// Y
+			// Calculate phase differences, certainties and phase gradients in the Y direction
 			clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 2, sizeof(cl_mem), &d_q12);
 			clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 3, sizeof(cl_mem), &d_q22);
 			clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesAndCertainties, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
@@ -1066,10 +1094,11 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 			clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsY, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
 			clFinish(commandQueue);
 
+			// Calculate values for the A-matrix and h-vector in the Y direction
 			clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesY, 1, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesY, localWorkSizeCalculateAMatrixAndHVector2DValuesY, 0, NULL, NULL);
 			clFinish(commandQueue);
 
-			// Z
+			// Calculate phase differences, certainties and phase gradients in the Z direction
 			clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 2, sizeof(cl_mem), &d_q13);
 			clSetKernelArg(CalculatePhaseDifferencesAndCertainties, 3, sizeof(cl_mem), &d_q23);			
 			clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesAndCertainties, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
@@ -1077,27 +1106,31 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 			
 			clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsZ, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
 			clFinish(commandQueue);
-
+			
+			// Calculate values for the A-matrix and h-vector in the Z direction
 			clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesZ, 1, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesZ, localWorkSizeCalculateAMatrixAndHVector2DValuesZ, 0, NULL, NULL);
 			clFinish(commandQueue);
 			
    			// Setup final equation system
 
 			// Sum in one direction to get 1D values
-
-			Calculate_A_matrix_1D_values<<<dimGrid, dimBlock>>>(d_A_matrix_1D_values, d_A_matrix_2D_values, DATA_W, DATA_H, DATA_D, MOTION_CORRECTION_FILTER_SIZE);
-
-			// Sum in one direction to get 1D values
-			Calculate_h_vector_1D_values<<<dimGrid, dimBlock>>>(d_h_vector_1D_values, d_h_vector_2D_values, DATA_W, DATA_H, DATA_D, MOTION_CORRECTION_FILTER_SIZE);
-
-			Reset_A_matrix<<<dimGrid, dimBlock>>>(d_A_matrix);
-
+			clEnqueueNDRangeKernel(commandQueue, CalculateAMatrix1DValues, 1, NULL, globalWorkSizeCalculateAMatrix1DValues, localWorkSizeCalculateAMatrix1DValues, 0, NULL, NULL);
+			clFinish(commandQueue);
+			
+			clEnqueueNDRangeKernel(commandQueue, CalculateHVector1DValues, 1, NULL, globalWorkSizeCalculateHVector1DValues, localWorkSizeCalculateHVector1DValues, 0, NULL, NULL);
+			clFinish(commandQueue);
+			
+			clEnqueueNDRangeKernel(commandQueue, ResetAMatrix, 1, NULL, globalWorkSizeResetAMatrix, localWorkSizeResetAMatrix, 0, NULL, NULL);
+			clFinish(commandQueue);
+			
 			// Calculate final A-matrix
-			Calculate_A_matrix<<<dimGrid, dimBlock>>>(d_A_matrix, d_A_matrix_1D_values, DATA_W, DATA_H, DATA_D, MOTION_CORRECTION_FILTER_SIZE);
+			clEnqueueNDRangeKernel(commandQueue, CalculateAMatrix, 1, NULL, globalWorkSizeCalculateAMatrix, localWorkSizeCalculateAMatrix, 0, NULL, NULL);
+			clFinish(commandQueue);
 
 			// Calculate final h-vector
-			Calculate_h_vector<<<dimGrid, dimBlock>>>(d_h_vector, d_h_vector_1D_values, DATA_W, DATA_H, DATA_D, MOTION_CORRECTION_FILTER_SIZE);
-	
+			clEnqueueNDRangeKernel(commandQueue, CalculateHVector, 1, NULL, globalWorkSizeCalculateHVector, localWorkSizeCalculateHVector, 0, NULL, NULL);
+			clFinish(commandQueue);
+
 			// Copy A-matrix and h-vector from device to host
 			clEnqueueReadBuffer(commandQueue, d_A_Matrix, CL_TRUE, 0, sizeof(float) * NUMBER_OF_MOTION_CORRECTION_PARAMETERS * NUMBER_OF_MOTION_CORRECTION_PARAMETERS, h_A_Matrix, 0, NULL, NULL);
 			clEnqueueReadBuffer(commandQueue, d_h_Vector, CL_TRUE, 0, sizeof(float) * NUMBER_OF_MOTION_CORRECTION_PARAMETERS, h_h_Vector, 0, NULL, NULL);
@@ -1111,7 +1144,7 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 				}
 			}
 
-			// Get the parameter vector
+			// Solve the equation system A * p = h to obtain the parameter vector
 			SolveEquationSystem(h_A_matrix, h_inverse_A_matrix, h_h_vector, h_Parameter_Vector, NUMBER_OF_MOTION_CORRECTION_PARAMETERS);
 
 			// Update the total parameter vector
@@ -1128,29 +1161,28 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 			h_Parameter_Vector_Total[10] += h_Parameter_Vector[10];
 			h_Parameter_Vector_Total[11] += h_Parameter_Vector[11];
 
-			cudaMemcpyToSymbol(c_Parameter_Vector, h_Parameter_Vector_Total, NUMBER_OF_MOTION_CORRECTION_PARAMETERS * sizeof(float));
-	
+			// Copy parameter vector to constant memory
+			clEnqueueWriteBuffer(commandQueue, c_Parameter_Vector, CL_TRUE, 0, NUMBER_OF_MOTION_CORRECTION_PARAMETERS * sizeof(float), h_Parameter_Vector_Total, 0, NULL, NULL);
+
 			// Interpolate to get the new volume
-			InterpolateVolumeTriLinear<<<dG, dB>>>(d_Corrected_Volume, DATA_W, DATA_H, DATA_D);
+			clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeTriLinear, 3, NULL, globalWorkSizeInterpolateVolumeTrilinear, localWorkSizeInterpolateVolumeTrilinear, 0, NULL, NULL);
+			clFinish(commandQueue);
 		}
 
-		// Copy the compensated volume to the compensated volumes
-		cudaMemcpy(&d_Motion_Corrected_fMRI_Volumes[t * DATA_W * DATA_H * DATA_D], d_Corrected_Volume, DATA_SIZE_VOLUME, cudaMemcpyDeviceToDevice);
-
+		// Copy the corrected volume to the corrected volumes
+		clEnqueueCopyBuffer(commandQueue, d_Corrected_Volume, d_Motion_Corrected_fMRI_Volumes, 0, t * DATA_W * DATA_H * DATA_D, DATA_SIZE_VOLUME, 0, NULL, NULL);
+	
 		// Write the total parameter vector to host
 		for (int i = 0; i < NUMBER_OF_MOTION_CORRECTION_PARAMETERS; i++)
 		{
 			h_Estimated_Motion_Parameters[t + i * DATA_T] = h_Parameter_Vector_Total[i];
 		}
-
 	}
 	
-	cudaMemcpy(h_Motion_Corrected_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, DATA_SIZE_VOLUMES, cudaMemcpyDeviceToHost);
-
+	// Copy all corrected volumes to host
+	clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, DATA_SIZE_VOLUMES, h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
+			
 	// Free all the allocated memory on the device
-	cudaUnbindTexture(tex_Modified_Volume);
-	cudaFreeArray(d_Modified_Volume);
-
 	clReleaseMemObject(d_Reference_Volume);
 	clReleaseMemObject(d_Corrected_Volume);
 
@@ -1173,6 +1205,11 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 
 	clReleaseMemObject(d_h_vector_2D_values);
 	clReleaseMemObject(d_h_vector_1D_values);
+
+	clReleaseMemObject(c_Quadrature_Filter_1);
+	clReleaseMemObject(c_Quadrature_Filter_2);
+	clReleaseMemObject(c_Quadrature_Filter_3);
+	clReleaseMemObject(c_Parameter_Vector);
 
 	// Free all host allocated memory
 	free(h_A_matrix);

@@ -4217,7 +4217,7 @@ __kernel void CalculateAMatrix1DValues_(__global float* A_matrix_1D_values, __gl
 // dimBlock.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = 1; dimGrid.y = 1;
 
-__kernel void Calculate_A_matrix(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
 {
 	int A_matrix_element = get_local_id(0);
 	int idx, i, j;
@@ -4239,7 +4239,7 @@ __kernel void Calculate_A_matrix(__global float* A_matrix, __global const float*
 	A_matrix[A_matrix_element] = matrix_value;
 }
 
-__kernel void Calculate_A_matrix_(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateAMatrix_(__global float* A_matrix, __global const float* A_matrix_1D_values, int DATA_W, int DATA_H, int DATA_D)
 {
 	int A_matrix_element = get_local_id(0);
 	int idx, i, j;
@@ -4261,14 +4261,14 @@ __kernel void Calculate_A_matrix_(__global float* A_matrix, __global const float
 	A_matrix[A_matrix_element] = matrix_value;
 }
 
-__kernel void Reset_A_matrix(__global float* A_matrix)
+__kernel void ResetAMatrix(__global float* A_matrix)
 {
 	int i = get_local_id(0);
 
 	A_matrix[i] = 0.0f;
 }
 
-__kernel void Reset_h_vector(__global float* h_vector)
+__kernel void ResetHVector(__global float* h_vector)
 {
 	int i = get_local_id(0);
 
@@ -4279,7 +4279,7 @@ __kernel void Reset_h_vector(__global float* h_vector)
 // dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = NUMBER_OF_PARAMETERS; dimGrid.y = 1;
 
-__kernel void Calculate_h_vector_1D_values(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateHVector1DValues(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
 {
 	int z = get_local_id(0);
 
@@ -4302,7 +4302,7 @@ __kernel void Calculate_h_vector_1D_values(__global float* h_vector_1D_values, _
 	}
 }
 
-__kernel void Calculate_h_vector_1D_values_(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateHVector1DValues_(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, int DATA_W, int DATA_H, int DATA_D)
 {
 	int z = get_local_id(0);
 
@@ -4328,7 +4328,7 @@ __kernel void Calculate_h_vector_1D_values_(__global float* h_vector_1D_values, 
 // dimBlock.x = NUMBER_OF_PARAMETERS; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = 1; dimGrid.y = 1;
 
-__kernel void Calculate_h_vector(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateHVector(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
 {
 	int h_vector_element = get_local_id(0);
 	int idx;
@@ -4345,7 +4345,7 @@ __kernel void Calculate_h_vector(__global float* h_vector, __global const float*
 	h_vector[h_vector_element] = vector_value;
 }
 
-__kernel void Calculate_h_vector_(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D)
+__kernel void CalculateHVector_(__global float* h_vector, __global const float* h_vector_1D_values, int DATA_W, int DATA_H, int DATA_D)
 {
 	int h_vector_element = get_local_id(0);
 	int idx;
@@ -4362,7 +4362,10 @@ __kernel void Calculate_h_vector_(__global float* h_vector, __global const float
 	h_vector[h_vector_element] = vector_value;
 }
 
-__kernel void InterpolateVolumeTriLinear(__global float* Volume, int DATA_W, int DATA_H, int DATA_D)
+__constant sampler_t volume_sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
+	
+
+__kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector,  int DATA_W, int DATA_H, int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4372,7 +4375,7 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, int DATA_W, int
 		return;
 
 	int idx = Calculate_3D_Index(x,y,z,DATA_W, DATA_H);
-	float3 Motion_Vector;
+	float4 Motion_Vector;
 	float xf, yf, zf;
 
     // (motion_vector.x)   (p0)   (p3  p4  p5)   (x)
@@ -4387,46 +4390,16 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, int DATA_W, int
 	Motion_Vector.x = x + c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf + 0.5f;
 	Motion_Vector.y = y + c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf + 0.5f;
 	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;
+	Motion_Vector.w = 0.0f;
 
-	//Volume[idx] = tex3D(tex_Modified_Volume, Motion_Vector.x, Motion_Vector.y, Motion_Vector.z);
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler, Motion_Vector);
+	Volume[idx] = Interpolated_Value.x;
 }
 
-__kernel void RemoveLinearFit(__global float* Residuals, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_Detrend, __constant struct DATA_PARAMETERS *DATA)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,c,DATA_W,DATA_H)] == 0.0f )
-	{
-		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-		{
-			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
-		return;
-	}
-
-	int t = 0;
-	float eps, meaneps, vareps;
-
-	// Calculate the residual
-	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{ 
-			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
-		}
-		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-	}
-}
 
 
 // Statistical functions
+
 __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global const float* Volumes, __global const float* Mask, __constant float* c_xtxxt_GLM, __constant float* c_Censor, __constant struct DATA_PARAMETERS *DATA)
 {
 	int x = get_global_id(0);
@@ -4475,7 +4448,6 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
 	}
 }
-
 
 __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Beta_Contrasts, __global float* Residual_Volumes, __global float* Residual_Variances, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_GLM, __constant float* c_Contrast_Vectors, __constant float* ctxtxc, __constant float* c_Censor, __constant struct DATA_PARAMETERS *DATA)
 {
@@ -4558,6 +4530,41 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrtf(vareps * ctxtxc[c]);
 	}
 }
+
+__kernel void RemoveLinearFit(__global float* Residuals, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_Detrend, __constant struct DATA_PARAMETERS *DATA)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,c,DATA_W,DATA_H)] == 0.0f )
+	{
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+
+	// Calculate the residual
+	for (v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{ 
+			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
+		}
+		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+}
+
 
 // Functions for permutation test
 

@@ -497,36 +497,36 @@ class BROCCOLI_LIB
 		float		*device_pointers[NUMBER_OF_DEVICE_POINTERS];
 		float		*device_pointers_permutation[NUMBER_OF_DEVICE_POINTERS];
 		
-		cl_mem		*d_fMRI_Volumes;
-		cl_mem		*d_Volumes;
-		cl_mem		*d_Mask;
+		cl_mem		d_fMRI_Volumes;
+		cl_mem		d_Volumes;
+		cl_mem		d_Mask;
 			
 		// Slice timing correction
-		cl_mem		*d_fMRI_Volumes_Complex;
-		cl_mem		*d_Shifters;
-		cl_mem		*d_Slice_Timing_Corrected_fMRI_Volumes;
+		cl_mem		d_fMRI_Volumes_Complex;
+		cl_mem		d_Shifters;
+		cl_mem		d_Slice_Timing_Corrected_fMRI_Volumes;
 
 		// Motion correction
-		cl_mem		*d_Motion_Corrected_fMRI_Volumes;
+		cl_mem		d_Motion_Corrected_fMRI_Volumes;
 			
 		// Smoothing
-		cl_mem		*d_Smoothed_Certainty;
-		cl_mem		*d_Smoothed_fMRI_Volumes;
+		cl_mem		d_Smoothed_Certainty;
+		cl_mem		d_Smoothed_fMRI_Volumes;
 		
 
 		// Detrending
-		cl_mem		*d_Detrended_fMRI_Volumes;
+		cl_mem		d_Detrended_fMRI_Volumes;
 		
 		// Statistical analysis
-		cl_mem		*d_Statistical_Maps;
+		cl_mem		d_Statistical_Maps;
 
 		// Paraneters for single subject permutations
-		cl_mem		*d_Alphas_1, *d_Alphas_2, *d_Alphas_3, *d_Alphas_4;
-		cl_mem		*d_Smoothed_Alphas_1, *d_Smoothed_Alphas_2, *d_Smoothed_Alphas_3, *d_Smoothed_Alphas_4;
+		cl_mem		d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates;
+		cl_mem		d_Smoothed_AR1_Estimates, d_Smoothed_AR2_Estimates, d_Smoothed_AR3_Estimates, *d_Smoothed_AR4_Estimates;
 			
-		cl_mem		*d_BOLD_Regressed_fMRI_Volumes;
-		cl_mem		*d_Whitened_fMRI_Volumes;
-		cl_mem		*d_Permuted_fMRI_Volumes;
+		cl_mem		d_BOLD_Regressed_fMRI_Volumes;
+		cl_mem		d_Whitened_fMRI_Volumes;
+		cl_mem		d_Permuted_fMRI_Volumes;
 
 
 		//--------------------------------------------------
