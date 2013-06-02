@@ -459,11 +459,14 @@ class BROCCOLI_LIB
 		Complex		*h_Slice_Timing_Corrections;
 		float		*h_Slice_Timing_Corrected_fMRI_Volumes;
 
-		// Motion compensation
+		// Motion correction
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag; 		
 		Complex     *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
 		float		*h_Motion_Corrected_fMRI_Volumes;
 		float		*h_Registration_Parameters;
+		float		*h_A_Matrix, *h_Inverse_A_Matrix, *h_h_Vector;
+		float 		 h_Parameter_Vector[12], h_Parameter_Vector_Total[12];
+	
 
 		// Smoothing
 		float		*h_GLM_Filter;
@@ -508,6 +511,13 @@ class BROCCOLI_LIB
 
 		// Motion correction
 		cl_mem		d_Motion_Corrected_fMRI_Volumes;
+		cl_mem      d_Reference_Volume, d_Aligned_Volume, d_Original_Volume;
+		cl_mem		d_A_Matrix, d_h_Vector, d_A_Matrix_2D_Values, d_A_Matrix_1D_Values, d_h_Vector_2D_Values, d_h_Vector_1D_Values;
+		cl_mem 		d_Phase_Differences, d_Phase_Gradients, d_Certainties;
+		cl_mem      d_q11, d_q12, d_q13, d_q21, d_q22, d_q23;
+		cl_mem		c_Quadrature_Filter_1, c_Quadrature_Filter_2, c_Quadrature_Filter_3;
+		cl_mem		c_Parameter_Vector;
+	
 			
 		// Smoothing
 		cl_mem		d_Smoothed_Certainty;
