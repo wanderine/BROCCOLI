@@ -158,7 +158,7 @@ class BROCCOLI_LIB
 		void SetfMRIDataFilename(std::string filename);
 			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);
-		void SetNumberOfIterationsForMotionCompensation(int N);
+		void SetNumberOfIterationsForMotionCorrection(int N);
 		void SetSmoothingAmount(int value);
 		void SetSmoothingDimensionality(int dimensionality);
 		void SetNumberOfBasisFunctionsDetrending(int N);
@@ -177,9 +177,9 @@ class BROCCOLI_LIB
 		void SetDataType(int type);
 		void SetFileType(int type);
 
-		void SetXSize(float value);
-		void SetYSize(float value);
-		void SetZSize(float value);
+		void SetfMRIVoxelSizeX(float value);
+		void SetfMRIVoxelSizeY(float value);
+		void SetfMRIVoxelSizeZ(float value);
 		void SetTR(float value);
 
 		void SetWidth(int w);
@@ -215,9 +215,9 @@ class BROCCOLI_LIB
 		int GetDepth();
 		int GetTimepoints();
 
-		float GetXSize();
-		float GetYSize();
-		float GetZSize();
+		float GetfMRIVoxelSizeX();
+		float GetfMRIVoxelSizeY();
+		float GetfMRIVoxelSizeZ();
 		float GetTR();
 
 		double* GetMotionParametersX();
@@ -257,20 +257,23 @@ class BROCCOLI_LIB
 		void WritefMRIDataNIFTI();
 		
 		// Preprocessing
-		void PerformRegistrationEPIT1();
+		void PerformRegistrationEPIT1(int t);
 		void PerformRegistrationT1MNI();
 		void PerformSliceTimingCorrection();
 		void PerformMotionCorrection();
 		void PerformDetrending();
-		void PerformSmoothing(); 
+		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, int NUMBER_OF_VOLUMES, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z);
 		
 		// Processing
-		void PerformPreprocessingAndCalculateActivityMap();				
+		void PerformPreprocessingAndCalculateStatisticalMaps();				
 		void CalculateStatisticalMapGLMFirstLevel();
 		void CalculateStatisticalMapGLMSecondLevel();
 		void CalculatePermutationTestThresholdSingleSubject();
 		void CalculatePermutationTestThresholdMultiSubject();
 		
+		void CalculateStatisticalMapsGLMFirstLevel();
+		void CalculateStatisticalMapsGLMSecondLevel();
+
 		// Permutation single subject	
 		void SetupParametersPermutationSingleSubject();
 		void GeneratePermutationMatrixSingleSubject();
@@ -300,6 +303,11 @@ class BROCCOLI_LIB
 
 	private:
 
+		void AlignTwoVolumes(float* h_Registration_Parameters);
+		void AlignTwoVolumesCleanup();
+		void AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D);
+		void ChangeVolumeResolutionAndSize(cl_mem d_Original_Volume, cl_mem d_Interpolated_Volume, int ORIGINAL_DATA_W, int ORIGINAL_DATA_H, int ORIGINAL_DATA_D, int INTERPOLATED__DATA_W, int INTERPOLATED__DATA_H, int INTERPOLATED__DATA_D, float ORIGINAL_VOXEL_SIZE_X, float ORIGINAL_VOXEL_SIZE_Y, float ORIGINAL_VOXEL_SIZE_Z, float INTERPOLATED_VOXEL_SIZE_X, float INTERPOLATED_VOXEL_SIZE_Y, float INTERPOLATED_VOXEL_SIZE_Z);
+
 		// Read functions
 		void ReadRealDataInt32(int* data, std::string filename, int N);
 		void ReadRealDataInt16(short int* data, std::string filename, int N);
@@ -308,7 +316,7 @@ class BROCCOLI_LIB
 		void ReadRealDataFloat(float* data, std::string filename, int N);
 		void ReadRealDataDouble(double* data, std::string filename, int N);
 		void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
-		void ReadMotionCorrectionFilters();
+		void ReadImageRegistrationFilters();
 		void ReadSmoothingFilters();
 		void SetupParametersReadData();
 
@@ -321,9 +329,13 @@ class BROCCOLI_LIB
 		// OpenCL help functions
 		void OpenCLInitiate();
 		void SetGlobalAndLocalWorkSizes();
-		void OpenCLCLeanup();
+		void OpenCLCleanup();
 
 		// Other help functions
+		void SetStartValues();
+		void ResetAllPointers();
+		void AllocateMemoryForFilters();
+
 		void ConvertRealToComplex(Complex* complex_data, float* real_data, int N);
 		void ExtractRealData(float* real_data, Complex* complex_data, int N);
 		void Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N);
@@ -349,40 +361,99 @@ class BROCCOLI_LIB
 		cl_command_queue commandQueue;
 		cl_program program;
 		cl_device_id device;
-		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel, NonseparableConvolution3DComplexKernel;		
+		
+		// OpenCL kernels
+
+		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel, NonseparableConvolution3DComplexKernel;				
+		cl_kernel CalculateBetaValuesGLMKernel, CalculateStatisticalMapsGLMKernel, RemoveLinearFitKernel;
+
+		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
+		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel; 
+		cl_kernel CalculateAMatrix1DValuesKernel, CalculateHVector1DValuesKernel, CalculateHVectorKernel, ResetAMatrixKernel, CalculateAMatrixKernel;
+		cl_kernel InterpolateVolumeTrilinearKernel;
+
+		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
 
 		cl_int errNum;
+
+		// OpenCL local work sizes
 
 		size_t localWorkSizeSeparableConvolutionRows[3];
 		size_t localWorkSizeSeparableConvolutionColumns[3];
 		size_t localWorkSizeSeparableConvolutionRods[3];
 		size_t localWorkSizeNonseparableConvolution3DComplex[3];
-		size_t localWorkSizeCalculateBetaVolumesGLM[3];
-		size_t localWorkSizeCalculateStatisticalMapGLM[3];
+		
+		size_t localWorkSizeCalculatePhaseDifferencesAndCertainties[3];
+		size_t localWorkSizeCalculatePhaseGradients[3];
+		size_t localWorkSizeCalculateAMatrixAndHVector2DValuesX[3];
+		size_t localWorkSizeCalculateAMatrixAndHVector2DValuesY[3];
+		size_t localWorkSizeCalculateAMatrixAndHVector2DValuesZ[3];
+		size_t localWorkSizeCalculateAMatrix1DValues[3];
+		size_t localWorkSizeCalculateHVector1DValues[3];
+		size_t localWorkSizeResetAMatrix[3];
+		size_t localWorkSizeCalculateAMatrix[3];
+		size_t localWorkSizeCalculateHVector[3];
+		size_t localWorkSizeInterpolateVolumeTrilinear[3];
+
+		size_t localWorkSizeCalculateBetaValuesGLM[3];		
+		size_t localWorkSizeCalculateStatisticalMapsGLM[3];
+		size_t localWorkSizeRemoveLinearFit[3];
+
+		size_t localWorkSizeEstimateAR4Models[3];
+		size_t localWorkSizeApplyWhiteningAR4[3];
+		size_t localWorkSizeGeneratePermutedfMRIVolumesAR4[3];
+
+		// OpenCL global work sizes
 
 		size_t globalWorkSizeSeparableConvolutionRows[3];
 		size_t globalWorkSizeSeparableConvolutionColumns[3];
 		size_t globalWorkSizeSeparableConvolutionRods[3];
 		size_t globalWorkSizeNonseparableConvolution3DComplex[3];
-		size_t globalWorkSizeCalculateBetaVolumesGLM[3];
-		size_t globalWorkSizeCalculateStatisticalMapGLM[3];
 		
+		size_t globalWorkSizeCalculatePhaseDifferencesAndCertainties[3];
+		size_t globalWorkSizeCalculatePhaseGradients[3];
+		size_t globalWorkSizeCalculateAMatrixAndHVector2DValuesX[3];
+		size_t globalWorkSizeCalculateAMatrixAndHVector2DValuesY[3];
+		size_t globalWorkSizeCalculateAMatrixAndHVector2DValuesZ[3];
+		size_t globalWorkSizeCalculateAMatrix1DValues[3];
+		size_t globalWorkSizeCalculateHVector1DValues[3];
+		size_t globalWorkSizeResetAMatrix[3];
+		size_t globalWorkSizeCalculateAMatrix[3];
+		size_t globalWorkSizeCalculateHVector[3];
+		size_t globalWorkSizeInterpolateVolumeTrilinear[3];
+
+		size_t globalWorkSizeCalculateBetaValuesGLM[3];
+		size_t globalWorkSizeCalculateStatisticalMapsGLM[3];
+		size_t globalWorkSizeRemoveLinearFit[3];
+
+		size_t globalWorkSizeEstimateAR4Models[3];
+		size_t globalWorkSizeApplyWhiteningAR4[3];
+		size_t globalWorkSizeGeneratePermutedfMRIVolumesAR4[3];
 
 		// General
+		int FILE_TYPE, DATA_TYPE;
 		nifti_image *nifti_data;
 
-		int DATA_W, DATA_H, DATA_D, DATA_T, DATA_T_PADDED;
+		int DATA_W, DATA_H, DATA_D, DATA_T;
+		int FMRI_DATA_W, FMRI_DATA_H, FMRI_DATA_D, FMRI_DATA_T;
+		int T1_DATA_W, T1_DATA_H, T1_DATA_D;
+		int MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
+
+		int DATA_SIZE_VOLUME, DATA_SIZE_COMPLEX_VOLUME;
+		int DATA_SIZE_T1_VOLUME, DATA_SIZE_FMRI_VOLUME, DATA_SIZE_FMRI_VOLUMES, DATA_SIZE_MNI_VOLUME;
+
 		int DATA_SIZE_QUADRATURE_FILTER_REAL;
 		int DATA_SIZE_QUADRATURE_FILTER_COMPLEX;
 		int DATA_SIZE_SMOOTHING_FILTER_GLM;
 
 		int NUMBER_OF_SUBJECTS;
+		int NUMBER_OF_CONTRASTS;
 		float SEGMENTATION_THRESHOLD;
-		float x_size, y_size, z_size;
+		float FMRI_VOXEL_SIZE_X, FMRI_VOXEL_SIZE_Y, FMRI_VOXEL_SIZE_Z;
+		float T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
+		float MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
 		int PRINT;
 		int WRITE_DATA;
-		int FILE_TYPE;
-		int DATA_TYPE;
 		double processing_times[20];
 		int PREPROCESSED;
 
@@ -404,10 +475,11 @@ class BROCCOLI_LIB
 		float TR;
 		bool SLICE_TIMING_CORRECTED;
 
-		// Motion correction
+		// Image registration
 		bool MOTION_CORRECTED;
-		int NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
-		int MOTION_CORRECTION_FILTER_SIZE;
+		int IMAGE_REGISTRATION_FILTER_SIZE;
+		int NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
+		int NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION;
 		int	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS;
 		
 		double* motion_parameters_x;
@@ -422,6 +494,8 @@ class BROCCOLI_LIB
 			
 		double* smoothed_curve;
 
+		int xBlockDifference, yBlockDifference, zBlockDifference;
+
 		// Detrending
 		int NUMBER_OF_DETRENDING_BASIS_FUNCTIONS;
 
@@ -434,7 +508,7 @@ class BROCCOLI_LIB
 		int NUMBER_OF_STATISTICAL_BASIS_FUNCTIONS;
 		int NUMBER_OF_PERIODS;
 		int PERIOD_TIME;
-		float* h_Contrast_Vector;
+		
 
 		// Random permutations
 		int NUMBER_OF_PERMUTATIONS;
@@ -459,14 +533,23 @@ class BROCCOLI_LIB
 		Complex		*h_Slice_Timing_Corrections;
 		float		*h_Slice_Timing_Corrected_fMRI_Volumes;
 
-		// Motion correction
+		// Image Registration
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag; 		
 		Complex     *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
-		float		*h_Motion_Corrected_fMRI_Volumes;
-		float		*h_Registration_Parameters;
 		float		*h_A_Matrix, *h_Inverse_A_Matrix, *h_h_Vector;
 		float 		 h_Parameter_Vector[12], h_Parameter_Vector_Total[12];
 	
+		// Motion correction
+		float		*h_Motion_Corrected_fMRI_Volumes;
+		float		*h_Registration_Parameters;
+		float		*h_Motion_Parameters;
+		
+		// fMRI - T1
+		float		*h_Aligned_fMRI_Volume;
+		//float		*h_
+
+		// T1 - MNI
+		float		*h_Aligned_T1_Volume;
 
 		// Smoothing
 		float		*h_GLM_Filter;
@@ -479,9 +562,12 @@ class BROCCOLI_LIB
 		// Statistical analysis
 		float		*hrf;
 		int			 hrf_length;
+		float       *h_Contrast_Vectors;
 		float		*h_X_GLM, *h_xtxxt_GLM;
 		float		 h_ctxtxc;			
 		float		*h_Statistical_Maps;
+		float		*ctxtxc;
+		
 			
 		// Random permutations
 		float		*h_Alpha_Smoothing_Kernel;
@@ -500,6 +586,7 @@ class BROCCOLI_LIB
 		float		*device_pointers[NUMBER_OF_DEVICE_POINTERS];
 		float		*device_pointers_permutation[NUMBER_OF_DEVICE_POINTERS];
 		
+		// Original data
 		cl_mem		d_fMRI_Volumes;
 		cl_mem		d_Volumes;
 		cl_mem		d_Mask;
@@ -509,15 +596,19 @@ class BROCCOLI_LIB
 		cl_mem		d_Shifters;
 		cl_mem		d_Slice_Timing_Corrected_fMRI_Volumes;
 
-		// Motion correction
-		cl_mem		d_Motion_Corrected_fMRI_Volumes;
+		// Image registration
 		cl_mem      d_Reference_Volume, d_Aligned_Volume, d_Original_Volume;
 		cl_mem		d_A_Matrix, d_h_Vector, d_A_Matrix_2D_Values, d_A_Matrix_1D_Values, d_h_Vector_2D_Values, d_h_Vector_1D_Values;
-		cl_mem 		d_Phase_Differences, d_Phase_Gradients, d_Certainties;
+		cl_mem 		d_Phase_Differences, d_Phase_Gradients, d_Phase_Certainties;
 		cl_mem      d_q11, d_q12, d_q13, d_q21, d_q22, d_q23;
 		cl_mem		c_Quadrature_Filter_1, c_Quadrature_Filter_2, c_Quadrature_Filter_3;
 		cl_mem		c_Parameter_Vector;
 	
+		// Motion correction
+		cl_mem		d_Motion_Corrected_fMRI_Volumes;
+	
+		//
+		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_Interpolated_fMRI_Volume;
 			
 		// Smoothing
 		cl_mem		d_Smoothed_Certainty;
@@ -526,17 +617,28 @@ class BROCCOLI_LIB
 
 		// Detrending
 		cl_mem		d_Detrended_fMRI_Volumes;
-		
+		cl_mem		c_X_Detrend;
+
 		// Statistical analysis
+		cl_mem		d_Beta_Volumes;
 		cl_mem		d_Statistical_Maps;
+		float		c_xtxxt_Detrend;
+		cl_mem		c_Censor;
+		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrast_Vectors;
+		cl_mem		d_Beta_Contrasts;
+		cl_mem		d_Residual_Volumes;
+		cl_mem		d_Residual_Variances;
 
 		// Paraneters for single subject permutations
 		cl_mem		d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates;
-		cl_mem		d_Smoothed_AR1_Estimates, d_Smoothed_AR2_Estimates, d_Smoothed_AR3_Estimates, *d_Smoothed_AR4_Estimates;
+		cl_mem		d_Smoothed_AR1_Estimates, d_Smoothed_AR2_Estimates, d_Smoothed_AR3_Estimates, d_Smoothed_AR4_Estimates;
 			
 		cl_mem		d_BOLD_Regressed_fMRI_Volumes;
 		cl_mem		d_Whitened_fMRI_Volumes;
 		cl_mem		d_Permuted_fMRI_Volumes;
+
+		cl_mem		c_Permutation_Vector;
+		cl_mem		c_AR_Smoothing_Filter_X, c_AR_Smoothing_Filter_Y, c_AR_Smoothing_Filter_Z;
 
 
 		//--------------------------------------------------
@@ -554,7 +656,7 @@ class BROCCOLI_LIB
 		std::string		filename_fMRI_data_raw;
 		std::string		filename_slice_timing_corrected_fMRI_volumes_raw;
 		std::string		filename_registration_parameters_raw;
-		std::string		filename_motion_compensated_fMRI_volumes_raw;
+		std::string		filename_motion_corrected_fMRI_volumes_raw;
 		std::string		filename_smoothed_fMRI_volumes_raw;
 		std::string		filename_detrended_fMRI_volumes_raw;
 		std::string		filename_activity_volume_raw;
@@ -562,7 +664,7 @@ class BROCCOLI_LIB
 		std::string		filename_fMRI_data_nifti;
 		std::string		filename_slice_timing_corrected_fMRI_volumes_nifti;
 		std::string		filename_registration_parameters_nifti;
-		std::string		filename_motion_compensated_fMRI_volumes_nifti;
+		std::string		filename_motion_corrected_fMRI_volumes_nifti;
 		std::string		filename_smoothed_fMRI_volumes_nifti;
 		std::string		filename_detrended_fMRI_volumes_nifti;
 		std::string		filename_activity_volume_nifti;
