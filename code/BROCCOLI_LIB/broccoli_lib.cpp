@@ -241,7 +241,6 @@ void BROCCOLI_LIB::OpenCLInitiate()
 {
 	std::string temp_string; std::ostringstream temp_stream;
 	
-	int err, err1;	
 	size_t valueSize;
 	cl_uint maxComputeUnits, clockFrequency;
 	cl_ulong memorySize;
@@ -258,7 +257,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	std::vector<cl_device_id> deviceIds (deviceIdCount);
 	clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
 
-	// Get information for for each device
+	// Get information for for each device and save as a long string
         for (j = 0; j < deviceIdCount; j++) 
         {
             // Get vendor name
