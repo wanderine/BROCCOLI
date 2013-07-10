@@ -58,8 +58,8 @@ slice timing correction
 // Constructor
 BROCCOLI_LIB::BROCCOLI_LIB()
 {
-	OpenCLInitiate();
-	SetStartValues();
+	//OpenCLInitiate();
+	//SetStartValues();
 	ResetAllPointers();
 	//AllocateMemory();
 	//ReadImageRegistrationFilters();
@@ -115,8 +115,9 @@ BROCCOLI_LIB::~BROCCOLI_LIB()
 			//clReleaseMemObject();
 		}
 	}
-}
 
+	OpenCLCleanup();
+}
 
 void BROCCOLI_LIB::SetStartValues()
 {
@@ -143,7 +144,7 @@ void BROCCOLI_LIB::SetStartValues()
 	filename_imag_quadrature_filter_2 = "filters\\quadrature_filter_2_imag.raw";
 	filename_imag_quadrature_filter_3 = "filters\\quadrature_filter_3_imag.raw";
 
-	filename_GLM_filter = "filters\\GLM_smoothing_filter_";
+	filename_GLM_filter = "filters\\GLM_smoothing_filter";
 
 	filename_fMRI_data_raw = "fMRI_data.raw";
 	filename_slice_timing_corrected_fMRI_volumes_raw = "output\\slice_timing_corrected_fMRI_volumes.raw";
@@ -184,7 +185,7 @@ void BROCCOLI_LIB::SetStartValues()
 	WRITE_DATA = NO;
 
 	int DATA_SIZE_QUADRATURE_FILTER_REAL = sizeof(float) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE;
-	int DATA_SIZE_QUADRATURE_FILTER_COMPLEX = sizeof(Complex) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE;
+	//int DATA_SIZE_QUADRATURE_FILTER_COMPLEX = sizeof(Complex) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE;
 
 	int DATA_SIZE_SMOOTHING_FILTER_GLM = sizeof(float) * SMOOTHING_FILTER_SIZE;
 }
@@ -225,9 +226,9 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 	h_Quadrature_Filter_2_Imag = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
 	h_Quadrature_Filter_3_Real = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
 	h_Quadrature_Filter_3_Imag = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL); 		
-	h_Quadrature_Filter_1 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
-	h_Quadrature_Filter_2 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
-	h_Quadrature_Filter_3 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
+	//h_Quadrature_Filter_1 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
+	//h_Quadrature_Filter_2 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
+	//h_Quadrature_Filter_3 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
 
 	h_GLM_Filter = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_GLM);
 
@@ -237,25 +238,44 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 	host_pointers_static[QF2I]   = (void*)h_Quadrature_Filter_2_Imag;
 	host_pointers_static[QF3R]   = (void*)h_Quadrature_Filter_3_Real;
 	host_pointers_static[QF3I]   = (void*)h_Quadrature_Filter_3_Imag;
-	host_pointers_static[QF1]    = (void*)h_Quadrature_Filter_1;
-	host_pointers_static[QF2]    = (void*)h_Quadrature_Filter_2;
-	host_pointers_static[QF3]	 = (void*)h_Quadrature_Filter_3;
+	//host_pointers_static[QF1]    = (void*)h_Quadrature_Filter_1;
+	//host_pointers_static[QF2]    = (void*)h_Quadrature_Filter_2;
+	//host_pointers_static[QF3]	 = (void*)h_Quadrature_Filter_3;
 }	
 
 
-void BROCCOLI_LIB::OpenCLInitiate()
+//char *BROCCOLI_LIB::OpenCLInitiate()
+int BROCCOLI_LIB::OpenCLInitiate()
 {
-	int err;
+	int err, err1;
 	int gpu = 1;
-	clGetDeviceIDs(NULL, gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device, NULL);
-	context = clCreateContext(0, 1, &device, NULL, NULL, &err);
+	
+	cl_uint platformIdCount = 0;
+	clGetPlatformIDs (0, nullptr, &platformIdCount);
 
+	std::vector<cl_platform_id> platformIds (platformIdCount);
+	clGetPlatformIDs (platformIdCount, platformIds.data (), nullptr);
+
+	cl_uint deviceIdCount = 0;
+    clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, 0, nullptr, &deviceIdCount);
+	std::vector<cl_device_id> deviceIds (deviceIdCount);
+	clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data (), nullptr);
+
+	const cl_context_properties contextProperties [] =
+	{
+	    CL_CONTEXT_PLATFORM,
+	    reinterpret_cast<cl_context_properties> (platformIds[0]),
+	    0, 0
+	};
+
+	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data (), nullptr, nullptr, &err1);
+	
 	size_t dataBytes;
 	errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &dataBytes);
 	cl_device_id *clDevices = (cl_device_id *) malloc(dataBytes);
 	errNum |= clGetContextInfo(context, CL_CONTEXT_DEVICES, dataBytes, clDevices, NULL);
 
-	commandQueue = clCreateCommandQueue(context, device, 0, &err);
+	commandQueue = clCreateCommandQueue(context, deviceIds[0], 0, &err);
 
 	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
 	std::ostringstream oss;
@@ -264,18 +284,39 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	const char *srcstr = src.c_str();
 
 	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &err);
-	clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
+	clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+
+	// Determine the size of the log
+    size_t log_size;
+    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
+
+    // Allocate memory for the log
+    char *log = (char *) malloc(log_size);
+
+    // Get the log
+    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
+
 
 	// Kernels for convolution
-	SeparableConvolutionRowsKernel = clCreateKernel(program,"convolutionRows",&err);
-	SeparableConvolutionColumnsKernel = clCreateKernel(program,"convolutionColumns",&err);
-	SeparableConvolutionRodsKernel = clCreateKernel(program,"convolutionRods",&err);	
-	NonseparableConvolution3DComplexKernel = clCreateKernel(program,"convolutionNonSeparable3DComplex",&err);
+	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&err);
+	AddKernel = clCreateKernel(program,"Add",&err);
+	//SeparableConvolutionColumnsKernel = clCreateKernel(program,"convolutionColumns",&err);
+	////SeparableConvolutionRodsKernel = clCreateKernel(program,"convolutionRods",&err);	
+	//NonseparableConvolution3DComplexKernel = clCreateKernel(program,"convolutionNonSeparable3DComplex",&err);
 	
 	// Kernels for statistical analysis
-	CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateActivityMapGLM",&err);
+	//CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateActivityMapGLM",&err);
 
 	SetGlobalAndLocalWorkSizes();
+
+	//return log;
+
+	//clFinish(commandQueue);
+
+
+
+    return err;
+
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
@@ -284,7 +325,15 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	globalWorkSizeSeparableConvolutionRows[0] = DATA_W;
 	globalWorkSizeSeparableConvolutionRows[1] = DATA_H;
 	globalWorkSizeSeparableConvolutionRows[2] = DATA_D;
-		
+
+	globalWorkSizeSeparableConvolutionColumns[0] = DATA_W;
+	globalWorkSizeSeparableConvolutionColumns[1] = DATA_H;
+	globalWorkSizeSeparableConvolutionColumns[2] = DATA_D;
+
+	globalWorkSizeSeparableConvolutionRods[0] = DATA_W;
+	globalWorkSizeSeparableConvolutionRods[1] = DATA_H;
+	globalWorkSizeSeparableConvolutionRods[2] = DATA_D;
+
 	// Number of threads per block
 	
 	localWorkSizeSeparableConvolutionRows[0] = 32;
@@ -313,13 +362,10 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 
 void BROCCOLI_LIB::OpenCLCleanup()
 {
-	//clReleaseMemObject(aa);
-    //clReleaseMemObject(bb);
-	//clReleaseMemObject(cc);
-    //clReleaseProgram(program);
-    //clReleaseKernel(kernel);
-    //clReleaseCommandQueue(commandQueue);
-    //clReleaseContext(context);
+	clReleaseKernel(SeparableConvolutionRowsKernel);
+    clReleaseProgram(program);    
+    clReleaseCommandQueue(commandQueue);
+    int err = clReleaseContext(context);
 }
 
 /*
@@ -395,7 +441,18 @@ void BROCCOLI_LIB::OpenCLTest()
 
 
 
+
 // Set functions for GUI / Wrappers
+
+void BROCCOLI_LIB::SetInputData(float* data)
+{
+	h_fMRI_Volumes = data;
+}
+
+void BROCCOLI_LIB::SetOutputData(float* data)
+{
+	h_Result = data;
+}
 
 void BROCCOLI_LIB::SetDataType(int type)
 {
@@ -1040,7 +1097,7 @@ void BROCCOLI_LIB::AlignTwoVolumesCleanup()
 void BROCCOLI_LIB::AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D)
 {
 	DATA_SIZE_VOLUME = sizeof(float) * DATA_W * DATA_H * DATA_D;
-	DATA_SIZE_COMPLEX_VOLUME = sizeof(float2) * DATA_W * DATA_H * DATA_D;
+	//DATA_SIZE_COMPLEX_VOLUME = sizeof(float2) * DATA_W * DATA_H * DATA_D;
 
 	// Allocate memory on the host
 	h_A_Matrix = (float *)malloc(sizeof(float) * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
@@ -1078,9 +1135,9 @@ void BROCCOLI_LIB::AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D)
 	d_h_Vector_1D_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float) * DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS, NULL, NULL);
 
 	// Allocate constant memory
-	c_Quadrature_Filter_1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE, NULL, NULL);
-	c_Quadrature_Filter_2 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE, NULL, NULL);
-	c_Quadrature_Filter_3 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE, NULL, NULL);
+	//c_Quadrature_Filter_1 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE, NULL, NULL);
+	//c_Quadrature_Filter_2 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE, NULL, NULL);
+	//c_Quadrature_Filter_3 = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float2) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE, NULL, NULL);
 	c_Parameter_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, sizeof(float) * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS, NULL, NULL);
 
 	// Set all kernel arguments
@@ -1304,6 +1361,35 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 
 	// Cleanup allocated memory
 	AlignTwoVolumesCleanup();
+}
+
+void BROCCOLI_LIB::AddVolumes()
+{
+	// Allocate memory for volumes
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), NULL, NULL);
+	d_Motion_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy volumes to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+
+	int N = DATA_W * DATA_H * DATA_D * DATA_T;
+	clSetKernelArg(AddKernel, 0, sizeof(cl_mem), &d_Motion_Corrected_fMRI_Volumes);
+	clSetKernelArg(AddKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);	
+	clSetKernelArg(AddKernel, 2, sizeof(int), &N);
+
+
+	size_t globalWorkSize[1] = {DATA_W * DATA_H * DATA_D * DATA_T}; // Total number of threads
+	size_t localWorkSize[1] = {512}; // Number of threads per block
+
+	// Launch kernel
+	clEnqueueNDRangeKernel(commandQueue, AddKernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
+
+	// Copy result back to host
+	clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), h_Result, 0, NULL, NULL);
+
+	// Free memory
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
 }
 
 // Performs smoothing of a number of volumes
@@ -1730,7 +1816,7 @@ void BROCCOLI_LIB::ReadfMRIDataRAW()
 	}
 
 	// Copy fMRI volumes to global memory, as floats
-	cudaMemcpy(d_fMRI_Volumes, h_fMRI_Volumes, sizeof(float) * DATA_W * DATA_H * DATA_D * DATA_T, cudaMemcpyHostToDevice);
+	//cudaMemcpy(d_fMRI_Volumes, h_fMRI_Volumes, sizeof(float) * DATA_W * DATA_H * DATA_D * DATA_T, cudaMemcpyHostToDevice);
 
 	for (int i = 0; i < DATA_T; i++)
 	{
@@ -1746,6 +1832,7 @@ void BROCCOLI_LIB::ReadfMRIDataRAW()
 	CalculateSlicesfMRIData();
 }
 
+/*
 void BROCCOLI_LIB::ReadfMRIDataNIFTI()
 {
 	nifti_data = new nifti_image;
@@ -1841,7 +1928,7 @@ void BROCCOLI_LIB::ReadfMRIDataNIFTI()
 	delete nifti_data;
 
 	// Copy fMRI volumes to global memory, as floats
-	cudaMemcpy(d_fMRI_Volumes, h_fMRI_Volumes, sizeof(float) * DATA_W * DATA_H * DATA_D * DATA_T, cudaMemcpyHostToDevice);
+	//cudaMemcpy(d_fMRI_Volumes, h_fMRI_Volumes, sizeof(float) * DATA_W * DATA_H * DATA_D * DATA_T, cudaMemcpyHostToDevice);
 
 	for (int i = 0; i < DATA_T; i++)
 	{
@@ -1855,6 +1942,9 @@ void BROCCOLI_LIB::ReadfMRIDataNIFTI()
 
 	CalculateSlicesfMRIData();
 }
+*/
+
+/*
 
 void BROCCOLI_LIB::ReadNIFTIHeader()
 {
@@ -1872,6 +1962,8 @@ void BROCCOLI_LIB::ReadNIFTIHeader()
 	FMRI_VOXEL_SIZE_Z = nifti_data->dz;
 	TR = nifti_data->dt;
 }
+
+*/
 
 // Read functions, private
 
@@ -2001,6 +2093,8 @@ void BROCCOLI_LIB::ReadRealDataDouble(double* data, std::string filename, int N)
 	file.close();
 }
 
+
+/*
 void BROCCOLI_LIB::ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
 {
 	std::fstream real_file(real_filename, std::ios::in | std::ios::binary);
@@ -2036,13 +2130,14 @@ void BROCCOLI_LIB::ReadComplexData(Complex* data, std::string real_filename, std
 	real_file.close();
 	imag_file.close();
 }
+*/
 
 void BROCCOLI_LIB::ReadImageRegistrationFilters()
 {
 	// Read the quadrature filters from file
-	ReadComplexData(h_Quadrature_Filter_1, filename_real_quadrature_filter_1, filename_imag_quadrature_filter_1, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
-	ReadComplexData(h_Quadrature_Filter_2, filename_real_quadrature_filter_2, filename_imag_quadrature_filter_2, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
-	ReadComplexData(h_Quadrature_Filter_3, filename_real_quadrature_filter_3, filename_imag_quadrature_filter_3, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
+	//ReadComplexData(h_Quadrature_Filter_1, filename_real_quadrature_filter_1, filename_imag_quadrature_filter_1, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
+	//ReadComplexData(h_Quadrature_Filter_2, filename_real_quadrature_filter_2, filename_imag_quadrature_filter_2, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
+	//ReadComplexData(h_Quadrature_Filter_3, filename_real_quadrature_filter_3, filename_imag_quadrature_filter_3, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
 }
 
 void BROCCOLI_LIB::ReadSmoothingFilters()
@@ -2082,7 +2177,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 		float* pointer = device_pointers[i];
 		if (pointer != NULL)
 		{
-			cudaFree(pointer);
+			//cudaFree(pointer);
 			device_pointers[i] = NULL;
 		}
 	}
@@ -2245,6 +2340,7 @@ void BROCCOLI_LIB::WriteRealDataDouble(double* data, std::string filename, int N
 	file.close();
 }
 
+/*
 void BROCCOLI_LIB::WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
 {
 	std::fstream real_file(real_filename, std::ios::out | std::ios::binary);
@@ -2280,7 +2376,7 @@ void BROCCOLI_LIB::WriteComplexData(Complex* data, std::string real_filename, st
 	}
 	imag_file.close();
 }
-
+*/
 
 
 
@@ -2449,6 +2545,7 @@ void BROCCOLI_LIB::CalculateSlicesPreprocessedfMRIData()
 	}
 }
 
+/*
 void BROCCOLI_LIB::Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N)
 {
 	for (int i = 0; i < N; i++)
@@ -2459,7 +2556,9 @@ void BROCCOLI_LIB::Convert4FloatToFloat4(float4* floats, float* float_1, float* 
 		floats[i].w = float_4[i];
 	}
 }
+*/
 
+/*
 void BROCCOLI_LIB::Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N)
 {
 	for (int i = 0; i < N; i++)
@@ -2468,7 +2567,9 @@ void BROCCOLI_LIB::Convert2FloatToFloat2(float2* floats, float* float_1, float* 
 		floats[i].y = float_2[i];
 	}
 }
+*/
 
+/*
 void BROCCOLI_LIB::ConvertRealToComplex(Complex* complex_data, float* real_data, int N)
 {
 	for (int i = 0; i < N; i++)
@@ -2477,7 +2578,9 @@ void BROCCOLI_LIB::ConvertRealToComplex(Complex* complex_data, float* real_data,
 		complex_data[i].y = 0.0f;
 	}
 }
+*/
 
+/*
 void BROCCOLI_LIB::ExtractRealData(float* real_data, Complex* complex_data, int N)
 {
 	for (int i = 0; i < N; i++)
@@ -2485,57 +2588,8 @@ void BROCCOLI_LIB::ExtractRealData(float* real_data, Complex* complex_data, int 
 		real_data[i] = complex_data[i].x;
 	}
 }
+*/
 
-void BROCCOLI_LIB::Calculate_Block_Differences2D(int& xBlockDifference, int& yBlockDifference, int DATA_W, int DATA_H, int threadsInX, int threadsInY)
-{
-	if ( (DATA_W % threadsInX) == 0)
-	{
-		xBlockDifference = 0;
-	}
-	else
-	{
-		xBlockDifference = threadsInX - (DATA_W % threadsInX);
-	}
-
-	if ( (DATA_H % threadsInY) == 0)
-	{
-		yBlockDifference = 0;
-	}
-	else
-	{
-		yBlockDifference = threadsInY - (DATA_H % threadsInY);
-	}
-}
-
-void BROCCOLI_LIB::Calculate_Block_Differences3D(int& xBlockDifference, int& yBlockDifference, int& zBlockDifference, int DATA_W, int DATA_H, int DATA_D, int threadsInX, int threadsInY, int threadsInZ)
-{
-	if ( (DATA_W % threadsInX) == 0)
-	{
-		xBlockDifference = 0;
-	}
-	else
-	{
-		xBlockDifference = threadsInX - (DATA_W % threadsInX);
-	}
-
-	if ( (DATA_H % threadsInY) == 0)
-	{
-		yBlockDifference = 0;
-	}
-	else
-	{
-		yBlockDifference = threadsInY - (DATA_H % threadsInY);
-	}
-
-	if ( (DATA_D % threadsInZ) == 0)
-	{
-		zBlockDifference = 0;
-	}
-	else
-	{
-		zBlockDifference = threadsInZ - (DATA_D % threadsInZ);
-	}
-}
 
 void BROCCOLI_LIB::Invert_Matrix(float* inverse_matrix, float* matrix, int N)
 {      

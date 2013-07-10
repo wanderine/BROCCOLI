@@ -22,23 +22,13 @@
 #include "nifti1.h"
 #include "nifti1_io.h"
 
-#include <cuda.h>
-#include <helper_functions.h> // Helper functions (utilities, parsing, timing)
-#include "cuda_runtime.h"
 #include <opencl.h>
 
 #include <string>
 
-//#include <thrust/host_vector.h>
-//#include <thrust/device_vector.h>
-//#include <thrust/generate.h>
-//#include <thrust/reduce.h>
-//#include <thrust/functional.h>
-//#include <thrust/transform_reduce.h>
 //#include <cstdlib>
 
 
-typedef float2 Complex;
 typedef unsigned int uint;
 typedef unsigned char uchar;
 typedef unsigned short int uint16;
@@ -155,6 +145,10 @@ class BROCCOLI_LIB
 		~BROCCOLI_LIB();
 
 		// Set functions for GUI / Wrappers
+		
+		void SetInputData(float*);
+		void SetOutputData(float*);
+		
 		void SetfMRIDataFilename(std::string filename);
 			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);
@@ -274,6 +268,8 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMFirstLevel();
 		void CalculateStatisticalMapsGLMSecondLevel();
 
+		void AddVolumes();
+
 		// Permutation single subject	
 		void SetupParametersPermutationSingleSubject();
 		void GeneratePermutationMatrixSingleSubject();
@@ -297,6 +293,7 @@ class BROCCOLI_LIB
 		void CalculateSlicesPreprocessedfMRIData();
 		void CalculateSlicesActivityData();
 
+		int OpenCLInitiate();
 		void OpenCLTest();
 
 
@@ -315,7 +312,7 @@ class BROCCOLI_LIB
 		void ReadRealDataUint16(unsigned short int* data, std::string filename, int N);
 		void ReadRealDataFloat(float* data, std::string filename, int N);
 		void ReadRealDataDouble(double* data, std::string filename, int N);
-		void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
+		//void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
 		void ReadImageRegistrationFilters();
 		void ReadSmoothingFilters();
 		void SetupParametersReadData();
@@ -324,10 +321,9 @@ class BROCCOLI_LIB
 		void WriteRealDataUint16(unsigned short int* data, std::string filename, int N);
 		void WriteRealDataFloat(float* data, std::string filename, int N);
 		void WriteRealDataDouble(double* data, std::string filename, int N);
-		void WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
+		//void WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
 
-		// OpenCL help functions
-		void OpenCLInitiate();
+		// OpenCL help functions		
 		void SetGlobalAndLocalWorkSizes();
 		void OpenCLCleanup();
 
@@ -336,12 +332,10 @@ class BROCCOLI_LIB
 		void ResetAllPointers();
 		void AllocateMemoryForFilters();
 
-		void ConvertRealToComplex(Complex* complex_data, float* real_data, int N);
-		void ExtractRealData(float* real_data, Complex* complex_data, int N);
-		void Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N);
-		void Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N);
-		void Calculate_Block_Differences2D(int& xBlockDifference, int& yBlockDifference, int DATA_W, int DATA_H, int threadsInX, int threadsInY);
-		void Calculate_Block_Differences3D(int& xBlockDifference, int& yBlockDifference, int& zBlockDifference, int DATA_W, int DATA_H, int DATA_D, int threadsInX, int threadsInY, int threadsInZ);
+		//void ConvertRealToComplex(Complex* complex_data, float* real_data, int N);
+		//void ExtractRealData(float* real_data, Complex* complex_data, int N);
+		//void Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N);
+		//void Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N);
 		void Invert_Matrix(float* inverse_matrix, float* matrix, int N);
 		void Calculate_Square_Root_of_Matrix(float* sqrt_matrix, float* matrix, int N);
 		void SolveEquationSystem(float* h_A_matrix, float* h_inverse_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N);
@@ -357,6 +351,7 @@ class BROCCOLI_LIB
 		void CreateHRF();
 
 		// OpenCL
+
 		cl_context context;
 		cl_command_queue commandQueue;
 		cl_program program;
@@ -373,6 +368,8 @@ class BROCCOLI_LIB
 		cl_kernel InterpolateVolumeTrilinearKernel;
 
 		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
+
+		cl_kernel	AddKernel;
 
 		cl_int errNum;
 
@@ -525,17 +522,19 @@ class BROCCOLI_LIB
 		void		*host_pointers_static[NUMBER_OF_HOST_POINTERS];
 		void		*host_pointers_permutation[NUMBER_OF_HOST_POINTERS];
 		
+		float		*h_Result;
+
 		float		*h_fMRI_Volumes;
-		Complex	 	*h_fMRI_Volumes_Complex;	
+		//Complex	 	*h_fMRI_Volumes_Complex;	
 
 		// Slice timing correction
 		float		*h_Slice_Timing_Corrections_Real, *h_Slice_Timing_Corrections_Imag;
-		Complex		*h_Slice_Timing_Corrections;
+		//Complex		*h_Slice_Timing_Corrections;
 		float		*h_Slice_Timing_Corrected_fMRI_Volumes;
 
 		// Image Registration
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag; 		
-		Complex     *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
+		//Complex     *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
 		float		*h_A_Matrix, *h_Inverse_A_Matrix, *h_h_Vector;
 		float 		 h_Parameter_Vector[12], h_Parameter_Vector_Total[12];
 	
