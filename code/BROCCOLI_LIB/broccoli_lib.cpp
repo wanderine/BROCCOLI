@@ -254,6 +254,7 @@ int BROCCOLI_LIB::OpenCLInitiate(char* device_info, char* build_info)
 	int gpu = 1;
 	size_t valueSize;
 	cl_uint maxComputeUnits;
+	cl_ulong memorySize;
 	
 	cl_uint platformIdCount = 0;
 	clGetPlatformIDs (0, nullptr, &platformIdCount);
@@ -269,48 +270,98 @@ int BROCCOLI_LIB::OpenCLInitiate(char* device_info, char* build_info)
 	// Get information for for each device
         for (j = 0; j < deviceIdCount; j++) 
         {
+            // Get vendor name
+            clGetDeviceInfo(devices[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
+            value = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, valueSize, value, NULL);            
+            info.append("Vendor name: ");
+            info.append(value);
+            info.append("\n");
+            free(value);	
+        	
             // Get device name
             clGetDeviceInfo(devices[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
-            device_name = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, device_name, NULL);            
+            value = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, value, NULL);            
             info.append("Device name: ");
-            info.append(device_name);
+            info.append(value);
             info.append("\n");
-            free(device_name);
+            free(value);
 
             // Get hardware device version
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
-            hardware_version = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, hardware_version, NULL);
+            value = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, value, NULL);
             info.append("Hardware version: ");
-            info.append(hardware_version);
+            info.append(value);
             info.append("\n");
-            free(hardware_version);
+            free(value);
 
             // Get software driver version
             clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
-            software_version = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, software_version, NULL);
+            value = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, value, NULL);
             info.append("Software version: ");
-            info.append(software_version);
+            info.append(value);
             info.append("\n");
-            free(software_version);
+            free(value);
 
             // Get c version supported by compiler for device
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
-            c_version = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, c_version, NULL);
+            value = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
             info.append("OpenCL C version: ");
-            info.append(c_version);
+            info.append(value);
             info.append("\n");
-            free(c_version);
-
+            free(value);
+            
+            // Get global memory size
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
+            info.append("Global memory size: ");
+            temp_stream.str("");
+	    temp_stream.clear();
+            temp_stream << memorySize;            
+            info.append(temp_stream.c_str());
+            info.append("\n");
+            
+            // Get local memory size
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
+            info.append("Local memory size: ");
+            temp_stream.str("");
+	    temp_stream.clear();
+            temp_stream << memorySize;            
+            info.append(temp_stream.c_str());
+            info.append("\n");
+            
+            // Get constant memory size
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
+            info.append("Constant memory size: ");
+            temp_stream.str("");
+	    temp_stream.clear();
+            temp_stream << memorySize;            
+            info.append(temp_stream.c_str());
+            info.append("\n");                       
+            
 	    // Get parallel compute units
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
             info.append("Parallel compute units: ");
+            temp_stream.str("");
+	    temp_stream.clear();
             temp_stream << maxComputeUnits;            
             info.append(temp_stream.c_str());
             info.append("\n");
+            
+            // Get clock frequency
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
+            info.append("Clock frequency: ");
+            temp_stream.str("");
+	    temp_stream.clear();
+            temp_stream << clockFrequency;            
+            info.append(temp_stream.c_str());
+            info.append("\n");
+            
+            
+            
             info.append("\n");
         }
         
