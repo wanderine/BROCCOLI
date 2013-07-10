@@ -185,6 +185,10 @@ class BROCCOLI_LIB
 		void SetSignificanceThreshold(float value);
 
 		// Get functions for GUI / Wrappers
+		
+		char* GetDeviceInfo();
+		char* GetBuildInfo();
+		
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCorrection();
 		double GetProcessingTimeSmoothing();
@@ -356,6 +360,8 @@ class BROCCOLI_LIB
 		cl_command_queue commandQueue;
 		cl_program program;
 		cl_device_id device;
+		
+		std::string device_info, build_info;
 		
 		// OpenCL kernels
 
