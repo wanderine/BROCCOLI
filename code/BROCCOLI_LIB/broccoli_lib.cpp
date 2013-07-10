@@ -267,99 +267,94 @@ void BROCCOLI_LIB::OpenCLInitiate()
             clGetDeviceInfo(devices[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
             value = (char*) malloc(valueSize);
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, valueSize, value, NULL);            
-            info.append("Vendor name: ");
-            info.append(value);
-            info.append("\n");
+            device_info.append("Vendor name: ");
+            device_info.append(value);
+            device_info.append("\n");
             free(value);	
         	
             // Get device name
             clGetDeviceInfo(devices[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
             value = (char*) malloc(valueSize);
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, value, NULL);            
-            info.append("Device name: ");
-            info.append(value);
-            info.append("\n");
+            device_info.append("Device name: ");
+            device_info.append(value);
+            device_info.append("\n");
             free(value);
 
             // Get hardware device version
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
             value = (char*) malloc(valueSize);
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, value, NULL);
-            info.append("Hardware version: ");
-            info.append(value);
-            info.append("\n");
+            device_info.append("Hardware version: ");
+            device_info.append(value);
+            device_info.append("\n");
             free(value);
 
             // Get software driver version
             clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
             value = (char*) malloc(valueSize);
             clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, value, NULL);
-            info.append("Software version: ");
-            info.append(value);
-            info.append("\n");
+            device_info.append("Software version: ");
+            device_info.append(value);
+            device_info.append("\n");
             free(value);
 
             // Get C version supported by compiler for device
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
             value = (char*) malloc(valueSize);
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
-            info.append("OpenCL C version: ");
-            info.append(value);
-            info.append("\n");
+            device_info.append("OpenCL C version: ");
+            device_info.append(value);
+            device_info.append("\n");
             free(value);
             
             // Get global memory size
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-            info.append("Global memory size: ");
+            device_info.append("Global memory size: ");
             temp_stream.str("");
 	    temp_stream.clear();
             temp_stream << memorySize;            
-            info.append(temp_stream.c_str());
-            info.append("\n");
+            device_info.append(temp_stream.c_str());
+            device_info.append("\n");
             
             // Get local (shared) memory size
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-            info.append("Local memory size: ");
+            device_info.append("Local memory size: ");
             temp_stream.str("");
 	    temp_stream.clear();
             temp_stream << memorySize;            
-            info.append(temp_stream.c_str());
-            info.append("\n");
+            device_info.append(temp_stream.c_str());
+            device_info.append("\n");
             
             // Get constant memory size
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
-            info.append("Constant memory size: ");
+            device_info.append("Constant memory size: ");
             temp_stream.str("");
 	    temp_stream.clear();
             temp_stream << memorySize;            
-            info.append(temp_stream.c_str());
-            info.append("\n");                       
+            device_info.append(temp_stream.c_str());
+            device_info.append("\n");                       
             
 	    // Get parallel compute units
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
-            info.append("Parallel compute units: ");
+            device_info.append("Parallel compute units: ");
             temp_stream.str("");
 	    temp_stream.clear();
             temp_stream << maxComputeUnits;            
-            info.append(temp_stream.c_str());
-            info.append("\n");
+            device_info.append(temp_stream.c_str());
+            device_info.append("\n");
             
             // Get clock frequency
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
-            info.append("Clock frequency: ");
+            device_info.append("Clock frequency: ");
             temp_stream.str("");
 	    temp_stream.clear();
             temp_stream << clockFrequency;            
-            info.append(temp_stream.c_str());
-            info.append("\n");
-            
-            
-            
-            info.append("\n");
+            device_info.append(temp_stream.c_str());
+            device_info.append("\n");                                  
+            device_info.append("\n");
         }
-        
-        std::strcpy (device_info, info.c_str());
-
+                
 
 	const cl_context_properties contextProperties [] =
 	{
@@ -387,8 +382,11 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
 
 	// Get build info        
-        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);        
-        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, build_info, log, NULL);
+        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize);        
+        char* buildLog = (char*)malloc(logSize);
+        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, buildLog, log, NULL);
+	buildInfo.append(buildLog);
+	free(buildLog);
 
 	// Kernels for convolution
 	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&err);
