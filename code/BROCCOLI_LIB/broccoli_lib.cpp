@@ -239,13 +239,11 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 
 void BROCCOLI_LIB::OpenCLInitiate()
 {
-	std::string info;
 	std::string temp_string; std::ostringstream temp_stream;
 	
-	int err, err1;
-	int gpu = 1;
+	int err, err1;	
 	size_t valueSize;
-	cl_uint maxComputeUnits;
+	cl_uint maxComputeUnits, clockFrequency;
 	cl_ulong memorySize;
 	
 	// Get platforms
@@ -356,28 +354,28 @@ void BROCCOLI_LIB::OpenCLInitiate()
         }
                 
 
+	// Create context
 	const cl_context_properties contextProperties [] =
 	{
-	    CL_CONTEXT_PLATFORM,
-	    reinterpret_cast<cl_context_properties> (platformIds[0]),
-	    0, 0
+	    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[0]), 0, 0
 	};
 
-	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &err1);
-	
-	size_t dataBytes;
-	errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &dataBytes);
-	cl_device_id *clDevices = (cl_device_id *) malloc(dataBytes);
-	errNum |= clGetContextInfo(context, CL_CONTEXT_DEVICES, dataBytes, clDevices, NULL);
+	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &err1);	
+	errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
+	cl_device_id *clDevices = (cl_device_id *) malloc(valueSize);
+	errNum |= clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
 
+	// Create a command queue
 	commandQueue = clCreateCommandQueue(context, deviceIds[0], 0, &err);
 
+	// Read the kernel code from file
 	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
 	std::ostringstream oss;
 	oss << kernelFile.rdbuf();
 	std::string src = oss.str();
 	const char *srcstr = src.c_str();
 
+	// Create a program and build the code
 	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &err);
 	clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
 
@@ -388,26 +386,21 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	buildInfo.append(buildLog);
 	free(buildLog);
 
-	// Kernels for convolution
-	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&err);
-	AddKernel = clCreateKernel(program,"Add",&err);
-	//SeparableConvolutionColumnsKernel = clCreateKernel(program,"convolutionColumns",&err);
-	////SeparableConvolutionRodsKernel = clCreateKernel(program,"convolutionRods",&err);	
+	// Create kernels
+	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&err);	
+	SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableconvolutionColumns",&err);
+	SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableconvolutionRods",&err);	
 	//NonseparableConvolution3DComplexKernel = clCreateKernel(program,"convolutionNonSeparable3DComplex",&err);
+	
+	AddKernel = clCreateKernel(program,"Add",&err);
 	
 	// Kernels for statistical analysis
 	//CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateActivityMapGLM",&err);
 
+	// Set global and local work sizes for all kernels
 	SetGlobalAndLocalWorkSizes();
 
-	//return log;
-
 	//clFinish(commandQueue);
-
-
-
-    return err;
-
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
