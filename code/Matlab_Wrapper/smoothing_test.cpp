@@ -126,11 +126,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //BROCCOLI.AllocateMemory();
     //char* log = BROCCOLI.OpenCLInitiate();
     
-    int err = BROCCOLI.OpenCLInitiate();
+    BROCCOLI.OpenCLInitiate();
     
-    //mexPrintf("%s\n", log);
+    mexPrintf("Device info \n \n %s \n", BROCCOLI.GetDeviceInfoChar());
+    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetBuildInfoChar());
     
-    mexPrintf("Error is %i \n",err);
     
     BROCCOLI.AddVolumes();
     
