@@ -1,5 +1,5 @@
 /*
-	BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
+    BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
     Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
 
     This program is free software: you can redistribute it and/or modify
@@ -42,14 +42,6 @@
 #include <cstdlib>
 
 
-/* 
-
-to do
-
-spm hrf
-slice timing correction
-
-*/
 
 
 // public
@@ -244,8 +236,8 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 }	
 
 
-//char *BROCCOLI_LIB::OpenCLInitiate()
-int BROCCOLI_LIB::OpenCLInitiate(char* device_info, char* build_info)
+
+void BROCCOLI_LIB::OpenCLInitiate()
 {
 	std::string info;
 	std::string temp_string; std::ostringstream temp_stream;
@@ -256,12 +248,13 @@ int BROCCOLI_LIB::OpenCLInitiate(char* device_info, char* build_info)
 	cl_uint maxComputeUnits;
 	cl_ulong memorySize;
 	
+	// Get platforms
 	cl_uint platformIdCount = 0;
-	clGetPlatformIDs (0, nullptr, &platformIdCount);
-
+	clGetPlatformIDs (0, NULL, &platformIdCount);
 	std::vector<cl_platform_id> platformIds (platformIdCount);
 	clGetPlatformIDs (platformIdCount, platformIds.data (), NULL);
 
+	// Get devices
 	cl_uint deviceIdCount = 0;
         clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
 	std::vector<cl_device_id> deviceIds (deviceIdCount);
@@ -306,7 +299,7 @@ int BROCCOLI_LIB::OpenCLInitiate(char* device_info, char* build_info)
             info.append("\n");
             free(value);
 
-            // Get c version supported by compiler for device
+            // Get C version supported by compiler for device
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
             value = (char*) malloc(valueSize);
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
@@ -324,7 +317,7 @@ int BROCCOLI_LIB::OpenCLInitiate(char* device_info, char* build_info)
             info.append(temp_stream.c_str());
             info.append("\n");
             
-            // Get local memory size
+            // Get local (shared) memory size
             clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
             info.append("Local memory size: ");
             temp_stream.str("");
