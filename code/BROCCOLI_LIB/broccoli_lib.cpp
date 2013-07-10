@@ -245,21 +245,77 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 
 
 //char *BROCCOLI_LIB::OpenCLInitiate()
-int BROCCOLI_LIB::OpenCLInitiate()
+int BROCCOLI_LIB::OpenCLInitiate(char* device_info, char* build_info)
 {
+	std::string info;
+	std::string temp_string; std::ostringstream temp_stream;
+	
 	int err, err1;
 	int gpu = 1;
+	size_t valueSize;
+	cl_uint maxComputeUnits;
 	
 	cl_uint platformIdCount = 0;
 	clGetPlatformIDs (0, nullptr, &platformIdCount);
 
 	std::vector<cl_platform_id> platformIds (platformIdCount);
-	clGetPlatformIDs (platformIdCount, platformIds.data (), nullptr);
+	clGetPlatformIDs (platformIdCount, platformIds.data (), NULL);
 
 	cl_uint deviceIdCount = 0;
-    clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, 0, nullptr, &deviceIdCount);
+        clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
 	std::vector<cl_device_id> deviceIds (deviceIdCount);
-	clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data (), nullptr);
+	clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
+
+	// Get information for for each device
+        for (j = 0; j < deviceIdCount; j++) 
+        {
+            // Get device name
+            clGetDeviceInfo(devices[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
+            device_name = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, device_name, NULL);            
+            info.append("Device name: ");
+            info.append(device_name);
+            info.append("\n");
+            free(device_name);
+
+            // Get hardware device version
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
+            hardware_version = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, hardware_version, NULL);
+            info.append("Hardware version: ");
+            info.append(hardware_version);
+            info.append("\n");
+            free(hardware_version);
+
+            // Get software driver version
+            clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
+            software_version = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, software_version, NULL);
+            info.append("Software version: ");
+            info.append(software_version);
+            info.append("\n");
+            free(software_version);
+
+            // Get c version supported by compiler for device
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
+            c_version = (char*) malloc(valueSize);
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, c_version, NULL);
+            info.append("OpenCL C version: ");
+            info.append(c_version);
+            info.append("\n");
+            free(c_version);
+
+	    // Get parallel compute units
+            clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
+            info.append("Parallel compute units: ");
+            temp_stream << maxComputeUnits;            
+            info.append(temp_stream.c_str());
+            info.append("\n");
+            info.append("\n");
+        }
+        
+        std::strcpy (device_info, info.c_str());
+
 
 	const cl_context_properties contextProperties [] =
 	{
@@ -268,7 +324,7 @@ int BROCCOLI_LIB::OpenCLInitiate()
 	    0, 0
 	};
 
-	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data (), nullptr, nullptr, &err1);
+	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &err1);
 	
 	size_t dataBytes;
 	errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &dataBytes);
@@ -286,16 +342,9 @@ int BROCCOLI_LIB::OpenCLInitiate()
 	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &err);
 	clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
 
-	// Determine the size of the log
-    size_t log_size;
-    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);
-
-    // Allocate memory for the log
-    char *log = (char *) malloc(log_size);
-
-    // Get the log
-    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, log_size, log, NULL);
-
+	// Get build info        
+        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &log_size);        
+        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, build_info, log, NULL);
 
 	// Kernels for convolution
 	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&err);
