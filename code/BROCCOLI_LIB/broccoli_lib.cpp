@@ -445,80 +445,12 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 
 void BROCCOLI_LIB::OpenCLCleanup()
 {
-	clReleaseKernel(SeparableConvolutionRowsKernel);
+    clReleaseKernel(SeparableConvolutionRowsKernel);
     clReleaseProgram(program);    
     clReleaseCommandQueue(commandQueue);
     int err = clReleaseContext(context);
 }
 
-/*
-void BROCCOLI_LIB::OpenCLTest()
-{
-	int err;
-	int gpu = 1;
-	clGetDeviceIDs(NULL, gpu ? CL_DEVICE_TYPE_GPU : CL_DEVICE_TYPE_CPU, 1, &device, NULL);
-	context = clCreateContext(0, 1, &device, NULL, NULL, &err);
-	commandQueue = clCreateCommandQueue(context, device, 0, &err);
-
-	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
-	std::ostringstream oss;
-	oss << kernelFile.rdbuf();
-	std::string src = oss.str();
-	const char *srcstr = src.c_str();
-
-	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &err);
-	clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
-	kernel = clCreateKernel(program,"AddVectors",&err);
-
-	float result[10];
-	float a[10];
-	float b[10];
-	for (int i = 0; i < 10; i++)
-	{
-		a[i] = i;
-		b[i] = 2*i;
-	}
-
-	cl_mem aa;
-	cl_mem bb;
-	cl_mem cc;
-	// Allocate memory on device
-	aa = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * 10, NULL, NULL);
-	bb = clCreateBuffer(context, CL_MEM_READ_ONLY,  sizeof(float) * 10, NULL, NULL);
-	cc = clCreateBuffer(context, CL_MEM_WRITE_ONLY,  sizeof(float) * 10, NULL, NULL);
-
-	// Copy data from host to device
-	clEnqueueWriteBuffer(commandQueue, aa, CL_TRUE, 0, sizeof(float) * 10, a, 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, bb, CL_TRUE, 0, sizeof(float) * 10, b, 0, NULL, NULL);
-
-	// Set arguments for the kernel
-	clSetKernelArg(kernel, 0, sizeof(cl_mem), &aa);
-	clSetKernelArg(kernel, 1, sizeof(cl_mem), &bb);
-	clSetKernelArg(kernel, 2, sizeof(cl_mem), &cc);
-
-	size_t globalWorkSize[1] = {10}; // Number of thread blocks
-	size_t localWorkSize[1] = {1}; // Number of blocks per thread
-
-	// Add the kernel to the command queue
-	clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL, globalWorkSize, localWorkSize, 0, NULL, NULL);
-
-	// Wait until the code has been processed
-	clFinish(commandQueue);
-
-	// Copy data from device to host
-	clEnqueueReadBuffer(commandQueue, cc, CL_TRUE, 0, 10 * sizeof(float), result, 0, NULL, NULL);
-
-	clReleaseMemObject(aa);
-    clReleaseMemObject(bb);
-	clReleaseMemObject(cc);
-    clReleaseProgram(program);
-    clReleaseKernel(kernel);
-    clReleaseCommandQueue(commandQueue);
-    clReleaseContext(context);
-
-
-}
-*/
 
 
 
@@ -673,6 +605,28 @@ void BROCCOLI_LIB::SetNumberOfPermutations(int value)
 
 
 // Get functions for GUI / Wrappers
+
+char* BROCCOLI_LIB::GetDeviceInfoChar()
+{
+	return device_info.c_str();
+}
+
+char* BROCCOLI_LIB::GetBuildInfoChar()
+{
+	return build_info.c_str();
+}
+
+std::string BROCCOLI_LIB::GetDeviceInfoString()
+{
+	return device_info;
+}
+
+std::string BROCCOLI_LIB::GetBuildInfoString()
+{
+	return build_info;
+}
+
+
 
 int BROCCOLI_LIB::GetfMRIDataSliceLocationX()
 {
