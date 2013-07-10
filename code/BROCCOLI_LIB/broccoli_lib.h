@@ -1,5 +1,5 @@
 /*
-	BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
+    BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
     Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
 
     This program is free software: you can redistribute it and/or modify
@@ -186,8 +186,11 @@ class BROCCOLI_LIB
 
 		// Get functions for GUI / Wrappers
 		
-		char* GetDeviceInfo();
-		char* GetBuildInfo();
+		char* GetDeviceInfoChar();
+		char* GetBuildInfoChar();
+		
+		std::string GetDeviceInfoString();
+		std::string GetBuildInfoString();
 		
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCorrection();
