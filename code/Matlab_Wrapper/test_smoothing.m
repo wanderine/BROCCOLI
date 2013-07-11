@@ -34,7 +34,6 @@ mex -g Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Co
 
 test_data = randn(69,123,33,100);
 filter_x = randn(9,1);
-filter_x = ones(9,1);
 filter_x = filter_x / sum(abs(filter_x));
 filter_y = randn(9,1);
 filter_y = filter_y / sum(abs(filter_y));
