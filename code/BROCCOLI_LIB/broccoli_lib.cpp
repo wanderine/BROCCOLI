@@ -34,7 +34,6 @@
 //#include <shrUtils.h>
 //#include <shrQATest.h>
 #include "broccoli_lib.h"
-//#include "broccoli_lib_kernel.cpp"
 
 #include "nifti1.h"
 #include "nifti1_io.h"
@@ -242,8 +241,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
 {
 	std::string temp_string; std::ostringstream temp_stream;
 	char* value;
-	size_t valueSize;
-	size_t valueSizes[3];
+	size_t valueSize, valueSizes[3];
 	cl_uint maxComputeUnits, clockFrequency;
 	cl_ulong memorySize;
 	cl_int err;
@@ -394,7 +392,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	commandQueue = clCreateCommandQueue(context, deviceIds[0], 0, &err);
 
 	// Read the kernel code from file
-	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
+	std::fstream kernelFile("broccoli_lib_kernel.cl",std::ios::in);
 	std::ostringstream oss;
 	oss << kernelFile.rdbuf();
 	std::string src = oss.str();
@@ -453,9 +451,9 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	
 	// Calculate how many blocks are required
 	// ConvolutionRows yields 32 * 8 * 8 valid filter responses per block (x,y,z)
-	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
-	yBlocks = (size_t)ceil((float)DATA_W / (float)8);
-	zBlocks = (size_t)ceil((float)DATA_W / (float)8);
+	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_ROWS);
+	yBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS);
+	zBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
 	threadsX = xBlocks * localWorkSizeSeparableConvolutionRows[0];
@@ -468,9 +466,9 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 
     // Calculate how many blocks are required
 	// ConvolutionColumns yields 24 * 16 * 8 valid filter responses per block (x,y,z)
-	xBlocks = (size_t)ceil((float)DATA_W / (float)24);
-	yBlocks = (size_t)ceil((float)DATA_W / (float)16);
-	zBlocks = (size_t)ceil((float)DATA_W / (float)8);
+	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_COLUMNS);
+	yBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS);
+	zBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
 	threadsX = xBlocks * localWorkSizeSeparableConvolutionColumns[0];
@@ -483,9 +481,9 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 
 	// Calculate how many blocks are required
 	// ConvolutionRods yields 32 * 8 * 8 valid filter responses per block (x,y,z)
-	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
-	yBlocks = (size_t)ceil((float)DATA_W / (float)8);
-	zBlocks = (size_t)ceil((float)DATA_W / (float)8);
+	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_RODS);
+	yBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS);
+	zBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
 	threadsX = xBlocks * localWorkSizeSeparableConvolutionRods[0];
