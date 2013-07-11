@@ -50,12 +50,13 @@
 // Constructor
 BROCCOLI_LIB::BROCCOLI_LIB()
 {
-	//OpenCLInitiate();
-	//SetStartValues();
+	OpenCLInitiate();
+	SetStartValues();
 	ResetAllPointers();
 	//AllocateMemory();
 	//ReadImageRegistrationFilters();
 	//ReadSmoothingFilters();	
+	
 }
 
 // Destructor
@@ -222,7 +223,7 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 	//h_Quadrature_Filter_2 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
 	//h_Quadrature_Filter_3 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
 
-	h_GLM_Filter = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_GLM);
+	//h_GLM_Filter = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_GLM);
 
 	host_pointers_static[QF1R]   = (void*)h_Quadrature_Filter_1_Real;
 	host_pointers_static[QF1I]   = (void*)h_Quadrature_Filter_1_Imag;
@@ -240,10 +241,12 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 void BROCCOLI_LIB::OpenCLInitiate()
 {
 	std::string temp_string; std::ostringstream temp_stream;
-	
+	char* value;
 	size_t valueSize;
+	size_t valueSizes[3];
 	cl_uint maxComputeUnits, clockFrequency;
 	cl_ulong memorySize;
+	cl_int err;
 	
 	// Get platforms
 	cl_uint platformIdCount = 0;
@@ -253,104 +256,127 @@ void BROCCOLI_LIB::OpenCLInitiate()
 
 	// Get devices
 	cl_uint deviceIdCount = 0;
-        clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
+    clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
 	std::vector<cl_device_id> deviceIds (deviceIdCount);
 	clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
 
 	// Get information for for each device and save as a long string
-        for (j = 0; j < deviceIdCount; j++) 
-        {
-            // Get vendor name
-            clGetDeviceInfo(devices[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
-            value = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, valueSize, value, NULL);            
-            device_info.append("Vendor name: ");
-            device_info.append(value);
-            device_info.append("\n");
-            free(value);	
+    for (uint j = 0; j < deviceIdCount; j++) 
+    {
+        // Get vendor name
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
+        value = (char*) malloc(valueSize);
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, valueSize, value, NULL);            
+        device_info.append("Vendor name: ");
+        device_info.append(value);
+        device_info.append("\n");
+        free(value);	
         	
-            // Get device name
-            clGetDeviceInfo(devices[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
-            value = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, value, NULL);            
-            device_info.append("Device name: ");
-            device_info.append(value);
-            device_info.append("\n");
-            free(value);
+        // Get device name
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
+        value = (char*) malloc(valueSize);
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, value, NULL);            
+        device_info.append("Device name: ");
+        device_info.append(value);
+        device_info.append("\n");
+        free(value);
 
-            // Get hardware device version
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
-            value = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, value, NULL);
-            device_info.append("Hardware version: ");
-            device_info.append(value);
-            device_info.append("\n");
-            free(value);
+        // Get hardware device version
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
+        value = (char*) malloc(valueSize);
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, value, NULL);
+        device_info.append("Hardware version: ");
+        device_info.append(value);
+        device_info.append("\n");
+        free(value);
 
-            // Get software driver version
-            clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
-            value = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, value, NULL);
-            device_info.append("Software version: ");
-            device_info.append(value);
-            device_info.append("\n");
-            free(value);
+        // Get software driver version
+        clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
+        value = (char*) malloc(valueSize);
+        clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, value, NULL);
+        device_info.append("Software version: ");
+        device_info.append(value);
+        device_info.append("\n");
+        free(value);
 
-            // Get C version supported by compiler for device
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
-            value = (char*) malloc(valueSize);
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
-            device_info.append("OpenCL C version: ");
-            device_info.append(value);
-            device_info.append("\n");
-            free(value);
+        // Get C version supported by compiler for device
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
+        value = (char*) malloc(valueSize);
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
+        device_info.append("OpenCL C version: ");
+        device_info.append(value);
+        device_info.append("\n");
+        free(value);
             
-            // Get global memory size
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-            device_info.append("Global memory size: ");
-            temp_stream.str("");
+        // Get global memory size
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
+        device_info.append("Global memory size: ");
+        temp_stream.str("");
 	    temp_stream.clear();
-            temp_stream << memorySize;            
-            device_info.append(temp_stream.c_str());
-            device_info.append("\n");
+        temp_stream << memorySize;            
+        device_info.append(temp_stream.str());
+        device_info.append("\n");
             
-            // Get local (shared) memory size
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-            device_info.append("Local memory size: ");
-            temp_stream.str("");
+        // Get local (shared) memory size
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
+        device_info.append("Local memory size: ");
+        temp_stream.str("");
 	    temp_stream.clear();
-            temp_stream << memorySize;            
-            device_info.append(temp_stream.c_str());
-            device_info.append("\n");
+        temp_stream << memorySize;            
+        device_info.append(temp_stream.str());
+        device_info.append("\n");
             
-            // Get constant memory size
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
-            device_info.append("Constant memory size: ");
-            temp_stream.str("");
+        // Get constant memory size
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
+        device_info.append("Constant memory size: ");
+        temp_stream.str("");
 	    temp_stream.clear();
-            temp_stream << memorySize;            
-            device_info.append(temp_stream.c_str());
-            device_info.append("\n");                       
+        temp_stream << memorySize;            
+        device_info.append(temp_stream.str());
+        device_info.append("\n");                       
             
 	    // Get parallel compute units
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
-            device_info.append("Parallel compute units: ");
-            temp_stream.str("");
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
+        device_info.append("Parallel compute units: ");
+        temp_stream.str("");
 	    temp_stream.clear();
-            temp_stream << maxComputeUnits;            
-            device_info.append(temp_stream.c_str());
-            device_info.append("\n");
+        temp_stream << maxComputeUnits;            
+        device_info.append(temp_stream.str());
+        device_info.append("\n");
             
-            // Get clock frequency
-            clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
-            device_info.append("Clock frequency: ");
-            temp_stream.str("");
+        // Get clock frequency
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
+        device_info.append("Clock frequency: ");
+        temp_stream.str("");
 	    temp_stream.clear();
-            temp_stream << clockFrequency;            
-            device_info.append(temp_stream.c_str());
-            device_info.append("\n");                                  
-            device_info.append("\n");
-        }
+        temp_stream << clockFrequency;            
+        device_info.append(temp_stream.str());
+        device_info.append("\n");                                  
+
+		// Get maximum number of threads per block
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(valueSize), &valueSize, NULL);            
+        device_info.append("Max number of threads per block: ");
+        temp_stream.str("");
+	    temp_stream.clear();
+        temp_stream << valueSize;            
+        device_info.append(temp_stream.str());
+        device_info.append("\n");                                  
+        
+		// Get maximum block dimensions
+        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(valueSizes), valueSizes, NULL);            
+        device_info.append("Max number of threads in each dimension: ");
+        temp_stream.str("");
+	    temp_stream.clear();
+        temp_stream << valueSizes[0];
+		temp_stream << " ";
+		temp_stream << valueSizes[1];
+		temp_stream << " ";
+		temp_stream << valueSizes[2];
+		device_info.append(temp_stream.str());
+        device_info.append("\n");                                  
+        				
+		device_info.append("\n");		
+    }
                 
 
 	// Create context
@@ -359,7 +385,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[0]), 0, 0
 	};
 
-	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &err1);	
+	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &err);	
 	errNum = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
 	cl_device_id *clDevices = (cl_device_id *) malloc(valueSize);
 	errNum |= clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
@@ -379,43 +405,29 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
 
 	// Get build info        
-        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &logSize);        
-        char* buildLog = (char*)malloc(logSize);
-        clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, buildLog, log, NULL);
-	buildInfo.append(buildLog);
-	free(buildLog);
+    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);        
+    value = (char*)malloc(valueSize);
+    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
+	build_info.append(value);
+	free(value);
 
 	// Create kernels
-	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&err);	
-	SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableconvolutionColumns",&err);
-	SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableconvolutionRods",&err);	
+	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&kernel_error);	
+	SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&kernel_error);
+	SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&kernel_error);	
 	//NonseparableConvolution3DComplexKernel = clCreateKernel(program,"convolutionNonSeparable3DComplex",&err);
 	
 	AddKernel = clCreateKernel(program,"Add",&err);
 	
 	// Kernels for statistical analysis
 	//CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateActivityMapGLM",&err);
-
-	// Set global and local work sizes for all kernels
-	SetGlobalAndLocalWorkSizes();
-
+	
 	//clFinish(commandQueue);
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 {
-	// Total number of threads
-	globalWorkSizeSeparableConvolutionRows[0] = DATA_W;
-	globalWorkSizeSeparableConvolutionRows[1] = DATA_H;
-	globalWorkSizeSeparableConvolutionRows[2] = DATA_D;
 
-	globalWorkSizeSeparableConvolutionColumns[0] = DATA_W;
-	globalWorkSizeSeparableConvolutionColumns[1] = DATA_H;
-	globalWorkSizeSeparableConvolutionColumns[2] = DATA_D;
-
-	globalWorkSizeSeparableConvolutionRods[0] = DATA_W;
-	globalWorkSizeSeparableConvolutionRods[1] = DATA_H;
-	globalWorkSizeSeparableConvolutionRods[2] = DATA_D;
 
 	// Number of threads per block
 	
@@ -438,9 +450,51 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	localWorkSizeCalculateStatisticalMapsGLM[0] = 32;
 	localWorkSizeCalculateStatisticalMapsGLM[1] = 8;
 	localWorkSizeCalculateStatisticalMapsGLM[2] = 1;
+	
+	// Calculate how many blocks are required
+	// ConvolutionRows yields 32 * 8 * 8 valid filter responses per block (x,y,z)
+	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
+	yBlocks = (size_t)ceil((float)DATA_W / (float)8);
+	zBlocks = (size_t)ceil((float)DATA_W / (float)8);
 
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	threadsX = xBlocks * localWorkSizeSeparableConvolutionRows[0];
+	threadsY = yBlocks * localWorkSizeSeparableConvolutionRows[1];
+	threadsZ = zBlocks * localWorkSizeSeparableConvolutionRows[2];
+	
+	globalWorkSizeSeparableConvolutionRows[0] = threadsX;
+	globalWorkSizeSeparableConvolutionRows[1] = threadsY;
+	globalWorkSizeSeparableConvolutionRows[2] = threadsZ;
 
+    // Calculate how many blocks are required
+	// ConvolutionColumns yields 24 * 16 * 8 valid filter responses per block (x,y,z)
+	xBlocks = (size_t)ceil((float)DATA_W / (float)24);
+	yBlocks = (size_t)ceil((float)DATA_W / (float)16);
+	zBlocks = (size_t)ceil((float)DATA_W / (float)8);
 
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	threadsX = xBlocks * localWorkSizeSeparableConvolutionColumns[0];
+	threadsY = yBlocks * localWorkSizeSeparableConvolutionColumns[1];
+	threadsZ = zBlocks * localWorkSizeSeparableConvolutionColumns[2];
+
+	globalWorkSizeSeparableConvolutionColumns[0] = threadsX;
+	globalWorkSizeSeparableConvolutionColumns[1] = threadsY;
+	globalWorkSizeSeparableConvolutionColumns[2] = threadsX;
+
+	// Calculate how many blocks are required
+	// ConvolutionRods yields 32 * 8 * 8 valid filter responses per block (x,y,z)
+	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
+	yBlocks = (size_t)ceil((float)DATA_W / (float)8);
+	zBlocks = (size_t)ceil((float)DATA_W / (float)8);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	threadsX = xBlocks * localWorkSizeSeparableConvolutionRods[0];
+	threadsY = yBlocks * localWorkSizeSeparableConvolutionRods[1];
+	threadsZ = zBlocks * localWorkSizeSeparableConvolutionRods[2];
+
+	globalWorkSizeSeparableConvolutionRods[0] = threadsX;
+	globalWorkSizeSeparableConvolutionRods[1] = threadsY;
+	globalWorkSizeSeparableConvolutionRods[2] = threadsZ;
 }
 
 void BROCCOLI_LIB::OpenCLCleanup()
@@ -468,6 +522,14 @@ void BROCCOLI_LIB::SetOutputData(float* data)
 {
 	h_Result = data;
 }
+
+void BROCCOLI_LIB::SetSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z)
+{
+	h_Smoothing_Filter_X = Smoothing_Filter_X;
+	h_Smoothing_Filter_Y = Smoothing_Filter_Y;
+	h_Smoothing_Filter_Z = Smoothing_Filter_Z;
+}
+
 
 void BROCCOLI_LIB::SetDataType(int type)
 {
@@ -606,12 +668,12 @@ void BROCCOLI_LIB::SetNumberOfPermutations(int value)
 
 // Get functions for GUI / Wrappers
 
-char* BROCCOLI_LIB::GetDeviceInfoChar()
+const char* BROCCOLI_LIB::GetDeviceInfoChar()
 {
 	return device_info.c_str();
 }
 
-char* BROCCOLI_LIB::GetBuildInfoChar()
+const char* BROCCOLI_LIB::GetBuildInfoChar()
 {
 	return build_info.c_str();
 }
@@ -1429,25 +1491,131 @@ void BROCCOLI_LIB::AddVolumes()
 	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
 }
 
+int BROCCOLI_LIB::GetOpenCLError()
+{
+	return error;
+}
+
+int BROCCOLI_LIB::GetOpenCLKernelError()
+{
+	return kernel_error;
+}
+
+
+//void BROCCOLI_LIB::PerformSmoothingTest(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes, int NUMBER_OF_VOLUMES, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z)
+void BROCCOLI_LIB::PerformSmoothingTest()
+{
+	// Allocate memory for smoothing filters
+	c_Smoothing_Filter_X = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Y = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Z = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+
+	// Allocate memory for volumes
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), NULL, NULL);
+	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy volumes to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+
+	// Allocate temporary memory
+	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy smoothing filters to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_X, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_X , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Y, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Y , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Z, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Z , 0, NULL, NULL);
+
+	// Set arguments for the kernels
+	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &DATA_T);
+
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_X);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 7, sizeof(int), &DATA_T);
+
+	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Smoothed_fMRI_Volumes);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+    clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &DATA_T);
+
+	// Loop over volumes
+	for (int v = 0; v < DATA_T; v++)
+	{		
+		clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(int), &v);
+		error = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
+		clFinish(commandQueue);
+		
+		clSetKernelArg(SeparableConvolutionColumnsKernel, 3, sizeof(int), &v);
+		error = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionColumnsKernel, 3, NULL, globalWorkSizeSeparableConvolutionColumns, localWorkSizeSeparableConvolutionColumns, 0, NULL, NULL);
+		clFinish(commandQueue);
+		
+		clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(int), &v);
+		error = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
+		clFinish(commandQueue);	
+	}
+
+	
+	// Copy result back to host
+	clEnqueueReadBuffer(commandQueue, d_Smoothed_fMRI_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), h_Result, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Free memory
+	clReleaseMemObject(d_Convolved_Rows);
+	clReleaseMemObject(d_Convolved_Columns);
+
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Smoothed_fMRI_Volumes);
+
+	clReleaseMemObject(c_Smoothing_Filter_X);
+	clReleaseMemObject(c_Smoothing_Filter_Y);
+	clReleaseMemObject(c_Smoothing_Filter_Z);
+}
+
 // Performs smoothing of a number of volumes
 void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes, int NUMBER_OF_VOLUMES, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z)
 {
-	// Allocate temporary memory ?
-	cl_mem d_Convolved_Rows;
-	cl_mem d_Convolved_Columns;
+	// Allocate temporary memory
+	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
 	// Set arguments for the kernels
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &DATA_T);
 
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Convolved_Columns);
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_X);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 7, sizeof(int), &DATA_T);
 
 	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Smoothed_Volumes);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &DATA_T);
+
 
 	// Loop over volumes
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
@@ -1466,6 +1634,8 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes,
 	}
 
 	// Free temporary memory
+	clReleaseMemObject(d_Convolved_Rows);
+	clReleaseMemObject(d_Convolved_Columns);
 }
 
 // Performs detrending of an fMRI dataset
@@ -2186,7 +2356,7 @@ void BROCCOLI_LIB::ReadSmoothingFilters()
 	mm_string = out.str();
 
 	std::string filename_GLM = filename_GLM_filter + mm_string + "mm.raw";
-	ReadRealDataFloat(h_GLM_Filter, filename_GLM, SMOOTHING_FILTER_SIZE);
+	//ReadRealDataFloat(h_GLM_Filter, filename_GLM, SMOOTHING_FILTER_SIZE);
 	
 	//std::string filename_CCA_3D_1 = filename_CCA_3D_filter_1 + mm_string + "mm.raw";
 	//std::string filename_CCA_3D_2 = filename_CCA_3D_filter_2 + mm_string + "mm.raw";

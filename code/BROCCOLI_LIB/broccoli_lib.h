@@ -148,6 +148,7 @@ class BROCCOLI_LIB
 		
 		void SetInputData(float*);
 		void SetOutputData(float*);
+		void SetSmoothingFilters(float*,float*,float*);
 		
 		void SetfMRIDataFilename(std::string filename);
 			
@@ -186,11 +187,15 @@ class BROCCOLI_LIB
 
 		// Get functions for GUI / Wrappers
 		
-		char* GetDeviceInfoChar();
-		char* GetBuildInfoChar();
+		const char* GetDeviceInfoChar();
+		const char* GetBuildInfoChar();
 		
 		std::string GetDeviceInfoString();
 		std::string GetBuildInfoString();
+
+		int GetOpenCLError();
+		int GetOpenCLKernelError();
+
 		
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCorrection();
@@ -264,7 +269,8 @@ class BROCCOLI_LIB
 		void PerformMotionCorrection();
 		void PerformDetrending();
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, int NUMBER_OF_VOLUMES, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z);
-		
+		void PerformSmoothingTest();
+
 		// Processing
 		void PerformPreprocessingAndCalculateStatisticalMaps();				
 		void CalculateStatisticalMapGLMFirstLevel();
@@ -300,10 +306,10 @@ class BROCCOLI_LIB
 		void CalculateSlicesPreprocessedfMRIData();
 		void CalculateSlicesActivityData();
 
-		int OpenCLInitiate();
+		void OpenCLInitiate();
 		void OpenCLTest();
 
-
+		void SetGlobalAndLocalWorkSizes();
 
 	private:
 
@@ -331,7 +337,7 @@ class BROCCOLI_LIB
 		//void WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
 
 		// OpenCL help functions		
-		void SetGlobalAndLocalWorkSizes();
+		
 		void OpenCLCleanup();
 
 		// Other help functions
@@ -364,7 +370,8 @@ class BROCCOLI_LIB
 		cl_program program;
 		cl_device_id device;
 		
-		std::string device_info, build_info;
+		std::string device_info;
+		std::string build_info;
 		
 		// OpenCL kernels
 
@@ -381,6 +388,10 @@ class BROCCOLI_LIB
 		cl_kernel	AddKernel;
 
 		cl_int errNum;
+
+		cl_int error, kernel_error;
+
+		size_t threadsX, threadsY, threadsZ, xBlocks, yBlocks, zBlocks;
 
 		// OpenCL local work sizes
 
@@ -560,7 +571,7 @@ class BROCCOLI_LIB
 		float		*h_Aligned_T1_Volume;
 
 		// Smoothing
-		float		*h_GLM_Filter;
+		float		*h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;
 		float		*h_Smoothed_fMRI_Volumes;
 		
 		// Detrending
@@ -622,6 +633,9 @@ class BROCCOLI_LIB
 		cl_mem		d_Smoothed_Certainty;
 		cl_mem		d_Smoothed_fMRI_Volumes;
 		
+		cl_mem		c_Smoothing_Filter_X;
+		cl_mem		c_Smoothing_Filter_Y;
+		cl_mem		c_Smoothing_Filter_Z;
 
 		// Detrending
 		cl_mem		d_Detrended_fMRI_Volumes;
