@@ -155,9 +155,9 @@ class BROCCOLI_LIB
 
 		// Set functions for GUI / Wrappers
 		
-		void SetInputData(float*);
-		void SetOutputData(float*);
-		void SetSmoothingFilters(float*,float*,float*);
+		void SetInputData(float* input);
+		void SetOutputData(float* output);
+		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
 		
 		void SetfMRIDataFilename(std::string filename);
 			
