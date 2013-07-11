@@ -236,6 +236,8 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 }	
 
 
+// Add compilation from binary
+// Add to select CPU or GPU
 
 void BROCCOLI_LIB::OpenCLInitiate()
 {
@@ -308,28 +310,28 @@ void BROCCOLI_LIB::OpenCLInitiate()
             
         // Get global memory size
         clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-        device_info.append("Global memory size: ");
+        device_info.append("Global memory size in MB: ");
         temp_stream.str("");
 	    temp_stream.clear();
-        temp_stream << memorySize;            
+        temp_stream << memorySize/ (1024*1024);            
         device_info.append(temp_stream.str());
         device_info.append("\n");
             
         // Get local (shared) memory size
         clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-        device_info.append("Local memory size: ");
+        device_info.append("Local memory size in KB: ");
         temp_stream.str("");
 	    temp_stream.clear();
-        temp_stream << memorySize;            
+        temp_stream << memorySize/1024;            
         device_info.append(temp_stream.str());
         device_info.append("\n");
             
         // Get constant memory size
         clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
-        device_info.append("Constant memory size: ");
+        device_info.append("Constant memory size in KB: ");
         temp_stream.str("");
 	    temp_stream.clear();
-        temp_stream << memorySize;            
+        temp_stream << memorySize/1024;            
         device_info.append(temp_stream.str());
         device_info.append("\n");                       
             
@@ -344,7 +346,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
             
         // Get clock frequency
         clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
-        device_info.append("Clock frequency: ");
+        device_info.append("Clock frequency in MHz: ");
         temp_stream.str("");
 	    temp_stream.clear();
         temp_stream << clockFrequency;            
