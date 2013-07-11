@@ -161,22 +161,18 @@ void GetParameterIndices(int* i, int* j, int parameter)
 	}
 }
 
-__kernel void AddVectors(__global const float *a, __global const float *b, __global float *c)
-{
-	int id = get_global_id(0);
 
-	c[id] = a[id] + b[id];
-}
 
 // Convolution functions
 
 // Separable 3D convolution
 
-__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
+__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 	int z = get_local_size(2) * get_group_id(2) * 4 + get_local_id(2);
+	//int z = get_global_id(2);
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
 
@@ -184,10 +180,9 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 	//volatile int y = blockIdx.y * blockDim.y + tIdx.y;
 	//volatile int z = blockIdx.z * blockDim.z * 4 + tIdx.z;
 
-    if (x >= (DATA_W + xBlockDifference) || y >= (DATA_H + yBlockDifference) || z >= (DATA_D + zBlockDifference))
-        return;
-
 	// 8 * 8 * 32 valid filter responses = 2048
+	
+	
 	__local float l_Volume[8][16][32];
 
 	// Reset local memory
@@ -250,12 +245,12 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 
 	// Make sure all threads have written to local memory
 	barrier(CLK_LOCAL_MEM_FENCE);
-	
+		
 	// Only threads within the volume do the convolution
 	if ( (x < DATA_W) && (y < DATA_H) && (z < DATA_D) )
 	{
 	    float sum = 0.0f;
-
+		
 		sum += l_Volume[tIdx.z][tIdx.y + 0][tIdx.x] * c_Smoothing_Filter_Y[8];
 		sum += l_Volume[tIdx.z][tIdx.y + 1][tIdx.x] * c_Smoothing_Filter_Y[7];
 		sum += l_Volume[tIdx.z][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Y[6];
@@ -265,10 +260,12 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Y[2];
 		sum += l_Volume[tIdx.z][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
-
+		
 		Filter_Response[Calculate3DIndex(x,y,z,DATA_W, DATA_H)] = sum;
+		//Filter_Response[Calculate4DIndex(x,y,z,t,DATA_W, DATA_H,DATA_D)] = sum;		
 	}
 
+	
 	if ( (x < DATA_W) && (y < DATA_H) && ((z + 2) < DATA_D) )
 	{
 	    float sum = 0.0f;
@@ -284,6 +281,7 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
 		Filter_Response[Calculate3DIndex(x,y,z + 2,DATA_W, DATA_H)] = sum;
+		//Filter_Response[Calculate4DIndex(x,y,z + 2,t,DATA_W, DATA_H,DATA_D)] = sum;
 	}
 
 	if ( (x < DATA_W) && (y < DATA_H) && ((z + 4) < DATA_D) )
@@ -301,6 +299,7 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
 		Filter_Response[Calculate3DIndex(x,y,z + 4,DATA_W, DATA_H)] = sum;
+		//Filter_Response[Calculate4DIndex(x,y,z + 4,t,DATA_W, DATA_H,DATA_D)] = sum;
 	}
 
 	if ( (x < DATA_W) && (y < DATA_H) && ((z + 6) < DATA_D) )
@@ -317,15 +316,17 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Y[1];
 		sum += l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] * c_Smoothing_Filter_Y[0];
 
-		Filter_Response[Calculate3DIndex(x,y,z + 6,DATA_W, DATA_H)] = sum;
+		Filter_Response[Calculate3DIndex(x,y,z + 6,DATA_W, DATA_H)] = sum;		
+		//Filter_Response[Calculate4DIndex(x,y,z + 6,t,DATA_W, DATA_H,DATA_D)] = sum;
 	}
+	
 }
 
-__kernel void SeparableConvolutionColumns(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_X, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
+__kernel void SeparableConvolutionColumns(__global float *Filter_Response, __global float* Volume, __constant float *c_Smoothing_Filter_X, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_local_size(0) * get_group_id(0) / 32 * 24 + get_local_id(0);;
-	int y = get_local_size(1) * get_group_id(1) * 2 + get_local_id(2);
-	int z = get_local_size(2) * get_group_id(2) * 2 + get_local_id(2);  
+	int y = get_local_size(1) * get_group_id(1) * 2 + get_local_id(1);
+	int z = get_local_size(2) * get_group_id(2) * 4 + get_local_id(2);  
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
 
@@ -333,10 +334,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 	//volatile int y = blockIdx.y * blockDim.y * 2 + tIdx.y;
 	//volatile int z = blockIdx.z * blockDim.z * 4 + tIdx.z;
 
-    if (x >= (DATA_W + xBlockDifference) || y >= (DATA_H + yBlockDifference) || z >= (DATA_D + zBlockDifference))
-        return;
-
-	// 8 * 8 * 32 valid filter responses = 2048
+	// 8 * 16 * 24 valid filter responses = 3072
 	__local float l_Volume[8][16][32];
 
 	// Reset shared memory
@@ -398,7 +396,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 	barrier(CLK_LOCAL_MEM_FENCE);
 
 	// Only threads within the volume do the convolution
-	if (get_local_id(1) < 24)
+	if (tIdx.x < 24)
 	{
 		if ( (x < DATA_W) && (y < DATA_H) && (z < DATA_D) )
 		{
@@ -538,7 +536,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 	}
 }
 
-__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
+__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global float* Volume, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_local_size(1) * get_group_id(1) * 4 + get_local_id(1); 
@@ -549,9 +547,6 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 	//volatile int x = blockIdx.x * blockDim.x + tIdx.x;
 	//volatile int y = blockIdx.y * blockDim.y * 4 + tIdx.y;
 	//volatile int z = blockIdx.z * blockDim.z + tIdx.z;
-
-    if (x >= (DATA_W + xBlockDifference) || y >= (DATA_H + yBlockDifference) || z >= (DATA_D + zBlockDifference))
-        return;
 
 	// 8 * 8 * 32 valid filter responses = 2048
 	__local float l_Volume[16][8][32];

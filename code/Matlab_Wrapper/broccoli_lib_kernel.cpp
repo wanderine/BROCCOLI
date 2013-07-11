@@ -334,7 +334,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 	//volatile int y = blockIdx.y * blockDim.y * 2 + tIdx.y;
 	//volatile int z = blockIdx.z * blockDim.z * 4 + tIdx.z;
 
-	// 8 * 8 * 32 valid filter responses = 2048
+	// 8 * 16 * 24 valid filter responses = 3072
 	__local float l_Volume[8][16][32];
 
 	// Reset shared memory
