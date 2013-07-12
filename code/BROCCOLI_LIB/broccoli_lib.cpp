@@ -55,7 +55,7 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 	//AllocateMemory();
 	//ReadImageRegistrationFilters();
 	//ReadSmoothingFilters();	
-	
+	//SetGlobalAndLocalWorkSizes();
 }
 
 // Destructor
@@ -394,7 +394,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	commandQueue = clCreateCommandQueue(context, deviceIds[0], 0, &err);
 
 	// Read the kernel code from file
-	std::fstream kernelFile("broccoli_lib_kernel.cl",std::ios::in);
+	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
 	std::ostringstream oss;
 	oss << kernelFile.rdbuf();
 	std::string src = oss.str();
@@ -417,18 +417,17 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&kernel_error);	
 	//NonseparableConvolution3DComplexKernel = clCreateKernel(program,"convolutionNonSeparable3DComplex",&err);
 	
-	AddKernel = clCreateKernel(program,"Add",&err);
 	
-	// Kernels for statistical analysis
-	//CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateActivityMapGLM",&err);
+	// Kernels for statistical analysis	
+	CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&err);
+	CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateStatisticalMapsGLM",&err);
 	
+
 	//clFinish(commandQueue);
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 {
-
-
 	// Number of threads per block
 	
 	localWorkSizeSeparableConvolutionRows[0] = 32;
@@ -454,8 +453,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	// Calculate how many blocks are required
 	// ConvolutionRows yields 32 * 8 * 8 valid filter responses per block (x,y,z)
 	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_ROWS);
-	yBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS);
-	zBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
 	threadsX = xBlocks * localWorkSizeSeparableConvolutionRows[0];
@@ -469,8 +468,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
     // Calculate how many blocks are required
 	// ConvolutionColumns yields 24 * 16 * 8 valid filter responses per block (x,y,z)
 	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_COLUMNS);
-	yBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS);
-	zBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
 	threadsX = xBlocks * localWorkSizeSeparableConvolutionColumns[0];
@@ -484,8 +483,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	// Calculate how many blocks are required
 	// ConvolutionRods yields 32 * 8 * 8 valid filter responses per block (x,y,z)
 	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_RODS);
-	yBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS);
-	zBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
 	threadsX = xBlocks * localWorkSizeSeparableConvolutionRods[0];
@@ -495,6 +494,34 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	globalWorkSizeSeparableConvolutionRods[0] = threadsX;
 	globalWorkSizeSeparableConvolutionRods[1] = threadsY;
 	globalWorkSizeSeparableConvolutionRods[2] = threadsZ;
+
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)8);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)1);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	threadsX = xBlocks * localWorkSizeCalculateBetaValuesGLM[0];
+	threadsY = yBlocks * localWorkSizeCalculateBetaValuesGLM[1];
+	threadsZ = zBlocks * localWorkSizeCalculateBetaValuesGLM[2];
+	
+	globalWorkSizeCalculateBetaValuesGLM[0] = threadsX;
+	globalWorkSizeCalculateBetaValuesGLM[1] = threadsY;
+	globalWorkSizeCalculateBetaValuesGLM[2] = threadsZ;
+
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)8);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)1);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	threadsX = xBlocks * localWorkSizeCalculateStatisticalMapsGLM[0];
+	threadsY = yBlocks * localWorkSizeCalculateStatisticalMapsGLM[1];
+	threadsZ = zBlocks * localWorkSizeCalculateStatisticalMapsGLM[2];
+	
+	globalWorkSizeCalculateStatisticalMapsGLM[0] = threadsX;
+	globalWorkSizeCalculateStatisticalMapsGLM[1] = threadsY;
+	globalWorkSizeCalculateStatisticalMapsGLM[2] = threadsZ;
 }
 
 void BROCCOLI_LIB::OpenCLCleanup()
@@ -513,14 +540,40 @@ void BROCCOLI_LIB::OpenCLCleanup()
 
 // Set functions for GUI / Wrappers
 
-void BROCCOLI_LIB::SetInputData(float* data)
+void BROCCOLI_LIB::SetInputfMRIVolumes(float* data)
 {
 	h_fMRI_Volumes = data;
 }
 
-void BROCCOLI_LIB::SetOutputData(float* data)
+void BROCCOLI_LIB::SetMask(float* data)
 {
-	h_Result = data;
+	h_Mask = data;
+}
+
+void BROCCOLI_LIB::SetNumberOfRegressors(int N)
+{
+	NUMBER_OF_REGRESSORS = N;
+}
+
+void BROCCOLI_LIB::SetNumberOfContrasts(int N)
+{
+	NUMBER_OF_CONTRASTS = N;
+}
+
+void BROCCOLI_LIB::SetDesignMatrix(float* data1, float* data2)
+{
+	h_X_GLM = data1;
+	h_xtxxt_GLM = data2;
+}
+
+void BROCCOLI_LIB::SetGLMScalars(float* data)
+{
+	h_ctxtxc_GLM = data;
+}
+
+void BROCCOLI_LIB::SetContrasts(float* data)
+{
+	h_Contrasts = data;
 }
 
 void BROCCOLI_LIB::SetSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z)
@@ -529,6 +582,34 @@ void BROCCOLI_LIB::SetSmoothingFilters(float* Smoothing_Filter_X, float* Smoothi
 	h_Smoothing_Filter_Y = Smoothing_Filter_Y;
 	h_Smoothing_Filter_Z = Smoothing_Filter_Z;
 }
+
+void BROCCOLI_LIB::SetOutputBetaVolumes(float* data)
+{
+	h_Beta_Volumes = data;
+}
+
+void BROCCOLI_LIB::SetOutputResiduals(float* data)
+{
+	h_Residuals = data;
+}
+
+void BROCCOLI_LIB::SetOutputResidualVariances(float* data)
+{
+	h_Residual_Variances = data;
+}
+
+void BROCCOLI_LIB::SetOutputStatisticalMaps(float* data)
+{
+	h_Statistical_Maps = data;
+}
+
+
+
+void BROCCOLI_LIB::SetOutputData(float* data)
+{
+	h_Result = data;
+}
+
 
 
 void BROCCOLI_LIB::SetDataType(int type)
@@ -668,22 +749,22 @@ void BROCCOLI_LIB::SetNumberOfPermutations(int value)
 
 // Get functions for GUI / Wrappers
 
-const char* BROCCOLI_LIB::GetDeviceInfoChar()
+const char* BROCCOLI_LIB::GetOpenCLDeviceInfoChar()
 {
 	return device_info.c_str();
 }
 
-const char* BROCCOLI_LIB::GetBuildInfoChar()
+const char* BROCCOLI_LIB::GetOpenCLBuildInfoChar()
 {
 	return build_info.c_str();
 }
 
-std::string BROCCOLI_LIB::GetDeviceInfoString()
+std::string BROCCOLI_LIB::GetOpenCLDeviceInfoString()
 {
 	return device_info;
 }
 
-std::string BROCCOLI_LIB::GetBuildInfoString()
+std::string BROCCOLI_LIB::GetOpenCLBuildInfoString()
 {
 	return build_info;
 }
@@ -1677,6 +1758,88 @@ void BROCCOLI_LIB::PerformPreprocessingAndCalculateStatisticalMaps()
 	//CalculateSlicesPreprocessedfMRIData();
 }
 
+void BROCCOLI_LIB::PerformGLMTest()
+{
+	// Allocate memory for volumes
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), NULL, NULL);
+	d_Mask = clCreateBuffer(context, CL_MEM_READ_ONLY, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);	
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), NULL, NULL);	
+	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	d_Beta_Contrasts = clCreateBuffer(context, CL_MEM_WRITE_ONLY, DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);	
+	d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), NULL, NULL);
+	d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM , 0, NULL, NULL);
+
+	// Calculate beta values
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 2, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_GLM);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 7, sizeof(int), &DATA_T);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 8, sizeof(int), &NUMBER_OF_REGRESSORS);
+	//clSetKernelArg(CalculateBetaValuesGLMKernel, 4, sizeof(cl_mem), &c_Censor);
+	kernel_error = clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuesGLMKernel, 3, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+	
+	// Calculate t-values and residuals
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residuals);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_fMRI_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 6, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 7, sizeof(cl_mem), &c_X_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(int),   &DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 11, sizeof(int),   &DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 12, sizeof(int),   &DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 13, sizeof(int),   &DATA_T);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 14, sizeof(int),   &NUMBER_OF_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
+	//clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
+	kernel_error = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+
+	// Estimate auto correlation from residuals
+
+	// Remove auto correlation from regressors and data
+
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Mask);
+	clReleaseMemObject(c_X_GLM);
+	clReleaseMemObject(c_xtxxt_GLM);
+	clReleaseMemObject(c_Contrasts);
+	clReleaseMemObject(c_ctxtxc_GLM);
+
+	clReleaseMemObject(d_Beta_Volumes);
+	clReleaseMemObject(d_Statistical_Maps);
+	clReleaseMemObject(d_Beta_Contrasts);
+	clReleaseMemObject(d_Residuals);
+	clReleaseMemObject(d_Residual_Variances);
+}
+
 // Calculates a statistical map for first level analysis
 void BROCCOLI_LIB::CalculateStatisticalMapsGLMFirstLevel()
 {
@@ -1692,14 +1855,14 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFirstLevel()
 	// Calculate t-values and residuals
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residual_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residuals);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 6, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 7, sizeof(cl_mem), &c_X_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrast_Vectors);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(float), &ctxtxc);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
 	clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
@@ -1726,14 +1889,14 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMSecondLevel()
 	// Calculate t-values and residuals
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residual_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residuals);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 6, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 7, sizeof(cl_mem), &c_X_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrast_Vectors);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &ctxtxc);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
 	clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
@@ -1760,7 +1923,7 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSingleSubject()
         PerformSmoothingPermutation();
         PerformDetrendingPermutation();
         //PerformWhiteningPermutation();
-        CalculateActivityMapPermutation();
+        CalculateStatisticalMapPermutation();
 		h_Maximum_Test_Values[p] = FindMaxTestvaluePermutation();  
     }
 
@@ -1791,7 +1954,7 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdMultiSubject()
          // Copy a new permutation vector to constant memory
    
         GeneratePermutedfMRIVolumes();
-        CalculateActivityMapPermutation();
+        CalculateStatisticalMapPermutation();
 		h_Maximum_Test_Values[p] = FindMaxTestvaluePermutation();  
     }
 
@@ -1906,7 +2069,7 @@ void BROCCOLI_LIB::PerformDetrendingPermutation()
 	
 }
 
-void BROCCOLI_LIB::CalculateActivityMapPermutation()
+void BROCCOLI_LIB::CalculateStatisticalMapPermutation()
 {
 	
 }
@@ -2414,7 +2577,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 
 	h_X_GLM = (float*)malloc(DATA_SIZE_TEMPORAL_BASIS_FUNCTIONS);
 	h_xtxxt_GLM = (float*)malloc(DATA_SIZE_TEMPORAL_BASIS_FUNCTIONS);
-	h_Contrast_Vectors = (float*)malloc(sizeof(float) * NUMBER_OF_STATISTICAL_BASIS_FUNCTIONS * NUMBER_OF_CONTRASTS);
+	h_Contrasts = (float*)malloc(sizeof(float) * NUMBER_OF_STATISTICAL_BASIS_FUNCTIONS * NUMBER_OF_CONTRASTS);
 	
 	//h_Activity_Volume = (float*)malloc(DATA_SIZE_fMRI_VOLUME);
 	
@@ -2426,7 +2589,7 @@ void BROCCOLI_LIB::SetupParametersReadData()
 	host_pointers[XDETREND2] = (void*)h_xtxxt_Detrend;
 	host_pointers[XGLM1] = (void*)h_X_GLM;
 	host_pointers[XGLM2] = (void*)h_xtxxt_GLM;
-	host_pointers[CONTRAST_VECTOR] = (void*)h_Contrast_Vectors;
+	host_pointers[CONTRAST_VECTOR] = (void*)h_Contrasts;
 	//host_pointers[ACTIVITY_VOLUME] = (void*)h_Activity_Volume;
 
 	x_slice_fMRI_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_H * DATA_D);

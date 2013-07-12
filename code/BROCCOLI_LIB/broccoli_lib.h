@@ -155,10 +155,21 @@ class BROCCOLI_LIB
 
 		// Set functions for GUI / Wrappers
 		
-		void SetInputData(float* input);
-		void SetOutputData(float* output);
+		void SetMask(float* input);
+		void SetNumberOfRegressors(int r);
+		void SetNumberOfContrasts(int c);
+		void SetDesignMatrix(float* input1, float* input2);
+		void SetContrasts(float* input);
+		void SetGLMScalars(float* input);
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
 		
+		void SetInputfMRIVolumes(float* input);
+		void SetOutputBetaVolumes(float* output);
+		void SetOutputResiduals(float* output);
+		void SetOutputResidualVariances(float* output);
+		void SetOutputStatisticalMaps(float* output);
+		void SetOutputData(float* output);
+
 		void SetfMRIDataFilename(std::string filename);
 			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);
@@ -196,15 +207,14 @@ class BROCCOLI_LIB
 
 		// Get functions for GUI / Wrappers
 		
-		const char* GetDeviceInfoChar();
-		const char* GetBuildInfoChar();
+		const char* GetOpenCLDeviceInfoChar();
+		const char* GetOpenCLBuildInfoChar();
 		
-		std::string GetDeviceInfoString();
-		std::string GetBuildInfoString();
+		std::string GetOpenCLDeviceInfoString();
+		std::string GetOpenCLBuildInfoString();
 
 		int GetOpenCLError();
 		int GetOpenCLKernelError();
-
 		
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCorrection();
@@ -289,6 +299,7 @@ class BROCCOLI_LIB
 		
 		void CalculateStatisticalMapsGLMFirstLevel();
 		void CalculateStatisticalMapsGLMSecondLevel();
+		void PerformGLMTest();
 
 		void AddVolumes();
 
@@ -301,7 +312,7 @@ class BROCCOLI_LIB
 		void GeneratePermutedfMRIVolumes();
 		void PerformDetrendingPermutation();
 		void PerformSmoothingPermutation(); 
-		void CalculateActivityMapPermutation();
+		void CalculateStatisticalMapPermutation();
 
 		// Permutation multi subject	
 		void SetupParametersPermutationMultiSubject();
@@ -474,6 +485,7 @@ class BROCCOLI_LIB
 
 		int NUMBER_OF_SUBJECTS;
 		int NUMBER_OF_CONTRASTS;
+		int NUMBER_OF_REGRESSORS;
 		float SEGMENTATION_THRESHOLD;
 		float FMRI_VOXEL_SIZE_X, FMRI_VOXEL_SIZE_Y, FMRI_VOXEL_SIZE_Z;
 		float T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
@@ -555,6 +567,7 @@ class BROCCOLI_LIB
 
 		float		*h_fMRI_Volumes;
 		//Complex	 	*h_fMRI_Volumes_Complex;	
+		float		*h_Mask;
 
 		// Slice timing correction
 		float		*h_Slice_Timing_Corrections_Real, *h_Slice_Timing_Corrections_Imag;
@@ -590,12 +603,12 @@ class BROCCOLI_LIB
 		// Statistical analysis
 		float		*hrf;
 		int			 hrf_length;
-		float       *h_Contrast_Vectors;
-		float		*h_X_GLM, *h_xtxxt_GLM;
-		float		 h_ctxtxc;			
+		float       *h_Contrasts;
+		float		*h_X_GLM, *h_xtxxt_GLM, *h_ctxtxc_GLM;
 		float		*h_Statistical_Maps;
-		float		*ctxtxc;
-		
+		float       *h_Beta_Volumes;
+		float       *h_Residuals;
+		float       *h_Residual_Variances;
 			
 		// Random permutations
 		float		*h_Alpha_Smoothing_Kernel;
@@ -650,14 +663,14 @@ class BROCCOLI_LIB
 		cl_mem		d_Detrended_fMRI_Volumes;
 		cl_mem		c_X_Detrend;
 
-		// Statistical analysis
+		// Statistical analysis		
 		cl_mem		d_Beta_Volumes;
 		cl_mem		d_Statistical_Maps;
 		float		c_xtxxt_Detrend;
 		cl_mem		c_Censor;
-		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrast_Vectors;
+		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrasts, c_ctxtxc_GLM;
 		cl_mem		d_Beta_Contrasts;
-		cl_mem		d_Residual_Volumes;
+		cl_mem		d_Residuals;
 		cl_mem		d_Residual_Variances;
 
 		// Paraneters for single subject permutations
