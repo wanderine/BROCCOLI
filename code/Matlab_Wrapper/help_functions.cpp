@@ -7,6 +7,14 @@ void pack_double2float(float* output_float, double* input_double, int SIZE)
     }
 }
 
+void pack_double2float_regressor(float* output_float, double* input_double, int DATA_T, int NUMBER_OF_REGRESSORS)
+{
+    for (int i = 0; i < (DATA_T * NUMBER_OF_REGRESSORS); i++)
+    {
+        output_float[i] = (float)input_double[i];
+    }
+}
+
 void pack_double2float_image(float* output_float, double* input_double, int DATA_W, int DATA_H)
 {
     int i = 0;

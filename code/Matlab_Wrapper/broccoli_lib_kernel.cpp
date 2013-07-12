@@ -4382,7 +4382,7 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image
 
 // Statistical functions
 
-__kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global const float* Volumes, __global const float* Mask, __constant float* c_xtxxt_GLM, __constant float* c_Censor,  __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS)
+__kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global const float* Volumes, __global const float* Mask, __constant float* c_xtxxt_GLM, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4413,15 +4413,15 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 	// Loop over volumes
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		if (c_Censor[v] == 0.0f)
-		{
+		//if (c_Censor[v] == 0.0f)
+		//{
 			float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 			// Loop over regressors
 			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 			{
 				beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
 			}
-		}
+		//}
 	}
 
 	// Save beta values
@@ -4431,7 +4431,7 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 	}
 }
 
-__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Beta_Volumes, __global float* Beta_Contrasts, __global float* Residual_Volumes, __global float* Residual_Variances, __global const float* Volumes, __global const float* Mask, __constant float *c_X_GLM, __constant float* c_Contrast_Vectors, __constant float* ctxtxc, __constant float* c_Censor, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS, __private int NUMBER_OF_CONTRASTS)
+__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Beta_Contrasts, __global float* Residuals, __global float* Residual_Variances, __global const float* Volumes, __global float* Beta_Volumes, __global const float* Mask, __constant float *c_X_GLM, __constant float* c_Contrasts, __constant float* c_ctxtxc_GLM, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS, __private int NUMBER_OF_CONTRASTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4457,7 +4457,7 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	
 		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 		{
-			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
 
 		return;
@@ -4470,16 +4470,16 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	meaneps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		if (c_Censor[v] == 0.0f)
-		{
+		//if (c_Censor[v] == 0.0f)
+		//{
 			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 			{ 
-				eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
 			}
 			meaneps += eps;
-			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-		}
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+		//}
 	}
 	meaneps /= (float)NUMBER_OF_VOLUMES;
 
@@ -4487,29 +4487,30 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	vareps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		if (c_Censor[v] == 0.0f)
-		{
+		//if (c_Censor[v] == 0.0f)
+		//{
 			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 			{
-				eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
 			}
 			vareps += (eps - meaneps) * (eps - meaneps);
-		}
+		//}
 	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS); // correct for number of censor points?
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS); // correct for number of censor points?
+	vareps /= (float)(NUMBER_OF_VOLUMES-1); // correct for number of censor points?
 	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
-
+	
 	// Loop over contrasts and calculate t-values
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		float contrast_value = 0.0f;
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			contrast_value += c_Contrast_Vectors[NUMBER_OF_REGRESSORS * c + r] * Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
 		}	
 		Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * ctxtxc[c]);
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
 	}
 }
 
