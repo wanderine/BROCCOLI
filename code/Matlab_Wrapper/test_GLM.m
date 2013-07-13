@@ -37,21 +37,25 @@ sy = 65;
 sz = 31;
 st = 100;
 
+% Create 8 random regressors
 X_GLM = randn(st,8);
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
+% Create 10 random contrasts
+contrasts = randn(size(X_GLM,2),10);
+
 test_data = randn(sy,sx,sz,st);
 mask = ones(sy,sx,sz,st);
-statistical_map_cpu = zeros(sy,sx,sz);
+statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
 betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
 residuals_cpu = zeros(sy,sx,sz,st);
 residual_variances_cpu = zeros(sy,sx,sz);
 
 
-%contrast = [1 ; 0];
-%contrast = 1;
-contrast = randn(size(X_GLM,2),1);
-ctxtxc_GLM = contrast'*inv(X_GLM'*X_GLM)*contrast;
+for i = 1:size(contrasts,2)
+    contrast = contrasts(:,i);
+    ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
+end
 
 for x = 1:sx
     for y = 1:sy
@@ -63,12 +67,15 @@ for x = 1:sx
             residuals_cpu(y,x,z,:) = eps;
             %residual_variances_cpu(y,x,z) = sum((eps-mean(eps)).^2)/(st-size(X_GLM,2));
             residual_variances_cpu(y,x,z) = var(eps);
-            statistical_map_cpu(y,x,z) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM);
+            for i = 1:size(contrasts,2)
+                contrast = contrasts(:,i);
+                statistical_maps_cpu(y,x,z,i) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM(i));
+            end
         end
     end
 end
 
-[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_map_opencl] = GLM(test_data,mask,X_GLM,xtxxt_GLM',contrast,ctxtxc_GLM);
+[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl] = GLM(test_data,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM);
 
 figure
 imagesc(betas_cpu(:,:,1,1))
@@ -76,7 +83,7 @@ figure
 imagesc(betas_opencl(:,:,1,1))
 
 figure
-imagesc(statistical_map_cpu(:,:,10)-statistical_map_opencl(:,:,10)); colorbar
+imagesc(statistical_maps_cpu(:,:,10,5)-statistical_maps_opencl(:,:,10,5)); colorbar
 
 beta_tot_error = sum(abs(betas_cpu(:) - betas_opencl(:)))
 beta_max_error = max(abs(betas_cpu(:) - betas_opencl(:)))
@@ -94,8 +101,8 @@ residual_max_error = max(abs(residuals_cpu(:) - residuals_opencl(:)))
 residual_variances_tot_error = sum(abs(residual_variances_cpu(:) - residual_variances_opencl(:)))
 residual_variances_max_error = max(abs(residual_variances_cpu(:) - residual_variances_opencl(:)))
 
-stat_tot_error = sum(abs(statistical_map_cpu(:) - statistical_map_opencl(:)))
-stat_max_error = max(abs(statistical_map_cpu(:) - statistical_map_opencl(:)))
+stat_tot_error = sum(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
+stat_max_error = max(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
 
 % for slice = 1:sz
 %     slice

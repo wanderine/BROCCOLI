@@ -30,8 +30,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //-----------------------
     // Input pointers
     
-    double		    *h_Data_double, *h_Mask_double, *h_X_GLM_double, *h_xtxxt_GLM_double, *h_Contrasts_double, *h_ctxtxc_GLM_double;
-    float           *h_Data, *h_Mask, *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM;        
+    double		    *h_fMRI_Volumes_double, *h_Mask_double, *h_X_GLM_double, *h_xtxxt_GLM_double, *h_Contrasts_double, *h_ctxtxc_GLM_double;
+    float           *h_fMRI_Volumes, *h_Mask, *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM;        
     
     //-----------------------
     // Output pointers        
@@ -62,7 +62,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     /* Input arguments */
     
     // The data
-    h_Data_double =  (double*)mxGetData(prhs[0]);
+    h_fMRI_Volumes_double =  (double*)mxGetData(prhs[0]);
     h_Mask_double =  (double*)mxGetData(prhs[1]);
     h_X_GLM_double =  (double*)mxGetData(prhs[2]);
     h_xtxxt_GLM_double =  (double*)mxGetData(prhs[3]);
@@ -82,7 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     DATA_T = ARRAY_DIMENSIONS_DATA[3];
     
     NUMBER_OF_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
-    NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[0];
+    NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[1];
             
     int DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
@@ -143,7 +143,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // ------------------------------------------------
     
     // Allocate memory on the host
-    h_Data                         = (float *)mxMalloc(DATA_SIZE);
+    h_fMRI_Volumes                 = (float *)mxMalloc(DATA_SIZE);
     h_Mask                         = (float *)mxMalloc(VOLUME_SIZE);
     h_X_GLM                        = (float *)mxMalloc(GLM_SIZE);
     h_xtxxt_GLM                    = (float *)mxMalloc(GLM_SIZE);
@@ -158,9 +158,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Reorder and cast data
     pack_double2float_volumes(h_Data, h_Data_double, DATA_W, DATA_H, DATA_D, DATA_T);
     pack_double2float_volume(h_Mask, h_Mask_double, DATA_W, DATA_H, DATA_D);
-    pack_double2float_regressor(h_X_GLM, h_X_GLM_double, DATA_T, NUMBER_OF_REGRESSORS);
-    pack_double2float_regressor(h_xtxxt_GLM, h_xtxxt_GLM_double, DATA_T, NUMBER_OF_REGRESSORS);    
-    pack_double2float_image(h_Contrasts, h_Contrasts_double, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS);
+    pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);
+    pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);    
+    pack_double2float(h_Contrasts, h_Contrasts_double, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS);
     pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_CONTRASTS);
        
     //------------------------
@@ -174,7 +174,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetGlobalAndLocalWorkSizes();
     BROCCOLI.SetNumberOfRegressors(NUMBER_OF_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
-    BROCCOLI.SetInputfMRIVolumes(h_Data);
+    BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetMask(h_Mask);
     BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
     BROCCOLI.SetContrasts(h_Contrasts);
@@ -201,7 +201,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, DATA_W, DATA_H, DATA_D, NUMBER_OF_CONTRASTS);
         
     // Free all the allocated memory on the host
-    mxFree(h_Data);
+    mxFree(h_fMRI_Volumes);
     mxFree(h_Mask);
     mxFree(h_X_GLM);
     mxFree(h_xtxxt_GLM);    

@@ -30,8 +30,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //-----------------------
     // Input pointers
     
-    double		    *h_Data_double;
-    float           *h_Data;
+    double		    *h_fMRI_Volumes_double;
+    float           *h_fMRI_Volumes;
     
     double	        *h_Smoothing_Filter_X_double, *h_Smoothing_Filter_Y_double, *h_Smoothing_Filter_Z_double;
     float		    *h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;       
@@ -68,7 +68,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     /* Input arguments */
     
     // The data
-    h_Data_double =  (double*)mxGetData(prhs[0]);
+    h_fMRI_Volumes_double =  (double*)mxGetData(prhs[0]);
     h_Smoothing_Filter_X_double = (double*)mxGetData(prhs[1]);
     h_Smoothing_Filter_Y_double = (double*)mxGetData(prhs[2]);
     h_Smoothing_Filter_Z_double = (double*)mxGetData(prhs[3]);
@@ -108,14 +108,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // ------------------------------------------------
     
     // Allocate memory on the host
-    h_Data                         = (float *)mxMalloc(DATA_SIZE);
+    h_fMRI_Volumes                 = (float *)mxMalloc(DATA_SIZE);
     h_Smoothing_Filter_X           = (float *)mxMalloc(FILTER_SIZE);
     h_Smoothing_Filter_Y           = (float *)mxMalloc(FILTER_SIZE);
     h_Smoothing_Filter_Z           = (float *)mxMalloc(FILTER_SIZE);
     h_Filter_Response              = (float *)mxMalloc(DATA_SIZE);
     
     // Reorder and cast data
-    pack_double2float_volumes(h_Data, h_Data_double, DATA_W, DATA_H, DATA_D, DATA_T);
+    pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, DATA_W, DATA_H, DATA_D, DATA_T);
     pack_double2float(h_Smoothing_Filter_X, h_Smoothing_Filter_X_double, FILTER_LENGTH);
     pack_double2float(h_Smoothing_Filter_Y, h_Smoothing_Filter_Y_double, FILTER_LENGTH);
     pack_double2float(h_Smoothing_Filter_Z, h_Smoothing_Filter_Z_double, FILTER_LENGTH);
@@ -129,7 +129,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetDepth(DATA_D);
     BROCCOLI.SetTimepoints(DATA_T);
     BROCCOLI.SetGlobalAndLocalWorkSizes();
-    BROCCOLI.SetInputData(h_Data);
+    BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetOutputData(h_Filter_Response);
     BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
     
@@ -151,7 +151,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     
     // Free all the allocated memory on the host
-    mxFree(h_Data);
+    mxFree(h_fMRI_Volumes);
     mxFree(h_Smoothing_Filter_X);
     mxFree(h_Smoothing_Filter_Y);
     mxFree(h_Smoothing_Filter_Z);

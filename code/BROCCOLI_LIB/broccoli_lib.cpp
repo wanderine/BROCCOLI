@@ -497,7 +497,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)8);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)16);
 	zBlocks = (size_t)ceil((float)DATA_D / (float)1);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
@@ -511,7 +511,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)32);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)8);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)16);
 	zBlocks = (size_t)ceil((float)DATA_D / (float)1);
 
 	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)

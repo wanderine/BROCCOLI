@@ -156,13 +156,14 @@ class BROCCOLI_LIB
 		// Set functions for GUI / Wrappers
 		
 		void SetMask(float* input);
-		void SetNumberOfRegressors(int r);
-		void SetNumberOfContrasts(int c);
-		void SetDesignMatrix(float* input1, float* input2);
-		void SetContrasts(float* input);
-		void SetGLMScalars(float* input);
+		void SetNumberOfRegressors(int NR);
+		void SetNumberOfContrasts(int NC);
+		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);
+		void SetContrasts(float* contrasts);
+		void SetGLMScalars(float* ctxtxc);
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
-		
+		void SetMotionCorrectionFilters(float* qf1real, float* qf
+
 		void SetInputfMRIVolumes(float* input);
 		void SetOutputBetaVolumes(float* output);
 		void SetOutputResiduals(float* output);
