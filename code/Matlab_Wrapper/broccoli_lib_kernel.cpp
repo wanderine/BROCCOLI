@@ -682,2518 +682,522 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 	}
 }
 
+#define HALO 3
+
+#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D 90
+#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D 58
+
 // Non-separable 3D convolution
 
+typedef struct tag_float6 {float a; float b; float c; float d; float e; float f;} float6;
 
-__kernel void Nonseparable3DConvolutionComplex(__global float2 *Filter_Response_1, __global float2 *Filter_Response_2, __global float2 *Filter_Response_3, __global const float* Volume, __constant float2 c_Quadrature_Filter_1[7][7][7], __constant float2 c_Quadrature_Filter_2[7][7][7], __constant float2 c_Quadrature_Filter_3[7][7][7], __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int xBlockDifference, __private int yBlockDifference, __private int zBlockDifference)
+float6 Conv_2D_Unrolled_7x7(__local float image[64][96], int y, int x, __constant float Filter_1_Real[7][7], __constant float Filter_1_Imag[7][7], __constant float Filter_2_Real[7][7], __constant float Filter_2_Imag[7][7], __constant float Filter_3_Real[7][7], __constant float Filter_3_Imag[7][7])
+{
+	float pixel;
+	float6 sum;
+	sum.a = 0.0f;
+	sum.b = 0.0f;
+	sum.c = 0.0f;
+	sum.d = 0.0f;
+	sum.e = 0.0f;
+	sum.f = 0.0f;
+	
+    pixel = image[y - 3][x - 3]; 
+    sum.a += pixel * Filter_1_Real[6][6];
+	sum.b += pixel * Filter_1_Imag[6][6];
+	sum.c += pixel * Filter_2_Real[6][6];
+	sum.d += pixel * Filter_2_Imag[6][6];
+	sum.e += pixel * Filter_3_Real[6][6];
+	sum.f += pixel * Filter_3_Imag[6][6];
+    pixel = image[y - 2][x - 3]; 
+    sum.a += pixel * Filter_1_Real[5][6];
+	sum.b += pixel * Filter_1_Imag[5][6];
+	sum.c += pixel * Filter_2_Real[5][6];
+	sum.d += pixel * Filter_2_Imag[5][6];
+	sum.e += pixel * Filter_3_Real[5][6];
+	sum.f += pixel * Filter_3_Imag[5][6];
+	pixel = image[y - 1][x - 3]; 
+    sum.a += pixel * Filter_1_Real[4][6];
+	sum.b += pixel * Filter_1_Imag[4][6];
+	sum.c += pixel * Filter_2_Real[4][6];
+	sum.d += pixel * Filter_2_Imag[4][6];
+	sum.e += pixel * Filter_3_Real[4][6];
+	sum.f += pixel * Filter_3_Imag[4][6];
+	pixel = image[y + 0][x - 3]; 
+    sum.a += pixel * Filter_1_Real[3][6];
+	sum.b += pixel * Filter_1_Imag[3][6];
+	sum.c += pixel * Filter_2_Real[3][6];
+	sum.d += pixel * Filter_2_Imag[3][6];
+	sum.e += pixel * Filter_3_Real[3][6];
+	sum.f += pixel * Filter_3_Imag[3][6];
+    pixel = image[y + 1][x - 3]; 
+    sum.a += pixel * Filter_1_Real[2][6];
+	sum.b += pixel * Filter_1_Imag[2][6];
+	sum.c += pixel * Filter_2_Real[2][6];
+	sum.d += pixel * Filter_2_Imag[2][6];
+	sum.e += pixel * Filter_3_Real[2][6];
+	sum.f += pixel * Filter_3_Imag[2][6];
+	pixel = image[y + 2][x - 3]; 
+    sum.a += pixel * Filter_1_Real[1][6];
+	sum.b += pixel * Filter_1_Imag[1][6];
+	sum.c += pixel * Filter_2_Real[1][6];
+	sum.d += pixel * Filter_2_Imag[1][6];
+	sum.e += pixel * Filter_3_Real[1][6];
+	sum.f += pixel * Filter_3_Imag[1][6];
+	pixel = image[y + 3][x - 3]; 
+    sum.a += pixel * Filter_1_Real[0][6];
+	sum.b += pixel * Filter_1_Imag[0][6];
+	sum.c += pixel * Filter_2_Real[0][6];
+	sum.d += pixel * Filter_2_Imag[0][6];
+	sum.e += pixel * Filter_3_Real[0][6];
+	sum.f += pixel * Filter_3_Imag[0][6];
+
+    pixel = image[y - 3][x - 2]; 
+    sum.a += pixel * Filter_1_Real[6][5];
+	sum.b += pixel * Filter_1_Imag[6][5];
+	sum.c += pixel * Filter_2_Real[6][5];
+	sum.d += pixel * Filter_2_Imag[6][5];
+	sum.e += pixel * Filter_3_Real[6][5];
+	sum.f += pixel * Filter_3_Imag[6][5];
+    pixel = image[y - 2][x - 2]; 
+    sum.a += pixel * Filter_1_Real[5][5];
+	sum.b += pixel * Filter_1_Imag[5][5];
+	sum.c += pixel * Filter_2_Real[5][5];
+	sum.d += pixel * Filter_2_Imag[5][5];
+	sum.e += pixel * Filter_3_Real[5][5];
+	sum.f += pixel * Filter_3_Imag[5][5];
+    pixel = image[y - 1][x - 2]; 
+    sum.a += pixel * Filter_1_Real[4][5];
+	sum.b += pixel * Filter_1_Imag[4][5];
+	sum.c += pixel * Filter_2_Real[4][5];
+	sum.d += pixel * Filter_2_Imag[4][5];
+	sum.e += pixel * Filter_3_Real[4][5];
+	sum.f += pixel * Filter_3_Imag[4][5];
+    pixel = image[y + 0][x - 2]; 
+    sum.a += pixel * Filter_1_Real[3][5];
+	sum.b += pixel * Filter_1_Imag[3][5];
+	sum.c += pixel * Filter_2_Real[3][5];
+	sum.d += pixel * Filter_2_Imag[3][5];
+	sum.e += pixel * Filter_3_Real[3][5];
+	sum.f += pixel * Filter_3_Imag[3][5];
+    pixel = image[y + 1][x - 2]; 
+    sum.a += pixel * Filter_1_Real[2][5];
+	sum.b += pixel * Filter_1_Imag[2][5];
+	sum.c += pixel * Filter_2_Real[2][5];
+	sum.d += pixel * Filter_2_Imag[2][5];
+	sum.e += pixel * Filter_3_Real[2][5];
+	sum.f += pixel * Filter_3_Imag[2][5];
+    pixel = image[y + 2][x - 2]; 
+    sum.a += pixel * Filter_1_Real[1][5];
+	sum.b += pixel * Filter_1_Imag[1][5];
+	sum.c += pixel * Filter_2_Real[1][5];
+	sum.d += pixel * Filter_2_Imag[1][5];
+	sum.e += pixel * Filter_3_Real[1][5];
+	sum.f += pixel * Filter_3_Imag[1][5];
+    pixel = image[y + 3][x - 2]; 
+    sum.a += pixel * Filter_1_Real[0][5];
+	sum.b += pixel * Filter_1_Imag[0][5];
+	sum.c += pixel * Filter_2_Real[0][5];
+	sum.d += pixel * Filter_2_Imag[0][5];
+	sum.e += pixel * Filter_3_Real[0][5];
+	sum.f += pixel * Filter_3_Imag[0][5];
+
+
+    pixel = image[y - 3][x - 1]; 
+    sum.a += pixel * Filter_1_Real[6][4];
+	sum.b += pixel * Filter_1_Imag[6][4];
+	sum.c += pixel * Filter_2_Real[6][4];
+	sum.d += pixel * Filter_2_Imag[6][4];
+	sum.e += pixel * Filter_3_Real[6][4];
+	sum.f += pixel * Filter_3_Imag[6][4];
+    pixel = image[y - 2][x - 1]; 
+    sum.a += pixel * Filter_1_Real[5][4];
+	sum.b += pixel * Filter_1_Imag[5][4];
+	sum.c += pixel * Filter_2_Real[5][4];
+	sum.d += pixel * Filter_2_Imag[5][4];
+	sum.e += pixel * Filter_3_Real[5][4];
+	sum.f += pixel * Filter_3_Imag[5][4];
+    pixel = image[y - 1][x - 1]; 
+    sum.a += pixel * Filter_1_Real[4][4];
+	sum.b += pixel * Filter_1_Imag[4][4];
+	sum.c += pixel * Filter_2_Real[4][4];
+	sum.d += pixel * Filter_2_Imag[4][4];
+	sum.e += pixel * Filter_3_Real[4][4];
+	sum.f += pixel * Filter_3_Imag[4][4];
+    pixel = image[y + 0][x - 1]; 
+    sum.a += pixel * Filter_1_Real[3][4];
+	sum.b += pixel * Filter_1_Imag[3][4];
+	sum.c += pixel * Filter_2_Real[3][4];
+	sum.d += pixel * Filter_2_Imag[3][4];
+	sum.e += pixel * Filter_3_Real[3][4];
+	sum.f += pixel * Filter_3_Imag[3][4];
+    pixel = image[y + 1][x - 1]; 
+    sum.a += pixel * Filter_1_Real[2][4];
+	sum.b += pixel * Filter_1_Imag[2][4];
+	sum.c += pixel * Filter_2_Real[2][4];
+	sum.d += pixel * Filter_2_Imag[2][4];
+	sum.e += pixel * Filter_3_Real[2][4];
+	sum.f += pixel * Filter_3_Imag[2][4];
+    pixel = image[y + 2][x - 1]; 
+    sum.a += pixel * Filter_1_Real[1][4];
+	sum.b += pixel * Filter_1_Imag[1][4];
+	sum.c += pixel * Filter_2_Real[1][4];
+	sum.d += pixel * Filter_2_Imag[1][4];
+	sum.e += pixel * Filter_3_Real[1][4];
+	sum.f += pixel * Filter_3_Imag[1][4];
+    pixel = image[y + 3][x - 1]; 
+    sum.a += pixel * Filter_1_Real[0][4];
+	sum.b += pixel * Filter_1_Imag[0][4];
+	sum.c += pixel * Filter_2_Real[0][4];
+	sum.d += pixel * Filter_2_Imag[0][4];
+	sum.e += pixel * Filter_3_Real[0][4];
+	sum.f += pixel * Filter_3_Imag[0][4];
+
+
+    pixel = image[y - 3][x + 0]; 
+    sum.a += pixel * Filter_1_Real[6][3];
+	sum.b += pixel * Filter_1_Imag[6][3];
+	sum.c += pixel * Filter_2_Real[6][3];
+	sum.d += pixel * Filter_2_Imag[6][3];
+	sum.e += pixel * Filter_3_Real[6][3];
+	sum.f += pixel * Filter_3_Imag[6][3];
+    pixel = image[y - 2][x + 0]; 
+    sum.a += pixel * Filter_1_Real[5][3];
+	sum.b += pixel * Filter_1_Imag[5][3];
+	sum.c += pixel * Filter_2_Real[5][3];
+	sum.d += pixel * Filter_2_Imag[5][3];
+	sum.e += pixel * Filter_3_Real[5][3];
+	sum.f += pixel * Filter_3_Imag[5][3];
+    pixel = image[y - 1][x + 0]; 
+    sum.a += pixel * Filter_1_Real[4][3];
+	sum.b += pixel * Filter_1_Imag[4][3];
+	sum.c += pixel * Filter_2_Real[4][3];
+	sum.d += pixel * Filter_2_Imag[4][3];
+	sum.e += pixel * Filter_3_Real[4][3];
+	sum.f += pixel * Filter_3_Imag[4][3];
+    pixel = image[y + 0][x + 0]; 
+    sum.a += pixel * Filter_1_Real[3][3];
+	sum.b += pixel * Filter_1_Imag[3][3];
+	sum.c += pixel * Filter_2_Real[3][3];
+	sum.d += pixel * Filter_2_Imag[3][3];
+	sum.e += pixel * Filter_3_Real[3][3];
+	sum.f += pixel * Filter_3_Imag[3][3];
+    pixel = image[y + 1][x + 0]; 
+    sum.a += pixel * Filter_1_Real[2][3];
+	sum.b += pixel * Filter_1_Imag[2][3];
+	sum.c += pixel * Filter_2_Real[2][3];
+	sum.d += pixel * Filter_2_Imag[2][3];
+	sum.e += pixel * Filter_3_Real[2][3];
+	sum.f += pixel * Filter_3_Imag[2][3];
+    pixel = image[y + 2][x + 0]; 
+    sum.a += pixel * Filter_1_Real[1][3];
+	sum.b += pixel * Filter_1_Imag[1][3];
+	sum.c += pixel * Filter_2_Real[1][3];
+	sum.d += pixel * Filter_2_Imag[1][3];
+	sum.e += pixel * Filter_3_Real[1][3];
+	sum.f += pixel * Filter_3_Imag[1][3];
+    pixel = image[y + 3][x + 0]; 
+    sum.a += pixel * Filter_1_Real[0][3];
+	sum.b += pixel * Filter_1_Imag[0][3];
+	sum.c += pixel * Filter_2_Real[0][3];
+	sum.d += pixel * Filter_2_Imag[0][3];
+	sum.e += pixel * Filter_3_Real[0][3];
+	sum.f += pixel * Filter_3_Imag[0][3];
+
+	pixel = image[y - 3][x + 1]; 
+    sum.a += pixel * Filter_1_Real[6][2];
+	sum.b += pixel * Filter_1_Imag[6][2];
+	sum.c += pixel * Filter_2_Real[6][2];
+	sum.d += pixel * Filter_2_Imag[6][2];
+	sum.e += pixel * Filter_3_Real[6][2];
+	sum.f += pixel * Filter_3_Imag[6][2];
+    pixel = image[y - 2][x + 1]; 
+    sum.a += pixel * Filter_1_Real[5][2];
+	sum.b += pixel * Filter_1_Imag[5][2];
+	sum.c += pixel * Filter_2_Real[5][2];
+	sum.d += pixel * Filter_2_Imag[5][2];
+	sum.e += pixel * Filter_3_Real[5][2];
+	sum.f += pixel * Filter_3_Imag[5][2];
+    pixel = image[y - 1][x + 1]; 
+    sum.a += pixel * Filter_1_Real[4][2];
+	sum.b += pixel * Filter_1_Imag[4][2];
+	sum.c += pixel * Filter_2_Real[4][2];
+	sum.d += pixel * Filter_2_Imag[4][2];
+	sum.e += pixel * Filter_3_Real[4][2];
+	sum.f += pixel * Filter_3_Imag[4][2];
+    pixel = image[y + 0][x + 1]; 
+    sum.a += pixel * Filter_1_Real[3][2];
+	sum.b += pixel * Filter_1_Imag[3][2];
+	sum.c += pixel * Filter_2_Real[3][2];
+	sum.d += pixel * Filter_2_Imag[3][2];
+	sum.e += pixel * Filter_3_Real[3][2];
+	sum.f += pixel * Filter_3_Imag[3][2];
+    pixel = image[y + 1][x + 1]; 
+    sum.a += pixel * Filter_1_Real[2][2];
+	sum.b += pixel * Filter_1_Imag[2][2];
+	sum.c += pixel * Filter_2_Real[2][2];
+	sum.d += pixel * Filter_2_Imag[2][2];
+	sum.e += pixel * Filter_3_Real[2][2];
+	sum.f += pixel * Filter_3_Imag[2][2];
+    pixel = image[y + 2][x + 1]; 
+    sum.a += pixel * Filter_1_Real[1][2];
+	sum.b += pixel * Filter_1_Imag[1][2];
+	sum.c += pixel * Filter_2_Real[1][2];
+	sum.d += pixel * Filter_2_Imag[1][2];
+	sum.e += pixel * Filter_3_Real[1][2];
+	sum.f += pixel * Filter_3_Imag[1][2];
+    pixel = image[y + 3][x + 1]; 
+    sum.a += pixel * Filter_1_Real[0][2];
+	sum.b += pixel * Filter_1_Imag[0][2];
+	sum.c += pixel * Filter_2_Real[0][2];
+	sum.d += pixel * Filter_2_Imag[0][2];
+	sum.e += pixel * Filter_3_Real[0][2];
+	sum.f += pixel * Filter_3_Imag[0][2];
+ 
+    pixel = image[y - 3][x + 2]; 
+    sum.a += pixel * Filter_1_Real[6][1];
+	sum.b += pixel * Filter_1_Imag[6][1];
+	sum.c += pixel * Filter_2_Real[6][1];
+	sum.d += pixel * Filter_2_Imag[6][1];
+	sum.e += pixel * Filter_3_Real[6][1];
+	sum.f += pixel * Filter_3_Imag[6][1];
+    pixel = image[y - 2][x + 2]; 
+    sum.a += pixel * Filter_1_Real[5][1];
+	sum.b += pixel * Filter_1_Imag[5][1];
+	sum.c += pixel * Filter_2_Real[5][1];
+	sum.d += pixel * Filter_2_Imag[5][1];
+	sum.e += pixel * Filter_3_Real[5][1];
+	sum.f += pixel * Filter_3_Imag[5][1];
+    pixel = image[y - 1][x + 2]; 
+    sum.a += pixel * Filter_1_Real[4][1];
+	sum.b += pixel * Filter_1_Imag[4][1];
+	sum.c += pixel * Filter_2_Real[4][1];
+	sum.d += pixel * Filter_2_Imag[4][1];
+	sum.e += pixel * Filter_3_Real[4][1];
+	sum.f += pixel * Filter_3_Imag[4][1];
+    pixel = image[y + 0][x + 2]; 
+    sum.a += pixel * Filter_1_Real[3][1];
+	sum.b += pixel * Filter_1_Imag[3][1];
+	sum.c += pixel * Filter_2_Real[3][1];
+	sum.d += pixel * Filter_2_Imag[3][1];
+	sum.e += pixel * Filter_3_Real[3][1];
+	sum.f += pixel * Filter_3_Imag[3][1];
+	pixel = image[y + 1][x + 2]; 
+    sum.a += pixel * Filter_1_Real[2][1];
+	sum.b += pixel * Filter_1_Imag[2][1];
+	sum.c += pixel * Filter_2_Real[2][1];
+	sum.d += pixel * Filter_2_Imag[2][1];
+	sum.e += pixel * Filter_3_Real[2][1];
+	sum.f += pixel * Filter_3_Imag[2][1];
+    pixel = image[y + 2][x + 2]; 
+    sum.a += pixel * Filter_1_Real[1][1];
+	sum.b += pixel * Filter_1_Imag[1][1];
+	sum.c += pixel * Filter_2_Real[1][1];
+	sum.d += pixel * Filter_2_Imag[1][1];
+	sum.e += pixel * Filter_3_Real[1][1];
+	sum.f += pixel * Filter_3_Imag[1][1];
+    pixel = image[y + 3][x + 2]; 
+    sum.a += pixel * Filter_1_Real[0][1];
+	sum.b += pixel * Filter_1_Imag[0][1];
+	sum.c += pixel * Filter_2_Real[0][1];
+	sum.d += pixel * Filter_2_Imag[0][1];
+	sum.e += pixel * Filter_3_Real[0][1];
+	sum.f += pixel * Filter_3_Imag[0][1];
+
+    pixel = image[y - 3][x + 3]; 
+    sum.a += pixel * Filter_1_Real[6][0];
+	sum.b += pixel * Filter_1_Imag[6][0];
+	sum.c += pixel * Filter_2_Real[6][0];
+	sum.d += pixel * Filter_2_Imag[6][0];
+	sum.e += pixel * Filter_3_Real[6][0];
+	sum.f += pixel * Filter_3_Imag[6][0];
+    pixel = image[y - 2][x + 3]; 
+    sum.a += pixel * Filter_1_Real[5][0];
+	sum.b += pixel * Filter_1_Imag[5][0];
+	sum.c += pixel * Filter_2_Real[5][0];
+	sum.d += pixel * Filter_2_Imag[5][0];
+	sum.e += pixel * Filter_3_Real[5][0];
+	sum.f += pixel * Filter_3_Imag[5][0];
+    pixel = image[y - 1][x + 3]; 
+    sum.a += pixel * Filter_1_Real[4][0];
+	sum.b += pixel * Filter_1_Imag[4][0];
+	sum.c += pixel * Filter_2_Real[4][0];
+	sum.d += pixel * Filter_2_Imag[4][0];
+	sum.e += pixel * Filter_3_Real[4][0];
+	sum.f += pixel * Filter_3_Imag[4][0];
+    pixel = image[y + 0][x + 3]; 
+    sum.a += pixel * Filter_1_Real[3][0];
+	sum.b += pixel * Filter_1_Imag[3][0];
+	sum.c += pixel * Filter_2_Real[3][0];
+	sum.d += pixel * Filter_2_Imag[3][0];
+	sum.e += pixel * Filter_3_Real[3][0];
+	sum.f += pixel * Filter_3_Imag[3][0];
+    pixel = image[y + 1][x + 3]; 
+    sum.a += pixel * Filter_1_Real[2][0];
+	sum.b += pixel * Filter_1_Imag[2][0];
+	sum.c += pixel * Filter_2_Real[2][0];
+	sum.d += pixel * Filter_2_Imag[2][0];
+	sum.e += pixel * Filter_3_Real[2][0];
+	sum.f += pixel * Filter_3_Imag[2][0];
+    pixel = image[y + 2][x + 3]; 
+    sum.a += pixel * Filter_1_Real[1][0];
+	sum.b += pixel * Filter_1_Imag[1][0];
+	sum.c += pixel * Filter_2_Real[1][0];
+	sum.d += pixel * Filter_2_Imag[1][0];
+	sum.e += pixel * Filter_3_Real[1][0];
+	sum.f += pixel * Filter_3_Imag[1][0];
+    pixel = image[y + 3][x + 3]; 
+    sum.a += pixel * Filter_1_Real[0][0];
+	sum.b += pixel * Filter_1_Imag[0][0];
+	sum.c += pixel * Filter_2_Real[0][0];
+	sum.d += pixel * Filter_2_Imag[0][0];
+	sum.e += pixel * Filter_3_Real[0][0];
+	sum.f += pixel * Filter_3_Imag[0][0];
+
+	return sum;
+}
+
+__kernel void Memset(__global float *Data, __private float value, __private int N)
+{
+	int i = get_global_id(0);
+
+	if (i >= N)
+		return;
+
+	Data[i] = value;
+}
+
+__kernel void Nonseparable3DConvolutionComplex(__global float *Filter_Response_1_Real, __global float *Filter_Response_1_Imag, __global float *Filter_Response_2_Real, __global float *Filter_Response_2_Imag, __global float *Filter_Response_3_Real, __global float *Filter_Response_3_Imag, __global const float* Volume, __constant float c_Quadrature_Filter_1_Real[7][7][7], __constant float c_Quadrature_Filter_1_Imag[7][7][7], __constant float c_Quadrature_Filter_2_Real[7][7][7], __constant float c_Quadrature_Filter_2_Imag[7][7][7], __constant float c_Quadrature_Filter_3_Real[7][7][7], __constant float c_Quadrature_Filter_3_Imag[7][7][7], __private int z_offset, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {   
-	int x = get_global_id(0);
-	int y = get_global_id(1);
+    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D + get_local_id(0);
+	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D + get_local_id(1);
 	int z = get_global_id(2);
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+    
+    __local float l_Image[64][96]; // y, x
 
-    if (x >= (DATA_W + xBlockDifference) || y >= (DATA_H + yBlockDifference) || z >= (DATA_D + zBlockDifference))
-        return;
+    // Reset shared memory
+    l_Image[tIdx.y][tIdx.x]           = 0.0f;
+    l_Image[tIdx.y][tIdx.x + 32]      = 0.0f;
+    l_Image[tIdx.y][tIdx.x + 64]      = 0.0f;
+    l_Image[tIdx.y + 32][tIdx.x]      = 0.0f;
+    l_Image[tIdx.y + 32][tIdx.x + 32] = 0.0f;
+    l_Image[tIdx.y + 32][tIdx.x + 64] = 0.0f;
+
+    // Read data into shared memory
+
+    if ( ((z + z_offset) >= 0) && ((z + z_offset) < DATA_D) )
+    {
+        if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )   
+            l_Image[tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )
+            l_Image[tIdx.y][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  ) 
+            l_Image[tIdx.y][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+    }
 	
-	__local float l_Volume[16][16][16];    // z, y, x
-
-	/* 27 blocks in local memory, filter response is calculated for block 14, 8 x 8 x 8 threads per block
-	
-	Top layer, 16 x 16 x 4
-		
-	1 2 3
-	4 5 6
-	7 8 9
-
-	Middle layer, 16 x 16 x 8
-
-	10 11 12
-	13 14 15
-	16 17 18
-
-	Bottom layer, 16 x 16 x 4
-
-	19 20 21
-	22 23 24
-	25 26 27	
-	
-	*/
-
-	// Read data into local memory
-	
-	// Top layer
-
-	// Block 1 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x - 4,y - 4,z - 4,DATA_W, DATA_H)];
-		}
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y][tIdx.x] = 0.0f;
-		}
-	}
-	
-	// Block 2 (8 x 4 x 4)
-	if ((tIdx.x < 8) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( (x < DATA_W) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y][tIdx.x + 4] = Volume[Calculate3DIndex(x,y - 4,z - 4,DATA_W, DATA_H)];
-		}
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	// Block 3 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( ((x + 8) < DATA_W) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y - 4,z - 4,DATA_W, DATA_H)];
-		}
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y][tIdx.x + 12] = 0.0f;
-		}
-	}
-
-	
-	// Block 4 (4 x 8 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 8) && (tIdx.z < 4))
-	{		
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && (y < DATA_H) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y + 4][tIdx.x] = Volume[Calculate3DIndex(x - 4,y,z - 4,DATA_W, DATA_H)];
-		}
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y + 4][tIdx.x] = 0.0f;
-		}
-	}
-
-	
-	// Block 5 (8 x 8 x 4)
-	if ((tIdx.x < 8) && (tIdx.y < 8) && (tIdx.z < 4))
-	{		
-		if ( (x < DATA_W) && (y < DATA_H) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y + 4][tIdx.x + 4] = Volume[Calculate3DIndex(x,y,z - 4,DATA_W, DATA_H)];
-		}
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y + 4][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	
-	// Block 6 (4 x 8 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 8) && (tIdx.z < 4))
-	{		
-		if ( ((x + 8) < DATA_W) && (y < DATA_H) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y + 4][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y,z - 4,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y + 4][tIdx.x + 12] = 0.0f;
-		}
-	}
-
-	
-	// Block 7 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && ((y + 8) < DATA_H) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y + 12][tIdx.x] = Volume[Calculate3DIndex(x - 4,y + 8,z - 4,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y + 12][tIdx.x] = 0.0f;
-		}
-	}
-
-	
-	// Block 8 (8 x 4 x 4)
-	if ((tIdx.x < 8) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( (x < DATA_W) && ((y + 8) < DATA_H) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y + 12][tIdx.x + 4] = Volume[Calculate3DIndex(x,y + 8,z - 4,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y + 12][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	
-	
-	// Block 9 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( ((x + 8) < DATA_W) && ((y + 8) < DATA_H) && ((z - 4) < DATA_D) && ((z - 4) >= 0) )
-		{
-			l_Volume[tIdx.z][tIdx.y + 12][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y + 8,z - 4,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z][tIdx.y + 12][tIdx.x + 12] = 0.0f;
-		}
-	}
-	
-
-	// Middle layer
-
-	
-	// Block 10 (4 x 4 x 8)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 8))
-	{		
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x - 4,y - 4,z,DATA_W, DATA_H)];
-		}
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = 0.0f;
-		}
-	}
-
-	
-	// Block 11 (8 x 4 x 8)
-	if ((tIdx.x < 8) && (tIdx.y < 4) && (tIdx.z < 8))
-	{		
-
-		if ( (x < DATA_W) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 4] = Volume[Calculate3DIndex(x,y - 4,z,DATA_W, DATA_H)];
-		}
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	
-	
-	// Block 12 (4 x 4 x 8)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 8))
-	{		
-		if ( ((x  + 8) < DATA_W) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y - 4,z,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y][tIdx.x + 12] = 0.0f;
-		}
-	}
-	
-	
-	// Block 13 (4 x 8 x 8)
-	if ((tIdx.x < 4) && (tIdx.y < 8) && (tIdx.z < 8))
-	{		
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && (y < DATA_H) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x] = Volume[Calculate3DIndex(x - 4,y,z,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x] = 0.0f;
-		}
-	
-	}
-
-	
-	// Block 14, main data (8 x 8 x 8)	
-	if ( (x < DATA_W) && (y < DATA_H) && (z < DATA_D) )
-	{
-		l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] = Volume[Calculate3DIndex(x,y,z,DATA_W, DATA_H)];			
-	}
-	else
-	{
-		l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] = 0.0f;			
-	}
-
-	
-	// Block 15 (4 x 8 x 8)
-	if ((tIdx.x < 4) && (tIdx.y < 8) && (tIdx.z < 8))
-	{		
-		if ( ((x + 8) < DATA_W) && (y < DATA_H) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y,z,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 12] = 0.0f;
-		}		
-	}
-
-	
-	// Block 16 (4 x 4 x 8)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 8))
-	{		
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && ((y + 8) < DATA_H) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 12][tIdx.x] = Volume[Calculate3DIndex(x - 4,y + 8,z,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 12][tIdx.x] = 0.0f;
-		}
-	}
-
-	
-	// Block 17 (8 x 4 x 8)
-	if ((tIdx.x < 8) && (tIdx.y < 4) && (tIdx.z < 8))
-	{		
-		if ( (x < DATA_W) && ((y + 8) < DATA_H) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 12][tIdx.x + 4] = Volume[Calculate3DIndex(x,y + 8,z,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 12][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	
-	// Block 18 (4 x 4 x 8)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 8))
-	{		
-		if ( ((x + 8) < DATA_W) && ((y + 8) < DATA_H) && (z < DATA_D) )
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 12][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y + 8,z,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 4][tIdx.y + 12][tIdx.x + 12] = 0.0f;
-		}
-	}
-
-
-	// Bottom layer
-
-	
-	// Block 19 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x - 4,y - 4,z + 8,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y][tIdx.x] = 0.0f;
-		}
-	}
-
-	
-	// Block 20 (8 x 4 x 4)
-	if ((tIdx.x < 8) && (tIdx.y < 4) && (tIdx.z < 4))
-	{	
-		if ( (x < DATA_W) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y][tIdx.x + 4] = Volume[Calculate3DIndex(x,y - 4,z + 8,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	
-	// Block 21 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( ((x + 8) < DATA_W) && ((y - 4) < DATA_H) && ((y - 4) >= 0) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y - 4,z + 8,DATA_W, DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y][tIdx.x + 12] = 0.0f;
-		}
-	}
-
-	
-	// Block 22 (4 x 8 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 8) && (tIdx.z < 4))
-	{		
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && (y < DATA_H) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 4][tIdx.x] = Volume[Calculate3DIndex(x - 4,y,z + 8,DATA_W,DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 4][tIdx.x] = 0.0f;
-		}
-	}
-
-	
-	// Block 23 (8 x 8 x 4)
-	if ((tIdx.x < 8) && (tIdx.y < 8) && (tIdx.z < 4))
-	{		
-		if ( (x < DATA_W) && (y < DATA_H) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 4][tIdx.x + 4] = Volume[Calculate3DIndex(x,y,z + 8,DATA_W,DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 4][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	
-	// Block 24 (4 x 8 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 8) && (tIdx.z < 4))
-	{		
-		if ( ((x + 8) < DATA_W) && (y < DATA_H) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 4][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y,z + 8,DATA_W,DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 4][tIdx.x + 12] = 0.0f;
-		}
-	}
-
-	
-	// Block 25 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( ((x - 4) < DATA_W) && ((x - 4) >= 0) && ((y + 8) < DATA_H) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 12][tIdx.x] = Volume[Calculate3DIndex(x - 4,y + 8,z + 8,DATA_W,DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 12][tIdx.x] = 0.0f;
-		}
-	}
-
-	
-	// Block 26 (8 x 4 x 4)
-	if ((tIdx.x < 8) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( (x < DATA_W) && ((y + 8) < DATA_H) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 12][tIdx.x + 4] = Volume[Calculate3DIndex(x,y + 8,z + 8,DATA_W,DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 12][tIdx.x + 4] = 0.0f;
-		}
-	}
-
-	
-	// Block 27 (4 x 4 x 4)
-	if ((tIdx.x < 4) && (tIdx.y < 4) && (tIdx.z < 4))
-	{		
-		if ( ((x + 8) < DATA_W) && ((y + 8) < DATA_H) && ((z + 8) < DATA_D) )
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 12][tIdx.x + 12] = Volume[Calculate3DIndex(x + 8,y + 8,z + 8,DATA_W,DATA_H)];
-		}	
-		else
-		{
-			l_Volume[tIdx.z + 12][tIdx.y + 12][tIdx.x + 12] = 0.0f;
-		}
-	}
-
-	// Make sure all threads have written to local memory
+   	// Make sure all threads have written to local memory
 	barrier(CLK_LOCAL_MEM_FENCE);
 
-	// Calculate filter responses for block 14
-	
-	// Only threads within the volume do the convolution
-	if ( (x < DATA_W) && (y < DATA_H) && (z < DATA_D) )
-	{
-			float2 sum1, sum2, sum3;
-			sum1.x = 0.0f; sum1.y = 0.0f; sum2.x = 0.0f; sum2.y = 0.0f; sum3.x = 0.0f; sum3.y = 0.0f;
+    // Only threads inside the image do the convolution
 
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[6][6][6].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[6][6][6].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[6][6][6].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[6][6][6].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[6][6][6].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[6][6][6].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[5][6][6].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[5][6][6].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[5][6][6].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[5][6][6].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[5][6][6].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[5][6][6].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[4][6][6].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[4][6][6].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[4][6][6].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[4][6][6].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[4][6][6].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[4][6][6].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[3][6][6].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[3][6][6].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[3][6][6].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[3][6][6].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[3][6][6].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[3][6][6].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[2][6][6].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[2][6][6].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[2][6][6].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[2][6][6].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[2][6][6].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[2][6][6].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[1][6][6].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[1][6][6].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[1][6][6].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[1][6][6].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[1][6][6].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[1][6][6].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[0][6][6].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_1[0][6][6].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[0][6][6].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_2[0][6][6].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[0][6][6].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 1] * c_Quadrature_Filter_3[0][6][6].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[6][5][6].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[6][5][6].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[6][5][6].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[6][5][6].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[6][5][6].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[6][5][6].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[5][5][6].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[5][5][6].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[5][5][6].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[5][5][6].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[5][5][6].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[5][5][6].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[4][5][6].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[4][5][6].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[4][5][6].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[4][5][6].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[4][5][6].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[4][5][6].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[3][5][6].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[3][5][6].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[3][5][6].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[3][5][6].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[3][5][6].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[3][5][6].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[2][5][6].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[2][5][6].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[2][5][6].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[2][5][6].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[2][5][6].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[2][5][6].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[1][5][6].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[1][5][6].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[1][5][6].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[1][5][6].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[1][5][6].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[1][5][6].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[0][5][6].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_1[0][5][6].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[0][5][6].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_2[0][5][6].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[0][5][6].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 1] * c_Quadrature_Filter_3[0][5][6].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[6][4][6].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[6][4][6].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[6][4][6].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[6][4][6].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[6][4][6].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[6][4][6].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[5][4][6].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[5][4][6].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[5][4][6].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[5][4][6].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[5][4][6].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[5][4][6].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[4][4][6].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[4][4][6].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[4][4][6].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[4][4][6].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[4][4][6].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[4][4][6].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[3][4][6].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[3][4][6].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[3][4][6].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[3][4][6].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[3][4][6].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[3][4][6].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[2][4][6].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[2][4][6].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[2][4][6].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[2][4][6].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[2][4][6].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[2][4][6].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[1][4][6].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[1][4][6].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[1][4][6].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[1][4][6].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[1][4][6].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[1][4][6].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[0][4][6].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_1[0][4][6].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[0][4][6].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_2[0][4][6].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[0][4][6].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 1] * c_Quadrature_Filter_3[0][4][6].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[6][3][6].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[6][3][6].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[6][3][6].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[6][3][6].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[6][3][6].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[6][3][6].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[5][3][6].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[5][3][6].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[5][3][6].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[5][3][6].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[5][3][6].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[5][3][6].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[4][3][6].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[4][3][6].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[4][3][6].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[4][3][6].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[4][3][6].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[4][3][6].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[3][3][6].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[3][3][6].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[3][3][6].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[3][3][6].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[3][3][6].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[3][3][6].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[2][3][6].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[2][3][6].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[2][3][6].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[2][3][6].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[2][3][6].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[2][3][6].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[1][3][6].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[1][3][6].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[1][3][6].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[1][3][6].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[1][3][6].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[1][3][6].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[0][3][6].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_1[0][3][6].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[0][3][6].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_2[0][3][6].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[0][3][6].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 1] * c_Quadrature_Filter_3[0][3][6].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[6][2][6].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[6][2][6].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[6][2][6].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[6][2][6].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[6][2][6].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[6][2][6].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[5][2][6].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[5][2][6].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[5][2][6].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[5][2][6].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[5][2][6].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[5][2][6].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[4][2][6].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[4][2][6].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[4][2][6].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[4][2][6].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[4][2][6].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[4][2][6].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[3][2][6].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[3][2][6].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[3][2][6].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[3][2][6].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[3][2][6].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[3][2][6].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[2][2][6].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[2][2][6].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[2][2][6].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[2][2][6].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[2][2][6].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[2][2][6].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[1][2][6].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[1][2][6].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[1][2][6].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[1][2][6].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[1][2][6].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[1][2][6].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[0][2][6].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_1[0][2][6].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[0][2][6].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_2[0][2][6].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[0][2][6].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 1] * c_Quadrature_Filter_3[0][2][6].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[6][1][6].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[6][1][6].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[6][1][6].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[6][1][6].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[6][1][6].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[6][1][6].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[5][1][6].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[5][1][6].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[5][1][6].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[5][1][6].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[5][1][6].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[5][1][6].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[4][1][6].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[4][1][6].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[4][1][6].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[4][1][6].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[4][1][6].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[4][1][6].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[3][1][6].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[3][1][6].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[3][1][6].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[3][1][6].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[3][1][6].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[3][1][6].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[2][1][6].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[2][1][6].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[2][1][6].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[2][1][6].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[2][1][6].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[2][1][6].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[1][1][6].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[1][1][6].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[1][1][6].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[1][1][6].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[1][1][6].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[1][1][6].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[0][1][6].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_1[0][1][6].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[0][1][6].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_2[0][1][6].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[0][1][6].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 1] * c_Quadrature_Filter_3[0][1][6].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[6][0][6].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[6][0][6].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[6][0][6].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[6][0][6].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[6][0][6].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[6][0][6].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[5][0][6].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[5][0][6].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[5][0][6].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[5][0][6].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[5][0][6].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[5][0][6].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[4][0][6].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[4][0][6].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[4][0][6].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[4][0][6].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[4][0][6].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[4][0][6].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[3][0][6].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[3][0][6].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[3][0][6].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[3][0][6].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[3][0][6].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[3][0][6].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[2][0][6].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[2][0][6].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[2][0][6].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[2][0][6].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[2][0][6].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[2][0][6].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[1][0][6].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[1][0][6].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[1][0][6].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[1][0][6].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[1][0][6].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[1][0][6].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[0][0][6].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_1[0][0][6].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[0][0][6].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_2[0][0][6].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[0][0][6].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 1] * c_Quadrature_Filter_3[0][0][6].y;
+    if ( (x < DATA_W) && (y < DATA_H) )
+    {
+	    float6 temp = Conv_2D_Unrolled_7x7(l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.a;
+	    Filter_Response_1_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.b;
+	    Filter_Response_2_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.c;
+	    Filter_Response_2_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.d;
+	    Filter_Response_3_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.e;
+	    Filter_Response_3_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.f;
+    }
 
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[6][6][5].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[6][6][5].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[6][6][5].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[6][6][5].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[6][6][5].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[6][6][5].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[5][6][5].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[5][6][5].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[5][6][5].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[5][6][5].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[5][6][5].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[5][6][5].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[4][6][5].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[4][6][5].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[4][6][5].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[4][6][5].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[4][6][5].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[4][6][5].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[3][6][5].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[3][6][5].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[3][6][5].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[3][6][5].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[3][6][5].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[3][6][5].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[2][6][5].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[2][6][5].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[2][6][5].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[2][6][5].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[2][6][5].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[2][6][5].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[1][6][5].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[1][6][5].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[1][6][5].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[1][6][5].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[1][6][5].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[1][6][5].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[0][6][5].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_1[0][6][5].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[0][6][5].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_2[0][6][5].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[0][6][5].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 2] * c_Quadrature_Filter_3[0][6][5].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[6][5][5].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[6][5][5].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[6][5][5].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[6][5][5].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[6][5][5].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[6][5][5].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[5][5][5].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[5][5][5].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[5][5][5].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[5][5][5].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[5][5][5].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[5][5][5].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[4][5][5].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[4][5][5].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[4][5][5].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[4][5][5].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[4][5][5].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[4][5][5].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[3][5][5].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[3][5][5].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[3][5][5].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[3][5][5].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[3][5][5].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[3][5][5].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[2][5][5].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[2][5][5].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[2][5][5].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[2][5][5].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[2][5][5].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[2][5][5].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[1][5][5].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[1][5][5].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[1][5][5].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[1][5][5].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[1][5][5].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[1][5][5].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[0][5][5].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_1[0][5][5].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[0][5][5].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_2[0][5][5].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[0][5][5].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 2] * c_Quadrature_Filter_3[0][5][5].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[6][4][5].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[6][4][5].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[6][4][5].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[6][4][5].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[6][4][5].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[6][4][5].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[5][4][5].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[5][4][5].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[5][4][5].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[5][4][5].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[5][4][5].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[5][4][5].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[4][4][5].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[4][4][5].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[4][4][5].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[4][4][5].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[4][4][5].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[4][4][5].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[3][4][5].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[3][4][5].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[3][4][5].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[3][4][5].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[3][4][5].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[3][4][5].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[2][4][5].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[2][4][5].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[2][4][5].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[2][4][5].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[2][4][5].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[2][4][5].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[1][4][5].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[1][4][5].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[1][4][5].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[1][4][5].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[1][4][5].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[1][4][5].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[0][4][5].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_1[0][4][5].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[0][4][5].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_2[0][4][5].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[0][4][5].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 2] * c_Quadrature_Filter_3[0][4][5].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[6][3][5].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[6][3][5].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[6][3][5].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[6][3][5].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[6][3][5].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[6][3][5].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[5][3][5].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[5][3][5].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[5][3][5].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[5][3][5].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[5][3][5].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[5][3][5].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[4][3][5].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[4][3][5].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[4][3][5].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[4][3][5].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[4][3][5].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[4][3][5].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[3][3][5].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[3][3][5].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[3][3][5].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[3][3][5].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[3][3][5].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[3][3][5].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[2][3][5].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[2][3][5].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[2][3][5].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[2][3][5].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[2][3][5].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[2][3][5].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[1][3][5].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[1][3][5].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[1][3][5].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[1][3][5].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[1][3][5].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[1][3][5].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[0][3][5].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_1[0][3][5].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[0][3][5].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_2[0][3][5].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[0][3][5].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 2] * c_Quadrature_Filter_3[0][3][5].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[6][2][5].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[6][2][5].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[6][2][5].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[6][2][5].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[6][2][5].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[6][2][5].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[5][2][5].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[5][2][5].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[5][2][5].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[5][2][5].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[5][2][5].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[5][2][5].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[4][2][5].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[4][2][5].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[4][2][5].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[4][2][5].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[4][2][5].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[4][2][5].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[3][2][5].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[3][2][5].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[3][2][5].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[3][2][5].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[3][2][5].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[3][2][5].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[2][2][5].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[2][2][5].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[2][2][5].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[2][2][5].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[2][2][5].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[2][2][5].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[1][2][5].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[1][2][5].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[1][2][5].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[1][2][5].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[1][2][5].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[1][2][5].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[0][2][5].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_1[0][2][5].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[0][2][5].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_2[0][2][5].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[0][2][5].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 2] * c_Quadrature_Filter_3[0][2][5].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[6][1][5].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[6][1][5].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[6][1][5].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[6][1][5].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[6][1][5].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[6][1][5].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[5][1][5].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[5][1][5].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[5][1][5].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[5][1][5].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[5][1][5].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[5][1][5].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[4][1][5].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[4][1][5].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[4][1][5].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[4][1][5].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[4][1][5].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[4][1][5].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[3][1][5].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[3][1][5].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[3][1][5].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[3][1][5].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[3][1][5].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[3][1][5].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[2][1][5].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[2][1][5].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[2][1][5].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[2][1][5].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[2][1][5].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[2][1][5].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[1][1][5].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[1][1][5].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[1][1][5].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[1][1][5].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[1][1][5].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[1][1][5].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[0][1][5].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_1[0][1][5].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[0][1][5].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_2[0][1][5].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[0][1][5].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 2] * c_Quadrature_Filter_3[0][1][5].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[6][0][5].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[6][0][5].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[6][0][5].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[6][0][5].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[6][0][5].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[6][0][5].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[5][0][5].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[5][0][5].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[5][0][5].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[5][0][5].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[5][0][5].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[5][0][5].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[4][0][5].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[4][0][5].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[4][0][5].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[4][0][5].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[4][0][5].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[4][0][5].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[3][0][5].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[3][0][5].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[3][0][5].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[3][0][5].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[3][0][5].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[3][0][5].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[2][0][5].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[2][0][5].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[2][0][5].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[2][0][5].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[2][0][5].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[2][0][5].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[1][0][5].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[1][0][5].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[1][0][5].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[1][0][5].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[1][0][5].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[1][0][5].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[0][0][5].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_1[0][0][5].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[0][0][5].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_2[0][0][5].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[0][0][5].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 2] * c_Quadrature_Filter_3[0][0][5].y;
+    if ( ((x + 32) < DATA_W) && (y < DATA_H) )
+    {
+	    float6 temp = Conv_2D_Unrolled_7x7(l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.a;
+		Filter_Response_1_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.b;
+		Filter_Response_2_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.c;
+		Filter_Response_2_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.d;
+		Filter_Response_3_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.e;
+		Filter_Response_3_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.f;
+    }
 
+    if (tIdx.x < (32 - HALO*2))
+    {
+        if ( ((x + 64) < DATA_W) && (y < DATA_H) )
+	    {
+		    float6 temp = Conv_2D_Unrolled_7x7(l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+            Filter_Response_1_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.f;
+	    }
+    }
 
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[6][6][4].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[6][6][4].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[6][6][4].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[6][6][4].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[6][6][4].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[6][6][4].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[5][6][4].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[5][6][4].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[5][6][4].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[5][6][4].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[5][6][4].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[5][6][4].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[4][6][4].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[4][6][4].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[4][6][4].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[4][6][4].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[4][6][4].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[4][6][4].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[3][6][4].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[3][6][4].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[3][6][4].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[3][6][4].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[3][6][4].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[3][6][4].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[2][6][4].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[2][6][4].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[2][6][4].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[2][6][4].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[2][6][4].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[2][6][4].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[1][6][4].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[1][6][4].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[1][6][4].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[1][6][4].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[1][6][4].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[1][6][4].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[0][6][4].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_1[0][6][4].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[0][6][4].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_2[0][6][4].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[0][6][4].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 3] * c_Quadrature_Filter_3[0][6][4].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[6][5][4].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[6][5][4].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[6][5][4].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[6][5][4].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[6][5][4].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[6][5][4].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[5][5][4].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[5][5][4].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[5][5][4].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[5][5][4].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[5][5][4].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[5][5][4].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[4][5][4].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[4][5][4].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[4][5][4].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[4][5][4].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[4][5][4].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[4][5][4].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[3][5][4].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[3][5][4].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[3][5][4].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[3][5][4].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[3][5][4].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[3][5][4].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[2][5][4].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[2][5][4].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[2][5][4].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[2][5][4].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[2][5][4].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[2][5][4].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[1][5][4].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[1][5][4].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[1][5][4].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[1][5][4].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[1][5][4].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[1][5][4].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[0][5][4].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_1[0][5][4].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[0][5][4].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_2[0][5][4].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[0][5][4].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 3] * c_Quadrature_Filter_3[0][5][4].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[6][4][4].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[6][4][4].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[6][4][4].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[6][4][4].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[6][4][4].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[6][4][4].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[5][4][4].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[5][4][4].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[5][4][4].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[5][4][4].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[5][4][4].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[5][4][4].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[4][4][4].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[4][4][4].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[4][4][4].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[4][4][4].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[4][4][4].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[4][4][4].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[3][4][4].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[3][4][4].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[3][4][4].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[3][4][4].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[3][4][4].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[3][4][4].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[2][4][4].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[2][4][4].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[2][4][4].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[2][4][4].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[2][4][4].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[2][4][4].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[1][4][4].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[1][4][4].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[1][4][4].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[1][4][4].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[1][4][4].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[1][4][4].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[0][4][4].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_1[0][4][4].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[0][4][4].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_2[0][4][4].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[0][4][4].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 3] * c_Quadrature_Filter_3[0][4][4].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[6][3][4].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[6][3][4].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[6][3][4].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[6][3][4].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[6][3][4].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[6][3][4].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[5][3][4].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[5][3][4].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[5][3][4].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[5][3][4].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[5][3][4].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[5][3][4].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[4][3][4].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[4][3][4].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[4][3][4].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[4][3][4].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[4][3][4].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[4][3][4].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[3][3][4].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[3][3][4].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[3][3][4].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[3][3][4].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[3][3][4].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[3][3][4].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[2][3][4].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[2][3][4].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[2][3][4].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[2][3][4].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[2][3][4].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[2][3][4].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[1][3][4].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[1][3][4].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[1][3][4].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[1][3][4].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[1][3][4].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[1][3][4].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[0][3][4].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_1[0][3][4].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[0][3][4].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_2[0][3][4].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[0][3][4].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 3] * c_Quadrature_Filter_3[0][3][4].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[6][2][4].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[6][2][4].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[6][2][4].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[6][2][4].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[6][2][4].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[6][2][4].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[5][2][4].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[5][2][4].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[5][2][4].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[5][2][4].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[5][2][4].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[5][2][4].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[4][2][4].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[4][2][4].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[4][2][4].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[4][2][4].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[4][2][4].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[4][2][4].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[3][2][4].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[3][2][4].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[3][2][4].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[3][2][4].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[3][2][4].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[3][2][4].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[2][2][4].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[2][2][4].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[2][2][4].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[2][2][4].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[2][2][4].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[2][2][4].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[1][2][4].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[1][2][4].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[1][2][4].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[1][2][4].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[1][2][4].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[1][2][4].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[0][2][4].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_1[0][2][4].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[0][2][4].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_2[0][2][4].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[0][2][4].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 3] * c_Quadrature_Filter_3[0][2][4].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[6][1][4].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[6][1][4].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[6][1][4].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[6][1][4].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[6][1][4].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[6][1][4].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[5][1][4].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[5][1][4].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[5][1][4].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[5][1][4].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[5][1][4].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[5][1][4].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[4][1][4].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[4][1][4].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[4][1][4].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[4][1][4].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[4][1][4].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[4][1][4].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[3][1][4].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[3][1][4].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[3][1][4].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[3][1][4].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[3][1][4].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[3][1][4].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[2][1][4].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[2][1][4].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[2][1][4].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[2][1][4].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[2][1][4].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[2][1][4].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[1][1][4].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[1][1][4].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[1][1][4].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[1][1][4].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[1][1][4].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[1][1][4].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[0][1][4].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_1[0][1][4].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[0][1][4].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_2[0][1][4].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[0][1][4].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 3] * c_Quadrature_Filter_3[0][1][4].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[6][0][4].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[6][0][4].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[6][0][4].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[6][0][4].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[6][0][4].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[6][0][4].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[5][0][4].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[5][0][4].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[5][0][4].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[5][0][4].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[5][0][4].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[5][0][4].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[4][0][4].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[4][0][4].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[4][0][4].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[4][0][4].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[4][0][4].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[4][0][4].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[3][0][4].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[3][0][4].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[3][0][4].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[3][0][4].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[3][0][4].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[3][0][4].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[2][0][4].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[2][0][4].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[2][0][4].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[2][0][4].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[2][0][4].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[2][0][4].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[1][0][4].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[1][0][4].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[1][0][4].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[1][0][4].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[1][0][4].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[1][0][4].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[0][0][4].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_1[0][0][4].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[0][0][4].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_2[0][0][4].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[0][0][4].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 3] * c_Quadrature_Filter_3[0][0][4].y;
+    if (tIdx.y < (32 - HALO*2))
+    {
+        if ( (x < DATA_W) && ((y + 32) < DATA_H) )
+	    {
+ 		    float6 temp = Conv_2D_Unrolled_7x7(l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+            Filter_Response_1_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.f;
+	    }
+    }
 
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[6][6][3].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[6][6][3].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[6][6][3].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[6][6][3].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[6][6][3].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[6][6][3].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[5][6][3].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[5][6][3].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[5][6][3].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[5][6][3].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[5][6][3].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[5][6][3].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[4][6][3].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[4][6][3].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[4][6][3].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[4][6][3].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[4][6][3].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[4][6][3].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[3][6][3].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[3][6][3].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[3][6][3].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[3][6][3].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[3][6][3].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[3][6][3].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[2][6][3].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[2][6][3].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[2][6][3].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[2][6][3].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[2][6][3].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[2][6][3].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[1][6][3].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[1][6][3].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[1][6][3].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[1][6][3].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[1][6][3].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[1][6][3].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[0][6][3].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_1[0][6][3].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[0][6][3].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_2[0][6][3].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[0][6][3].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 4] * c_Quadrature_Filter_3[0][6][3].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[6][5][3].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[6][5][3].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[6][5][3].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[6][5][3].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[6][5][3].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[6][5][3].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[5][5][3].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[5][5][3].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[5][5][3].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[5][5][3].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[5][5][3].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[5][5][3].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[4][5][3].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[4][5][3].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[4][5][3].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[4][5][3].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[4][5][3].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[4][5][3].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[3][5][3].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[3][5][3].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[3][5][3].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[3][5][3].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[3][5][3].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[3][5][3].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[2][5][3].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[2][5][3].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[2][5][3].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[2][5][3].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[2][5][3].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[2][5][3].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[1][5][3].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[1][5][3].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[1][5][3].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[1][5][3].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[1][5][3].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[1][5][3].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[0][5][3].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_1[0][5][3].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[0][5][3].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_2[0][5][3].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[0][5][3].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 4] * c_Quadrature_Filter_3[0][5][3].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[6][4][3].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[6][4][3].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[6][4][3].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[6][4][3].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[6][4][3].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[6][4][3].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[5][4][3].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[5][4][3].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[5][4][3].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[5][4][3].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[5][4][3].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[5][4][3].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[4][4][3].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[4][4][3].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[4][4][3].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[4][4][3].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[4][4][3].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[4][4][3].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[3][4][3].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[3][4][3].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[3][4][3].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[3][4][3].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[3][4][3].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[3][4][3].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[2][4][3].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[2][4][3].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[2][4][3].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[2][4][3].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[2][4][3].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[2][4][3].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[1][4][3].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[1][4][3].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[1][4][3].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[1][4][3].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[1][4][3].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[1][4][3].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[0][4][3].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_1[0][4][3].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[0][4][3].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_2[0][4][3].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[0][4][3].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 4] * c_Quadrature_Filter_3[0][4][3].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[6][3][3].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[6][3][3].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[6][3][3].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[6][3][3].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[6][3][3].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[6][3][3].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[5][3][3].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[5][3][3].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[5][3][3].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[5][3][3].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[5][3][3].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[5][3][3].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[4][3][3].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[4][3][3].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[4][3][3].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[4][3][3].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[4][3][3].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[4][3][3].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[3][3][3].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[3][3][3].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[3][3][3].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[3][3][3].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[3][3][3].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[3][3][3].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[2][3][3].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[2][3][3].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[2][3][3].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[2][3][3].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[2][3][3].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[2][3][3].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[1][3][3].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[1][3][3].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[1][3][3].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[1][3][3].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[1][3][3].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[1][3][3].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[0][3][3].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_1[0][3][3].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[0][3][3].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_2[0][3][3].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[0][3][3].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 4] * c_Quadrature_Filter_3[0][3][3].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[6][2][3].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[6][2][3].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[6][2][3].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[6][2][3].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[6][2][3].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[6][2][3].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[5][2][3].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[5][2][3].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[5][2][3].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[5][2][3].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[5][2][3].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[5][2][3].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[4][2][3].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[4][2][3].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[4][2][3].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[4][2][3].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[4][2][3].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[4][2][3].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[3][2][3].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[3][2][3].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[3][2][3].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[3][2][3].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[3][2][3].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[3][2][3].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[2][2][3].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[2][2][3].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[2][2][3].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[2][2][3].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[2][2][3].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[2][2][3].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[1][2][3].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[1][2][3].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[1][2][3].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[1][2][3].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[1][2][3].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[1][2][3].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[0][2][3].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_1[0][2][3].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[0][2][3].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_2[0][2][3].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[0][2][3].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 4] * c_Quadrature_Filter_3[0][2][3].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[6][1][3].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[6][1][3].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[6][1][3].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[6][1][3].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[6][1][3].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[6][1][3].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[5][1][3].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[5][1][3].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[5][1][3].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[5][1][3].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[5][1][3].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[5][1][3].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[4][1][3].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[4][1][3].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[4][1][3].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[4][1][3].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[4][1][3].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[4][1][3].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[3][1][3].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[3][1][3].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[3][1][3].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[3][1][3].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[3][1][3].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[3][1][3].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[2][1][3].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[2][1][3].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[2][1][3].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[2][1][3].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[2][1][3].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[2][1][3].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[1][1][3].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[1][1][3].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[1][1][3].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[1][1][3].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[1][1][3].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[1][1][3].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[0][1][3].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_1[0][1][3].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[0][1][3].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_2[0][1][3].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[0][1][3].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 4] * c_Quadrature_Filter_3[0][1][3].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[6][0][3].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[6][0][3].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[6][0][3].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[6][0][3].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[6][0][3].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[6][0][3].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[5][0][3].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[5][0][3].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[5][0][3].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[5][0][3].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[5][0][3].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[5][0][3].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[4][0][3].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[4][0][3].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[4][0][3].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[4][0][3].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[4][0][3].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[4][0][3].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[3][0][3].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[3][0][3].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[3][0][3].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[3][0][3].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[3][0][3].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[3][0][3].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[2][0][3].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[2][0][3].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[2][0][3].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[2][0][3].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[2][0][3].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[2][0][3].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[1][0][3].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[1][0][3].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[1][0][3].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[1][0][3].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[1][0][3].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[1][0][3].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[0][0][3].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_1[0][0][3].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[0][0][3].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_2[0][0][3].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[0][0][3].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 4] * c_Quadrature_Filter_3[0][0][3].y;
+    if (tIdx.y < (32 - HALO*2))
+    {
+        if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
+	    {
+		    float6 temp = Conv_2D_Unrolled_7x7(l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+            Filter_Response_1_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.f;
+	    }
+     } 
 
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[6][6][2].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[6][6][2].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[6][6][2].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[6][6][2].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[6][6][2].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[6][6][2].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[5][6][2].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[5][6][2].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[5][6][2].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[5][6][2].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[5][6][2].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[5][6][2].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[4][6][2].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[4][6][2].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[4][6][2].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[4][6][2].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[4][6][2].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[4][6][2].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[3][6][2].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[3][6][2].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[3][6][2].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[3][6][2].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[3][6][2].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[3][6][2].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[2][6][2].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[2][6][2].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[2][6][2].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[2][6][2].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[2][6][2].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[2][6][2].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[1][6][2].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[1][6][2].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[1][6][2].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[1][6][2].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[1][6][2].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[1][6][2].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[0][6][2].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_1[0][6][2].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[0][6][2].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_2[0][6][2].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[0][6][2].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 5] * c_Quadrature_Filter_3[0][6][2].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[6][5][2].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[6][5][2].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[6][5][2].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[6][5][2].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[6][5][2].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[6][5][2].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[5][5][2].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[5][5][2].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[5][5][2].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[5][5][2].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[5][5][2].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[5][5][2].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[4][5][2].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[4][5][2].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[4][5][2].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[4][5][2].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[4][5][2].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[4][5][2].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[3][5][2].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[3][5][2].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[3][5][2].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[3][5][2].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[3][5][2].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[3][5][2].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[2][5][2].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[2][5][2].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[2][5][2].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[2][5][2].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[2][5][2].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[2][5][2].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[1][5][2].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[1][5][2].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[1][5][2].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[1][5][2].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[1][5][2].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[1][5][2].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[0][5][2].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_1[0][5][2].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[0][5][2].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_2[0][5][2].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[0][5][2].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 5] * c_Quadrature_Filter_3[0][5][2].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[6][4][2].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[6][4][2].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[6][4][2].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[6][4][2].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[6][4][2].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[6][4][2].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[5][4][2].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[5][4][2].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[5][4][2].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[5][4][2].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[5][4][2].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[5][4][2].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[4][4][2].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[4][4][2].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[4][4][2].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[4][4][2].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[4][4][2].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[4][4][2].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[3][4][2].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[3][4][2].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[3][4][2].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[3][4][2].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[3][4][2].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[3][4][2].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[2][4][2].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[2][4][2].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[2][4][2].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[2][4][2].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[2][4][2].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[2][4][2].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[1][4][2].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[1][4][2].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[1][4][2].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[1][4][2].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[1][4][2].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[1][4][2].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[0][4][2].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_1[0][4][2].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[0][4][2].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_2[0][4][2].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[0][4][2].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 5] * c_Quadrature_Filter_3[0][4][2].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[6][3][2].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[6][3][2].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[6][3][2].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[6][3][2].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[6][3][2].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[6][3][2].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[5][3][2].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[5][3][2].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[5][3][2].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[5][3][2].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[5][3][2].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[5][3][2].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[4][3][2].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[4][3][2].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[4][3][2].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[4][3][2].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[4][3][2].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[4][3][2].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[3][3][2].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[3][3][2].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[3][3][2].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[3][3][2].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[3][3][2].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[3][3][2].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[2][3][2].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[2][3][2].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[2][3][2].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[2][3][2].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[2][3][2].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[2][3][2].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[1][3][2].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[1][3][2].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[1][3][2].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[1][3][2].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[1][3][2].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[1][3][2].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[0][3][2].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_1[0][3][2].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[0][3][2].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_2[0][3][2].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[0][3][2].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 5] * c_Quadrature_Filter_3[0][3][2].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[6][2][2].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[6][2][2].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[6][2][2].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[6][2][2].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[6][2][2].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[6][2][2].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[5][2][2].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[5][2][2].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[5][2][2].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[5][2][2].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[5][2][2].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[5][2][2].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[4][2][2].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[4][2][2].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[4][2][2].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[4][2][2].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[4][2][2].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[4][2][2].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[3][2][2].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[3][2][2].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[3][2][2].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[3][2][2].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[3][2][2].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[3][2][2].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[2][2][2].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[2][2][2].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[2][2][2].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[2][2][2].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[2][2][2].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[2][2][2].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[1][2][2].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[1][2][2].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[1][2][2].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[1][2][2].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[1][2][2].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[1][2][2].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[0][2][2].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_1[0][2][2].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[0][2][2].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_2[0][2][2].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[0][2][2].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 5] * c_Quadrature_Filter_3[0][2][2].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[6][1][2].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[6][1][2].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[6][1][2].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[6][1][2].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[6][1][2].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[6][1][2].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[5][1][2].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[5][1][2].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[5][1][2].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[5][1][2].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[5][1][2].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[5][1][2].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[4][1][2].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[4][1][2].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[4][1][2].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[4][1][2].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[4][1][2].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[4][1][2].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[3][1][2].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[3][1][2].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[3][1][2].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[3][1][2].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[3][1][2].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[3][1][2].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[2][1][2].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[2][1][2].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[2][1][2].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[2][1][2].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[2][1][2].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[2][1][2].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[1][1][2].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[1][1][2].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[1][1][2].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[1][1][2].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[1][1][2].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[1][1][2].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[0][1][2].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_1[0][1][2].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[0][1][2].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_2[0][1][2].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[0][1][2].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 5] * c_Quadrature_Filter_3[0][1][2].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[6][0][2].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[6][0][2].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[6][0][2].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[6][0][2].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[6][0][2].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[6][0][2].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[5][0][2].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[5][0][2].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[5][0][2].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[5][0][2].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[5][0][2].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[5][0][2].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[4][0][2].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[4][0][2].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[4][0][2].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[4][0][2].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[4][0][2].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[4][0][2].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[3][0][2].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[3][0][2].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[3][0][2].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[3][0][2].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[3][0][2].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[3][0][2].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[2][0][2].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[2][0][2].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[2][0][2].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[2][0][2].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[2][0][2].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[2][0][2].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[1][0][2].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[1][0][2].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[1][0][2].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[1][0][2].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[1][0][2].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[1][0][2].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[0][0][2].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_1[0][0][2].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[0][0][2].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_2[0][0][2].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[0][0][2].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 5] * c_Quadrature_Filter_3[0][0][2].y;
-
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[6][6][1].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[6][6][1].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[6][6][1].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[6][6][1].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[6][6][1].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[6][6][1].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[5][6][1].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[5][6][1].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[5][6][1].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[5][6][1].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[5][6][1].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[5][6][1].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[4][6][1].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[4][6][1].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[4][6][1].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[4][6][1].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[4][6][1].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[4][6][1].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[3][6][1].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[3][6][1].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[3][6][1].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[3][6][1].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[3][6][1].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[3][6][1].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[2][6][1].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[2][6][1].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[2][6][1].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[2][6][1].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[2][6][1].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[2][6][1].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[1][6][1].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[1][6][1].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[1][6][1].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[1][6][1].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[1][6][1].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[1][6][1].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[0][6][1].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_1[0][6][1].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[0][6][1].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_2[0][6][1].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[0][6][1].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 6] * c_Quadrature_Filter_3[0][6][1].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[6][5][1].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[6][5][1].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[6][5][1].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[6][5][1].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[6][5][1].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[6][5][1].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[5][5][1].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[5][5][1].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[5][5][1].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[5][5][1].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[5][5][1].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[5][5][1].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[4][5][1].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[4][5][1].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[4][5][1].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[4][5][1].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[4][5][1].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[4][5][1].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[3][5][1].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[3][5][1].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[3][5][1].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[3][5][1].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[3][5][1].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[3][5][1].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[2][5][1].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[2][5][1].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[2][5][1].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[2][5][1].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[2][5][1].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[2][5][1].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[1][5][1].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[1][5][1].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[1][5][1].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[1][5][1].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[1][5][1].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[1][5][1].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[0][5][1].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_1[0][5][1].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[0][5][1].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_2[0][5][1].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[0][5][1].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 6] * c_Quadrature_Filter_3[0][5][1].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[6][4][1].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[6][4][1].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[6][4][1].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[6][4][1].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[6][4][1].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[6][4][1].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[5][4][1].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[5][4][1].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[5][4][1].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[5][4][1].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[5][4][1].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[5][4][1].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[4][4][1].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[4][4][1].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[4][4][1].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[4][4][1].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[4][4][1].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[4][4][1].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[3][4][1].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[3][4][1].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[3][4][1].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[3][4][1].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[3][4][1].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[3][4][1].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[2][4][1].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[2][4][1].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[2][4][1].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[2][4][1].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[2][4][1].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[2][4][1].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[1][4][1].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[1][4][1].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[1][4][1].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[1][4][1].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[1][4][1].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[1][4][1].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[0][4][1].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_1[0][4][1].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[0][4][1].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_2[0][4][1].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[0][4][1].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 6] * c_Quadrature_Filter_3[0][4][1].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[6][3][1].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[6][3][1].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[6][3][1].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[6][3][1].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[6][3][1].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[6][3][1].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[5][3][1].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[5][3][1].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[5][3][1].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[5][3][1].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[5][3][1].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[5][3][1].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[4][3][1].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[4][3][1].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[4][3][1].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[4][3][1].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[4][3][1].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[4][3][1].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[3][3][1].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[3][3][1].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[3][3][1].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[3][3][1].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[3][3][1].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[3][3][1].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[2][3][1].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[2][3][1].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[2][3][1].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[2][3][1].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[2][3][1].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[2][3][1].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[1][3][1].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[1][3][1].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[1][3][1].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[1][3][1].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[1][3][1].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[1][3][1].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[0][3][1].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_1[0][3][1].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[0][3][1].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_2[0][3][1].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[0][3][1].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 6] * c_Quadrature_Filter_3[0][3][1].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[6][2][1].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[6][2][1].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[6][2][1].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[6][2][1].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[6][2][1].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[6][2][1].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[5][2][1].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[5][2][1].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[5][2][1].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[5][2][1].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[5][2][1].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[5][2][1].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[4][2][1].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[4][2][1].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[4][2][1].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[4][2][1].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[4][2][1].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[4][2][1].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[3][2][1].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[3][2][1].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[3][2][1].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[3][2][1].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[3][2][1].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[3][2][1].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[2][2][1].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[2][2][1].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[2][2][1].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[2][2][1].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[2][2][1].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[2][2][1].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[1][2][1].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[1][2][1].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[1][2][1].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[1][2][1].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[1][2][1].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[1][2][1].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[0][2][1].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_1[0][2][1].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[0][2][1].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_2[0][2][1].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[0][2][1].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 6] * c_Quadrature_Filter_3[0][2][1].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[6][1][1].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[6][1][1].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[6][1][1].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[6][1][1].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[6][1][1].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[6][1][1].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[5][1][1].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[5][1][1].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[5][1][1].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[5][1][1].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[5][1][1].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[5][1][1].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[4][1][1].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[4][1][1].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[4][1][1].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[4][1][1].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[4][1][1].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[4][1][1].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[3][1][1].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[3][1][1].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[3][1][1].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[3][1][1].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[3][1][1].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[3][1][1].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[2][1][1].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[2][1][1].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[2][1][1].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[2][1][1].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[2][1][1].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[2][1][1].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[1][1][1].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[1][1][1].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[1][1][1].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[1][1][1].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[1][1][1].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[1][1][1].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[0][1][1].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_1[0][1][1].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[0][1][1].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_2[0][1][1].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[0][1][1].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 6] * c_Quadrature_Filter_3[0][1][1].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[6][0][1].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[6][0][1].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[6][0][1].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[6][0][1].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[6][0][1].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[6][0][1].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[5][0][1].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[5][0][1].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[5][0][1].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[5][0][1].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[5][0][1].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[5][0][1].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[4][0][1].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[4][0][1].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[4][0][1].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[4][0][1].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[4][0][1].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[4][0][1].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[3][0][1].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[3][0][1].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[3][0][1].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[3][0][1].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[3][0][1].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[3][0][1].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[2][0][1].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[2][0][1].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[2][0][1].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[2][0][1].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[2][0][1].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[2][0][1].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[1][0][1].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[1][0][1].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[1][0][1].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[1][0][1].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[1][0][1].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[1][0][1].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[0][0][1].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_1[0][0][1].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[0][0][1].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_2[0][0][1].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[0][0][1].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 6] * c_Quadrature_Filter_3[0][0][1].y;
-
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[6][6][0].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[6][6][0].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[6][6][0].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[6][6][0].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[6][6][0].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[6][6][0].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[5][6][0].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[5][6][0].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[5][6][0].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[5][6][0].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[5][6][0].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[5][6][0].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[4][6][0].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[4][6][0].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[4][6][0].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[4][6][0].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[4][6][0].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[4][6][0].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[3][6][0].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[3][6][0].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[3][6][0].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[3][6][0].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[3][6][0].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[3][6][0].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[2][6][0].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[2][6][0].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[2][6][0].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[2][6][0].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[2][6][0].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[2][6][0].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[1][6][0].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[1][6][0].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[1][6][0].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[1][6][0].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[1][6][0].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[1][6][0].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[0][6][0].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_1[0][6][0].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[0][6][0].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_2[0][6][0].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[0][6][0].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x + 7] * c_Quadrature_Filter_3[0][6][0].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[6][5][0].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[6][5][0].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[6][5][0].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[6][5][0].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[6][5][0].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[6][5][0].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[5][5][0].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[5][5][0].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[5][5][0].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[5][5][0].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[5][5][0].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[5][5][0].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[4][5][0].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[4][5][0].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[4][5][0].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[4][5][0].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[4][5][0].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[4][5][0].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[3][5][0].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[3][5][0].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[3][5][0].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[3][5][0].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[3][5][0].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[3][5][0].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[2][5][0].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[2][5][0].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[2][5][0].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[2][5][0].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[2][5][0].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[2][5][0].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[1][5][0].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[1][5][0].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[1][5][0].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[1][5][0].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[1][5][0].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[1][5][0].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[0][5][0].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_1[0][5][0].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[0][5][0].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_2[0][5][0].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[0][5][0].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x + 7] * c_Quadrature_Filter_3[0][5][0].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[6][4][0].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[6][4][0].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[6][4][0].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[6][4][0].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[6][4][0].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[6][4][0].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[5][4][0].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[5][4][0].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[5][4][0].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[5][4][0].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[5][4][0].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[5][4][0].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[4][4][0].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[4][4][0].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[4][4][0].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[4][4][0].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[4][4][0].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[4][4][0].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[3][4][0].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[3][4][0].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[3][4][0].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[3][4][0].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[3][4][0].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[3][4][0].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[2][4][0].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[2][4][0].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[2][4][0].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[2][4][0].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[2][4][0].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[2][4][0].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[1][4][0].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[1][4][0].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[1][4][0].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[1][4][0].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[1][4][0].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[1][4][0].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[0][4][0].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_1[0][4][0].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[0][4][0].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_2[0][4][0].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[0][4][0].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x + 7] * c_Quadrature_Filter_3[0][4][0].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[6][3][0].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[6][3][0].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[6][3][0].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[6][3][0].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[6][3][0].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[6][3][0].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[5][3][0].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[5][3][0].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[5][3][0].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[5][3][0].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[5][3][0].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[5][3][0].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[4][3][0].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[4][3][0].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[4][3][0].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[4][3][0].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[4][3][0].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[4][3][0].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[3][3][0].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[3][3][0].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[3][3][0].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[3][3][0].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[3][3][0].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[3][3][0].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[2][3][0].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[2][3][0].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[2][3][0].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[2][3][0].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[2][3][0].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[2][3][0].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[1][3][0].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[1][3][0].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[1][3][0].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[1][3][0].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[1][3][0].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[1][3][0].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[0][3][0].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_1[0][3][0].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[0][3][0].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_2[0][3][0].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[0][3][0].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x + 7] * c_Quadrature_Filter_3[0][3][0].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[6][2][0].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[6][2][0].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[6][2][0].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[6][2][0].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[6][2][0].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[6][2][0].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[5][2][0].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[5][2][0].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[5][2][0].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[5][2][0].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[5][2][0].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[5][2][0].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[4][2][0].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[4][2][0].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[4][2][0].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[4][2][0].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[4][2][0].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[4][2][0].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[3][2][0].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[3][2][0].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[3][2][0].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[3][2][0].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[3][2][0].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[3][2][0].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[2][2][0].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[2][2][0].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[2][2][0].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[2][2][0].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[2][2][0].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[2][2][0].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[1][2][0].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[1][2][0].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[1][2][0].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[1][2][0].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[1][2][0].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[1][2][0].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[0][2][0].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_1[0][2][0].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[0][2][0].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_2[0][2][0].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[0][2][0].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x + 7] * c_Quadrature_Filter_3[0][2][0].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[6][1][0].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[6][1][0].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[6][1][0].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[6][1][0].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[6][1][0].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[6][1][0].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[5][1][0].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[5][1][0].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[5][1][0].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[5][1][0].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[5][1][0].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[5][1][0].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[4][1][0].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[4][1][0].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[4][1][0].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[4][1][0].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[4][1][0].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[4][1][0].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[3][1][0].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[3][1][0].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[3][1][0].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[3][1][0].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[3][1][0].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[3][1][0].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[2][1][0].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[2][1][0].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[2][1][0].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[2][1][0].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[2][1][0].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[2][1][0].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[1][1][0].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[1][1][0].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[1][1][0].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[1][1][0].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[1][1][0].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[1][1][0].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[0][1][0].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_1[0][1][0].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[0][1][0].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_2[0][1][0].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[0][1][0].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x + 7] * c_Quadrature_Filter_3[0][1][0].y;
-            sum1.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[6][0][0].x;
-            sum1.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[6][0][0].y;
-            sum2.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[6][0][0].x;
-            sum2.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[6][0][0].y;
-            sum3.x += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[6][0][0].x;
-            sum3.y += l_Volume[tIdx.z + 1][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[6][0][0].y;
-            sum1.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[5][0][0].x;
-            sum1.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[5][0][0].y;
-            sum2.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[5][0][0].x;
-            sum2.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[5][0][0].y;
-            sum3.x += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[5][0][0].x;
-            sum3.y += l_Volume[tIdx.z + 2][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[5][0][0].y;
-            sum1.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[4][0][0].x;
-            sum1.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[4][0][0].y;
-            sum2.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[4][0][0].x;
-            sum2.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[4][0][0].y;
-            sum3.x += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[4][0][0].x;
-            sum3.y += l_Volume[tIdx.z + 3][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[4][0][0].y;
-            sum1.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[3][0][0].x;
-            sum1.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[3][0][0].y;
-            sum2.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[3][0][0].x;
-            sum2.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[3][0][0].y;
-            sum3.x += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[3][0][0].x;
-            sum3.y += l_Volume[tIdx.z + 4][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[3][0][0].y;
-            sum1.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[2][0][0].x;
-            sum1.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[2][0][0].y;
-            sum2.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[2][0][0].x;
-            sum2.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[2][0][0].y;
-            sum3.x += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[2][0][0].x;
-            sum3.y += l_Volume[tIdx.z + 5][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[2][0][0].y;
-            sum1.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[1][0][0].x;
-            sum1.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[1][0][0].y;
-            sum2.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[1][0][0].x;
-            sum2.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[1][0][0].y;
-            sum3.x += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[1][0][0].x;
-            sum3.y += l_Volume[tIdx.z + 6][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[1][0][0].y;
-            sum1.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[0][0][0].x;
-            sum1.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_1[0][0][0].y;
-            sum2.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[0][0][0].x;
-            sum2.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_2[0][0][0].y;
-            sum3.x += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[0][0][0].x;
-            sum3.y += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x + 7] * c_Quadrature_Filter_3[0][0][0].y;
-
-
-			Filter_Response_1[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = sum1;
-			Filter_Response_2[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = sum2;
-			Filter_Response_3[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = sum3;
-	}	
+    if ( (tIdx.x < (32 - HALO*2)) && (tIdx.y < (32 - HALO*2)) )
+    {
+        if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
+	    {
+		    float6 temp = Conv_2D_Unrolled_7x7(l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+            Filter_Response_1_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.f;
+	    }
+     }
 }
+
+	
 
 // Functions for motion correction
 
-__kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Differences, __global float* Certainties, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+
+__kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Differences, __global float* Certainties, __global const float* q11_Real, __global const float* q11_Imag, __global const float* q21_Real, __global const float* q21_Imag, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3204,31 +1208,32 @@ __kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Diff
 
 	int idx = Calculate3DIndex(x, y, z, DATA_W, DATA_H);
 
-	float2 complex_product;
+	float complex_product_real, complex_product_imag;
 	float a, b, c, d, phase_difference;
 
 	// q1 = a + i * b
 	// q2 = c + i * d
-	a = q11[idx].x;
-	b = q11[idx].y;
-	c = q21[idx].x;
-	d = q21[idx].y;
+	a = q11_Real[idx];
+	b = q11_Imag[idx];
+	c = q21_Real[idx];
+	d = q21_Imag[idx];
 
 	// phase difference = arg (q1 * (complex conjugate of q2))
-	complex_product.x = a * c + b * d;
-	complex_product.y = b * c - a * d;
+	complex_product_real = a * c + b * d;
+	complex_product_imag = b * c - a * d;
 
-	phase_difference = atan2(complex_product.y, complex_product.x);
+	phase_difference = atan2(complex_product_imag, complex_product_real);
 
-	complex_product.x = a * c - b * d;
-  	complex_product.y = b * c + a * d;
+	complex_product_real = a * c - b * d;
+  	complex_product_imag = b * c + a * d;
 
 	c = cos( phase_difference * 0.5f );
 	Phase_Differences[idx] = phase_difference;
-	Certainties[idx] = sqrt(complex_product.x * complex_product.x + complex_product.y * complex_product.y) * c * c;
+	Certainties[idx] = sqrt(complex_product_real * complex_product_real + complex_product_imag * complex_product_imag) * c * c;
 }
 
-__kernel void CalculatePhaseGradientsX_(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+
+__kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -3250,40 +1255,42 @@ __kernel void CalculatePhaseGradientsX_(__global float* Phase_Gradients, __globa
 	total_complex_product.x = 0.0f;
 	total_complex_product.y = 0.0f;
 
-	a = q11[idx_plus_1].x;
-	b = q11[idx_plus_1].y;
-	c = q11[idx].x;
-	d = q11[idx].y;
+	a = q11[idx_plus_1];
+	b = q11[idx_plus_1];
+	c = q11[idx];
+	d = q11[idx];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
 	a = c;
 	b = d;
-	c = q11[idx_minus_1].x;
-	d = q11[idx_minus_1].y;
+	c = q11[idx_minus_1];
+	d = q11[idx_minus_1];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
-	a = q21[idx_plus_1].x;
-	b = q21[idx_plus_1].y;
-	c = q21[idx].x;
-	d = q21[idx].y;
+	a = q21[idx_plus_1];
+	b = q21[idx_plus_1];
+	c = q21[idx];
+	d = q21[idx];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
 	a = c;
 	b = d;
-	c = q21[idx_minus_1].x;
-	d = q21[idx_minus_1].y;
+	c = q21[idx_minus_1];
+	d = q21[idx_minus_1];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
 	Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
 }
+
+/*
 
 __kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
@@ -3308,34 +1315,34 @@ __kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __globa
 	total_complex_product.x = 0.0f;
 	total_complex_product.y = 0.0f;
 
-	a = q12[idx_plus_1].x;
-	b = q12[idx_plus_1].y;
-	c = q12[idx].x;
-	d = q12[idx].y;
+	a = q12[idx_plus_1];
+	b = q12[idx_plus_1];
+	c = q12[idx];
+	d = q12[idx];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
 	a = c;
 	b = d;
-	c = q12[idx_minus_1].x;
-	d = q12[idx_minus_1].y;
+	c = q12[idx_minus_1];
+	d = q12[idx_minus_1];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
-	a = q22[idx_plus_1].x;
-	b = q22[idx_plus_1].y;
-	c = q22[idx].x;
-	d = q22[idx].y;
+	a = q22[idx_plus_1];
+	b = q22[idx_plus_1];
+	c = q22[idx];
+	d = q22[idx];
 	
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
 	a = c;
 	b = d;
-	c = q22[idx_minus_1].x;
-	d = q22[idx_minus_1].y;
+	c = q22[idx_minus_1];
+	d = q22[idx_minus_1];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
@@ -3366,34 +1373,34 @@ __kernel void CalculatePhaseGradientsZ_(__global float* Phase_Gradients, __globa
 	total_complex_product.x = 0.0f;
 	total_complex_product.y = 0.0f;
 
-	a = q13[idx_plus_1].x;
-	b = q13[idx_plus_1].y;
-	c = q13[idx].x;
-	d = q13[idx].y;
+	a = q13[idx_plus_1];
+	b = q13[idx_plus_1];
+	c = q13[idx];
+	d = q13[idx];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
 	a = c;
 	b = d;
-	c = q13[idx_minus_1].x;
-	d = q13[idx_minus_1].y;
+	c = q13[idx_minus_1];
+	d = q13[idx_minus_1];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
-	a = q23[idx_plus_1].x;
-	b = q23[idx_plus_1].y;
-	c = q23[idx].x;
-	d = q23[idx].y;
+	a = q23[idx_plus_1];
+	b = q23[idx_plus_1];
+	c = q23[idx];
+	d = q23[idx];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
 
 	a = c;
 	b = d;
-	c = q23[idx_minus_1].x;
-	d = q23[idx_minus_1].y;
+	c = q23[idx_minus_1];
+	d = q23[idx_minus_1];
 
 	total_complex_product.x += a * c + b * d;
 	total_complex_product.y += b * c - a * d;
@@ -3422,34 +1429,34 @@ __kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global
 		total_complex_product.x = 0.0f;
 		total_complex_product.y = 0.0f;
 
-		a = q11[idx_plus_1].x;
-		b = q11[idx_plus_1].y;
-		c = q11[idx].x;
-		d = q11[idx].y;
+		a = q11[idx_plus_1];
+		b = q11[idx_plus_1];
+		c = q11[idx];
+		d = q11[idx];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
 		a = c;
 		b = d;
-		c = q11[idx_minus_1].x;
-		d = q11[idx_minus_1].y;
+		c = q11[idx_minus_1];
+		d = q11[idx_minus_1];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
-		a = q21[idx_plus_1].x;
-		b = q21[idx_plus_1].y;
-		c = q21[idx].x;
-		d = q21[idx].y;
+		a = q21[idx_plus_1];
+		b = q21[idx_plus_1];
+		c = q21[idx];
+		d = q21[idx];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
 		a = c;
 		b = d;
-		c = q21[idx_minus_1].x;
-		d = q21[idx_minus_1].y;
+		c = q21[idx_minus_1];
+		d = q21[idx_minus_1];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
@@ -3480,34 +1487,34 @@ __kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global
 		total_complex_product.x = 0.0f;
 		total_complex_product.y = 0.0f;
 
-		a = q12[idx_plus_1].x;
-		b = q12[idx_plus_1].y;
-		c = q12[idx].x;
-		d = q12[idx].y;
+		a = q12[idx_plus_1];
+		b = q12[idx_plus_1];
+		c = q12[idx];
+		d = q12[idx];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
 		a = c;
 		b = d;
-		c = q12[idx_minus_1].x;
-		d = q12[idx_minus_1].y;
+		c = q12[idx_minus_1];
+		d = q12[idx_minus_1];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
-		a = q22[idx_plus_1].x;
-		b = q22[idx_plus_1].y;
-		c = q22[idx].x;
-		d = q22[idx].y;
+		a = q22[idx_plus_1];
+		b = q22[idx_plus_1];
+		c = q22[idx];
+		d = q22[idx];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
 		a = c;
 		b = d;
-		c = q22[idx_minus_1].x;
-		d = q22[idx_minus_1].y;
+		c = q22[idx_minus_1];
+		d = q22[idx_minus_1];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
@@ -3539,34 +1546,34 @@ __kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global
 		total_complex_product.x = 0.0f;
 		total_complex_product.y = 0.0f;
 
-		a = q13[idx_plus_1].x;
-		b = q13[idx_plus_1].y;
-		c = q13[idx].x;
-		d = q13[idx].y;
+		a = q13[idx_plus_1];
+		b = q13[idx_plus_1];
+		c = q13[idx];
+		d = q13[idx];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
 		a = c;
 		b = d;
-		c = q13[idx_minus_1].x;
-		d = q13[idx_minus_1].y;
+		c = q13[idx_minus_1];
+		d = q13[idx_minus_1];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
-		a = q23[idx_plus_1].x;
-		b = q23[idx_plus_1].y;
-		c = q23[idx].x;
-		d = q23[idx].y;
+		a = q23[idx_plus_1];
+		b = q23[idx_plus_1];
+		c = q23[idx];
+		d = q23[idx];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
 
 		a = c;
 		b = d;
-		c = q23[idx_minus_1].x;
-		d = q23[idx_minus_1].y;
+		c = q23[idx_minus_1];
+		d = q23[idx_minus_1];
 
 		total_complex_product.x += a * c + b * d;
 		total_complex_product.y += b * c - a * d;
@@ -3574,7 +1581,7 @@ __kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global
 		Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
 	}
 }
-
+*/
 
 // dimBlock.x = DATA_H; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = DATA_D; dimGrid.y = 1;
@@ -3585,8 +1592,8 @@ __kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_va
 	int y = get_local_id(0);
 	int z = get_group_id(0); 
 				
-	//volatile int y = blockIdx.x * blockDim.x + threadIdx.x;
-	//volatile int z = blockIdx.y * blockDim.y + threadIdx.y;
+	//volatile int y = blockIdx.x * blockDim.x + tIdx.x;
+	//volatile int z = blockIdx.y * blockDim.y + tIdx.y;
 
 	if (((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
 	{
@@ -3681,8 +1688,8 @@ __kernel void CalculateAMatrixAndHVector2DValuesX_(__global float* A_matrix_2D_v
 	int y = get_local_id(0);
 	int z = get_group_id(0);
 
-	//volatile int y = blockIdx.x * blockDim.x + threadIdx.x;
-	//volatile int z = blockIdx.y * blockDim.y + threadIdx.y;
+	//volatile int y = blockIdx.x * blockDim.x + tIdx.x;
+	//volatile int z = blockIdx.y * blockDim.y + tIdx.y;
 
 	if ( (y >= DATA_H) || (z >= DATA_D))
 			return;
@@ -3963,8 +1970,8 @@ __kernel void CalculateAMatrixAndHVector2DValues_Z(__global float* A_matrix_2D_v
 	int y = get_local_id(0);
 	int z = get_group_id(0);
 
-	//volatile int y = blockIdx.x * blockDim.x + threadIdx.x;
-	//volatile int z = blockIdx.y * blockDim.y + threadIdx.y;
+	//volatile int y = blockIdx.x * blockDim.x + tIdx.x;
+	//volatile int z = blockIdx.y * blockDim.y + tIdx.y;
 
 	if (((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
 	{
@@ -4476,7 +2483,7 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	//float beta[20];
 	__local float beta[16][32][24]; // y, x, regressors, For a maximum of 24 regressors per thread, for 512 threads per thread block
 
-	// Load beta values into registers
+	// Load beta values into shared memory
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{ 
 		//beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];

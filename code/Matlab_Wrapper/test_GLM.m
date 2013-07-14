@@ -32,19 +32,30 @@ close all
 
 mex -g GLM.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-sx = 63;
-sy = 65;
-sz = 31;
-st = 100;
+%sx = 63; sy = 65; sz = 31; st = 100;
+%fMRI_volumes = randn(sy,sx,sz,st);
+
+load ../../test_data/hand_movements_right.mat
+fMRI_volumes = vol_exp;
+[sy sx sz st] = size(fMRI_volumes);
+[sy; sx; sz; st]'
 
 % Create 8 random regressors
-X_GLM = randn(st,8);
+%X_GLM = randn(st,8);
+X_GLM = zeros(st,1);
+NN = 0;
+while NN < st
+    X_GLM((NN+1):(NN+10),1) =   1;  % Activity
+    X_GLM((NN+11):(NN+20),1) =  0;  % Rest
+    NN = NN + 20;
+end
+X_GLM = X_GLM(1:st);
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 % Create 10 random contrasts
-contrasts = randn(size(X_GLM,2),10);
+%contrasts = randn(size(X_GLM,2),10);
+contrasts = [1];
 
-test_data = randn(sy,sx,sz,st);
 mask = ones(sy,sx,sz,st);
 statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
 betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
@@ -60,7 +71,9 @@ end
 for x = 1:sx
     for y = 1:sy
         for z = 1:sz
-            timeseries = squeeze(test_data(y,x,z,:));
+            timeseries = squeeze(fMRI_volumes(y,x,z,:));
+            timeseries = timeseries - mean(timeseries);
+            fMRI_volumes(y,x,z,:) = timeseries;
             beta = xtxxt_GLM*timeseries;
             betas_cpu(y,x,z,:) = beta;
             eps = timeseries - X_GLM*beta;
@@ -75,15 +88,16 @@ for x = 1:sx
     end
 end
 
-[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl] = GLM(test_data,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM);
+[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl] = GLM(fMRI_volumes,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM);
 
 figure
-imagesc(betas_cpu(:,:,1,1))
-figure
-imagesc(betas_opencl(:,:,1,1))
+imagesc([betas_cpu(:,:,1,1) betas_opencl(:,:,1,1)]); colorbar
 
 figure
-imagesc(statistical_maps_cpu(:,:,10,5)-statistical_maps_opencl(:,:,10,5)); colorbar
+imagesc([residual_variances_cpu(:,:,1) residual_variances_opencl(:,:,1)]); colorbar
+
+figure
+imagesc([statistical_maps_cpu(:,:,15,1) statistical_maps_opencl(:,:,15,1)]); colorbar
 
 beta_tot_error = sum(abs(betas_cpu(:) - betas_opencl(:)))
 beta_max_error = max(abs(betas_cpu(:) - betas_opencl(:)))

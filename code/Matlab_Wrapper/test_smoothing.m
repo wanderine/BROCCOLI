@@ -32,52 +32,61 @@ close all
 
 mex -g Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-test_data = randn(69,123,33,100);
-filter_x = randn(9,1);
+%fMRI_volumes = randn(69,123,33,100);
+load ../../test_data/hand_movements_right.mat
+fMRI_volumes = vol_exp;
+
+%filter_x = randn(9,1);
+%filter_x = filter_x / sum(abs(filter_x));
+%filter_y = randn(9,1);
+%filter_y = filter_y / sum(abs(filter_y));
+%filter_z = randn(9,1);
+%filter_z = filter_z / sum(abs(filter_z));
+
+filter_x = fspecial('gaussian',9,1);
+filter_x = filter_x(:,5);
 filter_x = filter_x / sum(abs(filter_x));
-filter_y = randn(9,1);
-filter_y = filter_y / sum(abs(filter_y));
-filter_z = randn(9,1);
-filter_z = filter_z / sum(abs(filter_z));
-smoothed_volumes_opencl = Smoothing(test_data,filter_x,filter_y,filter_z);
+filter_y = filter_x;
+filter_z = filter_x;
 
 temp = zeros(1,9,1);
 temp(1,:,1) = filter_x;
-filter_x = temp;
+filter_xx = temp;
 
 temp = zeros(9,1,1);
 temp(:,1,1) = filter_y;
-filter_y = temp;
+filter_yy = temp;
 
 temp = zeros(1,1,9);
 temp(1,1,:) = filter_z;
-filter_z = temp;
+filter_zz = temp;
 
-smoothed_volumes_cpu = zeros(size(test_data));
-for t = 1:size(test_data,4)
-   volume = test_data(:,:,:,t);
-   smoothed_volume = convn(volume,filter_x,'same');
-   smoothed_volume = convn(smoothed_volume,filter_y,'same');   
-   smoothed_volume = convn(smoothed_volume,filter_z,'same');
+smoothed_volumes_cpu = zeros(size(fMRI_volumes));
+for t = 1:size(fMRI_volumes,4)
+   volume = fMRI_volumes(:,:,:,t);
+   smoothed_volume = convn(volume,filter_xx,'same');
+   smoothed_volume = convn(smoothed_volume,filter_yy,'same');   
+   smoothed_volume = convn(smoothed_volume,filter_zz,'same');
    smoothed_volumes_cpu(:,:,:,t) = smoothed_volume;
 end
 
-%smoothed_volumes_cpu = test_data;
+
+smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z);
+
 
 figure
-plot(squeeze(smoothed_volumes_cpu(25,25,25,:)),'r')
+plot(squeeze(smoothed_volumes_cpu(25,25,15,:)),'r')
 hold on
-plot(squeeze(smoothed_volumes_opencl(25,25,25,:)+0.0),'b')
+plot(squeeze(smoothed_volumes_opencl(25,25,15,:)+0.001),'b')
 hold off
 
 figure
-imagesc([smoothed_volumes_cpu(:,:,20,1)  smoothed_volumes_opencl(:,:,20,1)])
+imagesc([fMRI_volumes(:,:,15,1) smoothed_volumes_cpu(:,:,15,1)  smoothed_volumes_opencl(:,:,15,1)]); colormap gray
 
-smoothed_volumes_cpu(1,5,1,1)
-smoothed_volumes_opencl(1,5,1,1)
 
 tot_error = sum(abs(smoothed_volumes_cpu(:) - smoothed_volumes_opencl(:)))
 max_error = max(abs(smoothed_volumes_cpu(:) - smoothed_volumes_opencl(:)))
+
 
 
 

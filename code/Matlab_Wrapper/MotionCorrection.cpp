@@ -32,12 +32,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     double		    *h_fMRI_Volumes_double, *h_Quadrature_Filter_1_Real_double, *h_Quadrature_Filter_2_Real_double, *h_Quadrature_Filter_3_Real_double, *h_Quadrature_Filter_1_Imag_double, *h_Quadrature_Filter_2_Imag_double, *h_Quadrature_Filter_3_Imag_double;
     float           *h_fMRI_Volumes, *h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Imag;
-    int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
+    int             MOTION_CORRECTION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
     
     //-----------------------
     // Output pointers        
     
     double     		*h_Motion_Corrected_fMRI_Volumes_double, *h_Motion_Parameters_double;
+    double          *h_Quadrature_Filter_Response_1_Real_double, *h_Quadrature_Filter_Response_1_Imag_double;
+    double          *h_Quadrature_Filter_Response_2_Real_double, *h_Quadrature_Filter_Response_2_Imag_double;
+    double          *h_Quadrature_Filter_Response_3_Real_double, *h_Quadrature_Filter_Response_3_Imag_double;
+    double          *h_Phase_Differences_double, *h_Phase_Certainties_double;
+    float           *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_1_Imag;
+    float           *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_2_Imag;
+    float           *h_Quadrature_Filter_Response_3_Real, *h_Quadrature_Filter_Response_3_Imag;  
+    float           *h_Phase_Differences, *h_Phase_Certainties;
     float           *h_Motion_Corrected_fMRI_Volumes, *h_Motion_Parameters;
     
     //---------------------
@@ -51,11 +59,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<2)
+    if(nlhs<7)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>2)
+    if(nlhs>7)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -74,6 +82,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
+    const int *ARRAY_DIMENSIONS_FILTER = mxGetDimensions(prhs[1]);
     
     int DATA_H, DATA_W, DATA_D, DATA_T, NUMBER_OF_MOTION_CORRECTION_PARAMETERS;
     NUMBER_OF_MOTION_CORRECTION_PARAMETERS = 12;
@@ -83,8 +92,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     DATA_D = ARRAY_DIMENSIONS_DATA[2];
     DATA_T = ARRAY_DIMENSIONS_DATA[3];
                 
+    MOTION_CORRECTION_FILTER_SIZE = ARRAY_DIMENSIONS_FILTER[0];
+            
     int DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     int MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T * sizeof(float);
+    int FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
+    int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
     
     mexPrintf("Data size : %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
     mexPrintf("Filter size : %i x %i x %i \n",  MOTION_CORRECTION_FILTER_SIZE,MOTION_CORRECTION_FILTER_SIZE,MOTION_CORRECTION_FILTER_SIZE);
@@ -111,18 +124,61 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     plhs[1] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_MOTION_PARAMETERS,mxDOUBLE_CLASS, mxREAL);
     h_Motion_Parameters_double = mxGetPr(plhs[1]);          
-                      
+    
+    NUMBER_OF_DIMENSIONS = 3;
+    int ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE[3];
+    ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE[0] = DATA_H;
+    ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE[1] = DATA_W;    
+    ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE[2] = DATA_D;  
+    
+    plhs[2] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxCOMPLEX);
+    h_Quadrature_Filter_Response_1_Real_double = mxGetPr(plhs[2]);          
+    h_Quadrature_Filter_Response_1_Imag_double = mxGetPi(plhs[2]);          
+    
+    plhs[3] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxCOMPLEX);
+    h_Quadrature_Filter_Response_2_Real_double = mxGetPr(plhs[3]);          
+    h_Quadrature_Filter_Response_2_Imag_double = mxGetPi(plhs[3]);          
+        
+    plhs[4] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxCOMPLEX);
+    h_Quadrature_Filter_Response_3_Real_double = mxGetPr(plhs[4]);          
+    h_Quadrature_Filter_Response_3_Imag_double = mxGetPi(plhs[4]);          
+                
+    plhs[5] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxREAL);
+    h_Phase_Differences_double = mxGetPr(plhs[5]);          
+    
+    plhs[6] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxREAL);
+    h_Phase_Certainties_double = mxGetPr(plhs[6]);          
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
     h_fMRI_Volumes                         = (float *)mxMalloc(DATA_SIZE);
+    h_Quadrature_Filter_1_Real             = (float *)mxMalloc(FILTER_SIZE);
+    h_Quadrature_Filter_1_Imag             = (float *)mxMalloc(FILTER_SIZE);
+    h_Quadrature_Filter_2_Real             = (float *)mxMalloc(FILTER_SIZE);
+    h_Quadrature_Filter_2_Imag             = (float *)mxMalloc(FILTER_SIZE);    
+    h_Quadrature_Filter_3_Real             = (float *)mxMalloc(FILTER_SIZE);
+    h_Quadrature_Filter_3_Imag             = (float *)mxMalloc(FILTER_SIZE);    
+    h_Quadrature_Filter_Response_1_Real    = (float *)mxMalloc(VOLUME_SIZE);
+    h_Quadrature_Filter_Response_1_Imag    = (float *)mxMalloc(VOLUME_SIZE);
+    h_Quadrature_Filter_Response_2_Real    = (float *)mxMalloc(VOLUME_SIZE);
+    h_Quadrature_Filter_Response_2_Imag    = (float *)mxMalloc(VOLUME_SIZE);
+    h_Quadrature_Filter_Response_3_Real    = (float *)mxMalloc(VOLUME_SIZE);
+    h_Quadrature_Filter_Response_3_Imag    = (float *)mxMalloc(VOLUME_SIZE);    
+    h_Phase_Differences                    = (float *)mxMalloc(VOLUME_SIZE);    
+    h_Phase_Certainties                    = (float *)mxMalloc(VOLUME_SIZE);    
     h_Motion_Corrected_fMRI_Volumes        = (float *)mxMalloc(DATA_SIZE);
     h_Motion_Parameters                    = (float *)mxMalloc(MOTION_PARAMETERS_SIZE);
     
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, DATA_W, DATA_H, DATA_D, DATA_T);
-    
-       
+    pack_double2float_volume(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Real_double, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_1_Imag_double, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Real_double, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_2_Imag_double, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Real_double, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_3_Imag, h_Quadrature_Filter_3_Imag_double, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE, MOTION_CORRECTION_FILTER_SIZE);
+
     //------------------------
     
     BROCCOLI_LIB BROCCOLI;
@@ -133,9 +189,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetTimepoints(DATA_T);   
     BROCCOLI.SetGlobalAndLocalWorkSizes();
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
+    BROCCOLI.SetMotionCorrectionFilterSize(MOTION_CORRECTION_FILTER_SIZE);
     BROCCOLI.SetMotionCorrectionFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
+    BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);
     BROCCOLI.SetOutputData(h_Motion_Corrected_fMRI_Volumes);
     BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
+    BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
+    BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
+    BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
     
     mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
@@ -145,14 +206,37 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int error = BROCCOLI.GetOpenCLError();
     mexPrintf("Error is %d \n",error);
     
-    int kernel_error = BROCCOLI.GetOpenCLKernelError();
-    mexPrintf("Kernel error is %d \n",kernel_error);
+    int createKernelError = BROCCOLI.GetOpenCLCreateKernelError();
+    mexPrintf("Create kernel error is %d \n",createKernelError);
     
     unpack_float2double_volumes(h_Motion_Corrected_fMRI_Volumes_double, h_Motion_Corrected_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
     unpack_float2double(h_Motion_Parameters_double, h_Motion_Parameters, NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T);
-        
+    unpack_float2double_volume(h_Quadrature_Filter_Response_1_Real_double, h_Quadrature_Filter_Response_1_Real, DATA_W, DATA_H, DATA_D);
+    unpack_float2double_volume(h_Quadrature_Filter_Response_1_Imag_double, h_Quadrature_Filter_Response_1_Imag, DATA_W, DATA_H, DATA_D);
+    unpack_float2double_volume(h_Quadrature_Filter_Response_2_Real_double, h_Quadrature_Filter_Response_2_Real, DATA_W, DATA_H, DATA_D);
+    unpack_float2double_volume(h_Quadrature_Filter_Response_2_Imag_double, h_Quadrature_Filter_Response_2_Imag, DATA_W, DATA_H, DATA_D);
+    unpack_float2double_volume(h_Quadrature_Filter_Response_3_Real_double, h_Quadrature_Filter_Response_3_Real, DATA_W, DATA_H, DATA_D);
+    unpack_float2double_volume(h_Quadrature_Filter_Response_3_Imag_double, h_Quadrature_Filter_Response_3_Imag, DATA_W, DATA_H, DATA_D);
+    unpack_float2double_volume(h_Phase_Differences_double, h_Phase_Differences, DATA_W, DATA_H, DATA_D);
+    unpack_float2double_volume(h_Phase_Certainties_double, h_Phase_Certainties, DATA_W, DATA_H, DATA_D);
+    
+    
     // Free all the allocated memory on the host
     mxFree(h_fMRI_Volumes);
+    mxFree(h_Quadrature_Filter_1_Real);
+    mxFree(h_Quadrature_Filter_1_Imag);
+    mxFree(h_Quadrature_Filter_2_Real);
+    mxFree(h_Quadrature_Filter_2_Imag);
+    mxFree(h_Quadrature_Filter_3_Real);
+    mxFree(h_Quadrature_Filter_3_Imag);
+    mxFree(h_Quadrature_Filter_Response_1_Real);
+    mxFree(h_Quadrature_Filter_Response_1_Imag);
+    mxFree(h_Quadrature_Filter_Response_2_Real);
+    mxFree(h_Quadrature_Filter_Response_2_Imag);
+    mxFree(h_Quadrature_Filter_Response_3_Real);
+    mxFree(h_Quadrature_Filter_Response_3_Imag);
+    mxFree(h_Phase_Differences);
+    mxFree(h_Phase_Certainties);
     mxFree(h_Motion_Corrected_fMRI_Volumes); 
     mxFree(h_Motion_Parameters);
     

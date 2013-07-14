@@ -133,8 +133,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputData(h_Filter_Response);
     BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
     
-    mexPrintf("Device info \n \n %s \n", BROCCOLI.GetDeviceInfoChar());
-    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetBuildInfoChar());
+    mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
+    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
     
     
     //BROCCOLI.AddVolumes();

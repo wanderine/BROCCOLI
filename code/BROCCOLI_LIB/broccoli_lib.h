@@ -22,6 +22,8 @@
 #include "nifti1.h"
 #include "nifti1_io.h"
 
+//#include <vector_types.h>
+
 #include <opencl.h>
 
 #include <string>
@@ -145,6 +147,12 @@ typedef unsigned short int uint16;
 #define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS 8
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS 8
 
+//struct float2 { float x; float y; };
+
+#define HALO 3
+#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D 90
+#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D 58
+
 class BROCCOLI_LIB
 {
 	public:
@@ -162,7 +170,9 @@ class BROCCOLI_LIB
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
-		void SetMotionCorrectionFilters(float* qf1real, float* qf
+		void SetMotionCorrectionFilterSize(int N);
+		void SetMotionCorrectionFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
+
 
 		void SetInputfMRIVolumes(float* input);
 		void SetOutputBetaVolumes(float* output);
@@ -170,6 +180,10 @@ class BROCCOLI_LIB
 		void SetOutputResidualVariances(float* output);
 		void SetOutputStatisticalMaps(float* output);
 		void SetOutputData(float* output);
+		void SetOutputMotionParameters(float* output);
+		void SetOutputQuadratureFilterResponses(float* qfr1r, float* qfr1i, float* qfr2r, float* qfr2i, float* qfr3r, float* qfr3i);
+		void SetOutputPhaseDifferences(float*);
+		void SetOutputPhaseCertainties(float*);
 
 		void SetfMRIDataFilename(std::string filename);
 			
@@ -215,7 +229,7 @@ class BROCCOLI_LIB
 		std::string GetOpenCLBuildInfoString();
 
 		int GetOpenCLError();
-		int GetOpenCLKernelError();
+		int GetOpenCLCreateKernelError();
 		
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCorrection();
@@ -287,6 +301,7 @@ class BROCCOLI_LIB
 		void PerformRegistrationT1MNI();
 		void PerformSliceTimingCorrection();
 		void PerformMotionCorrection();
+		void PerformMotionCorrectionTest();
 		void PerformDetrending();
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, int NUMBER_OF_VOLUMES, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z);
 		void PerformSmoothingTest();
@@ -334,6 +349,8 @@ class BROCCOLI_LIB
 
 	private:
 
+		void Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE);
+		void NonseparableConvolution3D(cl_mem d_Volume, cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag);
 		void AlignTwoVolumes(float* h_Registration_Parameters);
 		void AlignTwoVolumesCleanup();
 		void AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D);
@@ -396,6 +413,7 @@ class BROCCOLI_LIB
 		
 		// OpenCL kernels
 
+		cl_kernel MemsetKernel;
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel, NonseparableConvolution3DComplexKernel;				
 		cl_kernel CalculateBetaValuesGLMKernel, CalculateStatisticalMapsGLMKernel, RemoveLinearFitKernel;
 
@@ -408,14 +426,18 @@ class BROCCOLI_LIB
 
 		cl_kernel	AddKernel;
 
-		cl_int errNum;
-
 		cl_int error, kernel_error;
+
+		cl_int createKernelErrorMemset;
+		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods, createKernelErrorNonseparableConvolution3DComplex; 
+		cl_int createKernelErrorCalculatePhaseDifferencesAndCertainties, createKernelErrorCalculatePhaseGradients;
+		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
 
 		size_t threadsX, threadsY, threadsZ, xBlocks, yBlocks, zBlocks;
 
 		// OpenCL local work sizes
 
+		size_t localWorkSizeMemset[3];
 		size_t localWorkSizeSeparableConvolutionRows[3];
 		size_t localWorkSizeSeparableConvolutionColumns[3];
 		size_t localWorkSizeSeparableConvolutionRods[3];
@@ -442,6 +464,8 @@ class BROCCOLI_LIB
 		size_t localWorkSizeGeneratePermutedfMRIVolumesAR4[3];
 
 		// OpenCL global work sizes
+
+		size_t globalWorkSizeMemset[3];
 
 		size_t globalWorkSizeSeparableConvolutionRows[3];
 		size_t globalWorkSizeSeparableConvolutionColumns[3];
@@ -577,13 +601,16 @@ class BROCCOLI_LIB
 
 		// Image Registration
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag; 		
-		//Complex     *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
-		float		*h_A_Matrix, *h_Inverse_A_Matrix, *h_h_Vector;
-		float 		 h_Parameter_Vector[12], h_Parameter_Vector_Total[12];
+//		float2      *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
+//		float2      *h_Quadrature_Filter_Response_1, *h_Quadrature_Filter_Response_2, *h_Quadrature_Filter_Response_3; 
+		float       *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_3_Real; 
+		float       *h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag; 
+		float		 h_A_Matrix[144], h_Inverse_A_Matrix[144], h_h_Vector[12];
+		float 		 h_Registration_Parameter_Vector[12], h_Registration_Parameter_Vector_Total[12];
+		float       *h_Phase_Differences, *h_Phase_Certainties;
 	
 		// Motion correction
-		float		*h_Motion_Corrected_fMRI_Volumes;
-		float		*h_Registration_Parameters;
+		float		*h_Motion_Corrected_fMRI_Volumes;		
 		float		*h_Motion_Parameters;
 		
 		// fMRI - T1
@@ -643,8 +670,11 @@ class BROCCOLI_LIB
 		cl_mem		d_A_Matrix, d_h_Vector, d_A_Matrix_2D_Values, d_A_Matrix_1D_Values, d_h_Vector_2D_Values, d_h_Vector_1D_Values;
 		cl_mem 		d_Phase_Differences, d_Phase_Gradients, d_Phase_Certainties;
 		cl_mem      d_q11, d_q12, d_q13, d_q21, d_q22, d_q23;
-		cl_mem		c_Quadrature_Filter_1, c_Quadrature_Filter_2, c_Quadrature_Filter_3;
-		cl_mem		c_Parameter_Vector;
+		cl_mem      d_q11_Real, d_q12_Real, d_q13_Real, d_q21_Real, d_q22_Real, d_q23_Real;
+		cl_mem      d_q11_Imag, d_q12_Imag, d_q13_Imag, d_q21_Imag, d_q22_Imag, d_q23_Imag;
+		cl_mem		c_Quadrature_Filter_1_Real, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_3_Real;
+		cl_mem		c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Imag;
+		cl_mem		c_Registration_Parameter_Vector;
 	
 		// Motion correction
 		cl_mem		d_Motion_Corrected_fMRI_Volumes;

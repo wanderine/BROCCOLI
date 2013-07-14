@@ -1,3 +1,4 @@
+#include "broccoli_lib.h"
 
 void pack_double2float(float* output_float, double* input_double, int SIZE)
 {
@@ -51,7 +52,13 @@ void pack_double2float_volume(float* output_float, double* input_double, int DAT
     }
 }
 
-
+void unpack_float2double(double* output_double, float* input_float, int SIZE)
+{
+    for (int i = 0; i < SIZE ; i++)
+    {
+        output_double[i] = (double)input_float[i];
+    }
+}
 
 void unpack_float2double_volume(double* output_double, float* input_float, int DATA_W, int DATA_H, int DATA_D)
 {
@@ -109,4 +116,42 @@ void unpack_float2double_volumes(double* output_double, float* input_float, int 
         }
     }
 }
+
+/*
+void pack_c2c_volume(float2  *output_float, double *input_re, double *input_im, int DATA_W, int DATA_H, int DATA_D)
+{
+	int i = 0;
+	for (int z = 0; z < DATA_D ; z++)
+	{
+		for (int x = 0; x < DATA_W ; x++)
+		{
+			for (int y = 0; y < DATA_H ; y++)
+			{
+            	output_float[x + y * DATA_W + z * DATA_W * DATA_H] = (float)input_re[i];
+               	output_float[x + y * DATA_W + z * DATA_W * DATA_H] = (float)input_im[i];
+				i++;
+	      	}
+		}
+	}
+}
+
+void unpack_c2c_volume(double *output_re, double *output_im, float2 *input_float, int DATA_W, int DATA_H, int DATA_D)
+{
+    int i = 0;
+    for (int z = 0; z < DATA_D ; z++)
+    {
+        for (int x = 0; x < DATA_W ; x++)
+        {
+            for (int y = 0; y < DATA_H ; y++)
+            {
+                output_re[i] = (double)input_float[x + y * DATA_W + z * DATA_W * DATA_H];
+                output_im[i] = (double)input_float[x + y * DATA_W + z * DATA_W * DATA_H];
+                i++;
+            }
+        }
+    }    
+}
+*/
+
+
 
