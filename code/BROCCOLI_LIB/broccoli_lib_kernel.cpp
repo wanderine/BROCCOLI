@@ -1233,7 +1233,7 @@ __kernel void CalculatePhaseDifferencesAndCertainties(__global float* Phase_Diff
 }
 
 
-__kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global const float* q11_Real, __global const float* q11_Imag, __global const float* q21_Real, __global const float* q21_Imag, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1242,7 +1242,7 @@ __kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global
 	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
 			return;
 
-	float2 total_complex_product;
+	float total_complex_product_real, total_complex_product_imag;
 	float a, b, c, d;
 	int idx_minus_1, idx_plus_1, idx;
 
@@ -1252,47 +1252,47 @@ __kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global
 	idx_minus_1 = Calculate3DIndex(x - 1, y, z, DATA_W, DATA_H);
 	idx_plus_1 = Calculate3DIndex(x + 1, y, z, DATA_W, DATA_H);
 
-	total_complex_product.x = 0.0f;
-	total_complex_product.y = 0.0f;
+	total_complex_product_real = 0.0f;
+	total_complex_product_imag = 0.0f;
 
-	a = q11[idx_plus_1];
-	b = q11[idx_plus_1];
-	c = q11[idx];
-	d = q11[idx];
+	a = q11_Real[idx_plus_1];
+	b = q11_Imag[idx_plus_1];
+	c = q11_Real[idx];
+	d = q11_Imag[idx];
 
-	total_complex_product.x += a * c + b * d;
-	total_complex_product.y += b * c - a * d;
-
-	a = c;
-	b = d;
-	c = q11[idx_minus_1];
-	d = q11[idx_minus_1];
-
-	total_complex_product.x += a * c + b * d;
-	total_complex_product.y += b * c - a * d;
-
-	a = q21[idx_plus_1];
-	b = q21[idx_plus_1];
-	c = q21[idx];
-	d = q21[idx];
-
-	total_complex_product.x += a * c + b * d;
-	total_complex_product.y += b * c - a * d;
+	total_complex_product_real += a * c + b * d;
+	total_complex_product_imag += b * c - a * d;
 
 	a = c;
 	b = d;
-	c = q21[idx_minus_1];
-	d = q21[idx_minus_1];
+	c = q11_Real[idx_minus_1];
+	d = q11_Imag[idx_minus_1];
 
-	total_complex_product.x += a * c + b * d;
-	total_complex_product.y += b * c - a * d;
+	total_complex_product_real += a * c + b * d;
+	total_complex_product_imag += b * c - a * d;
 
-	Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
+	a = q21_Real[idx_plus_1];
+	b = q21_Imag[idx_plus_1];
+	c = q21_Real[idx];
+	d = q21_Imag[idx];
+
+	total_complex_product_real += a * c + b * d;
+	total_complex_product_imag += b * c - a * d;
+
+	a = c;
+	b = d;
+	c = q21_Real[idx_minus_1];
+	d = q21_Imag[idx_minus_1];
+
+	total_complex_product_real += a * c + b * d;
+	total_complex_product_imag += b * c - a * d;
+
+	Phase_Gradients[idx] = atan2(total_complex_product_imag, total_complex_product_real);
 }
 
 /*
 
-__kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1350,7 +1350,7 @@ __kernel void CalculatePhaseGradientsY_(__global float* Phase_Gradients, __globa
 	Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
 }
 
-__kernel void CalculatePhaseGradientsZ_(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1408,180 +1408,7 @@ __kernel void CalculatePhaseGradientsZ_(__global float* Phase_Gradients, __globa
 	Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
 }
 
-__kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global const float2* q11, __global const float2* q21, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
 
-	if (((x >= (FILTER_SIZE - 1)/2) && (x < DATA_W - (FILTER_SIZE - 1)/2)) && ((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
-	{
-		float2 total_complex_product;
-		float a, b, c, d;
-		int idx_minus_1, idx_plus_1, idx;
-
-		idx = Calculate3DIndex(x, y, z, DATA_W, DATA_H);
-
-		// X
-		idx_minus_1 = Calculate3DIndex(x - 1, y, z, DATA_W, DATA_H);
-		idx_plus_1 = Calculate3DIndex(x + 1, y, z, DATA_W, DATA_H);
-
-		total_complex_product.x = 0.0f;
-		total_complex_product.y = 0.0f;
-
-		a = q11[idx_plus_1];
-		b = q11[idx_plus_1];
-		c = q11[idx];
-		d = q11[idx];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = c;
-		b = d;
-		c = q11[idx_minus_1];
-		d = q11[idx_minus_1];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = q21[idx_plus_1];
-		b = q21[idx_plus_1];
-		c = q21[idx];
-		d = q21[idx];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = c;
-		b = d;
-		c = q21[idx_minus_1];
-		d = q21[idx_minus_1];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
-	}
-}
-
-__kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global const float2* q12, __global const float2* q22, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (((x >= (FILTER_SIZE - 1)/2) && (x < DATA_W - (FILTER_SIZE - 1)/2)) && ((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
-	{
-		float2 total_complex_product;
-		float a, b, c, d;
-		int idx_minus_1, idx_plus_1, idx;
-
-		idx = Calculate3DIndex(x, y, z, DATA_W, DATA_H);
-
-		// Y
-
-		idx_plus_1 =  Calculate3DIndex(x, y + 1, z, DATA_W, DATA_H);
-		idx_minus_1 =  Calculate3DIndex(x, y - 1, z, DATA_W, DATA_H);
-
-		total_complex_product.x = 0.0f;
-		total_complex_product.y = 0.0f;
-
-		a = q12[idx_plus_1];
-		b = q12[idx_plus_1];
-		c = q12[idx];
-		d = q12[idx];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = c;
-		b = d;
-		c = q12[idx_minus_1];
-		d = q12[idx_minus_1];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = q22[idx_plus_1];
-		b = q22[idx_plus_1];
-		c = q22[idx];
-		d = q22[idx];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = c;
-		b = d;
-		c = q22[idx_minus_1];
-		d = q22[idx_minus_1];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
-	}
-}
-
-
-__kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global const float2* q13, __global const float2* q23, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (((x >= (FILTER_SIZE - 1)/2) && (x < DATA_W - (FILTER_SIZE - 1)/2)) && ((y >= (FILTER_SIZE - 1)/2) && (y < DATA_H - (FILTER_SIZE - 1)/2)) && ((z >= (FILTER_SIZE - 1)/2) && (z < DATA_D - (FILTER_SIZE - 1)/2)))
-	{
-		float2 total_complex_product;
-		float a, b, c, d;
-		int idx_minus_1, idx_plus_1, idx;
-
-		idx = Calculate3DIndex(x, y, z, DATA_W, DATA_H);
-
-		// Z
-
-		idx_plus_1 = Calculate3DIndex(x, y, z + 1, DATA_W, DATA_H);
-		idx_minus_1 = Calculate3DIndex(x, y, z - 1, DATA_W, DATA_H);
-
-		total_complex_product.x = 0.0f;
-		total_complex_product.y = 0.0f;
-
-		a = q13[idx_plus_1];
-		b = q13[idx_plus_1];
-		c = q13[idx];
-		d = q13[idx];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = c;
-		b = d;
-		c = q13[idx_minus_1];
-		d = q13[idx_minus_1];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = q23[idx_plus_1];
-		b = q23[idx_plus_1];
-		c = q23[idx];
-		d = q23[idx];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		a = c;
-		b = d;
-		c = q23[idx_minus_1];
-		d = q23[idx_minus_1];
-
-		total_complex_product.x += a * c + b * d;
-		total_complex_product.y += b * c - a * d;
-
-		Phase_Gradients[idx] = atan2(total_complex_product.y, total_complex_product.x);
-	}
-}
-*/
 
 // dimBlock.x = DATA_H; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = DATA_D; dimGrid.y = 1;

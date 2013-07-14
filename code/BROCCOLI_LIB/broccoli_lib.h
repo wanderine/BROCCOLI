@@ -184,6 +184,7 @@ class BROCCOLI_LIB
 		void SetOutputQuadratureFilterResponses(float* qfr1r, float* qfr1i, float* qfr2r, float* qfr2i, float* qfr3r, float* qfr3i);
 		void SetOutputPhaseDifferences(float*);
 		void SetOutputPhaseCertainties(float*);
+		void SetOutputPhaseGradients(float*);
 
 		void SetfMRIDataFilename(std::string filename);
 			
@@ -430,7 +431,7 @@ class BROCCOLI_LIB
 
 		cl_int createKernelErrorMemset;
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods, createKernelErrorNonseparableConvolution3DComplex; 
-		cl_int createKernelErrorCalculatePhaseDifferencesAndCertainties, createKernelErrorCalculatePhaseGradients;
+		cl_int createKernelErrorCalculatePhaseDifferencesAndCertainties, createKernelErrorCalculatePhaseGradientsX, createKernelErrorCalculatePhaseGradientsY, createKernelErrorCalculatePhaseGradientsZ;
 		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
 
 		size_t threadsX, threadsY, threadsZ, xBlocks, yBlocks, zBlocks;
@@ -607,7 +608,7 @@ class BROCCOLI_LIB
 		float       *h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag; 
 		float		 h_A_Matrix[144], h_Inverse_A_Matrix[144], h_h_Vector[12];
 		float 		 h_Registration_Parameter_Vector[12], h_Registration_Parameter_Vector_Total[12];
-		float       *h_Phase_Differences, *h_Phase_Certainties;
+		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
 	
 		// Motion correction
 		float		*h_Motion_Corrected_fMRI_Volumes;		

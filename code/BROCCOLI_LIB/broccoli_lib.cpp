@@ -424,6 +424,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
 	NonseparableConvolution3DComplexKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplex",&createKernelErrorNonseparableConvolution3DComplex);
 	CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
+	CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
 
 	// Kernels for statistical analysis	
 	CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
@@ -460,6 +461,10 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	localWorkSizeCalculatePhaseDifferencesAndCertainties[0] = 32;
 	localWorkSizeCalculatePhaseDifferencesAndCertainties[1] = 16;
 	localWorkSizeCalculatePhaseDifferencesAndCertainties[2] = 1;
+
+	localWorkSizeCalculatePhaseGradients[0] = 32;
+	localWorkSizeCalculatePhaseGradients[1] = 16;
+	localWorkSizeCalculatePhaseGradients[2] = 1;
 
 	localWorkSizeCalculateBetaValuesGLM[0] = 32;
 	localWorkSizeCalculateBetaValuesGLM[1] = 16;
@@ -548,6 +553,20 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizes()
 	globalWorkSizeCalculatePhaseDifferencesAndCertainties[0] = xBlocks * localWorkSizeCalculatePhaseDifferencesAndCertainties[0];
 	globalWorkSizeCalculatePhaseDifferencesAndCertainties[1] = yBlocks * localWorkSizeCalculatePhaseDifferencesAndCertainties[1];
 	globalWorkSizeCalculatePhaseDifferencesAndCertainties[2] = zBlocks * localWorkSizeCalculatePhaseDifferencesAndCertainties[2];
+
+	//----------------------------------
+	// Phase gradients
+	//----------------------------------
+
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculatePhaseGradients[0]);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculatePhaseGradients[1]);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeCalculatePhaseGradients[2]);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	globalWorkSizeCalculatePhaseGradients[0] = xBlocks * localWorkSizeCalculatePhaseGradients[0];
+	globalWorkSizeCalculatePhaseGradients[1] = yBlocks * localWorkSizeCalculatePhaseGradients[1];
+	globalWorkSizeCalculatePhaseGradients[2] = zBlocks * localWorkSizeCalculatePhaseGradients[2];
 
 	//----------------------------------
 	// Statistical calculations
@@ -692,6 +711,11 @@ void BROCCOLI_LIB::SetOutputPhaseDifferences(float* pd)
 void BROCCOLI_LIB::SetOutputPhaseCertainties(float* pc)
 {
 	h_Phase_Certainties = pc;
+}
+
+void BROCCOLI_LIB::SetOutputPhaseGradients(float* pg)
+{
+	h_Phase_Gradients = pg;
 }
 
 void BROCCOLI_LIB::SetOutputData(float* data)
@@ -866,7 +890,8 @@ int BROCCOLI_LIB::GetOpenCLError()
 int BROCCOLI_LIB::GetOpenCLCreateKernelError()
 {
 	//return createKernelErrorNonseparableConvolution3DComplex;
-	return createKernelErrorCalculatePhaseDifferencesAndCertainties;
+	//return createKernelErrorCalculatePhaseDifferencesAndCertainties;
+	return createKernelErrorCalculatePhaseGradientsX;
 }
 
 int BROCCOLI_LIB::GetfMRIDataSliceLocationX()
@@ -1306,16 +1331,22 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters)
 		
 		clEnqueueReadBuffer(commandQueue, d_Phase_Differences, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Phase_Certainties, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
-
 		
-		clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsXKernel, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
+		clSetKernelArg(CalculatePhaseGradientsXKernel, 1, sizeof(cl_mem), &d_q11_Real);
+		clSetKernelArg(CalculatePhaseGradientsXKernel, 2, sizeof(cl_mem), &d_q11_Imag);
+		clSetKernelArg(CalculatePhaseGradientsXKernel, 3, sizeof(cl_mem), &d_q21_Real);
+		clSetKernelArg(CalculatePhaseGradientsXKernel, 4, sizeof(cl_mem), &d_q21_Imag);		
+		error = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsXKernel, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
 		clFinish(commandQueue);
 
-		/*
+		clEnqueueReadBuffer(commandQueue, d_Phase_Gradients, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Gradients, 0, NULL, NULL);
+		
+		
 		// Calculate values for the A-matrix and h-vector in the X direction
 		clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesXKernel, 1, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesX, localWorkSizeCalculateAMatrixAndHVector2DValuesX, 0, NULL, NULL);
 		clFinish(commandQueue);
 
+		/*
 		// Calculate phase differences, certainties and phase gradients in the Y direction
 		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 2, sizeof(cl_mem), &d_q12);
 		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 3, sizeof(cl_mem), &d_q22);
@@ -1471,33 +1502,23 @@ void BROCCOLI_LIB::AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D)
 	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 6, sizeof(int), &DATA_W);
 	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 7, sizeof(int), &DATA_H);
 	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 8, sizeof(int), &DATA_D);
-	
-
-	/*
+		
 	clSetKernelArg(CalculatePhaseGradientsXKernel, 0, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 1, sizeof(cl_mem), &d_q11);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 2, sizeof(cl_mem), &d_q21);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 3, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 4, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 5, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 6, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-	
+	clSetKernelArg(CalculatePhaseGradientsXKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculatePhaseGradientsXKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculatePhaseGradientsXKernel, 7, sizeof(int), &DATA_D);
+		
 	clSetKernelArg(CalculatePhaseGradientsYKernel, 0, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 1, sizeof(cl_mem), &d_q12);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 2, sizeof(cl_mem), &d_q22);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 3, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 4, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 5, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 6, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-
+	clSetKernelArg(CalculatePhaseGradientsYKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculatePhaseGradientsYKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculatePhaseGradientsYKernel, 7, sizeof(int), &DATA_D);
+	
 	clSetKernelArg(CalculatePhaseGradientsZKernel, 0, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 1, sizeof(cl_mem), &d_q13);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 2, sizeof(cl_mem), &d_q23);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 3, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 4, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 5, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 6, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-
+	clSetKernelArg(CalculatePhaseGradientsZKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculatePhaseGradientsZKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculatePhaseGradientsZKernel, 7, sizeof(int), &DATA_D);
+	
+	/*
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXKernel, 0, sizeof(cl_mem), &d_A_Matrix_2D_Values);
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXKernel, 1, sizeof(cl_mem), &d_h_Vector_2D_Values);
 	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXKernel, 2, sizeof(cl_mem), &d_Phase_Differences);

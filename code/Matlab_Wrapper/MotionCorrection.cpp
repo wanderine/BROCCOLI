@@ -41,11 +41,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Quadrature_Filter_Response_1_Real_double, *h_Quadrature_Filter_Response_1_Imag_double;
     double          *h_Quadrature_Filter_Response_2_Real_double, *h_Quadrature_Filter_Response_2_Imag_double;
     double          *h_Quadrature_Filter_Response_3_Real_double, *h_Quadrature_Filter_Response_3_Imag_double;
-    double          *h_Phase_Differences_double, *h_Phase_Certainties_double;
+    double          *h_Phase_Differences_double, *h_Phase_Certainties_double, *h_Phase_Gradients_double;
     float           *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_1_Imag;
     float           *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_2_Imag;
     float           *h_Quadrature_Filter_Response_3_Real, *h_Quadrature_Filter_Response_3_Imag;  
-    float           *h_Phase_Differences, *h_Phase_Certainties;
+    float           *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
     float           *h_Motion_Corrected_fMRI_Volumes, *h_Motion_Parameters;
     
     //---------------------
@@ -59,11 +59,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<7)
+    if(nlhs<8)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>7)
+    if(nlhs>8)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -149,6 +149,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[6] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxREAL);
     h_Phase_Certainties_double = mxGetPr(plhs[6]);          
     
+    plhs[7] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxREAL);
+    h_Phase_Gradients_double = mxGetPr(plhs[7]);          
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
@@ -166,7 +169,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Quadrature_Filter_Response_3_Real    = (float *)mxMalloc(VOLUME_SIZE);
     h_Quadrature_Filter_Response_3_Imag    = (float *)mxMalloc(VOLUME_SIZE);    
     h_Phase_Differences                    = (float *)mxMalloc(VOLUME_SIZE);    
-    h_Phase_Certainties                    = (float *)mxMalloc(VOLUME_SIZE);    
+    h_Phase_Certainties                    = (float *)mxMalloc(VOLUME_SIZE);  
+    h_Phase_Gradients                      = (float *)mxMalloc(VOLUME_SIZE);  
     h_Motion_Corrected_fMRI_Volumes        = (float *)mxMalloc(DATA_SIZE);
     h_Motion_Parameters                    = (float *)mxMalloc(MOTION_PARAMETERS_SIZE);
     
@@ -197,6 +201,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
     BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
+    BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
     
     mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
@@ -219,7 +224,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_Quadrature_Filter_Response_3_Imag_double, h_Quadrature_Filter_Response_3_Imag, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_Phase_Differences_double, h_Phase_Differences, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_Phase_Certainties_double, h_Phase_Certainties, DATA_W, DATA_H, DATA_D);
-    
+    unpack_float2double_volume(h_Phase_Gradients_double, h_Phase_Gradients, DATA_W, DATA_H, DATA_D);    
     
     // Free all the allocated memory on the host
     mxFree(h_fMRI_Volumes);
@@ -237,6 +242,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Quadrature_Filter_Response_3_Imag);
     mxFree(h_Phase_Differences);
     mxFree(h_Phase_Certainties);
+    mxFree(h_Phase_Gradients);
     mxFree(h_Motion_Corrected_fMRI_Volumes); 
     mxFree(h_Motion_Parameters);
     
