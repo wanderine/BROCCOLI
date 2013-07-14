@@ -214,6 +214,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int createKernelError = BROCCOLI.GetOpenCLCreateKernelError();
     mexPrintf("Create kernel error is %d \n",createKernelError);
     
+    double convolution_time = BROCCOLI.GetProcessingTimeConvolution();
+    mexPrintf("Convolution time is %f ms \n",convolution_time/1000000.0);
+    
+    
     unpack_float2double_volumes(h_Motion_Corrected_fMRI_Volumes_double, h_Motion_Corrected_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
     unpack_float2double(h_Motion_Parameters_double, h_Motion_Parameters, NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T);
     unpack_float2double_volume(h_Quadrature_Filter_Response_1_Real_double, h_Quadrature_Filter_Response_1_Real, DATA_W, DATA_H, DATA_D);

@@ -34,12 +34,80 @@ mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA'
 
 %filename = '../../test_data/msit_1.6mm_1.nii';
 
-load ../../test_data/hand_movements_right.mat
+load ../../test_data/hand_movements_left.mat
 fMRI_volumes = vol_exp;
 reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
-number_of_iterations_for_motion_correction = 1;
+number_of_iterations_for_motion_correction = 5;
 load filters.mat
+
+%%
+% Create random translations, for testing
+
+middle_x = (sx-1)/2;
+middle_y = (sy-1)/2;
+middle_z = (sz-1)/2;
+
+% Translation in 3 directions
+x_translation = 1.07; % 4.2
+y_translation = -0.43; % 3.3
+z_translation = 1.47; % 5.7
+
+% Rotation in 3 directions
+x_rotation = 0; % degrees
+y_rotation = 0; % degrees
+z_rotation = 0; % degrees
+
+R_x = [1                        0                           0;
+       0                        cos(x_rotation*pi/180)      -sin(x_rotation*pi/180);
+       0                        sin(x_rotation*pi/180)      cos(x_rotation*pi/180)];
+   
+R_y = [cos(y_rotation*pi/180)   0                           sin(y_rotation*pi/180);
+       0                        1                           0;
+       -sin(y_rotation*pi/180)  0                           cos(y_rotation*pi/180)];
+   
+R_z = [cos(z_rotation*pi/180)   -sin(z_rotation*pi/180)     0;
+       sin(z_rotation*pi/180)   cos(z_rotation*pi/180)      0;
+       0                        0                           1];
+
+Rotation_matrix = R_x * R_y * R_z;
+Rotation_matrix = Rotation_matrix(:);
+
+% Add rotation first
+
+[xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
+
+rx_r = zeros(sy,sx,sz);
+ry_r = zeros(sy,sx,sz);
+rz_r = zeros(sy,sx,sz);
+
+rx_r(:) = [xi(:) yi(:) zi(:)]*Rotation_matrix(1:3);
+ry_r(:) = [xi(:) yi(:) zi(:)]*Rotation_matrix(4:6);
+rz_r(:) = [xi(:) yi(:) zi(:)]*Rotation_matrix(7:9);
+
+altered_volume = interp3(xi,yi,zi,cureference_volume,rx_r,ry_r,rz_r,'cubic');
+altered_volume(isnan(altered_volume)) = 0;
+
+% Then add translation
+
+[xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
+
+rx_t = zeros(sy,sx,sz);
+ry_t = zeros(sy,sx,sz);
+rz_t = zeros(sy,sx,sz);
+
+rx_t(:) = x_translation;
+ry_t(:) = y_translation;
+rz_t(:) = z_translation;
+
+altered_volume = interp3(xi,yi,zi,altered_volume,xi - rx_t,yi - ry_t,zi - rz_t,'cubic');
+altered_volume(isnan(altered_volume)) = 0;
+
+
+
+
+
+
 
 [motion_corrected_volumes_cpu,motion_parameters_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
 
@@ -89,7 +157,7 @@ imagesc( [phase_certainties_x_cpu(:,:,slice) phase_certainties_x_opencl(:,:,slic
 figure
 imagesc( [phase_gradients_x_cpu(:,:,slice) phase_gradients_x_opencl(:,:,slice) ] )
 figure
-imagesc( [phase_gradients_x_cpu(:,:,slice) phase_gradients_x_opencl(:,:,slice) ] )
+imagesc( [phase_gradients_x_cpu(2:end-1,2:end-1,slice) - phase_gradients_x_opencl(2:end-1,2:end-1,slice) ] ); colorbar
 
 
 
@@ -115,8 +183,11 @@ phase_differences_x_max_error = max(abs(phase_differences_x_cpu(:) - phase_diffe
 phase_certainties_x_tot_error = sum(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
 phase_certainties_x_max_error = max(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
 
-phase_gradients_x_tot_error = sum(abs(phase_gradients_x_cpu(:) - phase_gradients_x_opencl(:)))
-phase_gradients_x_max_error = max(abs(phase_gradients_x_cpu(:) - phase_gradients_x_opencl(:)))
+phase_gradients_x_tot_error = sum(sum(sum(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
+phase_gradients_x_max_error = max(max(max(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
 
-
-
+figure
+plot(motion_parameters_cpu(:,3),'r')
+hold on
+plot(motion_parameters_opencl(:,3),'b')
+hold off

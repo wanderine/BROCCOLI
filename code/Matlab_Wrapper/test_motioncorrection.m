@@ -28,22 +28,104 @@ clear all
 clc
 close all
 
-%mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
-mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+%mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 %filename = '../../test_data/msit_1.6mm_1.nii';
 
-load ../../test_data/hand_movements_right.mat
+load ../../test_data/hand_movements_left.mat
 fMRI_volumes = vol_exp;
 reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
-number_of_iterations_for_motion_correction = 1;
+number_of_iterations_for_motion_correction = 3;
 load filters.mat
+
+%%
+% Create random translations, for testing
+
+generated_fMRI_volumes = zeros(size(fMRI_volumes));
+generated_fMRI_volumes(:,:,:,1) = fMRI_volumes(:,:,:,1);
+
+for t = 2:st
+    
+    original_volume = fMRI_volumes(:,:,:,2);
+    middle_x = (sx-1)/2;
+    middle_y = (sy-1)/2;
+    middle_z = (sz-1)/2;
+    
+    % Translation in 3 directions
+    x_translation = randn;
+    y_translation = randn;
+    z_translation = randn;
+    
+    x_translations(t) = x_translation;
+    y_translations(t) = y_translation;
+    z_translations(t) = z_translation;
+    
+    % Rotation in 3 directions
+    x_rotation = randn; % degrees
+    y_rotation = randn; % degrees
+    z_rotation = randn; % degrees
+    
+    R_x = [1                        0                           0;
+        0                        cos(x_rotation*pi/180)      -sin(x_rotation*pi/180);
+        0                        sin(x_rotation*pi/180)      cos(x_rotation*pi/180)];
+    
+    R_y = [cos(y_rotation*pi/180)   0                           sin(y_rotation*pi/180);
+        0                        1                           0;
+        -sin(y_rotation*pi/180)  0                           cos(y_rotation*pi/180)];
+    
+    R_z = [cos(z_rotation*pi/180)   -sin(z_rotation*pi/180)     0;
+        sin(z_rotation*pi/180)   cos(z_rotation*pi/180)      0;
+        0                        0                           1];
+    
+    Rotation_matrix = R_x * R_y * R_z;
+    Rotation_matrix = Rotation_matrix(:);
+    
+    % Add rotation first
+    
+    [xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
+    
+    rx_r = zeros(sy,sx,sz);
+    ry_r = zeros(sy,sx,sz);
+    rz_r = zeros(sy,sx,sz);
+    
+    rx_r(:) = [xi(:) yi(:) zi(:)]*Rotation_matrix(1:3);
+    ry_r(:) = [xi(:) yi(:) zi(:)]*Rotation_matrix(4:6);
+    rz_r(:) = [xi(:) yi(:) zi(:)]*Rotation_matrix(7:9);
+    
+    altered_volume = interp3(xi,yi,zi,original_volume,rx_r,ry_r,rz_r,'cubic');
+    altered_volume(isnan(altered_volume)) = 0;
+    
+    % Then add translation
+    
+    [xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
+    
+    rx_t = zeros(sy,sx,sz);
+    ry_t = zeros(sy,sx,sz);
+    rz_t = zeros(sy,sx,sz);
+    
+    rx_t(:) = x_translation;
+    ry_t(:) = y_translation;
+    rz_t(:) = z_translation;
+    
+    altered_volume = interp3(xi,yi,zi,altered_volume,xi - rx_t,yi - ry_t,zi - rz_t,'cubic');
+    altered_volume(isnan(altered_volume)) = 0;
+  
+    generated_fMRI_volumes(:,:,:,t) = altered_volume;
+end
+
+
+%%
+
+fMRI_volumes = generated_fMRI_volumes;
 
 [motion_corrected_volumes_cpu,motion_parameters_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
 
+tic
 [motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = MotionCorrection(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
+toc
 
 quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1,'same');
 quadrature_filter_response_reference_2_cpu = convn(fMRI_volumes(:,:,:,1),f2,'same');
@@ -58,9 +140,9 @@ phase_differences_x_cpu = angle(quadrature_filter_response_reference_1_cpu .* co
 phase_certainties_x_cpu = abs(quadrature_filter_response_reference_1_cpu .* quadrature_filter_response_aligned_1_cpu) .* ((cos(phase_differences_x_cpu/2)).^2);
 
 phase_gradients_x_cpu = zeros(sy,sx,sz);
-phase_gradients_x_cpu(:,2:end-1,:) = angle(quadrature_filter_response_reference_1_cpu(:,3:end,:).*conj(quadrature_filter_response_reference_1_cpu(:,2:end-1,:)) + quadrature_filter_response_reference_1_cpu(:,2:end-1,:).*conj(quadrature_filter_response_reference_1_cpu(:,1:end-2,:)) + ... 
-                                        quadrature_filter_response_aligned_1_cpu(:,3:end,:).*conj(quadrature_filter_response_aligned_1_cpu(:,2:end-1,:)) + quadrature_filter_response_aligned_1_cpu(:,2:end-1,:).*conj(quadrature_filter_response_aligned_1_cpu(:,1:end-2,:)));
-   
+phase_gradients_x_cpu(:,2:end-1,:) = angle(quadrature_filter_response_reference_1_cpu(:,3:end,:).*conj(quadrature_filter_response_reference_1_cpu(:,2:end-1,:)) + quadrature_filter_response_reference_1_cpu(:,2:end-1,:).*conj(quadrature_filter_response_reference_1_cpu(:,1:end-2,:)) + ...
+    quadrature_filter_response_aligned_1_cpu(:,3:end,:).*conj(quadrature_filter_response_aligned_1_cpu(:,2:end-1,:)) + quadrature_filter_response_aligned_1_cpu(:,2:end-1,:).*conj(quadrature_filter_response_aligned_1_cpu(:,1:end-2,:)));
+
 %
 
 
@@ -118,6 +200,15 @@ phase_certainties_x_max_error = max(abs(phase_certainties_x_cpu(:) - phase_certa
 phase_gradients_x_tot_error = sum(sum(sum(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
 phase_gradients_x_max_error = max(max(max(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
 
+motion_parameters_opencl(1,3) = 0;
 
+
+figure
+plot(z_translations,'g')
+hold on
+plot(motion_parameters_cpu(:,3),'r')
+hold on
+plot(motion_parameters_opencl(:,3),'b')
+hold off
 
 

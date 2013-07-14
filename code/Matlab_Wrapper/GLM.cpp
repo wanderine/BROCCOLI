@@ -192,8 +192,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int error = BROCCOLI.GetOpenCLError();
     mexPrintf("Error is %d \n",error);
     
-    int kernel_error = BROCCOLI.GetOpenCLKernelError();
-    mexPrintf("Kernel error is %d \n",kernel_error);
+    int createKernelError = BROCCOLI.GetOpenCLCreateKernelError();
+    mexPrintf("Create kernel error is %d \n",createKernelError);
+    
+    double GLM_time = BROCCOLI.GetProcessingTimeConvolution();
+    //mexPrintf("GLM time is %f ms \n",GLM_time/1000000.0);
+    mexPrintf("GLM time is %f ms \n",GLM_time);
     
     unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, DATA_W, DATA_H, DATA_D, DATA_T);
