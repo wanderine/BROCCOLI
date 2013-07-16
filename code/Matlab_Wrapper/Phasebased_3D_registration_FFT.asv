@@ -31,11 +31,10 @@ z_motion_vectors = zeros(sy_o,sx_o,sz_o);
 
 %for its = 1:max_its
 p_diff = 1000;
-p_old = p;
-its = 0;
-while p_diff > 0.0001
+p_old = 
+while p_diff > 0.01
     
-    its = its + 1
+    its
     
     % FFT Convolution
     
@@ -108,9 +107,7 @@ while p_diff > 0.0001
 
     % Update parameter vector
     p = p + pp
-    p_diff = sum((p_old(:) - p(:)).^2);
-    p_old = p;
-    
+        
     % Find movement field
     x_motion_vectors(:) = p(1) + [x(:) y(:) z(:)]*p(4:6);
     y_motion_vectors(:) = p(2) + [x(:) y(:) z(:)]*p(7:9);
