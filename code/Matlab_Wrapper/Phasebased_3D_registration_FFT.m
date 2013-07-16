@@ -33,9 +33,9 @@ z_motion_vectors = zeros(sy_o,sx_o,sz_o);
 p_diff = 1000;
 p_old = p;
 its = 0;
-while p_diff > 0.0001
+while p_diff > 0.001
     
-    its = its + 1
+    %its = its + 1
     
     % FFT Convolution
     
@@ -107,7 +107,7 @@ while p_diff > 0.0001
     pp = inv(A)*h;
 
     % Update parameter vector
-    p = p + pp
+    p = p + pp;
     p_diff = sum((p_old(:) - p(:)).^2);
     p_old = p;
     

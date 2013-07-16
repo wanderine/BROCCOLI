@@ -54,7 +54,9 @@ T1_ = T1(1:4:end,1:4:end,1:4:end);
 MNI_ = MNI(1:4:end,1:4:end,1:4:end);
 
 number_of_iterations_for_motion_correction = 40;
+tic
 [registered_T1_cpu, registration_parameters_cpu1] = perform_T1_MNI_registration_CPU(T1_,MNI_,f1,f2,f3,number_of_iterations_for_motion_correction);
+toc
 
 %tic
 %[registered_T1_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = RegisterT1MNI(T1,MNI,f1,f2,f3,number_of_iterations_for_motion_correction);
@@ -86,7 +88,9 @@ T1__ = interp3(x,y,z,T1_,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vector
 T1__(isnan(T1__)) = 0;
 
 number_of_iterations_for_motion_correction = 10;
+tic
 [registered_T1_cpu, registration_parameters_cpu2] = perform_T1_MNI_registration_CPU(T1__,MNI_,f1,f2,f3,number_of_iterations_for_motion_correction);
+toc
 
 slice = 64;
 
@@ -111,8 +115,10 @@ T1__ = interp3(x,y,z,T1,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors
 T1__(isnan(T1__)) = 0;
  
 number_of_iterations_for_motion_correction = 10;
+tic
 [registered_T1_cpu, registration_parameters_cpu] = perform_T1_MNI_registration_CPU(T1__,MNI,f1,f2,f3,number_of_iterations_for_motion_correction);
- 
+toc
+
 slice = 128;
 
 figure
@@ -131,8 +137,12 @@ skullstripped = registered_T1_cpu .* mask;
 
 for slice = 1:size(skullstripped,3)
     figure(11)
+    imagesc([ registered_T1_cpu(:,:,slice)] ); colormap gray    
+    figure(12)
     imagesc([ skullstripped(:,:,slice)] ); colormap gray
-    pause(0.1)
+    
+    %pause(0.1)
+    pause
 end
 
 
