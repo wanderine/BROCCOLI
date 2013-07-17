@@ -29,76 +29,154 @@ clc
 close all
 
 addpath('D:\nifti_matlab')
+addpath('D:\BROCCOLI_test_data')
+
 
 %mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 %mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
-T1_nii = load_nii('../../test_data/T1_AE.nii');
+%T1_nii = load_nii('../../test_data/T1_AE.nii');
+T1_nii = load_nii('mprage_anonymized15.nii.gz');
 T1 = double(T1_nii.img);
-T1 = T1(1:182,1:218,105:end);
+%T1 = T1(1:182,1:218,105:end);
 MNI_nii = load_nii('../../test_data/MNI152_T1_1mm.nii');
 MNI = double(MNI_nii.img);
-MNI = MNI(:,:,1:end-30);
-[sy sx sz] = size(T1)
+%MNI = MNI(:,:,1:end-30);
+[sy_T1 sx_T1 sz_T1] = size(T1)
 [sy sx sz] = size(MNI)
+
+% Make sure T1 has same voxel size as MNI
+voxel_size_x = T1_nii.hdr.dime.pixdim(1);
+voxel_size_y = T1_nii.hdr.dime.pixdim(2);
+voxel_size_z = T1_nii.hdr.dime.pixdim(3);
+
+if ( ((voxel_size_x - 1.00) > 0.05) || ((voxel_size_y - 1.00) > 0.05) || ((voxel_size_z - 1.00) > 0.05))
+    % Calculate new number of elements
+    sx_T1_new = round(sx_T1*voxel_size_x / 1.0);
+    sy_T1_new = round(sy_T1*voxel_size_y / 1.0);
+    sz_T1_new = round(sz_T1*voxel_size_z / 1.0);
+    x = linspace(1,sx_T1,sx_T1_new);
+    y = linspace(1,sy_T1,sy_T1_new);
+    z = linspace(1,sz_T1,sz_T1_new);
+    [xx,yy,zz] = meshgrid(x,y,z);
+    temp = interp3(T1,xx,yy,zz,'linear');    % Generates NaN's
+    temp(isnan(temp)) = 0;
+    T1 = temp;
+    [sy_T1 sx_T1 sz_T1] = size(T1)
+end
+
+% Make sure T1 has same size as MNI
+
+x_diff = sx_T1 - sx
+y_diff = sy_T1 - sy
+z_diff = sz_T1 - sz
+
+if z_diff > 0
+    T1 = T1(:,:,z_diff+1:end);
+    T1(:,:,1:end-10) = T1(:,:,11:end);
+    T1(:,:,11:end) = zeros(sy_T1,sx_T1,sz-11);
+else
+    temp = zeros(sy_T1,sx_T1,sz);
+    z_diff = abs(z_diff);
+    temp(:,:,round(z_diff/2)+1:round(z_diff/2)+sz_T1) = T1;
+    T1 = temp;
+    T1(:,:,1:end-10) = T1(:,:,11:end);
+    T1(:,:,end-9:end) = zeros(sy_T1,sx_T1,sz-10);
+end
+
+
+if y_diff > 0
+    T1 = T1(y_diff/2+1:end-y_diff/2,:,:);
+else
+    temp = zeros(sy,sx_T1,sz);
+    y_diff = abs(y_diff);
+    temp(round(y_diff/2)+1:round(y_diff/2)+sy_T1,:,:) = T1;
+    T1 = temp;
+end
+
+
+if x_diff > 0
+    T1 = T1(:,x_diff/2+1:end-x_diff/2,:);
+else
+    temp = zeros(sy,sx,sz);
+    x_diff = abs(x_diff);
+    temp(:,round(x_diff/2)+1:round(x_diff/2)+sx_T1,:,:) = T1;
+    T1 = temp;
+end
+
+[sy_T1 sx_T1 sz_T1] = size(T1)
+
+
+
+%T1 = T1(y_diff/2+1:end-y_diff/2,x_diff/2+1:end-x_diff/2,z_diff+1:end);
+
 
 mask_nii = load_nii('../../test_data/MNI152_T1_1mm_brain_mask.nii');
 mask = double(mask_nii.img);
-mask = mask(:,:,1:end-30);
+%mask = mask(:,:,1:end-30);
 
 load filters.mat
 
-T1_ = T1(1:4:end,1:4:end,1:4:end);
-[sy sx sz] = size(T1_)
-MNI_ = MNI(1:4:end,1:4:end,1:4:end);
-
-number_of_iterations_for_motion_correction = 40;
-[registered_T1_cpu, registration_parameters_cpu1] = perform_T1_MNI_registration_CPU(T1_,MNI_,f1,f2,f3,number_of_iterations_for_motion_correction);
+number_of_iterations_for_motion_correction = 50;
 
 %tic
 %[registered_T1_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = RegisterT1MNI(T1,MNI,f1,f2,f3,number_of_iterations_for_motion_correction);
 %toc
 
-slice = 32;
+scales =     [12 8 4    2 1];
+%number_of_iterations_for_motion_correction = [50 50 30 15  3];
+scale = scales(1);
+T1_current = T1(1:scale:end,1:scale:end,1:scale:end);
+MNI_current = MNI(1:scale:end,1:scale:end,1:scale:end);
+[sy sx sz] = size(T1_current)
 
-figure
-imagesc([ MNI_(:,:,slice)/norm(MNI_(:)) T1_(:,:,slice)/norm(T1_(:)) ] ); colormap gray
-figure
-imagesc([ MNI_(:,:,slice)/norm(MNI_(:)) registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ] ); colormap gray
+total_registration_parameters = zeros(12,1);
+tic
+i = 0;
+for scale = scales
+    i = i + 1;
+    [registered_T1_cpu, registration_parameters_cpu] = perform_T1_MNI_registration_CPU(T1_current,MNI_current,f1,f2,f3,number_of_iterations_for_motion_correction);
+    
+    slice = round(128/scale);
+    
+    figure
+    imagesc([ MNI_current(:,:,slice)/norm(MNI_current(:)) T1_current(:,:,slice)/norm(T1_current(:)) ] ); colormap gray
+    figure
+    imagesc([ MNI_current(:,:,slice)/norm(MNI_current(:)) registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ] ); colormap gray
+    drawnow
+    
+    if scale ~= 1
+        T1_current = T1(1:scale/2:end,1:scale/2:end,1:scale/2:end);
+        MNI_current = MNI(1:scale/2:end,1:scale/2:end,1:scale/2:end);
+        [sy sx sz] = size(T1_current)
+        p = registration_parameters_cpu;
+        total_registration_parameters(1:3) = total_registration_parameters(1:3)*scales(i)/scales(i+1) + p(1:3)*scales(i)/scales(i+1);
+        total_registration_parameters(4:12) = total_registration_parameters(4:12) + p(4:12);
+        p = total_registration_parameters;
+        [x, y, z] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
+        x_motion_vectors = zeros(sy,sx,sz);
+        y_motion_vectors = zeros(sy,sx,sz);
+        z_motion_vectors = zeros(sy,sx,sz);
+        x_motion_vectors(:) = p(1) + [x(:) y(:) z(:)]*p(4:6);
+        y_motion_vectors(:) = p(2) + [x(:) y(:) z(:)]*p(7:9);
+        z_motion_vectors(:) = p(3) + [x(:) y(:) z(:)]*p(10:12);
+        
+        temp = interp3(x,y,z,T1_current,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's
+        temp(isnan(temp)) = 0;
+        T1_current = temp;
+        
+    else
+        total_registration_parameters = total_registration_parameters + registration_parameters_cpu;
+        total_registration_parameters
+    end
+    
+    
+end
+toc
 
-T1_ = T1(1:2:end,1:2:end,1:2:end);
-MNI_ = MNI(1:2:end,1:2:end,1:2:end);
-[sy sx sz] = size(T1_)
-p = registration_parameters_cpu1;
-p(1) = p(1)*2;
-p(2) = p(2)*2;
-p(3) = p(3)*2;
-[x, y, z] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
-x_motion_vectors = zeros(sy,sx,sz);
-y_motion_vectors = zeros(sy,sx,sz);
-z_motion_vectors = zeros(sy,sx,sz);
-x_motion_vectors(:) = p(1) + [x(:) y(:) z(:)]*p(4:6);
-y_motion_vectors(:) = p(2) + [x(:) y(:) z(:)]*p(7:9);
-z_motion_vectors(:) = p(3) + [x(:) y(:) z(:)]*p(10:12);
-
-T1__ = interp3(x,y,z,T1_,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's
-T1__(isnan(T1__)) = 0;
-
-number_of_iterations_for_motion_correction = 10;
-[registered_T1_cpu, registration_parameters_cpu2] = perform_T1_MNI_registration_CPU(T1__,MNI_,f1,f2,f3,number_of_iterations_for_motion_correction);
-
-slice = 64;
-
-figure
-imagesc([ MNI_(:,:,slice)/norm(MNI_(:)) T1__(:,:,slice)/norm(T1__(:)) ] ); colormap gray
-figure
-imagesc([ MNI_(:,:,slice)/norm(MNI_(:)) registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ] ); colormap gray
-
-
+p = total_registration_parameters;
 [sy sx sz] = size(T1)
-p(1:3) = registration_parameters_cpu1(1:3)*4 + registration_parameters_cpu2(1:3)*2;
-p(4:12) = registration_parameters_cpu1(4:12) + registration_parameters_cpu2(4:12);
 [x, y, z] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
 x_motion_vectors = zeros(sy,sx,sz);
 y_motion_vectors = zeros(sy,sx,sz);
@@ -106,40 +184,42 @@ z_motion_vectors = zeros(sy,sx,sz);
 x_motion_vectors(:) = p(1) + [x(:) y(:) z(:)]*p(4:6);
 y_motion_vectors(:) = p(2) + [x(:) y(:) z(:)]*p(7:9);
 z_motion_vectors(:) = p(3) + [x(:) y(:) z(:)]*p(10:12);
-
-T1__ = interp3(x,y,z,T1,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's
-T1__(isnan(T1__)) = 0;
- 
-number_of_iterations_for_motion_correction = 10;
-[registered_T1_cpu, registration_parameters_cpu] = perform_T1_MNI_registration_CPU(T1__,MNI,f1,f2,f3,number_of_iterations_for_motion_correction);
- 
-slice = 128;
-
-figure
-imagesc([ MNI(:,:,slice)/norm(MNI(:)) T1(:,:,slice)/norm(T1(:)) ] ); colormap gray
-figure
-imagesc([ MNI(:,:,slice)/norm(MNI(:)) T1__(:,:,slice)/norm(T1__(:)) ] ); colormap gray
-figure
-imagesc([ MNI(:,:,slice)/norm(MNI(:)) registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ] ); colormap gray
+temp = interp3(x,y,z,T1,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's
+temp(isnan(temp)) = 0;
+T1_current = temp;
 
 
-figure
-imagesc([ MNI(:,:,slice)/norm(MNI(:))  ] ); colormap gray
-figure
-imagesc([ registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ]); colormap gray
+% for slice = 1:size(MNI,3)
+%     figure(14)
+%     imagesc([ MNI(:,:,slice)/norm(MNI(:)) registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ] ); colormap gray
+%     drawnow
+%
+%     %pause(0.1)
+%     pause
+% end
+
 skullstripped = registered_T1_cpu .* mask;
 
 for slice = 1:size(skullstripped,3)
     figure(11)
-    imagesc([ registered_T1_cpu(:,:,slice)] ); colormap gray    
+    imagesc([ registered_T1_cpu(:,:,slice)] ); colormap gray
     figure(12)
     imagesc([ skullstripped(:,:,slice)] ); colormap gray
+    
+    pause(0.1)
+    %pause
+end
+
+
+for slice = 1:size(skullstripped,1)
+    figure(11)
+    imagesc([ squeeze(registered_T1_cpu(slice,:,:))] ); colormap gray
+    figure(12)
+    imagesc([ squeeze(skullstripped(slice,:,:))] ); colormap gray
     
     %pause(0.1)
     pause
 end
-
-
 
 %
 % quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1,'same');

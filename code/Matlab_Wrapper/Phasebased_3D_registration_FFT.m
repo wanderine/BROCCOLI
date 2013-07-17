@@ -33,7 +33,8 @@ z_motion_vectors = zeros(sy_o,sx_o,sz_o);
 p_diff = 1000;
 p_old = p;
 its = 0;
-while p_diff > 0.001
+while p_diff > 0.0001
+%for it = 1:max_its   
     
     %its = its + 1
     
@@ -107,8 +108,8 @@ while p_diff > 0.001
     pp = inv(A)*h;
 
     % Update parameter vector
-    p = p + pp;
-    p_diff = sum((p_old(:) - p(:)).^2);
+    p = p + pp
+    p_diff = sum((p_old(:) - p(:)).^2)
     p_old = p;
     
     % Find movement field

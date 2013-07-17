@@ -210,5 +210,5 @@ plot(motion_parameters_cpu(:,3),'r')
 hold on
 plot(motion_parameters_opencl(:,3),'b')
 hold off
-
+legend('Applied translations','Estimated translations CPU','Estimated translations OpenCL')
 
