@@ -1824,14 +1824,33 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image
 
 	Motion_Vector.x = x + c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf + 0.5f;
 	Motion_Vector.y = y + c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf + 0.5f;
-	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;
+	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;	
 	Motion_Vector.w = 0.0f;
 
 	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler, Motion_Vector);
 	Volume[idx] = Interpolated_Value.x;
 }
 
+__kernel void UpscaleVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
 
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
+	float4 Motion_Vector;
+	
+	Motion_Vector.x = x * VOXEL_DIFFERENCE_X + 0.5f;
+	Motion_Vector.y = y * VOXEL_DIFFERENCE_Y + 0.5f;
+	Motion_Vector.z = z * VOXEL_DIFFERENCE_Z + 0.5f;
+	Motion_Vector.w = 0.0f;
+
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler, Motion_Vector);
+	Volume[idx] = Interpolated_Value.x;
+}
 
 // Statistical functions
 

@@ -77,7 +77,7 @@ smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z);
 figure
 plot(squeeze(smoothed_volumes_cpu(25,25,15,:)),'r')
 hold on
-plot(squeeze(smoothed_volumes_opencl(25,25,15,:)+0.001),'b')
+plot(squeeze(smoothed_volumes_opencl(25,25,15,:)+0.1),'b')
 hold off
 
 figure

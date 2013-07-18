@@ -28,9 +28,9 @@ clear all
 clc
 close all
 
-mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+%mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
-%mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 %filename = '../../test_data/msit_1.6mm_1.nii';
 
@@ -38,7 +38,7 @@ load ../../test_data/hand_movements_left.mat
 fMRI_volumes = vol_exp;
 reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
-number_of_iterations_for_motion_correction = 3;
+number_of_iterations_for_motion_correction = 5;
 load filters.mat
 
 %%
@@ -55,9 +55,9 @@ for t = 2:st
     middle_z = (sz-1)/2;
     
     % Translation in 3 directions
-    x_translation = randn;
-    y_translation = randn;
-    z_translation = randn;
+    x_translation = 2*randn;
+    y_translation = 2*randn;
+    z_translation = 2*randn;
     
     x_translations(t) = x_translation;
     y_translations(t) = y_translation;
@@ -131,9 +131,9 @@ quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1,'sam
 quadrature_filter_response_reference_2_cpu = convn(fMRI_volumes(:,:,:,1),f2,'same');
 quadrature_filter_response_reference_3_cpu = convn(fMRI_volumes(:,:,:,1),f3,'same');
 
-quadrature_filter_response_aligned_1_cpu = convn(fMRI_volumes(:,:,:,2),f1,'same');
-quadrature_filter_response_aligned_2_cpu = convn(fMRI_volumes(:,:,:,2),f2,'same');
-quadrature_filter_response_aligned_3_cpu = convn(fMRI_volumes(:,:,:,2),f3,'same');
+quadrature_filter_response_aligned_1_cpu = convn(fMRI_volumes(:,:,:,end),f1,'same');
+quadrature_filter_response_aligned_2_cpu = convn(fMRI_volumes(:,:,:,end),f2,'same');
+quadrature_filter_response_aligned_3_cpu = convn(fMRI_volumes(:,:,:,end),f3,'same');
 
 phase_differences_x_cpu = angle(quadrature_filter_response_reference_1_cpu .* conj(quadrature_filter_response_aligned_1_cpu));
 
@@ -149,27 +149,27 @@ phase_gradients_x_cpu(:,2:end-1,:) = angle(quadrature_filter_response_reference_
 slice = 4;
 
 figure
-imagesc( [real(quadrature_filter_response_reference_1_cpu(:,:,slice)) real(quadrature_filter_response_1_opencl(:,:,slice)) ] )
+imagesc( [real(quadrature_filter_response_aligned_1_cpu(:,:,slice)) real(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
 figure
-imagesc( [real(quadrature_filter_response_reference_2_cpu(:,:,slice)) real(quadrature_filter_response_2_opencl(:,:,slice)) ] )
+imagesc( [real(quadrature_filter_response_aligned_2_cpu(:,:,slice)) real(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
 figure
-imagesc( [real(quadrature_filter_response_reference_3_cpu(:,:,slice)) real(quadrature_filter_response_3_opencl(:,:,slice)) ] )
+imagesc( [real(quadrature_filter_response_aligned_3_cpu(:,:,slice)) real(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
 
 figure
-imagesc( [imag(quadrature_filter_response_reference_1_cpu(:,:,slice)) imag(quadrature_filter_response_1_opencl(:,:,slice)) ] )
+imagesc( [imag(quadrature_filter_response_aligned_1_cpu(:,:,slice)) imag(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
 figure
-imagesc( [imag(quadrature_filter_response_reference_2_cpu(:,:,slice)) imag(quadrature_filter_response_2_opencl(:,:,slice)) ] )
+imagesc( [imag(quadrature_filter_response_aligned_2_cpu(:,:,slice)) imag(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
 figure
-imagesc( [imag(quadrature_filter_response_reference_3_cpu(:,:,slice)) imag(quadrature_filter_response_3_opencl(:,:,slice)) ] )
+imagesc( [imag(quadrature_filter_response_aligned_3_cpu(:,:,slice)) imag(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
 
 figure
-imagesc( [phase_differences_x_cpu(:,:,slice) phase_differences_x_opencl(:,:,slice) ] )
+imagesc( [phase_differences_x_cpu(:,:,slice) phase_differences_x_opencl(:,:,slice) ] ); colorbar
 figure
-imagesc( [phase_certainties_x_cpu(:,:,slice) phase_certainties_x_opencl(:,:,slice) ] )
+imagesc( [phase_certainties_x_cpu(:,:,slice) phase_certainties_x_opencl(:,:,slice) ] ); colorbar
 %figure
 %imagesc( [phase_certainties_x_cpu(:,:,slice) - phase_certainties_x_opencl(:,:,slice) ] ); colorbar
 figure
-imagesc( [phase_gradients_x_cpu(:,:,slice) phase_gradients_x_opencl(:,:,slice) ] )
+imagesc( [phase_gradients_x_cpu(:,:,slice) phase_gradients_x_opencl(:,:,slice) ] ); colorbar
 figure
 imagesc( [phase_gradients_x_cpu(2:end-1,2:end-1,slice) - phase_gradients_x_opencl(2:end-1,2:end-1,slice) ] ); colorbar
 

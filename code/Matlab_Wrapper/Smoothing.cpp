@@ -124,11 +124,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     BROCCOLI_LIB BROCCOLI;
     
-    BROCCOLI.SetWidth(DATA_W);
-    BROCCOLI.SetHeight(DATA_H);
-    BROCCOLI.SetDepth(DATA_D);
-    BROCCOLI.SetTimepoints(DATA_T);
-    BROCCOLI.SetGlobalAndLocalWorkSizes();
+    BROCCOLI.SetEPIWidth(DATA_W);
+    BROCCOLI.SetEPIHeight(DATA_H);
+    BROCCOLI.SetEPIDepth(DATA_D);
+    BROCCOLI.SetEPITimepoints(DATA_T);
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetOutputData(h_Filter_Response);
     BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
@@ -138,13 +137,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     
     //BROCCOLI.AddVolumes();
-    BROCCOLI.PerformSmoothingTest();
+    BROCCOLI.PerformSmoothingWrapper();
     
     int error = BROCCOLI.GetOpenCLError();
     mexPrintf("Error is %d \n",error);
     
-    int kernel_error = BROCCOLI.GetOpenCLKernelError();
-    mexPrintf("Kernel error is %d \n",kernel_error);
+    int createKernelError = BROCCOLI.GetOpenCLCreateKernelError();
+    mexPrintf("Create kernel error is %d \n",createKernelError);
     
     unpack_float2double_volumes(h_Filter_Response_double, h_Filter_Response, DATA_W, DATA_H, DATA_D, DATA_T);
         

@@ -167,11 +167,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     BROCCOLI_LIB BROCCOLI;
     
-    BROCCOLI.SetWidth(DATA_W);
-    BROCCOLI.SetHeight(DATA_H);
-    BROCCOLI.SetDepth(DATA_D);
-    BROCCOLI.SetTimepoints(DATA_T);   
-    BROCCOLI.SetGlobalAndLocalWorkSizes();
+    BROCCOLI.SetEPIWidth(DATA_W);
+    BROCCOLI.SetEPIHeight(DATA_H);
+    BROCCOLI.SetEPIDepth(DATA_D);
+    BROCCOLI.SetEPITimepoints(DATA_T);   
     BROCCOLI.SetNumberOfRegressors(NUMBER_OF_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
@@ -187,7 +186,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
             
-    BROCCOLI.PerformGLMTest();
+    BROCCOLI.PerformGLMWrapper();
     
     int error = BROCCOLI.GetOpenCLError();
     mexPrintf("Error is %d \n",error);
