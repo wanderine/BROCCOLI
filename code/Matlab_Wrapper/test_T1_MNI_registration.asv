@@ -62,6 +62,8 @@ MNI_voxel_size_x = 1.0;
 MNI_voxel_size_y = 1.0;
 MNI_voxel_size_z = 1.0;
 
+MM_T1_Z_CUT = 0;
+
 % Calculate new number of elements
 sx_T1_interpolated = round(sx_T1*T1_voxel_size_x / MNI_voxel_size_x);
 sy_T1_interpolated = round(sy_T1*T1_voxel_size_y / MNI_voxel_size_y);
@@ -74,7 +76,7 @@ temp = interp3(T1,xx,yy,zz,'linear');    % Generates NaN's
 temp(isnan(temp)) = 0;
 T1_interpolated = temp;
 
-[registered_T1_opencl, T1_interpolated_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = RegisterT1MNI(T1,MNI,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,1);
+[registered_T1_opencl, T1_interpolated_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = RegisterT1MNI(T1,MNI,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,1,MM_T1_Z_CUT);
 
 slice = 60;
 figure; imagesc(T1(:,:,slice))
@@ -113,17 +115,22 @@ end
 if z_diff > 0
     z_MNI = 0;
     z_Interpolated = z_diff + 0;
-    z_offset = round(20/MNI_voxel_size_z);
+    z_offset = round(MM_T1_Z_CUT/MNI_voxel_size_z);
 else
     z_MNI = round(abs(z_diff/2));
     z_Interpolated = 0;
-    z_offset = round(20/MNI_voxel_size_z);
+    z_offset = round(MM_T1_Z_CUT/MNI_voxel_size_z);
 end
 
 T1_MNI(y_MNI+1:y_MNI+sy_T1_interpolated,x_MNI+1:x_MNI+sx_T1_interpolated,z_MNI+1:z_MNI+sz_T1_interpolated-z_offset) = T1_interpolated(y_Interpolated+1:end-y_Interpolated,x_Interpolated+1:end-x_Interpolated,z_offset+z_Interpolated+1:end-z_Interpolated);
 
 figure; imagesc(T1_MNI(:,:,slice))
 figure; imagesc(registered_T1_opencl(:,:,slice))
+
+figure; imagesc(squeeze(T1(slice,:,:)))
+figure; imagesc(squeeze(T1_MNI(slice,:,:)))
+figure; imagesc(squeeze(registered_T1_opencl(slice,:,:)))
+figure; imagesc(squeeze(MNI(slice,:,:)))
 
 tot_error = sum(abs(T1_MNI(:) - registered_T1_opencl(:)))
 max_error = max(abs(T1_MNI(:) - registered_T1_opencl(:)))
@@ -132,8 +139,7 @@ max_error = max(abs(T1_MNI(:) - registered_T1_opencl(:)))
 
 mask_nii = load_nii('../../test_data/MNI152_T1_1mm_brain_mask.nii');
 mask = double(mask_nii.img);
-%
-%
+
 % number_of_iterations_for_motion_correction = 50;
 %
 %

@@ -55,9 +55,9 @@ for t = 2:st
     middle_z = (sz-1)/2;
     
     % Translation in 3 directions
-    x_translation = 2*randn;
-    y_translation = 2*randn;
-    z_translation = 2*randn;
+    x_translation = 1.5*randn;
+    y_translation = 1.5*randn;
+    z_translation = 1.5*randn;
     
     x_translations(t) = x_translation;
     y_translations(t) = y_translation;

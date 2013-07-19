@@ -1852,7 +1852,7 @@ __kernel void RescaleVolumeTriLinear(__global float* Volume, read_only image3d_t
 	Volume[idx] = Interpolated_Value.x;
 }
 
-__kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private float MNI_VOXEL_SIZE_Z)
+__kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_T1_Z_CUT, __private float MNI_VOXEL_SIZE_Z)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1893,19 +1893,19 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	}
 	// Interpolated T1 volume larger than MNI volume
 	// Remove bottom slices (since it is normally only neck tissue)
-	// Remove an additional cm
+	// Remove some additional slices to make the T1-MNI registration easier
 	if (z_diff > 0)
 	{
 		z_MNI = z;
-		z_Interpolated = z + z_diff + (int)round(10.0/MNI_VOXEL_SIZE_Z);
+		z_Interpolated = z + z_diff + (int)round((float)MM_T1_Z_CUT/MNI_VOXEL_SIZE_Z);
 	}
 	// Interpolated T1 volume smaller than MNI volume
 	// Put interpolated T1 volume in the middle of the MNI volume
-	// Remove an additional cm
+	// Remove some additional slices to make the T1-MNI registration easier
 	else
 	{
 		z_MNI = z + (int)round((float)abs(z_diff)/2.0);
-		z_Interpolated = z + (int)round(10.0/MNI_VOXEL_SIZE_Z);
+		z_Interpolated = z + (int)round((float)MM_T1_Z_CUT/MNI_VOXEL_SIZE_Z);
 	}
 
 	// Make sure we are not reading outside any volume

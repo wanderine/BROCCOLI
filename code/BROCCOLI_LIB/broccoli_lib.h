@@ -170,29 +170,31 @@ class BROCCOLI_LIB
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
-		void SetMotionCorrectionFilterSize(int N);
-		void SetMotionCorrectionFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
-
+		void SetImageRegistrationFilterSize(int N);
+		void SetImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
+		void SetMMT1ZCUT(int mm);
 
 		void SetInputfMRIVolumes(float* input);
 		void SetInputT1Volume(float* input);
+		void SetInputMNIVolume(float* input);
 		void SetOutputBetaVolumes(float* output);
 		void SetOutputResiduals(float* output);
 		void SetOutputResidualVariances(float* output);
-		void SetOutputStatisticalMaps(float* output);
-		void SetOutputData(float* output);
+		void SetOutputStatisticalMaps(float* output);		
 		void SetOutputMotionParameters(float* output);
+		void SetOutputT1MNIRegistrationParameters(float* output);
 		void SetOutputQuadratureFilterResponses(float* qfr1r, float* qfr1i, float* qfr2r, float* qfr2i, float* qfr3r, float* qfr3i);
 		void SetOutputPhaseDifferences(float*);
 		void SetOutputPhaseCertainties(float*);
 		void SetOutputPhaseGradients(float*);
 		void SetOutputAlignedT1Volume(float*);
 		void SetOutputInterpolatedT1Volume(float*);
+		void SetOutputData(float* output);
 
 		void SetfMRIDataFilename(std::string filename);
 			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);
-		void SetNumberOfIterationsForMotionCorrection(int N);
+		void SetNumberOfIterationsForImageRegistration(int N);
 		void SetSmoothingAmount(int value);
 		void SetSmoothingDimensionality(int dimensionality);
 		void SetNumberOfBasisFunctionsDetrending(int N);
@@ -390,10 +392,12 @@ class BROCCOLI_LIB
 		void Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE);
 		void NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
 		void AlignTwoVolumes(float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D);
+		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES);
 		void AlignTwoVolumesCleanup();
 		void AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D);
-		void ChangeT1VolumeResolutionAndSize(cl_mem d_T1_Volume, int ORIGINAL_DATA_W, int ORIGINAL_DATA_H, int ORIGINAL_DATA_D, int INTERPOLATED__DATA_W, int INTERPOLATED__DATA_H, int INTERPOLATED__DATA_D, float ORIGINAL_VOXEL_SIZE_X, float ORIGINAL_VOXEL_SIZE_Y, float ORIGINAL_VOXEL_SIZE_Z, float INTERPOLATED_VOXEL_SIZE_X, float INTERPOLATED_VOXEL_SIZE_Y, float INTERPOLATED_VOXEL_SIZE_Z);
-		
+		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z);
+		void ChangeVolumeSize(cl_mem d_Current_Aligned_Volume, cl_mem d_Aligned_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D);       
+
 		// Read functions
 		void ReadRealDataInt32(int* data, std::string filename, int N);
 		void ReadRealDataInt16(short int* data, std::string filename, int N);
@@ -547,6 +551,7 @@ class BROCCOLI_LIB
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		int T1_DATA_W, T1_DATA_H, T1_DATA_D;
 		int MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
+		int CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D;
 
 				
 		int NUMBER_OF_SUBJECTS;
@@ -585,7 +590,8 @@ class BROCCOLI_LIB
 		int NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
 		int NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION;
 		int	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS;
-		
+		int MM_T1_Z_CUT;
+
 		double* motion_parameters_x;
 		double* motion_parameters_y;
 		double* motion_parameters_z;
@@ -651,9 +657,10 @@ class BROCCOLI_LIB
 		float       *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_3_Real; 
 		float       *h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag; 
 		float		 h_A_Matrix[144], h_Inverse_A_Matrix[144], h_h_Vector[12];
-		float 		 h_Registration_Parameter_Vector[12], h_Registration_Parameter_Vector_Total[12];
+		float 		 h_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Total[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], h_Registration_Parameters_T1_MNI_Total[12], h_Registration_Parameters_EPI_T1[12], h_Registration_Parameters_EPI_T1_Total[12];
 		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
 	
+		float *h_Registration_Parameters_Out;
 		// Motion correction
 		float		*h_Motion_Corrected_fMRI_Volumes;		
 		float		*h_Motion_Parameters;
@@ -709,6 +716,7 @@ class BROCCOLI_LIB
 
 		// Image registration
 		cl_mem      d_Reference_Volume, d_Aligned_Volume, d_Original_Volume;
+		cl_mem		d_Current_Aligned_Volume, d_Current_Reference_Volume;
 		cl_mem		d_A_Matrix, d_h_Vector, d_A_Matrix_2D_Values, d_A_Matrix_1D_Values, d_h_Vector_2D_Values, d_h_Vector_1D_Values;
 		cl_mem 		d_Phase_Differences, d_Phase_Gradients, d_Phase_Certainties;
 		cl_mem      d_q11, d_q12, d_q13, d_q21, d_q22, d_q23;
@@ -716,13 +724,13 @@ class BROCCOLI_LIB
 		cl_mem      d_q11_Imag, d_q12_Imag, d_q13_Imag, d_q21_Imag, d_q22_Imag, d_q23_Imag;
 		cl_mem		c_Quadrature_Filter_1_Real, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_3_Real;
 		cl_mem		c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Imag;
-		cl_mem		c_Registration_Parameter_Vector;
+		cl_mem		c_Registration_Parameters;
 	
 		// Motion correction
 		cl_mem		d_Motion_Corrected_fMRI_Volumes;
 	
 		//
-		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_Interpolated_fMRI_Volume;
+		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_MNI_T1_Volume, d_Interpolated_fMRI_Volume;
 			
 		// Smoothing
 		cl_mem		d_Smoothed_Certainty;
