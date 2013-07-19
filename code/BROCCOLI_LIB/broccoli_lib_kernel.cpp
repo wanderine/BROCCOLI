@@ -1831,7 +1831,7 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image
 	Volume[idx] = Interpolated_Value.x;
 }
 
-__kernel void UpscaleVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void RescaleVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1850,6 +1850,75 @@ __kernel void UpscaleVolumeTriLinear(__global float* Volume, read_only image3d_t
 
 	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler, Motion_Vector);
 	Volume[idx] = Interpolated_Value.x;
+}
+
+__kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private float MNI_VOXEL_SIZE_Z)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int MNI_T1_idx, Interpolated_T1_idx;
+	int x_MNI, x_Interpolated;
+	int y_MNI, y_Interpolated;
+	int z_MNI, z_Interpolated;
+	
+	// Interpolated T1 volume larger than MNI volume
+	// Remove half of columns in each direction
+	if (x_diff > 0)
+	{
+		x_MNI = x;
+		x_Interpolated = x + (int)round((float)x_diff/2.0);
+	}
+	// Interpolated T1 volume smaller than MNI volume
+	// Put interpolated T1 volume in the middle of the MNI volume
+	else
+	{
+		x_MNI = x + (int)round((float)abs(x_diff)/2.0);
+		x_Interpolated = x;
+	}
+	// Interpolated T1 volume larger than MNI volume
+	// Remove half of rows in each direction
+	if (y_diff > 0)
+	{
+		y_MNI = y;
+		y_Interpolated = y + (int)round((float)y_diff/2.0);
+	}
+	// Interpolated T1 volume smaller than MNI volume
+	// Put interpolated T1 volume in the middle of the MNI volume
+	else
+	{
+		y_MNI = y + (int)round((float)abs(y_diff)/2.0);
+		y_Interpolated = y;
+	}
+	// Interpolated T1 volume larger than MNI volume
+	// Remove bottom slices (since it is normally only neck tissue)
+	// Remove an additional cm
+	if (z_diff > 0)
+	{
+		z_MNI = z;
+		z_Interpolated = z + z_diff + (int)round(10.0/MNI_VOXEL_SIZE_Z);
+	}
+	// Interpolated T1 volume smaller than MNI volume
+	// Put interpolated T1 volume in the middle of the MNI volume
+	// Remove an additional cm
+	else
+	{
+		z_MNI = z + (int)round((float)abs(z_diff)/2.0);
+		z_Interpolated = z + (int)round(10.0/MNI_VOXEL_SIZE_Z);
+	}
+
+	// Make sure we are not reading outside any volume
+	if ( (x_Interpolated >= T1_DATA_W_INTERPOLATED) || (y_Interpolated >= T1_DATA_H_INTERPOLATED) || (z_Interpolated >= T1_DATA_D_INTERPOLATED) || (x_MNI >= MNI_DATA_W) || (y_MNI >= MNI_DATA_H) || (z_MNI >= MNI_DATA_D) )
+	{
+		return;
+	}
+	else
+	{
+		MNI_T1_idx = Calculate3DIndex(x_MNI,y_MNI,z_MNI,MNI_DATA_W,MNI_DATA_H);
+		Interpolated_T1_idx = Calculate3DIndex(x_Interpolated,y_Interpolated,z_Interpolated,T1_DATA_W_INTERPOLATED,T1_DATA_H_INTERPOLATED);
+		MNI_T1_Volume[MNI_T1_idx] = Interpolated_T1_Volume[Interpolated_T1_idx];
+	}			
 }
 
 // Statistical functions

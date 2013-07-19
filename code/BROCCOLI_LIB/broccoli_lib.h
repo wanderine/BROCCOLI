@@ -186,6 +186,8 @@ class BROCCOLI_LIB
 		void SetOutputPhaseDifferences(float*);
 		void SetOutputPhaseCertainties(float*);
 		void SetOutputPhaseGradients(float*);
+		void SetOutputAlignedT1Volume(float*);
+		void SetOutputInterpolatedT1Volume(float*);
 
 		void SetfMRIDataFilename(std::string filename);
 			
@@ -230,7 +232,10 @@ class BROCCOLI_LIB
 		void SetT1Width(int w);
 		void SetT1Height(int h);
 		void SetT1Depth(int d);
-		
+
+		void SetMNIWidth(int w);
+		void SetMNIHeight(int h);
+		void SetMNIDepth(int d);
 
 		void SetNumberOfPermutations(int value);
 		void SetSignificanceThreshold(float value);
@@ -374,7 +379,7 @@ class BROCCOLI_LIB
 
 	private:
 
-		void ResetMemory(cl_mem memory, float value, int N);
+		void SetMemory(cl_mem memory, float value, int N);
 		void SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int DATA_H, int DATA_D);
@@ -453,7 +458,8 @@ class BROCCOLI_LIB
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
 		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel; 
 		cl_kernel CalculateAMatrix1DValuesKernel, CalculateHVector1DValuesKernel, CalculateHVectorKernel, ResetAMatrixKernel, CalculateAMatrixKernel;
-		cl_kernel InterpolateVolumeTrilinearKernel, UpscaleVolumeTrilinearKernel;
+		cl_kernel InterpolateVolumeTrilinearKernel, RescaleVolumeTrilinearKernel;
+		cl_kernel CopyT1VolumeToMNIKernel;
 
 		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
 
@@ -467,7 +473,8 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateAMatrixAndHVector2DValuesX, createKernelErrorCalculateAMatrixAndHVector2DValuesY, createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
 		cl_int createKernelErrorCalculateAMatrix1DValues, createKernelErrorCalculateHVector1DValues;
 		cl_int createKernelErrorCalculateAMatrix, createKernelErrorCalculateHVector;
-		cl_int createKernelErrorInterpolateVolumeTrilinear;
+		cl_int createKernelErrorInterpolateVolumeTrilinear, createKernelErrorRescaleVolumeTrilinear;
+		cl_int createKernelErrorCopyT1VolumeToMNI;
 		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
 
 		size_t threadsX, threadsY, threadsZ, xBlocks, yBlocks, zBlocks;
@@ -629,6 +636,8 @@ class BROCCOLI_LIB
 		float		*h_Mask;
 		float		*h_T1_Volume;
 		float		*h_MNI_Volume;
+		float		*h_Aligned_T1_Volume;
+		float		*h_Interpolated_T1_Volume;
 
 		// Slice timing correction
 		float		*h_Slice_Timing_Corrections_Real, *h_Slice_Timing_Corrections_Imag;
@@ -651,10 +660,7 @@ class BROCCOLI_LIB
 		
 		// fMRI - T1
 		float		*h_Aligned_fMRI_Volume;
-		//float		*h_
 
-		// T1 - MNI
-		float		*h_Aligned_T1_Volume;
 
 		// Smoothing
 		float		*h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;

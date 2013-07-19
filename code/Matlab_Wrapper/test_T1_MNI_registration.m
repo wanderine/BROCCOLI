@@ -46,7 +46,7 @@ MNI_nii = load_nii('../../test_data/MNI152_T1_1mm.nii');
 MNI = double(MNI_nii.img);
 %MNI = MNI(:,:,1:end-30);
 [sy_T1 sx_T1 sz_T1] = size(T1)
-[sy sx sz] = size(MNI)
+[sy_MNI sx_MNI sz_MNI] = size(MNI)
 
 % Make sure T1 has same voxel size as MNI
 T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
@@ -62,110 +62,105 @@ MNI_voxel_size_x = 1.0;
 MNI_voxel_size_y = 1.0;
 MNI_voxel_size_z = 1.0;
 
-if ( (abs(T1_voxel_size_x - MNI_voxel_size_x) > 0.05) || (abs(T1_voxel_size_y - MNI_voxel_size_y) > 0.05) || (abs(T1_voxel_size_z - MNI_voxel_size_z) > 0.05))
-    % Calculate new number of elements
-    sx_T1_new = round(sx_T1*T1_voxel_size_x / MNI_voxel_size_x);
-    sy_T1_new = round(sy_T1*T1_voxel_size_y / MNI_voxel_size_y);
-    sz_T1_new = round(sz_T1*T1_voxel_size_z / MNI_voxel_size_z);
-    x = linspace(1,sx_T1,sx_T1_new);
-    y = linspace(1,sy_T1,sy_T1_new);
-    z = linspace(1,sz_T1,sz_T1_new);
-    [xx,yy,zz] = meshgrid(x,y,z);
-    temp = interp3(T1,xx,yy,zz,'linear');    % Generates NaN's
-    temp(isnan(temp)) = 0;
-    T1_new = temp;
-    [sy_T1 sx_T1 sz_T1] = size(T1)
-end
+% Calculate new number of elements
+sx_T1_interpolated = round(sx_T1*T1_voxel_size_x / MNI_voxel_size_x);
+sy_T1_interpolated = round(sy_T1*T1_voxel_size_y / MNI_voxel_size_y);
+sz_T1_interpolated = round(sz_T1*T1_voxel_size_z / MNI_voxel_size_z);
+x = linspace(1,sx_T1,sx_T1_interpolated);
+y = linspace(1,sy_T1,sy_T1_interpolated);
+z = linspace(1,sz_T1,sz_T1_interpolated);
+[xx,yy,zz] = meshgrid(x,y,z);
+temp = interp3(T1,xx,yy,zz,'linear');    % Generates NaN's
+temp(isnan(temp)) = 0;
+T1_interpolated = temp;
 
-[registered_T1_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = RegisterT1MNI(T1,MNI,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,1);
+[registered_T1_opencl, T1_interpolated_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = RegisterT1MNI(T1,MNI,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,1);
 
 slice = 60;
 figure; imagesc(T1(:,:,slice))
-figure; imagesc(T1_new(:,:,slice))
-figure; imagesc(registered_T1_opencl(:,:,slice))
-figure; imagesc(T1_new(:,:,slice) - registered_T1_opencl(:,:,slice)); colorbar
+figure; imagesc(T1_interpolated(:,:,slice))
+figure; imagesc(T1_interpolated(:,:,slice) - T1_interpolated_opencl(:,:,slice)); colorbar
+%figure; imagesc(registered_T1_opencl(:,:,slice))
 
-tot_error = sum(abs(T1_new(:) - registered_T1_opencl(:)))
-max_error = max(abs(T1_new(:) - registered_T1_opencl(:)))
-mean_error = mean(abs(T1_new(:) - registered_T1_opencl(:)))
+tot_error = sum(abs(T1_interpolated(:) - T1_interpolated_opencl(:)))
+max_error = max(abs(T1_interpolated(:) - T1_interpolated_opencl(:)))
+mean_error = mean(abs(T1_interpolated(:) - T1_interpolated_opencl(:)))
 
 % Make sure T1 has same size as MNI
-% 
-% x_diff = sx_T1 - sx;
-% y_diff = sy_T1 - sy;
-% z_diff = sz_T1 - sz;
-% 
-% if z_diff > 0
-%     T1 = T1(:,:,z_diff+1:end);
-%     % Shift down 10 slices
-%     T1(:,:,1:end-10) = T1(:,:,11:end);
-%     T1(:,:,end-9:end) = zeros(sy_T1,sx_T1,10);
-% else
-%     temp = zeros(sy_T1,sx_T1,sz);
-%     z_diff = abs(z_diff);
-%     temp(:,:,round(z_diff/2)+1:round(z_diff/2)+sz_T1) = T1;
-%     T1 = temp;
-%     % Shift down 10 slices
-%     T1(:,:,1:end-10) = T1(:,:,11:end);
-%     T1(:,:,end-9:end) = zeros(sy_T1,sx_T1,10);
-% end
-% 
-% 
-% if y_diff > 0
-%     T1 = T1(y_diff/2+1:end-y_diff/2,:,:);
-% else
-%     temp = zeros(sy,sx_T1,sz);
-%     y_diff = abs(y_diff);
-%     temp(round(y_diff/2)+1:round(y_diff/2)+sy_T1,:,:) = T1;
-%     T1 = temp;
-% end
-% 
-% 
-% if x_diff > 0
-%     T1 = T1(:,x_diff/2+1:end-x_diff/2,:);
-% else
-%     temp = zeros(sy,sx,sz);
-%     x_diff = abs(x_diff);
-%     temp(:,round(x_diff/2)+1:round(x_diff/2)+sx_T1,:,:) = T1;
-%     T1 = temp;
-% end
-% 
-% [sy_T1 sx_T1 sz_T1] = size(T1)
-% 
-% 
-% 
-% %T1 = T1(y_diff/2+1:end-y_diff/2,x_diff/2+1:end-x_diff/2,z_diff+1:end);
-% 
-% 
-% mask_nii = load_nii('../../test_data/MNI152_T1_1mm_brain_mask.nii');
-% mask = double(mask_nii.img);
-% 
-% 
+
+x_diff = sx_T1_interpolated - sx_MNI;
+y_diff = sy_T1_interpolated - sy_MNI;
+z_diff = sz_T1_interpolated - sz_MNI;
+
+T1_MNI = zeros(sy_MNI,sx_MNI,sz_MNI);
+
+if x_diff > 0
+    x_MNI = 0;
+    x_Interpolated = round(x_diff/2);
+else
+    x_MNI = round(abs(x_diff)/2);
+    x_Interpolated = 0;
+end
+
+if y_diff > 0
+    y_MNI = 0;
+    y_Interpolated = round(y_diff/2);
+else
+    y_MNI = round(abs(y_diff)/2);
+    y_Interpolated = 0;
+end
+
+if z_diff > 0
+    z_MNI = 0;
+    z_Interpolated = z_diff + 0;
+    z_offset = round(10/MNI_voxel_size_z);
+else
+    z_MNI = round(abs(z_diff/2));
+    z_Interpolated = 0;
+    z_offset = round(10/MNI_voxel_size_z);
+end
+
+T1_MNI(y_MNI+1:y_MNI+sy_T1_interpolated,x_MNI+1:x_MNI+sx_T1_interpolated,z_MNI+1:z_MNI+sz_T1_interpolated-z_offset) = T1_interpolated(y_Interpolated+1:end-y_Interpolated,x_Interpolated+1:end-x_Interpolated,z_offset+z_Interpolated+1:end-z_Interpolated);
+
+figure; imagesc(T1_MNI(:,:,slice))
+figure; imagesc(registered_T1_opencl(:,:,slice))
+
+figure; imagesc(squeeze(T1_MNI(slice,:,:)))
+figure; imagesc(squeeze(registered_T1_opencl(slice,:,:)))
+
+tot_error = sum(abs(T1_MNI(:) - registered_T1_opencl(:)))
+max_error = max(abs(T1_MNI(:) - registered_T1_opencl(:)))
+
+
+
+mask_nii = load_nii('../../test_data/MNI152_T1_1mm_brain_mask.nii');
+mask = double(mask_nii.img);
+
 % number_of_iterations_for_motion_correction = 50;
-% 
-% 
+%
+%
 % scales =     [ 8 4    2 1];
 % %number_of_iterations_for_motion_correction = [50 50 30 15  3];
 % scale = scales(1);
 % T1_current = T1(1:scale:end,1:scale:end,1:scale:end);
 % MNI_current = MNI(1:scale:end,1:scale:end,1:scale:end);
 % [sy sx sz] = size(T1_current)
-% 
+%
 % total_registration_parameters = zeros(12,1);
 % tic
 % i = 0;
 % for scale = scales
 %     i = i + 1;
 %     [registered_T1_cpu, registration_parameters_cpu] = perform_T1_MNI_registration_CPU(T1_current,MNI_current,f1,f2,f3,number_of_iterations_for_motion_correction);
-%     
+%
 %     slice = round(128/scale);
-%     
+%
 %     figure
 %     imagesc([ MNI_current(:,:,slice)/norm(MNI_current(:)) T1_current(:,:,slice)/norm(T1_current(:)) ] ); colormap gray
 %     figure
 %     imagesc([ MNI_current(:,:,slice)/norm(MNI_current(:)) registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ] ); colormap gray
 %     drawnow
-%     
+%
 %     if scale ~= 1
 %         T1_current = T1(1:scale/2:end,1:scale/2:end,1:scale/2:end);
 %         MNI_current = MNI(1:scale/2:end,1:scale/2:end,1:scale/2:end);
@@ -182,20 +177,20 @@ mean_error = mean(abs(T1_new(:) - registered_T1_opencl(:)))
 %         x_motion_vectors(:) = p(1) + [x(:) y(:) z(:)]*p(4:6);
 %         y_motion_vectors(:) = p(2) + [x(:) y(:) z(:)]*p(7:9);
 %         z_motion_vectors(:) = p(3) + [x(:) y(:) z(:)]*p(10:12);
-%         
+%
 %         temp = interp3(x,y,z,T1_current,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's
 %         temp(isnan(temp)) = 0;
 %         T1_current = temp;
-%         
+%
 %     else
 %         total_registration_parameters = total_registration_parameters + registration_parameters_cpu;
 %         total_registration_parameters
 %     end
-%     
-%     
+%
+%
 % end
 % toc
-% 
+%
 % p = total_registration_parameters;
 % [sy sx sz] = size(T1)
 % [x, y, z] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
@@ -208,8 +203,8 @@ mean_error = mean(abs(T1_new(:) - registered_T1_opencl(:)))
 % temp = interp3(x,y,z,T1,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's
 % temp(isnan(temp)) = 0;
 % T1_current = temp;
-% 
-% 
+%
+%
 % % for slice = 1:size(MNI,3)
 % %     figure(14)
 % %     imagesc([ MNI(:,:,slice)/norm(MNI(:)) registered_T1_cpu(:,:,slice)/norm(registered_T1_cpu(:)) ] ); colormap gray
@@ -218,30 +213,30 @@ mean_error = mean(abs(T1_new(:) - registered_T1_opencl(:)))
 % %     %pause(0.1)
 % %     pause
 % % end
-% 
+%
 % skullstripped = registered_T1_cpu .* mask;
-% 
+%
 % for slice = 1:size(skullstripped,3)
 %     figure(11)
 %     imagesc([ registered_T1_cpu(:,:,slice)] ); colormap gray
 %     figure(12)
 %     imagesc([ skullstripped(:,:,slice)] ); colormap gray
-%     
+%
 %     pause(0.1)
 %     %pause
 % end
-% 
-% 
+%
+%
 % for slice = 1:size(skullstripped,1)
 %     figure(11)
 %     imagesc([ squeeze(registered_T1_cpu(slice,:,:))] ); colormap gray
 %     figure(12)
 %     imagesc([ squeeze(skullstripped(slice,:,:))] ); colormap gray
-%     
+%
 %     %pause(0.1)
 %     pause
 % end
-% 
+%
 % %
 % % quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1,'same');
 % % quadrature_filter_response_reference_2_cpu = convn(fMRI_volumes(:,:,:,1),f2,'same');
