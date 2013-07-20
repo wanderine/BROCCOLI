@@ -38,7 +38,7 @@ mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GP
 load filters.mat
 
 
-T1_nii = load_nii('mprage_anonymized15.nii.gz');
+T1_nii = load_nii('mprage_anonymized11.nii.gz');
 T1 = double(T1_nii.img);
 T1 = T1/max(T1(:));
 MNI_nii = load_nii('../../test_data/MNI152_T1_1mm.nii');

@@ -1239,8 +1239,8 @@ __kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 	
-	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
-			return;
+	if ( (x >= DATA_W) || ((x + 1) >= DATA_W) || ((x - 1) < 0) || (y >= DATA_H) || (z >= DATA_D))
+		return;
 
 	float total_complex_product_real, total_complex_product_imag;
 	float a, b, c, d;
@@ -1297,8 +1297,8 @@ __kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 	
-	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
-			return;
+	if ( (x >= DATA_W) || (y >= DATA_H) || ((y + 1) >= DATA_H) || ((y - 1) < 0) || (z >= DATA_D))	
+		return;
 
 	float total_complex_product_real, total_complex_product_imag;
 	float a, b, c, d;
@@ -1355,8 +1355,8 @@ __kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 	
-	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
-			return;
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) || ((z + 1) >= DATA_D) || ((z - 1) < 0) )	
+		return;
 
 	float total_complex_product_real, total_complex_product_imag;
 	float a, b, c, d;
@@ -1734,15 +1734,14 @@ __kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A
 
 	idx = A_matrix_element * DATA_D;
 
-	// Sum over all z positions
-	//#pragma unroll 128
+	// Sum over all z positions	
 	for (int z = (FILTER_SIZE - 1)/2; z < (DATA_D - (FILTER_SIZE - 1)/2); z++)
 	{
 		matrix_value += A_matrix_1D_values[idx + z];
 	}
 
 	GetParameterIndices(&i,&j,A_matrix_element);
-	A_matrix_element = i + j * 12; //NUMBER_OF_MOTION_CORRECTION_PARAMETERS;
+	A_matrix_element = i + j * 12; //NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
 
 	A_matrix[A_matrix_element] = matrix_value;
 }
@@ -1852,7 +1851,7 @@ __kernel void RescaleVolumeTriLinear(__global float* Volume, read_only image3d_t
 	Volume[idx] = Interpolated_Value.x;
 }
 
-__kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int T1_SLICES_CUT, __private float MNI_VOXEL_SIZE_Z)
+__kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_T1_Z_CUT, __private float MNI_VOXEL_SIZE_Z)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1897,7 +1896,7 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	if (z_diff > 0)
 	{
 		z_MNI = z;
-		z_Interpolated = z + z_diff + (int)round((float)T1_SLICES_CUT/MNI_VOXEL_SIZE_Z);
+		z_Interpolated = z + z_diff + (int)round((float)MM_T1_Z_CUT/MNI_VOXEL_SIZE_Z);
 	}
 	// Interpolated T1 volume smaller than MNI volume
 	// Put interpolated T1 volume in the middle of the MNI volume
@@ -1905,7 +1904,7 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	else
 	{
 		z_MNI = z + (int)round((float)abs(z_diff)/2.0);
-		z_Interpolated = z + (int)round((float)T1_SLICES_CUT/MNI_VOXEL_SIZE_Z);
+		z_Interpolated = z + (int)round((float)MM_T1_Z_CUT/MNI_VOXEL_SIZE_Z);
 	}
 
 	// Make sure we are not reading outside any volume

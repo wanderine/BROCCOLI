@@ -284,7 +284,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     double convolution_time = BROCCOLI.GetProcessingTimeConvolution();
     mexPrintf("Convolution time is %f ms \n",convolution_time/1000000.0);
+    
+    int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
+    for (int i = 0; i < 30; i++)
+    {
+        mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+    }
         
+    int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
+    for (int i = 0; i < 13; i++)
+    {
+        mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+    } 
+    
     unpack_float2double_volume(h_Aligned_T1_Volume_double, h_Aligned_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Interpolated_T1_Volume_double, h_Interpolated_T1_Volume, T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
     unpack_float2double(h_Registration_Parameters_double, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);

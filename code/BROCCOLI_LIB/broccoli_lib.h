@@ -253,7 +253,9 @@ class BROCCOLI_LIB
 
 		int GetOpenCLError();
 		int GetOpenCLCreateKernelError();
-		
+		int* GetOpenCLCreateBufferErrors();
+		int* GetOpenCLRunKernelErrors();
+
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCorrection();
 		double GetProcessingTimeSmoothing();
@@ -472,6 +474,7 @@ class BROCCOLI_LIB
 
 		cl_int error, kernel_error;
 
+		// Create kernel errors
 		cl_int createKernelErrorMemset;
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods, createKernelErrorNonseparableConvolution3DComplex; 
 		cl_int createKernelErrorCalculatePhaseDifferencesAndCertainties, createKernelErrorCalculatePhaseGradientsX, createKernelErrorCalculatePhaseGradientsY, createKernelErrorCalculatePhaseGradientsZ;
@@ -483,6 +486,27 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
 
 		size_t threadsX, threadsY, threadsZ, xBlocks, yBlocks, zBlocks;
+
+		// Create buffer errors
+		cl_int createBufferErrorAlignedVolume, createBufferErrorReferenceVolume;
+		cl_int createBufferErrorq11Real, createBufferErrorq11Imag, createBufferErrorq12Real, createBufferErrorq12Imag, createBufferErrorq13Real, createBufferErrorq13Imag;
+		cl_int createBufferErrorq21Real, createBufferErrorq21Imag, createBufferErrorq22Real, createBufferErrorq22Imag, createBufferErrorq23Real, createBufferErrorq23Imag;
+		cl_int createBufferErrorPhaseDifferences, createBufferErrorPhaseCertainties, createBufferErrorPhaseGradients;
+		cl_int createBufferErrorAMatrix, createBufferErrorHVector, createBufferErrorAMatrix2DValues, createBufferErrorAMatrix1DValues, createBufferErrorHVector2DValues, createBufferErrorHVector1DValues;
+		cl_int createBufferErrorQuadratureFilter1Real, createBufferErrorQuadratureFilter1Imag, createBufferErrorQuadratureFilter2Real, createBufferErrorQuadratureFilter2Imag, createBufferErrorQuadratureFilter3Real, createBufferErrorQuadratureFilter3Imag;    
+		cl_int createBufferErrorRegistrationParameters;
+
+		// Run kernel errors
+		cl_int runKernelErrorNonseparableConvolution3DComplex;
+		cl_int runKernelErrorMemset;
+		cl_int runKernelErrorCalculatePhaseDifferencesAndCertainties, runKernelErrorCalculatePhaseGradientsX, runKernelErrorCalculatePhaseGradientsY, runKernelErrorCalculatePhaseGradientsZ;
+		cl_int runKernelErrorCalculateAMatrixAndHVector2DValuesX, runKernelErrorCalculateAMatrixAndHVector2DValuesY, runKernelErrorCalculateAMatrixAndHVector2DValuesZ;
+		cl_int runKernelErrorCalculateAMatrix1DValues, runKernelErrorCalculateHVector1DValues;
+		cl_int runKernelErrorCalculateAMatrix, runKernelErrorCalculateHVector;
+		cl_int runKernelErrorInterpolateVolume;
+
+		int OpenCLCreateBufferErrors[30];
+		int OpenCLRunKernelErrors[30];
 
 		double convolution_time;
 		cl_event event;
@@ -659,7 +683,7 @@ class BROCCOLI_LIB
 		float       *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_3_Real; 
 		float       *h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag; 
 		float		 h_A_Matrix[144], h_Inverse_A_Matrix[144], h_h_Vector[12];
-		float 		 h_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Total[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], h_Registration_Parameters_T1_MNI_Total[12], h_Registration_Parameters_EPI_T1[12], h_Registration_Parameters_EPI_T1_Total[12];
+		float 		 h_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Total[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], h_Registration_Parameters_EPI_T1[12];
 		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
 	
 		float *h_Registration_Parameters_Out;

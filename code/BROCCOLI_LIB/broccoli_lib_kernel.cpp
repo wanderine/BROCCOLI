@@ -1239,8 +1239,8 @@ __kernel void CalculatePhaseGradientsX(__global float* Phase_Gradients, __global
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 	
-	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
-			return;
+	if ( (x >= DATA_W) || ((x + 1) >= DATA_W) || ((x - 1) < 0) || (y >= DATA_H) || (z >= DATA_D))
+		return;
 
 	float total_complex_product_real, total_complex_product_imag;
 	float a, b, c, d;
@@ -1297,8 +1297,8 @@ __kernel void CalculatePhaseGradientsY(__global float* Phase_Gradients, __global
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 	
-	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
-			return;
+	if ( (x >= DATA_W) || (y >= DATA_H) || ((y + 1) >= DATA_H) || ((y - 1) < 0) || (z >= DATA_D))	
+		return;
 
 	float total_complex_product_real, total_complex_product_imag;
 	float a, b, c, d;
@@ -1355,8 +1355,8 @@ __kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients, __global
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 	
-	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
-			return;
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) || ((z + 1) >= DATA_D) || ((z - 1) < 0) )	
+		return;
 
 	float total_complex_product_real, total_complex_product_imag;
 	float a, b, c, d;
@@ -1734,15 +1734,14 @@ __kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A
 
 	idx = A_matrix_element * DATA_D;
 
-	// Sum over all z positions
-	//#pragma unroll 128
+	// Sum over all z positions	
 	for (int z = (FILTER_SIZE - 1)/2; z < (DATA_D - (FILTER_SIZE - 1)/2); z++)
 	{
 		matrix_value += A_matrix_1D_values[idx + z];
 	}
 
 	GetParameterIndices(&i,&j,A_matrix_element);
-	A_matrix_element = i + j * 12; //NUMBER_OF_MOTION_CORRECTION_PARAMETERS;
+	A_matrix_element = i + j * 12; //NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
 
 	A_matrix[A_matrix_element] = matrix_value;
 }
