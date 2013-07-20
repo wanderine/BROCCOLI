@@ -51,11 +51,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Quadrature_Filter_Response_2_Real_double, *h_Quadrature_Filter_Response_2_Imag_double;
     double          *h_Quadrature_Filter_Response_3_Real_double, *h_Quadrature_Filter_Response_3_Imag_double;
     double          *h_Phase_Differences_double, *h_Phase_Certainties_double, *h_Phase_Gradients_double;
+    double          *h_Downsampled_Volume_double;
     float           *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_1_Imag;
     float           *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_2_Imag;
     float           *h_Quadrature_Filter_Response_3_Real, *h_Quadrature_Filter_Response_3_Imag;  
     float           *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
     float           *h_Aligned_T1_Volume, *h_Interpolated_T1_Volume, *h_Registration_Parameters;
+    float           *h_Downsampled_Volume;
     
     //---------------------
     
@@ -68,11 +70,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<9)
+    if(nlhs<10)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>9)
+    if(nlhs>10)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -113,6 +115,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     MNI_DATA_W = ARRAY_DIMENSIONS_MNI[1];
     MNI_DATA_D = ARRAY_DIMENSIONS_MNI[2];
     
+    int NUMBER_OF_SCALES = 4;
+    int DOWNSAMPLED_DATA_W = (int)round_((float)MNI_DATA_W/(float)NUMBER_OF_SCALES);
+	int DOWNSAMPLED_DATA_H = (int)round_((float)MNI_DATA_H/(float)NUMBER_OF_SCALES);
+	int DOWNSAMPLED_DATA_D = (int)round_((float)MNI_DATA_D/(float)NUMBER_OF_SCALES);
+    
     IMAGE_REGISTRATION_FILTER_SIZE = ARRAY_DIMENSIONS_FILTER[0];
             
    	int T1_DATA_W_INTERPOLATED = (int)round_((float)T1_DATA_W * T1_VOXEL_SIZE_X / MNI_VOXEL_SIZE_X);
@@ -124,6 +131,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
     int MNI_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
     int INTERPOLATED_T1_VOLUME_SIZE = T1_DATA_W_INTERPOLATED * T1_DATA_H_INTERPOLATED * T1_DATA_D_INTERPOLATED * sizeof(float);
+    int DOWNSAMPLED_VOLUME_SIZE = DOWNSAMPLED_DATA_W * DOWNSAMPLED_DATA_H * DOWNSAMPLED_DATA_D * sizeof(float);
     
     mexPrintf("T1 size : %i x %i x %i \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
     mexPrintf("T1 interpolated size : %i x %i x %i \n",  T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
@@ -187,12 +195,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[8] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxREAL);
     h_Phase_Gradients_double = mxGetPr(plhs[8]);          
     
+    NUMBER_OF_DIMENSIONS = 3;
+    int ARRAY_DIMENSIONS_OUT_DOWNSAMPLED[3];
+    ARRAY_DIMENSIONS_OUT_DOWNSAMPLED[0] = DOWNSAMPLED_DATA_H;
+    ARRAY_DIMENSIONS_OUT_DOWNSAMPLED[1] = DOWNSAMPLED_DATA_W;    
+    ARRAY_DIMENSIONS_OUT_DOWNSAMPLED[2] = DOWNSAMPLED_DATA_D;  
+    
+    plhs[9] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DOWNSAMPLED,mxDOUBLE_CLASS, mxREAL);
+    h_Downsampled_Volume_double = mxGetPr(plhs[9]);     
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
     h_T1_Volume                            = (float *)mxMalloc(T1_VOLUME_SIZE);
     h_MNI_Volume                           = (float *)mxMalloc(MNI_VOLUME_SIZE);
     h_Interpolated_T1_Volume               = (float *)mxMalloc(INTERPOLATED_T1_VOLUME_SIZE);
+    h_Downsampled_Volume                   = (float *)mxMalloc(DOWNSAMPLED_VOLUME_SIZE);
     h_Quadrature_Filter_1_Real             = (float *)mxMalloc(FILTER_SIZE);
     h_Quadrature_Filter_1_Imag             = (float *)mxMalloc(FILTER_SIZE);
     h_Quadrature_Filter_2_Real             = (float *)mxMalloc(FILTER_SIZE);
@@ -245,6 +263,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
     BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
     BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
+    BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume);
     BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
     BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
     BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
@@ -278,10 +297,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_Phase_Differences_double, h_Phase_Differences, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Phase_Certainties_double, h_Phase_Certainties, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Phase_Gradients_double, h_Phase_Gradients, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);    
+    unpack_float2double_volume(h_Downsampled_Volume_double, h_Downsampled_Volume, DOWNSAMPLED_DATA_W, DOWNSAMPLED_DATA_H, DOWNSAMPLED_DATA_D);    
     
     // Free all the allocated memory on the host
     mxFree(h_T1_Volume);
     mxFree(h_Interpolated_T1_Volume);
+    mxFree(h_Downsampled_Volume);
     mxFree(h_Quadrature_Filter_1_Real);
     mxFree(h_Quadrature_Filter_1_Imag);
     mxFree(h_Quadrature_Filter_2_Real);

@@ -108,7 +108,7 @@ for it = 1:max_its
     pp = inv(A)*h;
 
     % Update parameter vector
-    p = p + pp
+    p = p + pp;
     p_diff = sum((p_old(:) - p(:)).^2)
     p_old = p;
     

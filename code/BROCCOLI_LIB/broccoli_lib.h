@@ -189,6 +189,7 @@ class BROCCOLI_LIB
 		void SetOutputPhaseGradients(float*);
 		void SetOutputAlignedT1Volume(float*);
 		void SetOutputInterpolatedT1Volume(float*);
+		void SetOutputDownsampledVolume(float*);
 		void SetOutputData(float* output);
 
 		void SetfMRIDataFilename(std::string filename);
@@ -391,8 +392,8 @@ class BROCCOLI_LIB
 
 		void Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE);
 		void NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
-		void AlignTwoVolumes(float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D);
-		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES);
+		void AlignTwoVolumes(float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS);
+		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS);
 		void AlignTwoVolumesCleanup();
 		void AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D);
 		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z);
@@ -644,6 +645,7 @@ class BROCCOLI_LIB
 		float		*h_MNI_Volume;
 		float		*h_Aligned_T1_Volume;
 		float		*h_Interpolated_T1_Volume;
+		float		*h_Downsampled_Volume;
 
 		// Slice timing correction
 		float		*h_Slice_Timing_Corrections_Real, *h_Slice_Timing_Corrections_Imag;
