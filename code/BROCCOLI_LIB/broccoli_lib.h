@@ -172,6 +172,8 @@ class BROCCOLI_LIB
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
 		void SetImageRegistrationFilterSize(int N);
 		void SetImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
+		void SetNumberOfIterationsForImageRegistration(int N);
+		void SetCoarsestScale(int N);
 		void SetMMT1ZCUT(int mm);
 
 		void SetInputfMRIVolumes(float* input);
@@ -194,8 +196,7 @@ class BROCCOLI_LIB
 
 		void SetfMRIDataFilename(std::string filename);
 			
-		void SetfMRIParameters(float tr, float xs, float ys, float zs);
-		void SetNumberOfIterationsForImageRegistration(int N);
+		void SetfMRIParameters(float tr, float xs, float ys, float zs);		
 		void SetSmoothingAmount(int value);
 		void SetSmoothingDimensionality(int dimensionality);
 		void SetNumberOfBasisFunctionsDetrending(int N);
@@ -614,9 +615,10 @@ class BROCCOLI_LIB
 		int IMAGE_REGISTRATION_FILTER_SIZE;
 		int NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
 		int NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION;
-		int	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS;
+		int COARSEST_SCALE;
 		int MM_T1_Z_CUT;
-
+		int	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS;
+		
 		double* motion_parameters_x;
 		double* motion_parameters_y;
 		double* motion_parameters_z;

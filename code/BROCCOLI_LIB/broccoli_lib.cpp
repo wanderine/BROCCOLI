@@ -266,136 +266,183 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	std::vector<cl_platform_id> platformIds (platformIdCount);
 	clGetPlatformIDs (platformIdCount, platformIds.data (), NULL);
 
-	// Get devices
-	cl_uint deviceIdCount = 0;
-    clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
-	std::vector<cl_device_id> deviceIds (deviceIdCount);
-	clGetDeviceIDs (platformIds[0], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
-
-	// Get information for for each device and save as a long string
-    for (uint j = 0; j < deviceIdCount; j++) 
+	for (uint i = 0; i < platformIdCount; i++) 
     {
-        // Get vendor name
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
-        value = (char*) malloc(valueSize);
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, valueSize, value, NULL);            
-        device_info.append("Vendor name: ");
-        device_info.append(value);
-        device_info.append("\n");
-        free(value);	
+	    // Get platform vendor
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, 0, NULL, &valueSize);
+		value = (char*) malloc(valueSize);
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, valueSize, value, NULL);            
+		device_info.append("Platform vendor: ");
+		device_info.append(value);
+		device_info.append("\n");
+		free(value);		
+
+		// Get platform name
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_NAME, 0, NULL, &valueSize);
+		value = (char*) malloc(valueSize);
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_NAME, valueSize, value, NULL);            
+		device_info.append("Platform name: ");
+		device_info.append(value);
+		device_info.append("\n");
+		free(value);		
+
+		// Get platform extensions
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_EXTENSIONS, 0, NULL, &valueSize);
+		value = (char*) malloc(valueSize);
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_EXTENSIONS, valueSize, value, NULL);            
+		device_info.append("Platform extentions: ");
+		device_info.append(value);
+		device_info.append("\n");
+		free(value);		
+
+		// Get platform profile
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_PROFILE, 0, NULL, &valueSize);
+		value = (char*) malloc(valueSize);
+		clGetPlatformInfo(platformIds[i], CL_PLATFORM_PROFILE, valueSize, value, NULL);            
+		device_info.append("Platform profile: ");
+		device_info.append(value);
+		device_info.append("\n");
+		device_info.append("\n");
+		free(value);		
+
+		// Get devices for each platform
+		cl_uint deviceIdCount = 0;
+		clGetDeviceIDs (platformIds[i], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
+		std::vector<cl_device_id> deviceIds (deviceIdCount);
+		clGetDeviceIDs (platformIds[i], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
+
+		// Get information for for each device and save as a long string
+		for (uint j = 0; j < deviceIdCount; j++) 
+		{
+	        // Get vendor name
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
+			value = (char*) malloc(valueSize);
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, valueSize, value, NULL);            
+			device_info.append("Device vendor: ");
+			device_info.append(value);
+			device_info.append("\n");
+			free(value);	
         	
-        // Get device name
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
-        value = (char*) malloc(valueSize);
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, value, NULL);            
-        device_info.append("Device name: ");
-        device_info.append(value);
-        device_info.append("\n");
-        free(value);
+			// Get device name
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
+			value = (char*) malloc(valueSize);
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, value, NULL);            
+			device_info.append("Device name: ");
+			device_info.append(value);
+			device_info.append("\n");
+			free(value);
 
-        // Get hardware device version
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
-        value = (char*) malloc(valueSize);
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, value, NULL);
-        device_info.append("Hardware version: ");
-        device_info.append(value);
-        device_info.append("\n");
-        free(value);
+			// Get hardware device version
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
+			value = (char*) malloc(valueSize);
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, value, NULL);
+			device_info.append("Hardware version: ");
+			device_info.append(value);
+			device_info.append("\n");
+			free(value);
 
-        // Get software driver version
-        clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
-        value = (char*) malloc(valueSize);
-        clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, value, NULL);
-        device_info.append("Software version: ");
-        device_info.append(value);
-        device_info.append("\n");
-        free(value);
+			// Get software driver version
+			clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
+			value = (char*) malloc(valueSize);
+			clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, value, NULL);
+			device_info.append("Software version: ");
+			device_info.append(value);
+			device_info.append("\n");
+			free(value);
 
-        // Get C version supported by compiler for device
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
-        value = (char*) malloc(valueSize);
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
-        device_info.append("OpenCL C version: ");
-        device_info.append(value);
-        device_info.append("\n");
-        free(value);
+			// Get C version supported by compiler for device
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
+			value = (char*) malloc(valueSize);
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
+			device_info.append("OpenCL C version: ");
+			device_info.append(value);
+			device_info.append("\n");
+			free(value);
             
-        // Get global memory size
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-        device_info.append("Global memory size in MB: ");
-        temp_stream.str("");
-	    temp_stream.clear();
-        temp_stream << memorySize/ (1024*1024);            
-        device_info.append(temp_stream.str());
-        device_info.append("\n");
+			// Get global memory size
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
+			device_info.append("Global memory size in MB: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << memorySize/ (1024*1024);            
+			device_info.append(temp_stream.str());
+			device_info.append("\n");
             
-        // Get local (shared) memory size
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-        device_info.append("Local memory size in KB: ");
-        temp_stream.str("");
-	    temp_stream.clear();
-        temp_stream << memorySize/1024;            
-        device_info.append(temp_stream.str());
-        device_info.append("\n");
+			// Get local (shared) memory size
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
+			device_info.append("Local memory size in KB: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << memorySize/1024;            
+			device_info.append(temp_stream.str());
+			device_info.append("\n");
+	            
+			// Get constant memory size
+		    clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
+			device_info.append("Constant memory size in KB: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << memorySize/1024;            
+			device_info.append(temp_stream.str());
+			device_info.append("\n");                       
             
-        // Get constant memory size
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
-        device_info.append("Constant memory size in KB: ");
-        temp_stream.str("");
-	    temp_stream.clear();
-        temp_stream << memorySize/1024;            
-        device_info.append(temp_stream.str());
-        device_info.append("\n");                       
+			// Get parallel compute units
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
+			device_info.append("Parallel compute units: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << maxComputeUnits;            
+			device_info.append(temp_stream.str());
+			device_info.append("\n");
             
-	    // Get parallel compute units
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
-        device_info.append("Parallel compute units: ");
-        temp_stream.str("");
-	    temp_stream.clear();
-        temp_stream << maxComputeUnits;            
-        device_info.append(temp_stream.str());
-        device_info.append("\n");
-            
-        // Get clock frequency
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
-        device_info.append("Clock frequency in MHz: ");
-        temp_stream.str("");
-	    temp_stream.clear();
-        temp_stream << clockFrequency;            
-        device_info.append(temp_stream.str());
-        device_info.append("\n");                                  
+			// Get clock frequency
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
+			device_info.append("Clock frequency in MHz: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << clockFrequency;            
+			device_info.append(temp_stream.str());
+			device_info.append("\n");                                  
 
-		// Get maximum number of threads per block
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(valueSize), &valueSize, NULL);            
-        device_info.append("Max number of threads per block: ");
-        temp_stream.str("");
-	    temp_stream.clear();
-        temp_stream << valueSize;            
-        device_info.append(temp_stream.str());
-        device_info.append("\n");                                  
+			// Get maximum number of threads per block
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(valueSize), &valueSize, NULL);            
+			device_info.append("Max number of threads per block: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << valueSize;            
+			device_info.append(temp_stream.str());
+			device_info.append("\n");                                  
         
-		// Get maximum block dimensions
-        clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(valueSizes), valueSizes, NULL);            
-        device_info.append("Max number of threads in each dimension: ");
-        temp_stream.str("");
-	    temp_stream.clear();
-        temp_stream << valueSizes[0];
-		temp_stream << " ";
-		temp_stream << valueSizes[1];
-		temp_stream << " ";
-		temp_stream << valueSizes[2];
-		device_info.append(temp_stream.str());
-        device_info.append("\n");                                  
+			// Get maximum block dimensions
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(valueSizes), valueSizes, NULL);            
+			device_info.append("Max number of threads in each dimension: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << valueSizes[0];
+			temp_stream << " ";
+			temp_stream << valueSizes[1];
+			temp_stream << " ";
+			temp_stream << valueSizes[2];
+			device_info.append(temp_stream.str());
+			device_info.append("\n");                                  
         				
-		device_info.append("\n");		
-    }
+			device_info.append("\n");		
+		}
+	}
                 
+	uint platform = 1;
 
 	// Create context
 	const cl_context_properties contextProperties [] =
 	{
-	    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[0]), 0, 0
+	    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[platform]), 0, 0
 	};
+
+	// Get devices for current platform
+	cl_uint deviceIdCount = 0;
+	clGetDeviceIDs (platformIds[platform], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
+	std::vector<cl_device_id> deviceIds (deviceIdCount);
+	clGetDeviceIDs (platformIds[platform], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
 
 	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &error);	
 	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
@@ -403,7 +450,6 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
 
 	// Create a command queue
-	//commandQueue = clCreateCommandQueue(context, deviceIds[0], 0, &error);
 	commandQueue = clCreateCommandQueue(context, deviceIds[0], CL_QUEUE_PROFILING_ENABLE, &error);
 
 	// Read the kernel code from file
@@ -806,6 +852,21 @@ void BROCCOLI_LIB::SetImageRegistrationFilters(float* qf1r, float* qf1i, float* 
 	h_Quadrature_Filter_3_Imag = qf3i;	
 }
 
+void BROCCOLI_LIB::SetNumberOfIterationsForImageRegistration(int N)
+{
+	NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION = N;
+}
+
+void BROCCOLI_LIB::SetCoarsestScale(int N)
+{
+	COARSEST_SCALE = N;
+}
+
+void BROCCOLI_LIB::SetMMT1ZCUT(int mm)
+{
+	MM_T1_Z_CUT = mm;
+}
+
 
 void BROCCOLI_LIB::SetOutputBetaVolumes(float* data)
 {
@@ -896,15 +957,6 @@ void BROCCOLI_LIB::SetFileType(int type)
 	FILE_TYPE = type;
 }
 
-void BROCCOLI_LIB::SetNumberOfIterationsForImageRegistration(int N)
-{
-	NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION = N;
-}
-
-void BROCCOLI_LIB::SetMMT1ZCUT(int mm)
-{
-	MM_T1_Z_CUT = mm;
-}
 
 void BROCCOLI_LIB::SetfMRIDataSliceLocationX(int location)
 {
@@ -1712,8 +1764,8 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 	clReleaseMemObject(d_Volume_Texture);
 }
 
-// NUMBER_OF_SCALES should be 8, 4, 2 or 1
-void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters_Align_Two_Volumes_Several_Scales, cl_mem d_Original_Aligned_Volume, cl_mem d_Original_Reference_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS)
+// COARSEST_SCALE should be 8, 4, 2 or 1
+void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters_Align_Two_Volumes_Several_Scales, cl_mem d_Original_Aligned_Volume, cl_mem d_Original_Reference_Volume, int DATA_W, int DATA_H, int DATA_D, int COARSEST_SCALE_, int NUMBER_OF_ITERATIONS)
 {
 	for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 	{
@@ -1722,9 +1774,9 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 	}
 
 	// Calculate volume size for coarsest scale
-	CURRENT_DATA_W = (int)round((float)DATA_W/(float)NUMBER_OF_SCALES);
-	CURRENT_DATA_H = (int)round((float)DATA_H/(float)NUMBER_OF_SCALES);
-	CURRENT_DATA_D = (int)round((float)DATA_D/(float)NUMBER_OF_SCALES);
+	CURRENT_DATA_W = (int)round((float)DATA_W/(float)COARSEST_SCALE_);
+	CURRENT_DATA_H = (int)round((float)DATA_H/(float)COARSEST_SCALE_);
+	CURRENT_DATA_D = (int)round((float)DATA_D/(float)COARSEST_SCALE_);
 
 	// Setup all parameters and allocate memory on host
 	AlignTwoVolumesSetup(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);
@@ -1733,6 +1785,7 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 	ChangeVolumeSize(d_Aligned_Volume, d_Original_Aligned_Volume, DATA_W, DATA_H, DATA_D, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);       
 	ChangeVolumeSize(d_Reference_Volume, d_Original_Reference_Volume, DATA_W, DATA_H, DATA_D, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);       		
 						
+	// Copy volume to be aligned to an image (texture)
 	size_t origin[3] = {0, 0, 0};
 	size_t region[3] = {CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D};
 	clEnqueueCopyBufferToImage(commandQueue, d_Aligned_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
@@ -1744,24 +1797,25 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 	
 	// Loop registration over scales
 	
-	for (int s = NUMBER_OF_SCALES; s >= 1; s = s/2)
+	for (int current_scale = COARSEST_SCALE_; current_scale >= 1; current_scale = current_scale/2)
 	{
-		if (s == 1)
+		if (current_scale == 1)
 		{
-			AlignTwoVolumes(h_Registration_Parameters_T1_MNI, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, NUMBER_OF_ITERATIONS/10);
+			AlignTwoVolumes(h_Registration_Parameters_T1_MNI, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, ceil((float)NUMBER_OF_ITERATIONS/10.0f));
 		}
 		else
 		{
 			AlignTwoVolumes(h_Registration_Parameters_T1_MNI, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, NUMBER_OF_ITERATIONS);
 		}	
 		
-		if (s != 1)
+		if (current_scale != 1)
 		{
-			// Multiply the transformations by a factor 2 for the next scale
+			// Multiply the transformations by a factor 2 for the next scale and add to previous parameters
 			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[0] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[0] + 2*h_Registration_Parameters_T1_MNI[0]; 
 			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[1] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[1] + 2*h_Registration_Parameters_T1_MNI[1]; 
 			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[2] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[2] + 2*h_Registration_Parameters_T1_MNI[2]; 
 			
+			// Add transformation parameters for next scale
 			for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 			{
 				h_Registration_Parameters_Align_Two_Volumes_Several_Scales[i] += h_Registration_Parameters_T1_MNI[i]; 
@@ -1771,9 +1825,9 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 			AlignTwoVolumesCleanup();
 
 			// Prepare for the next scale
-			CURRENT_DATA_W = (int)round((float)DATA_W/((float)s/2.0f));
-			CURRENT_DATA_H = (int)round((float)DATA_H/((float)s/2.0f));
-			CURRENT_DATA_D = (int)round((float)DATA_D/((float)s/2.0f));
+			CURRENT_DATA_W = (int)round((float)DATA_W/((float)current_scale/2.0f));
+			CURRENT_DATA_H = (int)round((float)DATA_H/((float)current_scale/2.0f));
+			CURRENT_DATA_D = (int)round((float)DATA_D/((float)current_scale/2.0f));
 
 			// Setup all parameters and allocate memory on host
 			AlignTwoVolumesSetup(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);
@@ -1782,6 +1836,7 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 			ChangeVolumeSize(d_Aligned_Volume, d_Original_Aligned_Volume, DATA_W, DATA_H, DATA_D, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);       
 			ChangeVolumeSize(d_Reference_Volume, d_Original_Reference_Volume, DATA_W, DATA_H, DATA_D, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);       
 								
+			// Copy volume to be aligned to an image (texture)
 			size_t origin[3] = {0, 0, 0};
 			size_t region[3] = {CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D};
 			clEnqueueCopyBufferToImage(commandQueue, d_Aligned_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
@@ -1793,7 +1848,7 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 			error = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeTrilinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeTrilinear, localWorkSizeInterpolateVolumeTrilinear, 0, NULL, NULL);
 			clFinish(commandQueue);	
 
-			// Copy transformed volume back to texture
+			// Copy transformed volume back to image (texture)
 			clEnqueueCopyBufferToImage(commandQueue, d_Aligned_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
 
 			//--------
@@ -2226,7 +2281,7 @@ void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
 	
 	// Do the registration with several scales
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters_Out, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 8, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_Out, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
 	
 	// Copy the aligned volume to host
 	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
