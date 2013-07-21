@@ -33,6 +33,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double		    *h_fMRI_Volumes_double, *h_Quadrature_Filter_1_Real_double, *h_Quadrature_Filter_2_Real_double, *h_Quadrature_Filter_3_Real_double, *h_Quadrature_Filter_1_Imag_double, *h_Quadrature_Filter_2_Imag_double, *h_Quadrature_Filter_3_Imag_double;
     float           *h_fMRI_Volumes, *h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Imag;
     int             MOTION_CORRECTION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
+    int             OPENCL_PLATFORM;
     
     //-----------------------
     // Output pointers        
@@ -51,11 +52,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<5)
+    if(nrhs<6)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>5)
+    if(nrhs>6)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -79,6 +80,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Quadrature_Filter_3_Real_double =  (double*)mxGetPr(prhs[3]);
     h_Quadrature_Filter_3_Imag_double =  (double*)mxGetPi(prhs[3]);
     NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION  = (int)mxGetScalar(prhs[4]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[5]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
@@ -185,7 +187,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI;
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM);
     
     BROCCOLI.SetEPIWidth(DATA_W);
     BROCCOLI.SetEPIHeight(DATA_H);
@@ -202,7 +204,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
     BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
     
-    mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
             
     BROCCOLI.PerformMotionCorrectionWrapper();

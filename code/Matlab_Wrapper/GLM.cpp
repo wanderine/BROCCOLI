@@ -31,7 +31,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Input pointers
     
     double		    *h_fMRI_Volumes_double, *h_Mask_double, *h_X_GLM_double, *h_xtxxt_GLM_double, *h_Contrasts_double, *h_ctxtxc_GLM_double;
-    float           *h_fMRI_Volumes, *h_Mask, *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM;        
+    float           *h_fMRI_Volumes, *h_Mask, *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM;  
+    
+    int             OPENCL_PLATFORM;
     
     //-----------------------
     // Output pointers        
@@ -42,11 +44,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<6)
+    if(nrhs<7)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>6)
+    if(nrhs>7)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -68,6 +70,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_xtxxt_GLM_double =  (double*)mxGetData(prhs[3]);
     h_Contrasts_double = (double*)mxGetData(prhs[4]);
     h_ctxtxc_GLM_double = (double*)mxGetData(prhs[5]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[6]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
@@ -165,7 +168,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
        
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI;
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM);
     
     BROCCOLI.SetEPIWidth(DATA_W);
     BROCCOLI.SetEPIHeight(DATA_H);
@@ -183,7 +186,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
     
-    mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
             
     BROCCOLI.PerformGLMWrapper();
@@ -195,8 +197,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Create kernel error is %d \n",createKernelError);
     
     double GLM_time = BROCCOLI.GetProcessingTimeConvolution();
-    //mexPrintf("GLM time is %f ms \n",GLM_time/1000000.0);
-    mexPrintf("GLM time is %f ms \n",GLM_time);
+    mexPrintf("GLM time is %f ms \n",GLM_time/1000000.0);
     
     unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, DATA_W, DATA_H, DATA_D, DATA_T);

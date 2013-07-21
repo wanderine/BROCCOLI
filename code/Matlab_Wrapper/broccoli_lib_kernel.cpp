@@ -1944,7 +1944,7 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 
 	int t = 0;
 	//float beta[20];
-	__local float beta[16][32][24]; // y, x, regressors, For a maximum of 24 regressors per thread, for 512 threads per thread block
+	__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 	
 	// Reset all beta values
 	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -2014,7 +2014,7 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	int t = 0;
 	float eps, meaneps, vareps;
 	//float beta[20];
-	__local float beta[16][32][24]; // y, x, regressors, For a maximum of 24 regressors per thread, for 512 threads per thread block
+	__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 
 	// Load beta values into shared memory
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)

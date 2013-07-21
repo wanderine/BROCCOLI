@@ -38,7 +38,7 @@ mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GP
 load filters.mat
 
 
-T1_nii = load_nii('mprage_anonymized1.nii.gz');
+T1_nii = load_nii('mprage_anonymized4.nii.gz');
 T1 = double(T1_nii.img);
 T1 = T1/max(T1(:));
 MNI_nii = load_nii('../../test_data/MNI152_T1_1mm.nii');
@@ -48,7 +48,9 @@ MNI = MNI/max(MNI(:));
 
 number_of_iterations_for_image_registration = 50;
 coarsest_scale = 8;
-MM_T1_Z_CUT = 20;
+MM_T1_Z_CUT = 10;
+
+opencl_platform = 0;
 
 % Make sure T1 has same voxel size as MNI
 T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
@@ -60,12 +62,12 @@ MNI_voxel_size_y = MNI_nii.hdr.dime.pixdim(3);
 MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
 
 tic
-[registered_T1_opencl, T1_interpolated_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl, downsampled_volume_opencl] = RegisterT1MNI(T1,MNI,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale,MM_T1_Z_CUT);
+[registered_T1_opencl, T1_interpolated_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl, downsampled_volume_opencl] = RegisterT1MNI(T1,MNI,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale,MM_T1_Z_CUT,opencl_platform);
 toc
 
 registration_parameters_opencl
 
-slice = 90;
+slice = 100;
 figure; imagesc(flipud(squeeze(registered_T1_opencl(slice,:,:))'))
 figure; imagesc(flipud(squeeze(MNI(slice,:,:))'))
 figure; imagesc(squeeze(registered_T1_opencl(:,:,slice)))

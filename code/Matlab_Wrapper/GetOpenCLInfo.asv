@@ -273,6 +273,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
     BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
     
+    mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
             
     //BROCCOLI.ChangeT1VolumeResolutionAndSizeWrapper();

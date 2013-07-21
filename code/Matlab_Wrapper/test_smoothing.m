@@ -32,9 +32,12 @@ close all
 
 mex -g Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
+opencl_platform = 1;
+
 %fMRI_volumes = randn(69,123,33,100);
 load ../../test_data/hand_movements_right.mat
 fMRI_volumes = vol_exp;
+[sy sx sz st] = size(fMRI_volumes);
 
 %filter_x = randn(9,1);
 %filter_x = filter_x / sum(abs(filter_x));
@@ -70,9 +73,9 @@ for t = 1:size(fMRI_volumes,4)
    smoothed_volumes_cpu(:,:,:,t) = smoothed_volume;
 end
 
-
-smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z);
-
+tic
+smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z,opencl_platform);
+toc
 
 figure
 plot(squeeze(smoothed_volumes_cpu(25,25,15,:)),'r')
@@ -86,7 +89,7 @@ imagesc([fMRI_volumes(:,:,15,1) smoothed_volumes_cpu(:,:,15,1)  smoothed_volumes
 
 tot_error = sum(abs(smoothed_volumes_cpu(:) - smoothed_volumes_opencl(:)))
 max_error = max(abs(smoothed_volumes_cpu(:) - smoothed_volumes_opencl(:)))
-
+mean_error = mean(abs(smoothed_volumes_cpu(:) - smoothed_volumes_opencl(:)))
 
 
 

@@ -36,6 +36,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double	        *h_Smoothing_Filter_X_double, *h_Smoothing_Filter_Y_double, *h_Smoothing_Filter_Z_double;
     float		    *h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;       
     
+    int             OPENCL_PLATFORM;
     
     //-----------------------
     // Output pointers
@@ -48,11 +49,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<4)
+    if(nrhs<5)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>4)
+    if(nrhs>5)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -72,6 +73,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Smoothing_Filter_X_double = (double*)mxGetData(prhs[1]);
     h_Smoothing_Filter_Y_double = (double*)mxGetData(prhs[2]);
     h_Smoothing_Filter_Z_double = (double*)mxGetData(prhs[3]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[4]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
@@ -122,7 +124,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI;
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM);
     
     BROCCOLI.SetEPIWidth(DATA_W);
     BROCCOLI.SetEPIHeight(DATA_H);
@@ -132,11 +134,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputData(h_Filter_Response);
     BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
     
-    mexPrintf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
-    
-    
-    //BROCCOLI.AddVolumes();
+        
     BROCCOLI.PerformSmoothingWrapper();
     
     int error = BROCCOLI.GetOpenCLError();
