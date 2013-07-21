@@ -17,3 +17,9 @@ Eklund, A., Andersson, M., Knutsson, H., Phase Based Volume Registration Using C
 --------------------------------------------------------------------
 
 The software is made with OpenCL and QT. BROCCOLI runs on Windows, Linux and Mac.
+
+OpenCL drivers need to be installed to be able to run BROCCOLI
+
+Intel: http://software.intel.com/en-us/vcsource/tools/opencl-sdk
+AMD: http://developer.amd.com/tools-and-sdks/heterogeneous-computing/amd-accelerated-parallel-processing-app-sdk/downloads/
+Nvidia: http://www.nvidia.com/download/index.aspx
