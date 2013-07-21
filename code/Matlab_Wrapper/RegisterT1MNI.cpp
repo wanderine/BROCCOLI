@@ -38,7 +38,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     double		    *h_T1_Volume_double, *h_MNI_Volume_double, *h_Quadrature_Filter_1_Real_double, *h_Quadrature_Filter_2_Real_double, *h_Quadrature_Filter_3_Real_double, *h_Quadrature_Filter_1_Imag_double, *h_Quadrature_Filter_2_Imag_double, *h_Quadrature_Filter_3_Imag_double;
     float           *h_T1_Volume, *h_MNI_Volume, *h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Imag;
-    int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, MM_T1_Z_CUT;
+    int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, COARSEST_SCALE, MM_T1_Z_CUT;
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
@@ -62,11 +62,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<13)
+    if(nrhs<14)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>13)
+    if(nrhs>14)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -97,7 +97,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Quadrature_Filter_3_Real_double =  (double*)mxGetPr(prhs[10]);
     h_Quadrature_Filter_3_Imag_double =  (double*)mxGetPi(prhs[10]);
     NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[11]);
-    MM_T1_Z_CUT  = (int)mxGetScalar(prhs[12]);
+    COARSEST_SCALE  = (int)mxGetScalar(prhs[12]);
+    MM_T1_Z_CUT  = (int)mxGetScalar(prhs[13]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_T1 = mxGetDimensions(prhs[0]);
@@ -260,6 +261,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);
     BROCCOLI.SetImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
     BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+    BROCCOLI.SetCoarsestScale(COARSEST_SCALE);
     BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
     BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
     BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
