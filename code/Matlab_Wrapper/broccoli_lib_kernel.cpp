@@ -1,5 +1,5 @@
 /*
-	BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
+    BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
     Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
 
     This program is free software: you can redistribute it and/or modify
@@ -14,6 +14,13 @@
 
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+    
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+    INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
+    PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+    FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+    OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER 
+    DEALINGS IN THE SOFTWARE.
 */
 
 //#include "broccoli_lib.h"
@@ -1795,10 +1802,10 @@ __kernel void CalculateHVector(__global float* h_vector, __global const float* h
 
 
 
-__constant sampler_t volume_sampler = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
+__constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 	
 
-__kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void InterpolateVolumeLinear(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1825,12 +1832,46 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image
 	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;	
 	Motion_Vector.w = 0.0f;
 
-	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler, Motion_Vector);
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
+	Volume[idx] = Interpolated_Value.x;
+}
+
+__constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
+	
+
+__kernel void InterpolateVolumeNearest(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
+	float4 Motion_Vector;
+	float xf, yf, zf;
+
+    // (motion_vector.x)   (p0)   (p3  p4  p5)   (x)
+	// (motion_vector.y) = (p1) + (p6  p7  p8) * (y)
+ 	// (motion_vector.z)   (p2)   (p9 p10 p11)   (z)
+
+	// Change to coordinate system with origo in (sx - 1)/2 (sy - 1)/2 (sz - 1)/2
+	xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+	Motion_Vector.x = x + c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf + 0.5f;
+	Motion_Vector.y = y + c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf + 0.5f;
+	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;	
+	Motion_Vector.w = 0.0f;
+
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_nearest, Motion_Vector);
 	Volume[idx] = Interpolated_Value.x;
 }
 
 
-__kernel void RescaleVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void RescaleVolume(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1847,7 +1888,7 @@ __kernel void RescaleVolumeTriLinear(__global float* Volume, read_only image3d_t
 	Motion_Vector.z = z * VOXEL_DIFFERENCE_Z + 0.5f;
 	Motion_Vector.w = 0.0f;
 
-	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler, Motion_Vector);
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
 	Volume[idx] = Interpolated_Value.x;
 }
 
