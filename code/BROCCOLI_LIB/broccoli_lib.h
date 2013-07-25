@@ -518,7 +518,7 @@ class BROCCOLI_LIB
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
 		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel; 
 		cl_kernel CalculateAMatrix1DValuesKernel, CalculateHVector1DValuesKernel, CalculateHVectorKernel, ResetAMatrixKernel, CalculateAMatrixKernel;
-		cl_kernel InterpolateVolumeTrilinearKernel, RescaleVolumeTrilinearKernel;
+		cl_kernel InterpolateVolumeLinearKernel, InterpolateVolumeNearestKernel, RescaleVolumeKernel;
 		cl_kernel CopyT1VolumeToMNIKernel, CopyEPIVolumeToT1Kernel;
 		cl_kernel MultiplyVolumesKernel;
 
@@ -535,7 +535,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateAMatrixAndHVector2DValuesX, createKernelErrorCalculateAMatrixAndHVector2DValuesY, createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
 		cl_int createKernelErrorCalculateAMatrix1DValues, createKernelErrorCalculateHVector1DValues;
 		cl_int createKernelErrorCalculateAMatrix, createKernelErrorCalculateHVector;
-		cl_int createKernelErrorInterpolateVolumeTrilinear, createKernelErrorRescaleVolumeTrilinear;
+		cl_int createKernelErrorInterpolateVolumeLinear, createKernelErrorInterpolateVolumeNearest, createKernelErrorRescaleVolume;
 		cl_int createKernelErrorCopyT1VolumeToMNI, createKernelErrorCopyEPIVolumeToT1;
 		cl_int createKernelErrorMultiplyVolumes;
 		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
@@ -586,7 +586,8 @@ class BROCCOLI_LIB
 		size_t localWorkSizeResetAMatrix[3];
 		size_t localWorkSizeCalculateAMatrix[3];
 		size_t localWorkSizeCalculateHVector[3];
-		size_t localWorkSizeInterpolateVolumeTrilinear[3];
+		size_t localWorkSizeInterpolateVolumeLinear[3];
+		size_t localWorkSizeInterpolateVolumeNearest[3];
 		size_t localWorkSizeMultiplyVolumes[3];
 
 		size_t localWorkSizeCalculateBetaValuesGLM[3];		
@@ -616,7 +617,8 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeResetAMatrix[3];
 		size_t globalWorkSizeCalculateAMatrix[3];
 		size_t globalWorkSizeCalculateHVector[3];
-		size_t globalWorkSizeInterpolateVolumeTrilinear[3];
+		size_t globalWorkSizeInterpolateVolumeLinear[3];
+		size_t globalWorkSizeInterpolateVolumeNearest[3];
 		size_t globalWorkSizeMultiplyVolumes[3];
 
 		size_t globalWorkSizeCalculateBetaValuesGLM[3];
