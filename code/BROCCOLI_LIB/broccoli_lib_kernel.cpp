@@ -1504,6 +1504,7 @@ __kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_va
 	}
 }
 
+
 __kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Phase_Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int y = get_local_id(0);
@@ -1695,7 +1696,6 @@ __kernel void CalculateAMatrixAndHVector2DValuesZ(__global float* A_matrix_2D_va
 
 
 
-
 // dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimGrid.y = 1;
 
@@ -1745,7 +1745,6 @@ __kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A
 
 	A_matrix[A_matrix_element] = matrix_value;
 }
-
 
 // dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = NUMBER_OF_PARAMETERS; dimGrid.y = 1;
@@ -1830,6 +1829,7 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image
 	Volume[idx] = Interpolated_Value.x;
 }
 
+
 __kernel void RescaleVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
@@ -1892,7 +1892,7 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	}
 	// Interpolated T1 volume larger than MNI volume
 	// Remove bottom slices (since it is normally only neck tissue)
-	// Remove some additional slices to make the T1-MNI registration easier
+	// Remove some additional slices to make the T1-MNI registration easier (since it is normally only neck tissue)
 	if (z_diff > 0)
 	{
 		z_MNI = z;
@@ -1900,7 +1900,7 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	}
 	// Interpolated T1 volume smaller than MNI volume
 	// Put interpolated T1 volume in the middle of the MNI volume
-	// Remove some additional slices to make the T1-MNI registration easier
+	// Remove some additional slices to make the T1-MNI registration easier (since it is normally only neck tissue)
 	else
 	{
 		z_MNI = z + (int)round((float)abs(z_diff)/2.0);
@@ -1912,12 +1912,102 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	{
 		return;
 	}
+	else if ( (x_Interpolated < 0) || (y_Interpolated < 0) || (z_Interpolated < 0) || (x_MNI < 0) || (y_MNI < 0) || (z_MNI < 0) )
+	{
+		return;
+	}
 	else
 	{
 		MNI_T1_idx = Calculate3DIndex(x_MNI,y_MNI,z_MNI,MNI_DATA_W,MNI_DATA_H);
 		Interpolated_T1_idx = Calculate3DIndex(x_Interpolated,y_Interpolated,z_Interpolated,T1_DATA_W_INTERPOLATED,T1_DATA_H_INTERPOLATED);
 		MNI_T1_Volume[MNI_T1_idx] = Interpolated_T1_Volume[Interpolated_T1_idx];
 	}			
+}
+
+__kernel void CopyEPIVolumeToT1(__global float* T1_EPI_Volume,__global float* Interpolated_EPI_Volume, __private int T1_DATA_W, __private int T1_DATA_H, __private int T1_DATA_D, __private int EPI_DATA_W_INTERPOLATED, __private int EPI_DATA_H_INTERPOLATED, __private int EPI_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_EPI_Z_CUT, __private float T1_VOXEL_SIZE_Z)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int T1_EPI_idx, Interpolated_EPI_idx;
+	int x_T1, x_Interpolated;
+	int y_T1, y_Interpolated;
+	int z_T1, z_Interpolated;
+	
+	// Interpolated EPI volume larger than T1 volume
+	// Remove half of the columns in each direction
+	if (x_diff > 0)
+	{
+		x_T1 = x;
+		x_Interpolated = x + (int)round((float)x_diff/2.0);
+	}
+	// Interpolated EPI volume smaller than T1 volume
+	// Put interpolated EPI volume in the middle of the T1 volume
+	else
+	{
+		x_T1 = x + (int)round((float)abs(x_diff)/2.0);
+		x_Interpolated = x;
+	}
+	// Interpolated EPI volume larger than T1 volume
+	// Remove half of the rows in each direction
+	if (y_diff > 0)
+	{
+		y_T1 = y;
+		y_Interpolated = y + (int)round((float)y_diff/2.0);
+	}
+	// Interpolated EPI volume smaller than T1 volume
+	// Put interpolated EPI volume in the middle of the T1 volume
+	else
+	{
+		y_T1 = y + (int)round((float)abs(y_diff)/2.0);
+		y_Interpolated = y;
+	}
+	// Interpolated EPI volume larger than T1 volume
+	// Remove half the slices in each direction
+	if (z_diff > 0)
+	{
+		z_T1 = z;
+		z_Interpolated = z + (int)round((float)z_diff/2.0) + (int)round((float)MM_EPI_Z_CUT/T1_VOXEL_SIZE_Z);
+	}
+	// Interpolated EPI volume smaller than T1 volume
+	// Put interpolated EPI volume in the middle of the T1 volume
+	else
+	{
+		z_T1 = z + (int)round((float)abs(z_diff)/2.0);
+		z_Interpolated = z + (int)round((float)MM_EPI_Z_CUT/T1_VOXEL_SIZE_Z);
+	}
+
+	// Make sure we are not reading outside any volume
+	if ( (x_Interpolated >= EPI_DATA_W_INTERPOLATED) || (y_Interpolated >= EPI_DATA_H_INTERPOLATED) || (z_Interpolated >= EPI_DATA_D_INTERPOLATED) || (x_T1 >= T1_DATA_W) || (y_T1 >= T1_DATA_H) || (z_T1 >= T1_DATA_D) )
+	{
+		return;
+	}
+	else if ( (x_Interpolated < 0) || (y_Interpolated < 0) || (z_Interpolated < 0) || (x_T1 < 0) || (y_T1 < 0) || (z_T1 < 0) )
+	{
+		return;
+	}
+	else
+	{
+		T1_EPI_idx = Calculate3DIndex(x_T1,y_T1,z_T1,T1_DATA_W,T1_DATA_H);
+		Interpolated_EPI_idx = Calculate3DIndex(x_Interpolated,y_Interpolated,z_Interpolated,EPI_DATA_W_INTERPOLATED,EPI_DATA_H_INTERPOLATED);
+		T1_EPI_Volume[T1_EPI_idx] = Interpolated_EPI_Volume[Interpolated_EPI_idx];
+	}			
+}
+
+
+__kernel void MultiplyVolumes(__global float* Result, __global const float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+
+	Result[idx] = Volume1[idx] * Volume2[idx];
 }
 
 // Statistical functions
@@ -1944,7 +2034,7 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 
 	int t = 0;
 	//float beta[20];
-	__local float beta[16][32][24]; // y, x, regressors, For a maximum of 24 regressors per thread, for 512 threads per thread block
+	__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 	
 	// Reset all beta values
 	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -2014,7 +2104,7 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	int t = 0;
 	float eps, meaneps, vareps;
 	//float beta[20];
-	__local float beta[16][32][24]; // y, x, regressors, For a maximum of 24 regressors per thread, for 512 threads per thread block
+	__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 
 	// Load beta values into shared memory
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)

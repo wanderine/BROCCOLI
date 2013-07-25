@@ -50,10 +50,19 @@ float round( float d )
     return floor( d + 0.5f );
 }
 
-// Constructor
+// Constructors
+
 BROCCOLI_LIB::BROCCOLI_LIB()
 {
-	OpenCLInitiate();
+	SetStartValues();
+	OPENCL_INITIATED = 0;
+	ResetAllPointers();
+}
+
+BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform)
+{
+	OpenCLInitiate(platform);
+	OPENCL_INITIATED = 1;
 	SetStartValues();
 	ResetAllPointers();
 	//AllocateMemory();
@@ -191,6 +200,7 @@ void BROCCOLI_LIB::SetStartValues()
 	NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS = 12;
 
 	convolution_time = 0.0;
+
 }
 
 void BROCCOLI_LIB::ResetAllPointers()
@@ -248,11 +258,7 @@ void BROCCOLI_LIB::AllocateMemoryForFilters()
 	*/
 }	
 
-
-// Add compilation from binary
-// Add to select CPU or GPU
-
-void BROCCOLI_LIB::OpenCLInitiate()
+void BROCCOLI_LIB::GetOpenCLInfo()
 {
 	std::string temp_string; std::ostringstream temp_stream;
 	char* value;
@@ -266,6 +272,7 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	std::vector<cl_platform_id> platformIds (platformIdCount);
 	clGetPlatformIDs (platformIdCount, platformIds.data (), NULL);
 
+	// Loop over platforms
 	for (uint i = 0; i < platformIdCount; i++) 
     {
 	    // Get platform vendor
@@ -429,20 +436,33 @@ void BROCCOLI_LIB::OpenCLInitiate()
 			device_info.append("\n");		
 		}
 	}
-                
-	uint platform = 1;
+}
 
+// Add compilation from binary
+// Add to select CPU or GPU
+
+void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM)
+{
+	char* value;
+	size_t valueSize;
+
+  	// Get platforms
+	cl_uint platformIdCount = 0;
+	clGetPlatformIDs (0, NULL, &platformIdCount);
+	std::vector<cl_platform_id> platformIds (platformIdCount);
+	clGetPlatformIDs (platformIdCount, platformIds.data(), NULL);              
+	
 	// Create context
 	const cl_context_properties contextProperties [] =
 	{
-	    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[platform]), 0, 0
+	    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[OPENCL_PLATFORM]), 0, 0
 	};
 
 	// Get devices for current platform
 	cl_uint deviceIdCount = 0;
-	clGetDeviceIDs (platformIds[platform], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
+	clGetDeviceIDs (platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
 	std::vector<cl_device_id> deviceIds (deviceIdCount);
-	clGetDeviceIDs (platformIds[platform], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
+	clGetDeviceIDs (platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
 
 	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &error);	
 	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
@@ -493,6 +513,8 @@ void BROCCOLI_LIB::OpenCLInitiate()
 	InterpolateVolumeTrilinearKernel = clCreateKernel(program,"InterpolateVolumeTriLinear",&createKernelErrorInterpolateVolumeTrilinear);       
 	RescaleVolumeTrilinearKernel = clCreateKernel(program,"RescaleVolumeTriLinear",&createKernelErrorRescaleVolumeTrilinear);       
 	CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);       
+	CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);       
+	MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);       
 
 	// Kernels for statistical analysis	
 	CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
@@ -713,6 +735,27 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int D
 	globalWorkSizeInterpolateVolumeTrilinear[2] = zBlocks * localWorkSizeInterpolateVolumeTrilinear[2];
 }
 
+void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DATA_H, int DATA_D)
+{	
+	//----------------------------------
+	// Statistical calculations
+	//----------------------------------
+
+	localWorkSizeMultiplyVolumes[0] = 32;
+	localWorkSizeMultiplyVolumes[1] = 16;
+	localWorkSizeMultiplyVolumes[2] = 1;
+	
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeMultiplyVolumes[0]);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeMultiplyVolumes[1]);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeMultiplyVolumes[2]);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	globalWorkSizeMultiplyVolumes[0] = xBlocks * localWorkSizeMultiplyVolumes[0];
+	globalWorkSizeMultiplyVolumes[1] = yBlocks * localWorkSizeMultiplyVolumes[1];
+	globalWorkSizeMultiplyVolumes[2] = zBlocks * localWorkSizeMultiplyVolumes[2];
+}
+
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D)
 {	
 	//----------------------------------
@@ -750,30 +793,33 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 
 void BROCCOLI_LIB::OpenCLCleanup()
 {
-    clReleaseKernel(SeparableConvolutionRowsKernel);
-	clReleaseKernel(SeparableConvolutionColumnsKernel);
-	clReleaseKernel(SeparableConvolutionRodsKernel);
-	clReleaseKernel(MemsetKernel);
-	clReleaseKernel(NonseparableConvolution3DComplexKernel);
-	clReleaseKernel(CalculatePhaseDifferencesAndCertaintiesKernel);
-	clReleaseKernel(CalculatePhaseGradientsXKernel);
-	clReleaseKernel(CalculatePhaseGradientsYKernel);
-	clReleaseKernel(CalculatePhaseGradientsZKernel);
-	clReleaseKernel(CalculateAMatrixAndHVector2DValuesXKernel);
-	clReleaseKernel(CalculateAMatrixAndHVector2DValuesYKernel);
-	clReleaseKernel(CalculateAMatrixAndHVector2DValuesZKernel);
-	clReleaseKernel(CalculateAMatrix1DValuesKernel);
-	clReleaseKernel(CalculateHVector1DValuesKernel);
-	clReleaseKernel(CalculateAMatrixKernel);
-	clReleaseKernel(CalculateHVectorKernel);
-	clReleaseKernel(InterpolateVolumeTrilinearKernel);
-	clReleaseKernel(RescaleVolumeTrilinearKernel);
-	clReleaseKernel(CopyT1VolumeToMNIKernel);
-	clReleaseKernel(CalculateBetaValuesGLMKernel);
-	clReleaseKernel(CalculateStatisticalMapsGLMKernel);
-	clReleaseProgram(program);    
-    clReleaseCommandQueue(commandQueue);
-    clReleaseContext(context);
+	if (OPENCL_INITIATED == 1)
+	{
+	    clReleaseKernel(SeparableConvolutionRowsKernel);
+		clReleaseKernel(SeparableConvolutionColumnsKernel);
+		clReleaseKernel(SeparableConvolutionRodsKernel);
+		clReleaseKernel(MemsetKernel);
+		clReleaseKernel(NonseparableConvolution3DComplexKernel);
+		clReleaseKernel(CalculatePhaseDifferencesAndCertaintiesKernel);
+		clReleaseKernel(CalculatePhaseGradientsXKernel);
+		clReleaseKernel(CalculatePhaseGradientsYKernel);
+		clReleaseKernel(CalculatePhaseGradientsZKernel);
+		clReleaseKernel(CalculateAMatrixAndHVector2DValuesXKernel);
+		clReleaseKernel(CalculateAMatrixAndHVector2DValuesYKernel);
+		clReleaseKernel(CalculateAMatrixAndHVector2DValuesZKernel);
+		clReleaseKernel(CalculateAMatrix1DValuesKernel);
+		clReleaseKernel(CalculateHVector1DValuesKernel);
+		clReleaseKernel(CalculateAMatrixKernel);
+		clReleaseKernel(CalculateHVectorKernel);
+		clReleaseKernel(InterpolateVolumeTrilinearKernel);
+		clReleaseKernel(RescaleVolumeTrilinearKernel);
+		clReleaseKernel(CopyT1VolumeToMNIKernel);
+		clReleaseKernel(CalculateBetaValuesGLMKernel);
+		clReleaseKernel(CalculateStatisticalMapsGLMKernel);
+		clReleaseProgram(program);    
+		clReleaseCommandQueue(commandQueue);
+		clReleaseContext(context);
+	}
 }
 
 
@@ -784,9 +830,15 @@ void BROCCOLI_LIB::OpenCLCleanup()
 
 // Set functions for GUI / Wrappers
 
+
 void BROCCOLI_LIB::SetInputfMRIVolumes(float* data)
 {
 	h_fMRI_Volumes = data;
+}
+
+void BROCCOLI_LIB::SetInputEPIVolume(float* data)
+{
+	h_EPI_Volume = data;
 }
 
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
@@ -794,9 +846,15 @@ void BROCCOLI_LIB::SetInputT1Volume(float* data)
 	h_T1_Volume = data;
 }
 
+
 void BROCCOLI_LIB::SetInputMNIVolume(float* data)
 {
 	h_MNI_Volume = data;
+}
+
+void BROCCOLI_LIB::SetInputMNIBrainMask(float* data)
+{
+	h_MNI_Brain_Mask = data;
 }
 
 void BROCCOLI_LIB::SetMask(float* data)
@@ -867,6 +925,10 @@ void BROCCOLI_LIB::SetMMT1ZCUT(int mm)
 	MM_T1_Z_CUT = mm;
 }
 
+void BROCCOLI_LIB::SetMMEPIZCUT(int mm)
+{
+	MM_EPI_Z_CUT = mm;
+}
 
 void BROCCOLI_LIB::SetOutputBetaVolumes(float* data)
 {
@@ -895,9 +957,13 @@ void BROCCOLI_LIB::SetOutputMotionParameters(float* output)
 
 void BROCCOLI_LIB::SetOutputT1MNIRegistrationParameters(float* output)
 {
-	h_Registration_Parameters_Out = output;
+	h_Registration_Parameters_T1_MNI = output;
 }
 
+void BROCCOLI_LIB::SetOutputEPIT1RegistrationParameters(float* output)
+{
+	h_Registration_Parameters_EPI_T1 = output;
+}
 
 void BROCCOLI_LIB::SetOutputQuadratureFilterResponses(float* qfr1r, float* qfr1i, float* qfr2r, float* qfr2i, float* qfr3r, float* qfr3i)
 {
@@ -929,9 +995,25 @@ void BROCCOLI_LIB::SetOutputAlignedT1Volume(float* aligned)
 	h_Aligned_T1_Volume = aligned;
 }
 
+void BROCCOLI_LIB::SetOutputAlignedEPIVolume(float* aligned)
+{
+	h_Aligned_EPI_Volume = aligned;
+}
+
+
+void BROCCOLI_LIB::SetOutputSkullstrippedT1Volume(float* skullstripped)
+{
+	h_Skullstripped_T1_Volume = skullstripped;
+}
+
 void BROCCOLI_LIB::SetOutputInterpolatedT1Volume(float* interpolated)
 {
 	h_Interpolated_T1_Volume = interpolated;
+}
+
+void BROCCOLI_LIB::SetOutputInterpolatedEPIVolume(float* interpolated)
+{
+	h_Interpolated_EPI_Volume = interpolated;
 }
 
 void BROCCOLI_LIB::SetOutputDownsampledVolume(float* downsampled)
@@ -1611,7 +1693,7 @@ void BROCCOLI_LIB::SetMemory(cl_mem memory, float value, int N)
 }
 
 // This function is the foundation for all the image registration functions
-void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS)
+void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Volumes, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE)
 {
 	// Calculate the filter responses for the reference volume (only needed once)	
 	NonseparableConvolution3D(d_q11_Real, d_q11_Imag, d_q12_Real, d_q12_Imag, d_q13_Real, d_q13_Imag, d_Reference_Volume, DATA_W, DATA_H, DATA_D);
@@ -1622,7 +1704,6 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 		h_Registration_Parameters_Align_Two_Volumes[p] = 0.0f;
 		h_Registration_Parameters[p] = 0.0f;
 	}
-
 	
 	// Run the registration algorithm for a number of iterations
 	for (int it = 0; it < NUMBER_OF_ITERATIONS; it++)
@@ -1715,10 +1796,37 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 		// Solve the equation system A * p = h to obtain the parameter vector
 		SolveEquationSystem(h_A_Matrix, h_Inverse_A_Matrix, h_h_Vector, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
 
-		// Update the total parameter vector
-		for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
+		// Remove everything but translation
+		if (ALIGNMENT_TYPE == TRANSLATION)
 		{
-			h_Registration_Parameters_Align_Two_Volumes[i]  += h_Registration_Parameters[i];
+			// Increment translation
+			h_Registration_Parameters_Align_Two_Volumes[0] += h_Registration_Parameters[0];
+			h_Registration_Parameters_Align_Two_Volumes[1] += h_Registration_Parameters[1];
+			h_Registration_Parameters_Align_Two_Volumes[2] += h_Registration_Parameters[2];
+
+			// Set transformation matrix to zeros
+			for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
+			{
+				h_Registration_Parameters_Align_Two_Volumes[i] = 0.0f;
+			}
+		}
+		// Remove scaling by doing a SVD and forcing all singular values to be 1
+		else if (ALIGNMENT_TYPE == RIGID)
+		{
+			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
+			{
+				h_Registration_Parameters_Align_Two_Volumes[i] += h_Registration_Parameters[i];
+			}		
+
+			RemoveTransformationScaling(h_Registration_Parameters_Align_Two_Volumes);			
+		}
+		// Keep all parameters
+		else if (ALIGNMENT_TYPE == AFFINE)
+		{
+			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
+			{
+				h_Registration_Parameters_Align_Two_Volumes[i] += h_Registration_Parameters[i];
+			}		
 		}
 
 		// Copy parameter vector to constant memory
@@ -1728,6 +1836,87 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeTrilinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeTrilinear, localWorkSizeInterpolateVolumeTrilinear, 0, NULL, NULL);
 		clFinish(commandQueue);				
 	}
+
+	if (ALIGNMENT_TYPE == RIGID)
+	{
+		CalculateRotationAnglesFromRotationMatrix(h_Rotations, h_Registration_Parameters_Align_Two_Volumes);
+	}
+}
+
+
+void BROCCOLI_LIB::RemoveTransformationScaling(float* h_Registration_Parameters)
+{
+	double h_Transformation_Parameters_double[9];
+
+	// Make a copy of transformation matrix parameters
+	for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
+	{
+		h_Transformation_Parameters_double[i-3] = (double)h_Registration_Parameters[i];
+	}		
+
+	// Add one to diagonal
+	h_Transformation_Parameters_double[0] += 1.0;
+	h_Transformation_Parameters_double[4] += 1.0;
+	h_Transformation_Parameters_double[8] += 1.0;
+
+	double U[9], S[3], V[9], Rotation_Matrix[9];
+
+	SVD3x3(U, S, V, h_Transformation_Parameters_double);
+
+	// Ignore singular values (scaling)
+	// Rotation matrix = U * V'
+	Transpose3x3(V);
+	MatMul3x3(Rotation_Matrix, U, V);
+	
+	// Remove one from diagonal
+	Rotation_Matrix[0] -= 1.0;
+	Rotation_Matrix[4] -= 1.0;
+	Rotation_Matrix[8] -= 1.0;
+
+	for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS - 3; i++)
+	{
+		h_Registration_Parameters[i+3] = (float)Rotation_Matrix[i];
+	}		
+}
+
+void BROCCOLI_LIB::CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters)
+{
+	float h_Transformation_Matrix[9];
+	float c1, c2, s1;
+
+	// Make a copy of transformation matrix parameters
+	for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
+	{
+		h_Transformation_Matrix[i-3] = h_Registration_Parameters[i];
+	}		
+
+	// Add ones in the diagonal
+	h_Transformation_Matrix[0] += 1.0f;
+	h_Transformation_Matrix[4] += 1.0f;
+	h_Transformation_Matrix[8] += 1.0f;
+	
+	// Calculate rotation angles
+
+	// (p0  p1  p2)
+	// (p3  p4  p5)
+ 	// (p6  p7  p8)
+	
+	/*
+	angle1 = atan2(p_matrix(2,3),p_matrix(3,3))*180/pi;
+	c2 = sqrt(p_matrix(1,1)^2 + p_matrix(1,2)^2);
+	angle2 = atan2(-p_matrix(1,3),c2)*180/pi;
+	s1 = sind(angle1);
+	c1 = cosd(angle1);
+	angle3 = atan2(s1*p_matrix(3,1)-c1*p_matrix(2,1),c1*p_matrix(2,2)-s1*p_matrix(3,2))*180/pi;
+	rotations = [angle1, angle2, angle3];
+	*/
+	
+	h_Rotations[0] = -atan2(h_Transformation_Matrix[5], h_Transformation_Matrix[8]) * 180.0f/PI;
+	c2 = sqrt(h_Transformation_Matrix[0] * h_Transformation_Matrix[0] + h_Transformation_Matrix[1] * h_Transformation_Matrix[1]);
+	h_Rotations[1] = -atan2(-h_Transformation_Matrix[2],c2)*180.0f/PI;
+	s1 = sin(h_Rotations[0]*PI/180.0f);
+	c1 = cos(h_Rotations[0]*PI/180.0f);
+	h_Rotations[2] = -atan2(s1*h_Transformation_Matrix[6] - c1*h_Transformation_Matrix[3],c1*h_Transformation_Matrix[4] - s1*h_Transformation_Matrix[7])*180.0f/PI;
 }
 
 void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_Volume_, int ORIGINAL_DATA_W, int ORIGINAL_DATA_H, int ORIGINAL_DATA_D, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D)
@@ -1765,13 +1954,16 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 }
 
 // COARSEST_SCALE should be 8, 4, 2 or 1
-void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters_Align_Two_Volumes_Several_Scales, cl_mem d_Original_Aligned_Volume, cl_mem d_Original_Reference_Volume, int DATA_W, int DATA_H, int DATA_D, int COARSEST_SCALE_, int NUMBER_OF_ITERATIONS)
+void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters_Align_Two_Volumes_Several_Scales, float* h_Rotations, cl_mem d_Original_Aligned_Volume, cl_mem d_Original_Reference_Volume, int DATA_W, int DATA_H, int DATA_D, int COARSEST_SCALE_, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE)
 {
 	for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 	{
 		h_Registration_Parameters_Align_Two_Volumes_Several_Scales[i] = 0.0f;
-		h_Registration_Parameters_T1_MNI[i] = 0.0f;
+		h_Registration_Parameters_Temp[i] = 0.0f;
 	}
+	h_Rotations[0] = 0.0f;
+	h_Rotations[1] = 0.0f;
+	h_Rotations[2] = 0.0f;
 
 	// Calculate volume size for coarsest scale
 	CURRENT_DATA_W = (int)round((float)DATA_W/(float)COARSEST_SCALE_);
@@ -1801,24 +1993,28 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 	{
 		if (current_scale == 1)
 		{
-			AlignTwoVolumes(h_Registration_Parameters_T1_MNI, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, ceil((float)NUMBER_OF_ITERATIONS/10.0f));
+			AlignTwoVolumes(h_Registration_Parameters_Temp, h_Rotations_Temp, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, ceil((float)NUMBER_OF_ITERATIONS/10.0f), ALIGNMENT_TYPE);
 		}
 		else
 		{
-			AlignTwoVolumes(h_Registration_Parameters_T1_MNI, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, NUMBER_OF_ITERATIONS);
+			AlignTwoVolumes(h_Registration_Parameters_Temp, h_Rotations_Temp, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, NUMBER_OF_ITERATIONS, ALIGNMENT_TYPE);
 		}	
 		
 		if (current_scale != 1)
 		{
+			h_Rotations[0] += h_Rotations_Temp[0];
+			h_Rotations[1] += h_Rotations_Temp[1];
+			h_Rotations[2] += h_Rotations_Temp[2];
+
 			// Multiply the transformations by a factor 2 for the next scale and add to previous parameters
-			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[0] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[0] + 2*h_Registration_Parameters_T1_MNI[0]; 
-			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[1] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[1] + 2*h_Registration_Parameters_T1_MNI[1]; 
-			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[2] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[2] + 2*h_Registration_Parameters_T1_MNI[2]; 
+			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[0] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[0] + 2*h_Registration_Parameters_Temp[0]; 
+			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[1] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[1] + 2*h_Registration_Parameters_Temp[1]; 
+			h_Registration_Parameters_Align_Two_Volumes_Several_Scales[2] = 2*h_Registration_Parameters_Align_Two_Volumes_Several_Scales[2] + 2*h_Registration_Parameters_Temp[2]; 
 			
 			// Add transformation parameters for next scale
 			for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 			{
-				h_Registration_Parameters_Align_Two_Volumes_Several_Scales[i] += h_Registration_Parameters_T1_MNI[i]; 
+				h_Registration_Parameters_Align_Two_Volumes_Several_Scales[i] += h_Registration_Parameters_Temp[i]; 
 			}
 			
 			// Clean up before the next scale
@@ -1863,9 +2059,13 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 
 			//AlignTwoVolumesCleanup();
 
+			h_Rotations[0] += h_Rotations_Temp[0];
+			h_Rotations[1] += h_Rotations_Temp[1];
+			h_Rotations[2] += h_Rotations_Temp[2];
+
 			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 			{
-				h_Registration_Parameters_Align_Two_Volumes_Several_Scales[i] += h_Registration_Parameters_T1_MNI[i]; 
+				h_Registration_Parameters_Align_Two_Volumes_Several_Scales[i] += h_Registration_Parameters_Temp[i]; 
 			}
 		}		
 	}
@@ -2266,6 +2466,137 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	clReleaseMemObject(d_T1_Volume_Texture);
 }
 
+void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z)
+{	
+	// Calculate volume size for the same voxel size
+	int EPI_DATA_W_INTERPOLATED = (int)round((float)EPI_DATA_W * EPI_VOXEL_SIZE_X / T1_VOXEL_SIZE_X);
+	int EPI_DATA_H_INTERPOLATED = (int)round((float)EPI_DATA_H * EPI_VOXEL_SIZE_Y / T1_VOXEL_SIZE_Y);
+	int EPI_DATA_D_INTERPOLATED = (int)round((float)EPI_DATA_D * EPI_VOXEL_SIZE_Z / T1_VOXEL_SIZE_Z);
+    
+	// Allocate memory for interpolated volume
+	cl_mem d_Interpolated_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W_INTERPOLATED * EPI_DATA_H_INTERPOLATED * EPI_DATA_D_INTERPOLATED * sizeof(float), NULL, NULL);
+	
+	// Create a 3D image (texture) for fast interpolation
+	cl_image_format format;
+	format.image_channel_data_type = CL_FLOAT;
+	format.image_channel_order = CL_INTENSITY;
+	cl_mem d_EPI_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 0, 0, NULL, NULL);
+	
+	// Copy the T1 volume to an image to interpolate from
+	size_t origin[3] = {0, 0, 0};
+	size_t region[3] = {EPI_DATA_W, EPI_DATA_H, EPI_DATA_D};
+	clEnqueueCopyBufferToImage(commandQueue, d_EPI_Volume, d_EPI_Volume_Texture, 0, origin, region, 0, NULL, NULL);
+	
+	float VOXEL_DIFFERENCE_X = (float)(EPI_DATA_W-1)/(float)(EPI_DATA_W_INTERPOLATED-1);
+	float VOXEL_DIFFERENCE_Y = (float)(EPI_DATA_H-1)/(float)(EPI_DATA_H_INTERPOLATED-1);
+	float VOXEL_DIFFERENCE_Z = (float)(EPI_DATA_D-1)/(float)(EPI_DATA_D_INTERPOLATED-1);
+
+	SetGlobalAndLocalWorkSizesInterpolateVolume(EPI_DATA_W_INTERPOLATED, EPI_DATA_H_INTERPOLATED, EPI_DATA_D_INTERPOLATED);
+
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 0, sizeof(cl_mem), &d_Interpolated_EPI_Volume);
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 1, sizeof(cl_mem), &d_EPI_Volume_Texture);
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 3, sizeof(float), &VOXEL_DIFFERENCE_Y);
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 4, sizeof(float), &VOXEL_DIFFERENCE_Z);
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 5, sizeof(int), &EPI_DATA_W_INTERPOLATED);
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 6, sizeof(int), &EPI_DATA_H_INTERPOLATED);
+	clSetKernelArg(RescaleVolumeTrilinearKernel, 7, sizeof(int), &EPI_DATA_D_INTERPOLATED);	
+	
+	// Interpolate T1 volume to the same voxel size as the MNI volume
+	error = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeTrilinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeTrilinear, localWorkSizeInterpolateVolumeTrilinear, 0, NULL, NULL);
+	clFinish(commandQueue);	
+	
+	// Now make sure that the interpolated T1 volume has the same number of voxels as the MNI volume in each direction
+	int x_diff = EPI_DATA_W_INTERPOLATED - T1_DATA_W;
+	int y_diff = EPI_DATA_H_INTERPOLATED - T1_DATA_H;
+	int z_diff = EPI_DATA_D_INTERPOLATED - T1_DATA_D;
+	
+	// Set all values to zero
+	SetMemory(d_T1_EPI_Volume, 0.0f, T1_DATA_W * T1_DATA_H * T1_DATA_D);
+
+	SetGlobalAndLocalWorkSizesInterpolateVolume(mymax(T1_DATA_W,EPI_DATA_W_INTERPOLATED),mymax(T1_DATA_H,EPI_DATA_H_INTERPOLATED),mymax(T1_DATA_D,EPI_DATA_D_INTERPOLATED));
+
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 0, sizeof(cl_mem), &d_T1_EPI_Volume);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 1, sizeof(cl_mem), &d_Interpolated_EPI_Volume);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 2, sizeof(int), &T1_DATA_W);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 3, sizeof(int), &T1_DATA_H);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 4, sizeof(int), &T1_DATA_D);	
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 5, sizeof(int), &EPI_DATA_W_INTERPOLATED);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 6, sizeof(int), &EPI_DATA_H_INTERPOLATED);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 7, sizeof(int), &EPI_DATA_D_INTERPOLATED);	
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 8, sizeof(int), &x_diff);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 9, sizeof(int), &y_diff);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 10, sizeof(int), &z_diff);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 11, sizeof(int), &MM_EPI_Z_CUT);
+	clSetKernelArg(CopyEPIVolumeToT1Kernel, 12, sizeof(float), &T1_VOXEL_SIZE_Z);
+	
+	error = clEnqueueNDRangeKernel(commandQueue, CopyEPIVolumeToT1Kernel, 3, NULL, globalWorkSizeInterpolateVolumeTrilinear, localWorkSizeInterpolateVolumeTrilinear, 0, NULL, NULL);
+	clFinish(commandQueue);	
+
+	clReleaseMemObject(d_Interpolated_EPI_Volume);
+	clReleaseMemObject(d_EPI_Volume_Texture);
+}
+
+// Performs skullstrip by multiplying aligned T1 volume with MNI brain mask
+void BROCCOLI_LIB::PerformSkullstrip(cl_mem d_Skullstripped_T1_Volume, cl_mem d_Aligned_T1_Volume, cl_mem d_MNI_Brain_Mask, int DATA_W, int DATA_H, int DATA_D)
+{
+	SetGlobalAndLocalWorkSizesMultiplyVolumes(DATA_W, DATA_H, DATA_D);
+
+	clSetKernelArg(MultiplyVolumesKernel, 0, sizeof(cl_mem), &d_Skullstripped_T1_Volume);
+	clSetKernelArg(MultiplyVolumesKernel, 1, sizeof(cl_mem), &d_Aligned_T1_Volume);
+	clSetKernelArg(MultiplyVolumesKernel, 2, sizeof(cl_mem), &d_MNI_Brain_Mask);
+	clSetKernelArg(MultiplyVolumesKernel, 3, sizeof(int), &DATA_W);
+	clSetKernelArg(MultiplyVolumesKernel, 4, sizeof(int), &DATA_H);
+	clSetKernelArg(MultiplyVolumesKernel, 5, sizeof(int), &DATA_D);
+
+	runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);	
+}
+
+void BROCCOLI_LIB::InvertAffineRegistrationParameters(float* h_Inverse_Parameters, float* h_Parameters)
+{
+	// Put parameters in 4 x 4 matrix
+	float Affine_Matrix[16], Inverse_Affine_Matrix[16];
+	
+	Affine_Matrix[0] = h_Parameters[3] + 1.0f;
+	Affine_Matrix[1] = h_Parameters[4];
+	Affine_Matrix[2] = h_Parameters[5];
+	Affine_Matrix[3] = h_Parameters[0];
+
+	Affine_Matrix[4] = h_Parameters[6];
+	Affine_Matrix[5] = h_Parameters[7] + 1.0f;
+	Affine_Matrix[6] = h_Parameters[8];
+	Affine_Matrix[7] = h_Parameters[1];
+
+	Affine_Matrix[8]  = h_Parameters[9];
+	Affine_Matrix[9]  = h_Parameters[10];
+	Affine_Matrix[10] = h_Parameters[11] + 1.0f;
+	Affine_Matrix[11] = h_Parameters[2];
+
+	Affine_Matrix[12] = 0.0f;
+	Affine_Matrix[13] = 0.0f;
+	Affine_Matrix[14] = 0.0f;
+	Affine_Matrix[15] = 1.0f;
+
+	InvertMatrix(Inverse_Affine_Matrix, Affine_Matrix, 4);
+
+	h_Inverse_Parameters[0] = Inverse_Affine_Matrix[3];
+	h_Inverse_Parameters[1] = Inverse_Affine_Matrix[7];
+	h_Inverse_Parameters[2] = Inverse_Affine_Matrix[11];
+
+	h_Inverse_Parameters[3] = Inverse_Affine_Matrix[0] - 1.0f;
+	h_Inverse_Parameters[4] = Inverse_Affine_Matrix[1];
+	h_Inverse_Parameters[5] = Inverse_Affine_Matrix[2];
+
+	h_Inverse_Parameters[6] = Inverse_Affine_Matrix[4];
+	h_Inverse_Parameters[7] = Inverse_Affine_Matrix[5] - 1.0f;
+	h_Inverse_Parameters[8] = Inverse_Affine_Matrix[6];
+
+	h_Inverse_Parameters[9] = Inverse_Affine_Matrix[8];
+	h_Inverse_Parameters[10] = Inverse_Affine_Matrix[9];
+	h_Inverse_Parameters[11] = Inverse_Affine_Matrix[10] - 1.0f;
+}
+
 void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 {
 	// Allocate memory for T1 volume, MNI volume and T1 volume of MNI size
@@ -2280,20 +2611,99 @@ void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 	// Interpolate T1 volume to MNI resolution and make sure it has the same size
 	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
 	
-	// Do the registration with several scales
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters_Out, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+	// Copy the MNI T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
+
+	// Do the registration between T1 and MNI with several scales
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE);
 	
-	// Copy the aligned volume to host
+	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_MNI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
-
-	AlignTwoVolumesCleanup();
-
+	
+	// Cleanup
 	clReleaseMemObject(d_T1_Volume);
 	clReleaseMemObject(d_MNI_Volume);
 	clReleaseMemObject(d_MNI_T1_Volume);
+		
+	// Allocate memory for skullstripped T1 volume and MNI brain mask
+	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+
+	// Copy MNI brain mask to device
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	// Create skullstripped volume, by multiplying aligned T1 volume with MNI brain mask
+	PerformSkullstrip(d_Skullstripped_T1_Volume, d_Aligned_Volume, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	// Now apply the inverse transformation between MNI and T1, to return skullstripped version to T1 space (for EPI-T1 registration)		
+	InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI);
+		
+	// Copy parameter vector to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_Registration_Parameters, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), h_Inverse_Registration_Parameters, 0, NULL, NULL);
+
+	// Copy skullstripped volume to texture
+	size_t origin[3] = {0, 0, 0};
+	size_t region[3] = {MNI_DATA_W, MNI_DATA_H, MNI_DATA_D};
+	clEnqueueCopyBufferToImage(commandQueue, d_Skullstripped_T1_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
+
+	// Interpolate to get the new volume
+	runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeTrilinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeTrilinear, localWorkSizeInterpolateVolumeTrilinear, 0, NULL, NULL);
+	clFinish(commandQueue);	
+
+	clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_Skullstripped_T1_Volume, 0, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), 0, NULL, NULL);
+
+	// Copy the skullstripped T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_Skullstripped_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
+
+	// Cleanup
+	AlignTwoVolumesCleanup();
+	clReleaseMemObject(d_Skullstripped_T1_Volume);
+	clReleaseMemObject(d_MNI_Brain_Mask);
 }
 
+void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
+{
+	// Allocate memory for EPI volume, T1 volume and EPI volume of T1 size
+	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);	
+	d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	
+	// Copy data to EPI volume and T1 volume
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Volume , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+	
+	// Interpolate EPI volume to T1 resolution and make sure it has the same size
+	ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);       
+	
+	// Copy the EPI T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Interpolated_EPI_Volume, 0, NULL, NULL);
+
+	//AlignTwoVolumesSeveralScales(h_Registration_Parameters_Temp, h_Rotations, d_T1_EPI_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, TRANSLATION);
+	//clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_T1_EPI_Volume, 0, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), 0, NULL, NULL);
+
+	// Do the registration between EPI and T1 with several scales, rigid
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_EPI_T1_Temp, h_Rotations, d_T1_EPI_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID);
+	//AlignTwoVolumesSeveralScales(h_Registration_Parameters_Temp, h_Rotations, d_T1_EPI_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE);
+	
+	// Copy the aligned EPI volume to host
+	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Aligned_EPI_Volume, 0, NULL, NULL);
+	
+	// Translations 
+	h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Temp[0];
+	h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Temp[1];
+	h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Temp[2];
+
+	// Rotations
+	h_Registration_Parameters_EPI_T1[3] = h_Rotations[0];
+	h_Registration_Parameters_EPI_T1[4] = h_Rotations[1];
+	h_Registration_Parameters_EPI_T1[5] = h_Rotations[2];
+
+	// Cleanup
+	clReleaseMemObject(d_EPI_Volume);
+	clReleaseMemObject(d_T1_Volume);
+	clReleaseMemObject(d_T1_EPI_Volume);
+	AlignTwoVolumesCleanup();
+}
 
 // Performs registration between one high resolution T1 volume and a high resolution MNI volume (brain template)
 void BROCCOLI_LIB::PerformRegistrationT1MNI()
@@ -2302,7 +2712,7 @@ void BROCCOLI_LIB::PerformRegistrationT1MNI()
 	//ChangeVolumeResolutionAndSize(d_T1_Volume, d_Interpolated_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
 	
 	// Do the registration with several scales
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 8, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 8, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE);
 	
 	// Copy the aligned volume to host
 	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
@@ -2311,27 +2721,6 @@ void BROCCOLI_LIB::PerformRegistrationT1MNI()
 	AlignTwoVolumesCleanup();	
 }
 
-/*
-// Setup all parameters and allocate memory on host
-	AlignTwoVolumesSetup(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-
-	// Set the MNI volume as the reference volume
-	clEnqueueCopyBuffer(commandQueue, d_MNI_Volume, d_Reference_Volume, 0, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), 0, NULL, NULL);
-
-	// Set the T1 volume as the volume to be aligned
-	clEnqueueCopyBuffer(commandQueue, d_Interpolated_T1_Volume, d_Aligned_Volume, 0, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), 0, NULL, NULL);
-
-	// Set the T1 volume as the original volume to interpolate from
-	size_t origin[3] = {0, 0, 0};
-	size_t region[3] = {MNI_DATA_W, MNI_DATA_H, MNI_DATA_D};
-	clEnqueueCopyBufferToImage(commandQueue, d_Interpolated_T1_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
-*/
-
-
-// Performs registration between one low resolution fMRI volume and a high resolution MNI volume
-//void BROCCOLI_LIB::PerformRegistrationEPIMNI()
-//{
-//}
 
 
 // Performs slice timing correction of an fMRI dataset
@@ -2369,17 +2758,23 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 		size_t region[3] = {EPI_DATA_W, EPI_DATA_H, EPI_DATA_D};
 		clEnqueueCopyBufferToImage(commandQueue, d_fMRI_Volumes, d_Original_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), origin, region, 0, NULL, NULL);
 		
-		// Do the registration with only one scale
-		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+		// Do rigid registration with only one scale
+		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID);
 
 		// Copy the corrected volume to the corrected volumes
 		clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_Motion_Corrected_fMRI_Volumes, 0, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 	
 		// Write the total parameter vector to host
-		for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
-		{
-			h_Motion_Parameters[t + i * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[i];
-		}
+
+		// Translations
+		h_Motion_Parameters[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0];
+		h_Motion_Parameters[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1];
+		h_Motion_Parameters[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2];
+
+		// Rotations
+		h_Motion_Parameters[t + 3 * EPI_DATA_T] = h_Rotations[0];
+		h_Motion_Parameters[t + 4 * EPI_DATA_T] = h_Rotations[1];
+		h_Motion_Parameters[t + 5 * EPI_DATA_T] = h_Rotations[2];
 	}
 		
 	// Copy all corrected volumes to host
@@ -2412,17 +2807,23 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 		size_t region[3] = {EPI_DATA_W, EPI_DATA_H, EPI_DATA_D};
 		clEnqueueCopyBufferToImage(commandQueue, d_fMRI_Volumes, d_Original_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), origin, region, 0, NULL, NULL);
 		
-		// Do the registration with only one scale
-		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+		// Do rigid registration with only one scale
+		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID);
 
 		// Copy the corrected volume to the corrected volumes
 		clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_Motion_Corrected_fMRI_Volumes, 0, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 	
 		// Write the total parameter vector to host
-		for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
-		{
-			h_Motion_Parameters[t + i * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[i];
-		}
+		
+		// Translations
+		h_Motion_Parameters[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0];
+		h_Motion_Parameters[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1];
+		h_Motion_Parameters[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2];
+
+		// Rotations
+		h_Motion_Parameters[t + 3 * EPI_DATA_T] = h_Rotations[0];
+		h_Motion_Parameters[t + 4 * EPI_DATA_T] = h_Rotations[1];
+		h_Motion_Parameters[t + 5 * EPI_DATA_T] = h_Rotations[2];
 	}
 	
 	// Copy all corrected volumes to host
@@ -3747,7 +4148,7 @@ void BROCCOLI_LIB::ExtractRealData(float* real_data, Complex* complex_data, int 
 */
 
 
-void BROCCOLI_LIB::Invert_Matrix(float* inverse_matrix, float* matrix, int N)
+void BROCCOLI_LIB::InvertMatrix(float* inverse_matrix, float* matrix, int N)
 {      
     int i = 0;
     int j = 0;
@@ -3883,7 +4284,7 @@ void BROCCOLI_LIB::Invert_Matrix(float* inverse_matrix, float* matrix, int N)
 	free(X);
 }
 
-void BROCCOLI_LIB::Calculate_Square_Root_of_Matrix(float* sqrt_matrix, float* matrix, int N)
+void BROCCOLI_LIB::CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, int N)
 {
 	float* tempinv = (float*)malloc(sizeof(float) * N * N); 
 
@@ -3899,7 +4300,7 @@ void BROCCOLI_LIB::Calculate_Square_Root_of_Matrix(float* sqrt_matrix, float* ma
 
 	for (int iteration = 0; iteration < 15; iteration++)
 	{
-		Invert_Matrix(tempinv, sqrt_matrix, N);
+		InvertMatrix(tempinv, sqrt_matrix, N);
 		sqrt_matrix[0] = 0.5f * sqrt_matrix[0] + 0.5f * (matrix[0] * tempinv[0] + matrix[1] * tempinv[2]);
 		sqrt_matrix[1] = 0.5f * sqrt_matrix[1] + 0.5f * (matrix[0] * tempinv[1] + matrix[1] * tempinv[3]);
 		sqrt_matrix[2] = 0.5f * sqrt_matrix[2] + 0.5f * (matrix[2] * tempinv[0] + matrix[3] * tempinv[2]);
@@ -3911,7 +4312,7 @@ void BROCCOLI_LIB::Calculate_Square_Root_of_Matrix(float* sqrt_matrix, float* ma
 
 void BROCCOLI_LIB::SolveEquationSystem(float* h_A_matrix, float* h_inverse_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N)
 {
-	Invert_Matrix(h_inverse_A_matrix, h_A_matrix, N);
+	InvertMatrix(h_inverse_A_matrix, h_A_matrix, N);
 
     for (int row = 0; row < N; row++)
 	{
@@ -4025,7 +4426,7 @@ void BROCCOLI_LIB::SetupDetrendingBasisFunctions()
 	}
 
 	// Calculate inverse of X_Detrend'*X_Detrend
-	Invert_Matrix(inv_xtx, xtx, NUMBER_OF_DETRENDING_BASIS_FUNCTIONS);
+	InvertMatrix(inv_xtx, xtx, NUMBER_OF_DETRENDING_BASIS_FUNCTIONS);
 
 	// Calculate inv(X_Detrend'*X_Detrend)*X_Detrend'
 	for (int t = 0; t < EPI_DATA_T; t++)
@@ -4193,4 +4594,388 @@ float BROCCOLI_LIB::Gpdf(double value, double shape, double scale)
 	//return pow(value, shape - scale) * exp(-value / scale) / (pow(scale,shape) * gamma((int)shape));
 
 	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
+}
+
+
+void BROCCOLI_LIB::Cross(double *z, const double *x, const double *y) 
+{
+	z[0] = x[1]*y[2]-x[2]*y[1];
+	z[1] = -(x[0]*y[2]-x[2]*y[0]);
+	z[2] = x[0]*y[1]-x[1]*y[0];
+}
+
+void BROCCOLI_LIB::Sort3(double *x) 
+{
+	double tmp;
+
+	if (x[0] < x[1]) 
+	{
+		tmp = x[0];
+		x[0] = x[1];
+		x[1] = tmp;
+	}
+	if (x[1] < x[2]) 
+	{
+		if (x[0] < x[2]) 
+		{
+			tmp = x[2];
+			x[2] = x[1];
+			x[1] = x[0];
+			x[0] = tmp;
+		}
+		else 
+		{
+			tmp = x[1];
+			x[1] = x[2];
+			x[2] = tmp;
+		}
+	}
+}
+
+void BROCCOLI_LIB::Unit3(double *x) 
+{
+	double tmp = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
+	x[0] /= tmp;
+	x[1] /= tmp;
+	x[2] /= tmp;
+}
+
+void BROCCOLI_LIB::LDUBSolve3(double *x, const double *y, const double *LDU, const int *P) 
+{
+	x[P[2]] = y[2];
+	x[P[1]] = y[1] - LDU[3*P[2]+1]*x[P[2]];
+	x[P[0]] = y[0] - LDU[3*P[2]+0]*x[P[2]] - LDU[3*P[1]+0]*x[P[1]];
+}
+
+void BROCCOLI_LIB::MatMul3x3(double *C, const double *A, const double *B) 
+{
+	C[3*0+0] = A[3*0+0]*B[3*0+0] + A[3*1+0]*B[3*0+1] + A[3*2+0]*B[3*0+2];
+	C[3*1+0] = A[3*0+0]*B[3*1+0] + A[3*1+0]*B[3*1+1] + A[3*2+0]*B[3*1+2];
+	C[3*2+0] = A[3*0+0]*B[3*2+0] + A[3*1+0]*B[3*2+1] + A[3*2+0]*B[3*2+2];
+
+	C[3*0+1] = A[3*0+1]*B[3*0+0] + A[3*1+1]*B[3*0+1] + A[3*2+1]*B[3*0+2];
+	C[3*1+1] = A[3*0+1]*B[3*1+0] + A[3*1+1]*B[3*1+1] + A[3*2+1]*B[3*1+2];
+	C[3*2+1] = A[3*0+1]*B[3*2+0] + A[3*1+1]*B[3*2+1] + A[3*2+1]*B[3*2+2];
+
+	C[3*0+2] = A[3*0+2]*B[3*0+0] + A[3*1+2]*B[3*0+1] + A[3*2+2]*B[3*0+2];
+	C[3*1+2] = A[3*0+2]*B[3*1+0] + A[3*1+2]*B[3*1+1] + A[3*2+2]*B[3*1+2];
+	C[3*2+2] = A[3*0+2]*B[3*2+0] + A[3*1+2]*B[3*2+1] + A[3*2+2]*B[3*2+2];
+}
+
+void BROCCOLI_LIB::MatVec3(double *y, const double *A, const double *x) 
+{
+	y[0] = A[3*0+0]*x[0] + A[3*1+0]*x[1] + A[3*2+0]*x[2];
+	y[1] = A[3*0+1]*x[0] + A[3*1+1]*x[1] + A[3*2+1]*x[2];
+	y[2] = A[3*0+2]*x[0] + A[3*1+2]*x[1] + A[3*2+2]*x[2];
+}
+
+void BROCCOLI_LIB::A_Transpose_A3x3(double *AA, const double *A) 
+{
+	AA[3*0+0] = A[3*0+0]*A[3*0+0] + A[3*0+1]*A[3*0+1] + A[3*0+2]*A[3*0+2];
+	AA[3*1+0] = A[3*0+0]*A[3*1+0] + A[3*0+1]*A[3*1+1] + A[3*0+2]*A[3*1+2];
+	AA[3*2+0] = A[3*0+0]*A[3*2+0] + A[3*0+1]*A[3*2+1] + A[3*0+2]*A[3*2+2];
+
+	AA[3*0+1] = AA[3*1+0];
+	AA[3*1+1] = A[3*1+0]*A[3*1+0] + A[3*1+1]*A[3*1+1] + A[3*1+2]*A[3*1+2];
+	AA[3*2+1] = A[3*1+0]*A[3*2+0] + A[3*1+1]*A[3*2+1] + A[3*1+2]*A[3*2+2];
+
+	AA[3*0+2] = AA[3*2+0];
+	AA[3*1+2] = AA[3*2+1];
+	AA[3*2+2] = A[3*2+0]*A[3*2+0] + A[3*2+1]*A[3*2+1] + A[3*2+2]*A[3*2+2];
+}
+
+void BROCCOLI_LIB::A_A_Transpose3x3(double *AA, const double *A) 
+{
+	AA[3*0+0] = A[3*0+0]*A[3*0+0] + A[3*1+0]*A[3*1+0] + A[3*2+0]*A[3*2+0];
+	AA[3*1+0] = A[3*0+0]*A[3*0+1] + A[3*1+0]*A[3*1+1] + A[3*2+0]*A[3*2+1];
+	AA[3*2+0] = A[3*0+0]*A[3*0+2] + A[3*1+0]*A[3*1+2] + A[3*2+0]*A[3*2+2];
+
+	AA[3*0+1] = AA[3*1+0];
+	AA[3*1+1] = A[3*0+1]*A[3*0+1] + A[3*1+1]*A[3*1+1] + A[3*2+1]*A[3*2+1];
+	AA[3*2+1] = A[3*0+1]*A[3*0+2] + A[3*1+1]*A[3*1+2] + A[3*2+1]*A[3*2+2];
+
+	AA[3*0+2] = AA[3*2+0];
+	AA[3*1+2] = AA[3*2+1];
+	AA[3*2+2] = A[3*0+2]*A[3*0+2] + A[3*1+2]*A[3*1+2] + A[3*2+2]*A[3*2+2];
+}
+
+void BROCCOLI_LIB::Transpose3x3(double *A) 
+{
+	double tmp;
+
+	tmp = A[3*1+0];
+	A[3*1+0] = A[3*0+1];
+	A[3*0+1] = tmp;
+
+	tmp = A[3*2+0];
+	A[3*2+0] = A[3*0+2];
+	A[3*0+2] = tmp;
+
+	tmp = A[3*2+1];
+	A[3*2+1] = A[3*1+2];
+	A[3*1+2] = tmp;
+}
+
+double BROCCOLI_LIB::cbrt(double x) 
+{
+  if (fabs(x) < DBL_EPSILON) return 0.0;
+
+  if (x > 0.0) return pow(x, 1.0/3.0);
+
+  return -pow(-x, 1.0/3.0);
+
+}
+
+void BROCCOLI_LIB::SolveCubic(double *c) 
+{
+	const double sq3d2 = 0.86602540378443864676, c2d3 = c[2]/3, c2sq = c[2]*c[2], Q = (3*c[1]-c2sq)/9, R = (c[2]*(9*c[1]-2*c2sq)-27*c[0])/54;
+	double tmp, t, sint, cost;
+
+	if (Q < 0) 
+	{
+		/* 
+		 * Instead of computing
+		 * c_0 = A cos(t) - B
+		 * c_1 = A cos(t + 2 pi/3) - B
+		 * c_2 = A cos(t + 4 pi/3) - B
+		 * Use cos(a+b) = cos(a) cos(b) - sin(a) sin(b)
+		 * Keeps t small and eliminates 1 function call.
+		 * cos(2 pi/3) = cos(4 pi/3) = -0.5
+		 * sin(2 pi/3) = sqrt(3)/2
+		 * sin(4 pi/3) = -sqrt(3)/2
+		 */
+
+		tmp = 2*sqrt(-Q);
+		t = acos(R/sqrt(-Q*Q*Q))/3;
+		cost = tmp*cos(t);
+		sint = tmp*sin(t);
+
+		c[0] = cost - c2d3;
+
+		cost = -0.5*cost - c2d3;
+		sint = sq3d2*sint;
+
+		c[1] = cost - sint;
+		c[2] = cost + sint;
+	}
+	else 
+	{
+		tmp = cbrt(R);
+		c[0] = -c2d3 + 2*tmp;
+		c[1] = c[2] = -c2d3 - tmp;
+	}
+}
+
+void BROCCOLI_LIB::LDU3(double *A, int *P) 
+{
+	int tmp;
+
+	P[1] = 1;
+	P[2] = 2;
+
+	P[0] = fabs(A[3*1+0]) > fabs(A[3*0+0]) ? 
+		(fabs(A[3*2+0]) > fabs(A[3*1+0]) ? 2 : 1) : 
+		(fabs(A[3*2+0]) > fabs(A[3*0+0]) ? 2 : 0);
+	P[P[0]] = 0;
+
+	if (fabs(A[3*P[2]+1]) > fabs(A[3*P[1]+1])) 
+	{
+		tmp = P[1];
+		P[1] = P[2];
+		P[2] = tmp;
+	}
+
+	if (A[3*P[0]+0] != 0) 
+	{
+		A[3*P[1]+0] = A[3*P[1]+0]/A[3*P[0]+0];
+		A[3*P[2]+0] = A[3*P[2]+0]/A[3*P[0]+0];
+		A[3*P[0]+1] = A[3*P[0]+1]/A[3*P[0]+0];
+		A[3*P[0]+2] = A[3*P[0]+2]/A[3*P[0]+0];
+	}
+
+	A[3*P[1]+1] = A[3*P[1]+1] - A[3*P[0]+1]*A[3*P[1]+0]*A[3*P[0]+0];
+
+	if (A[3*P[1]+1] != 0) 
+	{
+		A[3*P[2]+1] = (A[3*P[2]+1] - A[3*P[0]+1]*A[3*P[2]+0]*A[3*P[0]+0])/A[3*P[1]+1];
+		A[3*P[1]+2] = (A[3*P[1]+2] - A[3*P[0]+2]*A[3*P[1]+0]*A[3*P[0]+0])/A[3*P[1]+1];
+	}
+
+	A[3*P[2]+2] = A[3*P[2]+2] - A[3*P[0]+2]*A[3*P[2]+0]*A[3*P[0]+0] - A[3*P[1]+2]*A[3*P[2]+1]*A[3*P[1]+1];
+
+}
+
+void BROCCOLI_LIB::SVD3x3(double *U, double *S, double *V, const double *A) 
+{
+	const double thr = 1e-10;
+	int P[3], j, k;
+	double y[3], AA[3][3], LDU[3][3], tmp;
+
+	/*
+	 * Steps:
+	 * 1) Use eigendecomposition on A^T A to compute V.
+	 * Since A = U S V^T then A^T A = V S^T S V^T with D = S^T S and V the 
+	 * eigenvalues and eigenvectors respectively (V is orthogonal).
+	 * 2) Compute U from A and V.
+	 * 3) Normalize columns of U and V and root the eigenvalues to obtain 
+	 * the singular values.
+	 */
+
+	/* Compute AA = A^T A */
+	A_Transpose_A3x3((double *)AA, A);
+
+	/* Form the monic characteristic polynomial */
+	S[2] = -AA[0][0] - AA[1][1] - AA[2][2];
+	S[1] = AA[0][0]*AA[1][1] + AA[2][2]*AA[0][0] + AA[2][2]*AA[1][1] - 
+		AA[2][1]*AA[1][2] - AA[2][0]*AA[0][2] - AA[1][0]*AA[0][1];
+	S[0] = AA[2][1]*AA[1][2]*AA[0][0] + AA[2][0]*AA[0][2]*AA[1][1] + AA[1][0]*AA[0][1]*AA[2][2] -
+		AA[0][0]*AA[1][1]*AA[2][2] - AA[1][0]*AA[2][1]*AA[0][2] - AA[2][0]*AA[0][1]*AA[1][2];
+
+	/* Solve the cubic equation. */
+	SolveCubic(S);
+
+	/* All roots should be positive */
+	if (S[0] < 0)
+		S[0] = 0;
+	if (S[1] < 0)
+		S[1] = 0;
+	if (S[2] < 0)
+		S[2] = 0;
+
+	/* Sort from greatest to least */
+	Sort3(S);
+
+	/* Form the eigenvector system for the first (largest) eigenvalue */
+	memcpy(LDU,AA,sizeof(LDU));
+	LDU[0][0] -= S[0];
+	LDU[1][1] -= S[0];
+	LDU[2][2] -= S[0];
+
+	/* Perform LDUP decomposition */
+	LDU3((double *)LDU, P);
+
+	/* 
+	 * Write LDU = AA-I*lambda.  Then an eigenvector can be
+	 * found by solving LDU x = LD y = L z = 0
+	 * L is invertible, so L z = 0 implies z = 0
+	 * D is singular since det(AA-I*lambda) = 0 and so 
+	 * D y = z = 0 has a non-unique solution.
+	 * Pick k so that D_kk = 0 and set y = e_k, the k'th column
+	 * of the identity matrix.
+	 * U is invertible so U x = y has a unique solution for a given y.
+	 * The solution for U x = y is an eigenvector.
+	 */
+
+	/* Pick the component of D nearest to 0 */
+	y[0] = y[1] = y[2] = 0;
+	k = fabs(LDU[P[1]][1]) < fabs(LDU[P[0]][0]) ?
+		(fabs(LDU[P[2]][2]) < fabs(LDU[P[1]][1]) ? 2 : 1) :
+		(fabs(LDU[P[2]][2]) < fabs(LDU[P[0]][0]) ? 2 : 0);
+	y[k] = 1;
+
+	/* Do a backward solve for the eigenvector */
+	LDUBSolve3(V+(3*0+0), y, (double *)LDU, P);
+
+	/* Form the eigenvector system for the last (smallest) eigenvalue */
+	memcpy(LDU,AA,sizeof(LDU));
+	LDU[0][0] -= S[2];
+	LDU[1][1] -= S[2];
+	LDU[2][2] -= S[2];
+
+	/* Perform LDUP decomposition */
+	LDU3((double *)LDU, P);
+
+	/* 
+	 * NOTE: The arrangement of the ternary operator output is IMPORTANT!
+	 * It ensures a different system is solved if there are 3 repeat eigenvalues.
+	 */
+
+	/* Pick the component of D nearest to 0 */
+	y[0] = y[1] = y[2] = 0;
+	k = fabs(LDU[P[0]][0]) < fabs(LDU[P[2]][2]) ?
+		(fabs(LDU[P[0]][0]) < fabs(LDU[P[1]][1]) ? 0 : 1) :
+		(fabs(LDU[P[1]][1]) < fabs(LDU[P[2]][2]) ? 1 : 2);
+	y[k] = 1;
+
+	/* Do a backward solve for the eigenvector */
+	LDUBSolve3(V+(3*2+0), y, (double *)LDU, P);
+
+	 /* The remaining column must be orthogonal (AA is symmetric) */
+	Cross(V+(3*1+0), V+(3*2+0), V+(3*0+0));
+
+	/* Count the rank */
+	k = (S[0] > thr) + (S[1] > thr) + (S[2] > thr);
+
+	switch (k) 
+	{
+		case 0:
+			/*
+			 * Zero matrix. 
+			 * Since V is already orthogonal, just copy it into U.
+			 */
+			memcpy(U,V,9*sizeof(double));
+			break;
+		case 1:
+			/* 
+			 * The first singular value is non-zero.
+			 * Since A = U S V^T, then A V = U S.
+			 * A V_1 = S_11 U_1 is non-zero. Here V_1 and U_1 are
+			 * column vectors. Since V_1 is known, we may compute
+			 * U_1 = A V_1.  The S_11 factor is not important as
+			 * U_1 will be normalized later.
+			 */
+			MatVec3(U+(3*0+0), A, V+(3*0+0));
+
+			/* 
+			 * The other columns of U do not contribute to the expansion
+			 * and we may arbitrarily choose them (but they do need to be
+			 * orthogonal). To ensure the first cross product does not fail,
+			 * pick k so that U_k1 is nearest 0 and then cross with e_k to
+			 * obtain an orthogonal vector to U_1.
+			 */
+			y[0] = y[1] = y[2] = 0;
+			k = fabs(U[3*0+0]) < fabs(U[3*0+2]) ?
+				(fabs(U[3*0+0]) < fabs(U[3*0+1]) ? 0 : 1) :
+				(fabs(U[3*0+1]) < fabs(U[3*0+2]) ? 1 : 2);
+			y[k] = 1;
+
+			Cross(U+(3*1+0), y, U+(3*0+0));
+
+			/* Cross the first two to obtain the remaining column */
+			Cross(U+(3*2+0), U+(3*0+0), U+(3*1+0));
+			break;
+		case 2:
+			/*
+			 * The first two singular values are non-zero.
+			 * Compute U_1 = A V_1 and U_2 = A V_2. See case 1
+			 * for more information.
+			 */
+			MatVec3(U+(3*0+0), A, V+(3*0+0));
+			MatVec3(U+(3*1+0), A, V+(3*1+0));
+
+			/* Cross the first two to obtain the remaining column */
+			Cross(U+(3*2+0), U+(3*0+0), U+(3*1+0));
+			break;
+		case 3:
+			/*
+			 * All singular values are non-zero.
+			 * We may compute U = A V. See case 1 for more information.
+			 */
+			MatMul3x3(U, A, V);
+			break;
+	}
+
+	/* Normalize the columns of U and V */
+	Unit3(V+(3*0+0));
+	Unit3(V+(3*1+0));
+	Unit3(V+(3*2+0));
+
+	Unit3(U+(3*0+0));
+	Unit3(U+(3*1+0));
+	Unit3(U+(3*2+0));
+
+	/* S was initially the eigenvalues of A^T A = V S^T S V^T which are squared. */
+	S[0] = sqrt(S[0]);
+	S[1] = sqrt(S[1]);
+	S[2] = sqrt(S[2]);
 }

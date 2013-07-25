@@ -1,4 +1,4 @@
-function [compensated_volume,registration_parameters] = Phasebased_3D_Registration_FFT(vol1,vol2,quadrature_responses_reference_volume,quadrature_filters,x,y,z,max_its,filter_size)
+function [compensated_volume,registration_parameters, rotations, scalings] = Phasebased_3D_Registration_FFT(vol1,vol2,quadrature_responses_reference_volume,quadrature_filters,x,y,z,max_its,filter_size)
 
 q11 = quadrature_responses_reference_volume.q11;
 q12 = quadrature_responses_reference_volume.q12;
@@ -109,8 +109,16 @@ for it = 1:max_its
 
     % Update parameter vector
     p = p + pp;
-    p_diff = sum((p_old(:) - p(:)).^2)
-    p_old = p;
+    
+    % Do a SVD and remove scaling
+    p_matrix = reshape(p(4:end),3,3);
+    p_matrix = p_matrix + diag([1 1 1]);
+    [U,S,V] = svd(p_matrix);    
+    p_matrix = U*V';
+    p_matrix = p_matrix - diag([1 1 1]);    
+    p(4:end) = reshape(p_matrix,3,3);
+    p_diff = sum((p_old(:) - p(:)).^2);
+    p_old = p;    
     
     % Find movement field
     x_motion_vectors(:) = p(1) + [x(:) y(:) z(:)]*p(4:6);
@@ -122,5 +130,23 @@ for it = 1:max_its
     vol2prim(isnan(vol2prim)) = 0;
 end
 
+scalings(1) = S(1,1);
+scalings(2) = S(2,2);
+scalings(3) = S(3,3);
+
+% Reshape parameter vector to transformation matrix
+p_matrix = reshape(p(4:end),3,3);
+% Add ones in the diagonal
+p_matrix = p_matrix + diag([1 1 1]);
+% Calculate rotation angles
+angle1 = atan2(p_matrix(2,3),p_matrix(3,3))*180/pi;
+c2 = sqrt(p_matrix(1,1)^2 + p_matrix(1,2)^2);
+angle2 = atan2(-p_matrix(1,3),c2)*180/pi;
+s1 = sind(angle1);
+c1 = cosd(angle1);
+angle3 = atan2(s1*p_matrix(3,1)-c1*p_matrix(2,1),c1*p_matrix(2,2)-s1*p_matrix(3,2))*180/pi;
+rotations = [angle1, angle2, angle3];
+
+    
 compensated_volume = vol2prim;
 registration_parameters = p;

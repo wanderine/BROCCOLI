@@ -34,19 +34,27 @@ mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA'
 
 %filename = '../../test_data/msit_1.6mm_1.nii';
 
-load ../../test_data/hand_movements_left.mat
+load ../../test_data/hand_movements_right.mat
 fMRI_volumes = vol_exp;
 reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
-number_of_iterations_for_motion_correction = 5;
+number_of_iterations_for_motion_correction = 10;
 load filters.mat
-opencl_platform = 1;
+opencl_platform = 0;
 
 %%
 % Create random translations, for testing
 
 generated_fMRI_volumes = zeros(size(fMRI_volumes));
 generated_fMRI_volumes(:,:,:,1) = fMRI_volumes(:,:,:,1);
+
+x_translations = zeros(st,1);
+y_translations = zeros(st,1);
+z_translations = zeros(st,1);
+
+x_rotations = zeros(st,1);
+y_rotations = zeros(st,1);
+z_rotations = zeros(st,1);
 
 for t = 2:st
     
@@ -56,9 +64,9 @@ for t = 2:st
     middle_z = (sz-1)/2;
     
     % Translation in 3 directions
-    x_translation = 1.5*randn;
-    y_translation = 1.5*randn;
-    z_translation = 1.5*randn;
+    x_translation = randn;
+    y_translation = randn;
+    z_translation = randn;
     
     x_translations(t) = x_translation;
     y_translations(t) = y_translation;
@@ -68,6 +76,10 @@ for t = 2:st
     x_rotation = randn; % degrees
     y_rotation = randn; % degrees
     z_rotation = randn; % degrees
+    
+    x_rotations(t) = x_rotation;
+    y_rotations(t) = y_rotation;
+    z_rotations(t) = z_rotation;
     
     R_x = [1                        0                           0;
         0                        cos(x_rotation*pi/180)      -sin(x_rotation*pi/180);
@@ -122,7 +134,7 @@ end
 
 fMRI_volumes = generated_fMRI_volumes;
 
-[motion_corrected_volumes_cpu,motion_parameters_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
+[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
 
 tic
 [motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = MotionCorrection(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction,opencl_platform);
@@ -148,58 +160,58 @@ phase_gradients_x_cpu(:,2:end-1,:) = angle(quadrature_filter_response_reference_
 
 
 slice = 4;
-
-figure
-imagesc( [real(quadrature_filter_response_aligned_1_cpu(:,:,slice)) real(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
-figure
-imagesc( [real(quadrature_filter_response_aligned_2_cpu(:,:,slice)) real(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
-figure
-imagesc( [real(quadrature_filter_response_aligned_3_cpu(:,:,slice)) real(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
-
-figure
-imagesc( [imag(quadrature_filter_response_aligned_1_cpu(:,:,slice)) imag(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
-figure
-imagesc( [imag(quadrature_filter_response_aligned_2_cpu(:,:,slice)) imag(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
-figure
-imagesc( [imag(quadrature_filter_response_aligned_3_cpu(:,:,slice)) imag(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
-
-figure
-imagesc( [phase_differences_x_cpu(:,:,slice) phase_differences_x_opencl(:,:,slice) ] ); colorbar
-figure
-imagesc( [phase_certainties_x_cpu(:,:,slice) phase_certainties_x_opencl(:,:,slice) ] ); colorbar
-%figure
-%imagesc( [phase_certainties_x_cpu(:,:,slice) - phase_certainties_x_opencl(:,:,slice) ] ); colorbar
-figure
-imagesc( [phase_gradients_x_cpu(:,:,slice) phase_gradients_x_opencl(:,:,slice) ] ); colorbar
-figure
-imagesc( [phase_gradients_x_cpu(2:end-1,2:end-1,slice) - phase_gradients_x_opencl(2:end-1,2:end-1,slice) ] ); colorbar
-
-
-
-
-filter_response_1_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_1_cpu(:)) - real(quadrature_filter_response_1_opencl(:))))
-filter_response_1_real_max_error = max(abs(real(quadrature_filter_response_aligned_1_cpu(:)) - real(quadrature_filter_response_1_opencl(:))))
-filter_response_1_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_1_cpu(:)) - imag(quadrature_filter_response_1_opencl(:))))
-filter_response_1_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_1_cpu(:)) - imag(quadrature_filter_response_1_opencl(:))))
-
-filter_response_2_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_2_cpu(:)) - real(quadrature_filter_response_2_opencl(:))))
-filter_response_2_real_max_error = max(abs(real(quadrature_filter_response_aligned_2_cpu(:)) - real(quadrature_filter_response_2_opencl(:))))
-filter_response_2_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_2_cpu(:)) - imag(quadrature_filter_response_2_opencl(:))))
-filter_response_2_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_2_cpu(:)) - imag(quadrature_filter_response_2_opencl(:))))
-
-filter_response_3_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_3_cpu(:)) - real(quadrature_filter_response_3_opencl(:))))
-filter_response_3_real_max_error = max(abs(real(quadrature_filter_response_aligned_3_cpu(:)) - real(quadrature_filter_response_3_opencl(:))))
-filter_response_3_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_3_cpu(:)) - imag(quadrature_filter_response_3_opencl(:))))
-filter_response_3_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_3_cpu(:)) - imag(quadrature_filter_response_3_opencl(:))))
-
-phase_differences_x_tot_error = sum(abs(phase_differences_x_cpu(:) - phase_differences_x_opencl(:)))
-phase_differences_x_max_error = max(abs(phase_differences_x_cpu(:) - phase_differences_x_opencl(:)))
-
-phase_certainties_x_tot_error = sum(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
-phase_certainties_x_max_error = max(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
-
-phase_gradients_x_tot_error = sum(sum(sum(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
-phase_gradients_x_max_error = max(max(max(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
+% 
+% figure
+% imagesc( [real(quadrature_filter_response_aligned_1_cpu(:,:,slice)) real(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
+% figure
+% imagesc( [real(quadrature_filter_response_aligned_2_cpu(:,:,slice)) real(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
+% figure
+% imagesc( [real(quadrature_filter_response_aligned_3_cpu(:,:,slice)) real(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
+% 
+% figure
+% imagesc( [imag(quadrature_filter_response_aligned_1_cpu(:,:,slice)) imag(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
+% figure
+% imagesc( [imag(quadrature_filter_response_aligned_2_cpu(:,:,slice)) imag(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
+% figure
+% imagesc( [imag(quadrature_filter_response_aligned_3_cpu(:,:,slice)) imag(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
+% 
+% figure
+% imagesc( [phase_differences_x_cpu(:,:,slice) phase_differences_x_opencl(:,:,slice) ] ); colorbar
+% figure
+% imagesc( [phase_certainties_x_cpu(:,:,slice) phase_certainties_x_opencl(:,:,slice) ] ); colorbar
+% %figure
+% %imagesc( [phase_certainties_x_cpu(:,:,slice) - phase_certainties_x_opencl(:,:,slice) ] ); colorbar
+% figure
+% imagesc( [phase_gradients_x_cpu(:,:,slice) phase_gradients_x_opencl(:,:,slice) ] ); colorbar
+% figure
+% imagesc( [phase_gradients_x_cpu(2:end-1,2:end-1,slice) - phase_gradients_x_opencl(2:end-1,2:end-1,slice) ] ); colorbar
+% 
+% 
+% 
+% 
+% filter_response_1_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_1_cpu(:)) - real(quadrature_filter_response_1_opencl(:))))
+% filter_response_1_real_max_error = max(abs(real(quadrature_filter_response_aligned_1_cpu(:)) - real(quadrature_filter_response_1_opencl(:))))
+% filter_response_1_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_1_cpu(:)) - imag(quadrature_filter_response_1_opencl(:))))
+% filter_response_1_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_1_cpu(:)) - imag(quadrature_filter_response_1_opencl(:))))
+% 
+% filter_response_2_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_2_cpu(:)) - real(quadrature_filter_response_2_opencl(:))))
+% filter_response_2_real_max_error = max(abs(real(quadrature_filter_response_aligned_2_cpu(:)) - real(quadrature_filter_response_2_opencl(:))))
+% filter_response_2_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_2_cpu(:)) - imag(quadrature_filter_response_2_opencl(:))))
+% filter_response_2_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_2_cpu(:)) - imag(quadrature_filter_response_2_opencl(:))))
+% 
+% filter_response_3_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_3_cpu(:)) - real(quadrature_filter_response_3_opencl(:))))
+% filter_response_3_real_max_error = max(abs(real(quadrature_filter_response_aligned_3_cpu(:)) - real(quadrature_filter_response_3_opencl(:))))
+% filter_response_3_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_3_cpu(:)) - imag(quadrature_filter_response_3_opencl(:))))
+% filter_response_3_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_3_cpu(:)) - imag(quadrature_filter_response_3_opencl(:))))
+% 
+% phase_differences_x_tot_error = sum(abs(phase_differences_x_cpu(:) - phase_differences_x_opencl(:)))
+% phase_differences_x_max_error = max(abs(phase_differences_x_cpu(:) - phase_differences_x_opencl(:)))
+% 
+% phase_certainties_x_tot_error = sum(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
+% phase_certainties_x_max_error = max(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
+% 
+% phase_gradients_x_tot_error = sum(sum(sum(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
+% phase_gradients_x_max_error = max(max(max(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
 
 motion_parameters_opencl(1,3) = 0;
 
@@ -212,4 +224,41 @@ hold on
 plot(motion_parameters_opencl(:,3),'b')
 hold off
 legend('Applied translations','Estimated translations CPU','Estimated translations OpenCL')
+
+
+figure
+plot(x_rotations,'g')
+hold on
+plot(rotations_cpu(:,1),'r')
+hold on
+plot(motion_parameters_opencl(:,4),'b')
+hold off
+legend('Applied x rotations','Estimated x rotations CPU','Estimated x rotations OpenCL')
+
+
+figure
+plot(y_rotations,'g')
+hold on
+plot(rotations_cpu(:,2),'r')
+hold on
+plot(motion_parameters_opencl(:,5),'b')
+hold off
+legend('Applied y rotations','Estimated y rotations CPU','Estimated y rotations OpenCL')
+
+
+figure
+plot(z_rotations,'g')
+hold on
+plot(rotations_cpu(:,3),'r')
+hold on
+plot(motion_parameters_opencl(:,6),'b')
+hold off
+legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations OpenCL')
+
+for t = 1:st    
+    figure(1)
+    imagesc([fMRI_volumes(:,:,18,t) motion_corrected_volumes_cpu(:,:,18,t)  motion_corrected_volumes_opencl(:,:,18,t) ])
+    pause(0.1)
+end
+
 

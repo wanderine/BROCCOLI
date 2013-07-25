@@ -1504,6 +1504,7 @@ __kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_va
 	}
 }
 
+
 __kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Phase_Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
 {
 	int y = get_local_id(0);
@@ -1695,7 +1696,6 @@ __kernel void CalculateAMatrixAndHVector2DValuesZ(__global float* A_matrix_2D_va
 
 
 
-
 // dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimGrid.y = 1;
 
@@ -1745,7 +1745,6 @@ __kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A
 
 	A_matrix[A_matrix_element] = matrix_value;
 }
-
 
 // dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
 // dimGrid.x = NUMBER_OF_PARAMETERS; dimGrid.y = 1;
@@ -1829,6 +1828,7 @@ __kernel void InterpolateVolumeTriLinear(__global float* Volume, read_only image
 	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler, Motion_Vector);
 	Volume[idx] = Interpolated_Value.x;
 }
+
 
 __kernel void RescaleVolumeTriLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {

@@ -44,20 +44,20 @@ subject = 21;
 T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);
 T1 = double(T1_nii.img);
 T1 = T1/max(T1(:));
-MNI_nii = load_nii('../../test_data/MNI152_T1_1mm.nii');
+MNI_nii = load_nii('../../test_data/MNI152_T1_2mm.nii');
 MNI = double(MNI_nii.img);
 MNI = MNI/max(MNI(:));
-MNI_brain_mask_nii = load_nii('../../test_data/MNI152_T1_1mm_brain_mask.nii');
+MNI_brain_mask_nii = load_nii('../../test_data/MNI152_T1_2mm_brain_mask.nii');
 MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
 EPI = double(EPI_nii.img);
-EPI = EPI(:,:,:,1);
+EPI = EPI(:,:,:,5);
 EPI = EPI/max(EPI(:));
 
 [sy sx sz] = size(T1)
 
-number_of_iterations_for_image_registration = 60;
+number_of_iterations_for_image_registration = 30;
 coarsest_scale = 8;
 MM_T1_Z_CUT = 10;
 
@@ -86,18 +86,18 @@ registration_parameters_opencl
 slice = 100;
 %figure; imagesc(flipud(squeeze(T1(slice,:,:))'))
 figure; imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))'))
-figure; imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))'))
 figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))'))
+figure; imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))'))
 figure; imagesc(flipud(squeeze(MNI(slice,:,:))'))
 
 figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice)))
-figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice)))
 figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice)))
+figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice)))
 figure; imagesc(squeeze(MNI(:,:,slice)))
 
 %%
 
-number_of_iterations_for_image_registration = 50;
+number_of_iterations_for_image_registration = 30;
 coarsest_scale = 4;
 MM_EPI_Z_CUT = 20;
 
@@ -130,7 +130,7 @@ tic
 [aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ... 
 RegisterEPIT1(EPI,smoothed_skullstripped_T1_opencl,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform);
 %[aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ... 
-%RegisterEPIT1(skullstripped_T1_opencl,EPI,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform);
+%RegisterEPIT1(smoothed_skullstripped_T1_opencl,EPI,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform);
 toc
 
 

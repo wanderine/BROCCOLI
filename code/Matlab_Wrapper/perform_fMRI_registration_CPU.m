@@ -1,4 +1,4 @@
-function [corrected_volumes registration_parameters, filter_response_1, filter_response_2, filter_response_3] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations)
+function [corrected_volumes registration_parameters, rotations, scalings, filter_response_1, filter_response_2, filter_response_3] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations)
 
 filter_size = size(f1,1);
 
@@ -10,6 +10,8 @@ corrected_volumes = zeros(sy,sx,sz,st);
 corrected_volumes(:,:,:,1) = reference_volume;
 
 registration_parameterss = zeros(st,12);
+rotationss = zeros(st,3);
+scalingss = zeros(st,3);
 
 % % Filter parameters
 % spatial_rexp = 2;
@@ -132,10 +134,13 @@ start_time = clock;
 % Make the registrations
 
 for t = 2:st
+    t
     altered_volume = fMRI_volumes(:,:,:,t);
-    [compensated_volume,registration_parameters] = Phasebased_3D_registration_FFT(reference_volume,altered_volume,quadrature_responses_reference_volume,quadrature_filters,x,y,z,number_of_iterations,filter_size);
-    compensated_volumes(:,:,:,t) = compensated_volume;
+    [compensated_volume,registration_parameters,rotations,scalings] = Phasebased_3D_registration_FFT(reference_volume,altered_volume,quadrature_responses_reference_volume,quadrature_filters,x,y,z,number_of_iterations,filter_size);
+    corrected_volumes(:,:,:,t) = compensated_volume;
     registration_parameterss(t,:) = registration_parameters;   
+    rotationss(t,:) = rotations;
+    scalingss(t,:) = scalings;
     t
 end    
 registration_time = etime(clock,start_time)
@@ -144,7 +149,7 @@ time_per_volume = registration_time / (st - 1)
 
 
 registration_parameters = registration_parameterss;
-
-
+rotations = rotationss;
+scalings = scalingss;
 
 

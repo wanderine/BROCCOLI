@@ -87,7 +87,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const int *ARRAY_DIMENSIONS_FILTER = mxGetDimensions(prhs[1]);
     
     int DATA_H, DATA_W, DATA_D, DATA_T, NUMBER_OF_MOTION_CORRECTION_PARAMETERS;
-    NUMBER_OF_MOTION_CORRECTION_PARAMETERS = 12;
+    NUMBER_OF_MOTION_CORRECTION_PARAMETERS = 6;
     
     DATA_H = ARRAY_DIMENSIONS_DATA[0];
     DATA_W = ARRAY_DIMENSIONS_DATA[1];
