@@ -170,7 +170,7 @@ typedef unsigned short int uint16;
 #define DO_OVERWRITE 0
 #define NO_OVERWRITE 1
 
-#define PI 3.1415f
+#define PI 3.1415
 
 class BROCCOLI_LIB
 {
@@ -371,7 +371,7 @@ class BROCCOLI_LIB
 		void PerformRegistrationEPIT1Wrapper();
 		void PerformSliceTimingCorrection();
 		void PerformMotionCorrection();
-		void PerformMotionCorrectionWrapper();
+		void PerformMotionCorrectionWrapper();		
 		void PerformDetrending();
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothing(cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
@@ -479,8 +479,9 @@ class BROCCOLI_LIB
 		//void Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N);
 		//void Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N);
 		void InvertMatrix(float* inverse_matrix, float* matrix, int N);
+		void InvertMatrixDouble(double* inverse_matrix, double* matrix, int N);
 		void CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, int N);
-		void SolveEquationSystem(float* h_A_matrix, float* h_inverse_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N);
+		void SolveEquationSystem(float* h_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N);
 		void CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters);
 
 		void SetupDetrendingBasisFunctions();

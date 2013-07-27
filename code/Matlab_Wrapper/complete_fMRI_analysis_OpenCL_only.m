@@ -71,7 +71,7 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 %%
 % Settings for image registration
 number_of_iterations_for_image_registration = 30;
-number_of_iterations_for_motion_correction = 3;
+number_of_iterations_for_motion_correction = 10;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 4/voxel_size;
 MM_T1_Z_CUT = 10/voxel_size;

@@ -125,7 +125,6 @@ for it = 1:max_its
     y_motion_vectors(:) = p(2) + [x(:) y(:) z(:)]*p(7:9);
     z_motion_vectors(:) = p(3) + [x(:) y(:) z(:)]*p(10:12);
     
-    %vol2prim = interp3_mex(x,y,z,vol2,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's    
     vol2prim = interp3(x,y,z,vol2,x+x_motion_vectors,y+y_motion_vectors,z+z_motion_vectors,'linear');    % Generates NaN's    
     vol2prim(isnan(vol2prim)) = 0;
 end

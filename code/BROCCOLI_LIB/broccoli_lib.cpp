@@ -1900,7 +1900,7 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 		}
 
 		// Solve the equation system A * p = h to obtain the parameter vector
-		SolveEquationSystem(h_A_Matrix, h_Inverse_A_Matrix, h_h_Vector, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+		SolveEquationSystem(h_A_Matrix, h_h_Vector, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
 
 		// Remove everything but translation
 		if (ALIGNMENT_TYPE == TRANSLATION)
@@ -1989,19 +1989,20 @@ void BROCCOLI_LIB::RemoveTransformationScaling(float* h_Registration_Parameters)
 // Calculate Euler rotation angles from a rotation matrix
 void BROCCOLI_LIB::CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters)
 {
-	float h_Transformation_Matrix[9];
-	float c1, c2, s1;
+	double h_Transformation_Matrix[9];
+	double c1, c2, s1;
+	double angle1, angle2, angle3;
 
 	// Make a copy of transformation matrix parameters
 	for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 	{
-		h_Transformation_Matrix[i-3] = h_Registration_Parameters[i];
+		h_Transformation_Matrix[i-3] = (double)h_Registration_Parameters[i];
 	}		
 
 	// Add ones in the diagonal
-	h_Transformation_Matrix[0] += 1.0f;
-	h_Transformation_Matrix[4] += 1.0f;
-	h_Transformation_Matrix[8] += 1.0f;
+	h_Transformation_Matrix[0] += 1.0;
+	h_Transformation_Matrix[4] += 1.0;
+	h_Transformation_Matrix[8] += 1.0;
 	
 	// Calculate rotation angles
 
@@ -2019,12 +2020,16 @@ void BROCCOLI_LIB::CalculateRotationAnglesFromRotationMatrix(float* h_Rotations,
 	rotations = [angle1, angle2, angle3];
 	*/
 	
-	h_Rotations[0] = -atan2(h_Transformation_Matrix[5], h_Transformation_Matrix[8]) * 180.0f/PI;
+	angle1 = -atan2(h_Transformation_Matrix[5], h_Transformation_Matrix[8]) * 180.0/PI;
 	c2 = sqrt(h_Transformation_Matrix[0] * h_Transformation_Matrix[0] + h_Transformation_Matrix[1] * h_Transformation_Matrix[1]);
-	h_Rotations[1] = -atan2(-h_Transformation_Matrix[2],c2)*180.0f/PI;
-	s1 = sin(h_Rotations[0]*PI/180.0f);
-	c1 = cos(h_Rotations[0]*PI/180.0f);
-	h_Rotations[2] = -atan2(s1*h_Transformation_Matrix[6] - c1*h_Transformation_Matrix[3],c1*h_Transformation_Matrix[4] - s1*h_Transformation_Matrix[7])*180.0f/PI;
+	angle2 = -atan2(-h_Transformation_Matrix[2],c2)*180.0/PI;
+	s1 = sin(angle1*PI/180.0);
+	c1 = cos(angle1*PI/180.0);
+	angle3 = -atan2(s1*h_Transformation_Matrix[6] - c1*h_Transformation_Matrix[3],c1*h_Transformation_Matrix[4] - s1*h_Transformation_Matrix[7])*180.0/PI;
+
+	h_Rotations[0] = (float)angle1;
+	h_Rotations[1] = (float)angle2;
+	h_Rotations[2] = (float)angle3;
 }
 
 void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_Volume_, int ORIGINAL_DATA_W, int ORIGINAL_DATA_H, int ORIGINAL_DATA_D, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D)
@@ -3317,16 +3322,16 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 		
 		// Do rigid registration with only one scale
 		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION, RIGID);
-
+		
 		// Copy the corrected volume to the corrected volumes
 		clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_Motion_Corrected_fMRI_Volumes, 0, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 	
 		// Write the total parameter vector to host
 
 		// Translations
-		h_Motion_Parameters_Out[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0] * EPI_VOXEL_SIZE_X;
-		h_Motion_Parameters_Out[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1] * EPI_VOXEL_SIZE_Y;
-		h_Motion_Parameters_Out[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2] * EPI_VOXEL_SIZE_Z;
+		h_Motion_Parameters_Out[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0]; // * EPI_VOXEL_SIZE_X;
+		h_Motion_Parameters_Out[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1]; // * EPI_VOXEL_SIZE_Y;
+		h_Motion_Parameters_Out[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2]; // * EPI_VOXEL_SIZE_Z;
 
 		// Rotations
 		h_Motion_Parameters_Out[t + 3 * EPI_DATA_T] = h_Rotations[0];
@@ -3343,6 +3348,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 	clReleaseMemObject(d_fMRI_Volumes);
 	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
 }
+
 
 // Performs motion correction of an fMRI dataset
 void BROCCOLI_LIB::PerformMotionCorrection()
@@ -4822,7 +4828,7 @@ void BROCCOLI_LIB::InvertMatrix(float* inverse_matrix, float* matrix, int N)
     {
         piv[i] = (float)i;
     }
-    float pivsign = 1;
+    float pivsign = 1.0f;
     /* Main loop */
     for (k = 0; k < n; k++) 
     {
@@ -4846,7 +4852,7 @@ void BROCCOLI_LIB::InvertMatrix(float* inverse_matrix, float* matrix, int N)
             pivsign = -pivsign;
         }
         /* Compute multipliers and eliminate k-th column */
-        if (LU[k + k*NUMBER_OF_ROWS] != 0.0) 
+        if (LU[k + k*NUMBER_OF_ROWS] != 0.0f) 
         {
             for (i = k+1; i < m; i++) 
             {
@@ -4933,6 +4939,143 @@ void BROCCOLI_LIB::InvertMatrix(float* inverse_matrix, float* matrix, int N)
 	free(X);
 }
 
+void BROCCOLI_LIB::InvertMatrixDouble(double* inverse_matrix, double* matrix, int N)
+{      
+    int i = 0;
+    int j = 0;
+    int k = 0;
+    
+	int NUMBER_OF_ROWS = N;
+    int NUMBER_OF_COLUMNS = N;
+    int n = N;
+	int m = N;
+
+    double* LU = (double*)malloc(sizeof(double) * N * N);
+
+    /* Copy A to LU matrix */
+    for(i = 0; i < NUMBER_OF_ROWS * NUMBER_OF_COLUMNS; i++)
+    {
+        LU[i] = matrix[i];
+    }
+    
+    /* Perform LU decomposition */
+    double* piv = (double*)malloc(sizeof(double) * N);
+    for (i = 0; i < m; i++) 
+    {
+        piv[i] = (double)i;
+    }
+    double pivsign = 1.0;
+    /* Main loop */
+    for (k = 0; k < n; k++) 
+    {
+        /* Find pivot */
+        int p = k;
+        for (i = k+1; i < m; i++) 
+        {
+            if (abs(LU[i + k * NUMBER_OF_ROWS]) > abs(LU[p + k * NUMBER_OF_ROWS])) 
+            {
+                p = i;
+            }
+        }
+        /* Exchange if necessary */
+        if (p != k) 
+        {
+            for (j = 0; j < n; j++) 
+            {
+                double t = LU[p + j*NUMBER_OF_ROWS]; LU[p + j*NUMBER_OF_ROWS] = LU[k + j*NUMBER_OF_ROWS]; LU[k + j*NUMBER_OF_ROWS] = t;
+            }
+            int t = (int)piv[p]; piv[p] = piv[k]; piv[k] = (double)t;
+            pivsign = -pivsign;
+        }
+        /* Compute multipliers and eliminate k-th column */
+        if (LU[k + k*NUMBER_OF_ROWS] != 0.0) 
+        {
+            for (i = k+1; i < m; i++) 
+            {
+                LU[i + k*NUMBER_OF_ROWS] /= LU[k + k*NUMBER_OF_ROWS];
+                for (j = k+1; j < n; j++) 
+                {
+                    LU[i + j*NUMBER_OF_ROWS] -= LU[i + k*NUMBER_OF_ROWS]*LU[k + j*NUMBER_OF_ROWS];
+                }
+            }
+        }
+    }
+    
+    /* "Solve" equation system AX = B with B = identity matrix
+     to get matrix inverse */
+    
+    /* Make an identity matrix of the right size */
+    double* B = (double*)malloc(sizeof(double) * N * N);
+    double* X = (double*)malloc(sizeof(double) * N * N);
+    
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+            if (i == j)
+            {
+                B[i + j * NUMBER_OF_ROWS] = 1;
+            }
+            else
+            {
+                B[i + j * NUMBER_OF_ROWS] = 0;
+            }           
+        }
+    }
+    
+    /* Pivot the identity matrix */
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        int current_row = (int)piv[i];
+        
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+            X[i + j * NUMBER_OF_ROWS] = B[current_row + j * NUMBER_OF_ROWS];
+        }
+    }
+    
+    /* Solve L*Y = B(piv,:) */
+    for (k = 0; k < n; k++) 
+    {
+        for (i = k+1; i < n; i++) 
+        {
+            for (j = 0; j < NUMBER_OF_COLUMNS; j++) 
+            {
+                X[i + j*NUMBER_OF_ROWS] -= X[k + j*NUMBER_OF_ROWS]*LU[i + k*NUMBER_OF_ROWS];
+            }
+        }
+    }
+    /* Solve U*X = Y */
+    for (k = n-1; k >= 0; k--) 
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++) 
+        {
+            X[k + j*NUMBER_OF_ROWS] /= LU[k + k*NUMBER_OF_ROWS];
+        }
+        for (i = 0; i < k; i++) 
+        {
+            for (j = 0; j < NUMBER_OF_COLUMNS; j++) 
+            {
+                X[i + j*NUMBER_OF_ROWS] -= X[k + j*NUMBER_OF_ROWS]*LU[i + k*NUMBER_OF_ROWS];
+            }
+        }
+    }
+    
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+            inverse_matrix[i + j * NUMBER_OF_ROWS] = X[i + j * NUMBER_OF_ROWS];
+        }
+    }
+
+	free(LU);
+	free(piv);
+	free(B);
+	free(X);
+}
+
+
 void BROCCOLI_LIB::CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, int N)
 {
 	float* tempinv = (float*)malloc(sizeof(float) * N * N); 
@@ -4959,18 +5102,35 @@ void BROCCOLI_LIB::CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, 
 	free(tempinv);
 }
 
-void BROCCOLI_LIB::SolveEquationSystem(float* h_A_matrix, float* h_inverse_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N)
+void BROCCOLI_LIB::SolveEquationSystem(float* h_A_Matrix, float* h_h_Vector, float* h_Parameter_Vector, int N)
 {
-	InvertMatrix(h_inverse_A_matrix, h_A_matrix, N);
+	double h_Parameter_Vector_double[12];
+	double h_h_Vector_double[12];
+	double h_A_Matrix_double[144];
+	double h_Inverse_A_Matrix_double[144];
+
+	// Make a double version
+	for (int i = 0; i < N; i++)
+	{
+		h_h_Vector_double[i] = (double)h_h_Vector[i];
+		
+		for (int j = 0; j < N; j++)
+		{
+			h_A_Matrix_double[i + j*N] = (double)h_A_Matrix[i + j*N];
+		}
+	}
+	
+	InvertMatrixDouble(h_Inverse_A_Matrix_double, h_A_Matrix_double, N);
 
     for (int row = 0; row < N; row++)
 	{
-		h_Parameter_Vector[row] = 0;
+		h_Parameter_Vector_double[row] = 0.0;
 		
 		for (int i = 0; i < N; i++)
 		{
-			h_Parameter_Vector[row] += h_inverse_A_matrix[i + row*N]*h_h_vector[i];
+			h_Parameter_Vector_double[row] += h_Inverse_A_Matrix_double[i + row*N] * h_h_Vector_double[i];
 		}	
+		h_Parameter_Vector[row] = (float)h_Parameter_Vector_double[row];
 	}
 }
 
