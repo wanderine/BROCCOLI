@@ -938,9 +938,19 @@ void BROCCOLI_LIB::SetNumberOfIterationsForImageRegistration(int N)
 	NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION = N;
 }
 
-void BROCCOLI_LIB::SetCoarsestScale(int N)
+void BROCCOLI_LIB::SetNumberOfIterationsForMotionCorrection(int N)
 {
-	COARSEST_SCALE = N;
+	NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = N;
+}
+
+void BROCCOLI_LIB::SetCoarsestScaleT1MNI(int N)
+{
+	COARSEST_SCALE_T1_MNI = N;
+}
+
+void BROCCOLI_LIB::SetCoarsestScaleEPIT1(int N)
+{
+	COARSEST_SCALE_EPI_T1 = N;
 }
 
 void BROCCOLI_LIB::SetMMT1ZCUT(int mm)
@@ -975,17 +985,17 @@ void BROCCOLI_LIB::SetOutputStatisticalMaps(float* data)
 
 void BROCCOLI_LIB::SetOutputMotionParameters(float* output)
 {
-	h_Motion_Parameters = output;
+	h_Motion_Parameters_Out = output;
 }
 
 void BROCCOLI_LIB::SetOutputT1MNIRegistrationParameters(float* output)
 {
-	h_Registration_Parameters_T1_MNI = output;
+	h_Registration_Parameters_T1_MNI_Out = output;
 }
 
 void BROCCOLI_LIB::SetOutputEPIT1RegistrationParameters(float* output)
 {
-	h_Registration_Parameters_EPI_T1 = output;
+	h_Registration_Parameters_EPI_T1_Out = output;
 }
 
 void BROCCOLI_LIB::SetOutputQuadratureFilterResponses(float* qfr1r, float* qfr1i, float* qfr2r, float* qfr2i, float* qfr3r, float* qfr3i)
@@ -1037,6 +1047,17 @@ void BROCCOLI_LIB::SetOutputInterpolatedT1Volume(float* interpolated)
 void BROCCOLI_LIB::SetOutputInterpolatedEPIVolume(float* interpolated)
 {
 	h_Interpolated_EPI_Volume = interpolated;
+}
+
+
+void BROCCOLI_LIB::SetOutputMotionCorrectedfMRIVolumes(float* motion_corrected)
+{
+	h_Motion_Corrected_fMRI_Volumes = motion_corrected;
+}
+
+void BROCCOLI_LIB::SetOutputSmoothedfMRIVolumes(float* smoothed)
+{
+	h_Smoothed_fMRI_Volumes = smoothed;
 }
 
 void BROCCOLI_LIB::SetOutputDownsampledVolume(float* downsampled)
@@ -1977,7 +1998,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 }
 
 // COARSEST_SCALE should be 8, 4, 2 or 1
-void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters_Align_Two_Volumes_Several_Scales, float* h_Rotations, cl_mem d_Original_Aligned_Volume, cl_mem d_Original_Reference_Volume, int DATA_W, int DATA_H, int DATA_D, int COARSEST_SCALE_, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE)
+void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters_Align_Two_Volumes_Several_Scales, float* h_Rotations, cl_mem d_Original_Aligned_Volume, cl_mem d_Original_Reference_Volume, int DATA_W, int DATA_H, int DATA_D, int COARSEST_SCALE_, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE)
 {
 	for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 	{
@@ -2004,14 +2025,8 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 	size_t origin[3] = {0, 0, 0};
 	size_t region[3] = {CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D};
 	clEnqueueCopyBufferToImage(commandQueue, d_Aligned_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
-
 	
-	//--------
-	//clEnqueueReadBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, CURRENT_DATA_W * CURRENT_DATA_H * CURRENT_DATA_D * sizeof(float), h_Downsampled_Volume, 0, NULL, NULL);
-	//--------	
-	
-	// Loop registration over scales
-	
+	// Loop registration over scales	
 	for (int current_scale = COARSEST_SCALE_; current_scale >= 1; current_scale = current_scale/2)
 	{
 		if (current_scale == 1)
@@ -2069,26 +2084,24 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 
 			// Copy transformed volume back to image (texture)
 			clEnqueueCopyBufferToImage(commandQueue, d_Aligned_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
-
-			//--------
-			//clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, CURRENT_DATA_W * CURRENT_DATA_H * CURRENT_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
-			//--------				
 		}
-		else
-		{
-			//--------
-			//clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, CURRENT_DATA_W * CURRENT_DATA_H * CURRENT_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
-			//--------	
-
-			//AlignTwoVolumesCleanup();
-
-			h_Rotations[0] += h_Rotations_Temp[0];
-			h_Rotations[1] += h_Rotations_Temp[1];
-			h_Rotations[2] += h_Rotations_Temp[2];
+		else // Last scale, nothing more to do
+		{	
+			// Clean up 
+			AlignTwoVolumesCleanup();			
 
 			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 			{
 				h_Registration_Parameters_Align_Two_Volumes_Several_Scales[i] += h_Registration_Parameters_Temp[i]; 
+			}
+			h_Rotations[0] += h_Rotations_Temp[0];
+			h_Rotations[1] += h_Rotations_Temp[1];
+			h_Rotations[2] += h_Rotations_Temp[2];
+
+			if (OVERWRITE == DO_OVERWRITE)
+			{
+				// Transform the original volume once with the final registration parameters, to remove effects of several interpolations
+				TransformVolume(d_Original_Aligned_Volume, h_Registration_Parameters_Align_Two_Volumes_Several_Scales, DATA_W, DATA_H, DATA_D, LINEAR);
 			}
 		}		
 	}
@@ -2314,21 +2327,8 @@ void BROCCOLI_LIB::AlignTwoVolumesCleanup()
 
 
 // Performs registration between one low resolution fMRI volume and a high resolution T1 volume
-void BROCCOLI_LIB::PerformRegistrationEPIT1(int t)
-{
-	// Interpolate FMRI volume to T1 resolution (use volume at timepoint t)
-	//ChangeVolumeResolutionAndSize(d_fMRI_Volumes, d_Interpolated_fMRI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);       
 
-		
-	// Do the registration with several scales
-	//AlignTwoVolumesSeveralScales(h_Registration_Parameters_EPI_T1,T1_DATA_W, T1_DATA_H, T1_DATA_D, 1);
 
-	// Copy the aligned volume to host
-	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Aligned_fMRI_Volume, 0, NULL, NULL);
-
-	// Cleanup allocated memory
-	AlignTwoVolumesCleanup();	
-}
 
 int mymax(int a, int b)
 {
@@ -2629,70 +2629,7 @@ void BROCCOLI_LIB::PerformSkullstrip(cl_mem d_Skullstripped_T1_Volume, cl_mem d_
 	clFinish(commandQueue);	
 }
 
-void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
-{
-	// Allocate memory for T1 volume, MNI volume and T1 volume of MNI size
-	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
-	d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
-	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-	
-	// Copy data to T1 volume and MNI volume
-	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, d_MNI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Volume , 0, NULL, NULL);
 
-	// Interpolate T1 volume to MNI resolution and make sure it has the same size
-	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
-	
-	// Copy the MNI T1 volume to host
-	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
-
-	// Do the registration between T1 and MNI with several scales
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE);
-	
-	// Copy the aligned T1 volume to host
-	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
-	
-	// Cleanup
-	clReleaseMemObject(d_T1_Volume);
-	clReleaseMemObject(d_MNI_Volume);
-			
-	// Allocate memory for skullstripped T1 volume and MNI brain mask
-	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
-
-	// Copy MNI brain mask to device
-	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
-
-	// Now apply the inverse transformation between MNI and T1, to transform MNI brain mask to T1 space
-	InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI);
-		
-	// Copy parameter vector to constant memory
-	clEnqueueWriteBuffer(commandQueue, c_Registration_Parameters, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), h_Inverse_Registration_Parameters, 0, NULL, NULL);
-
-	// Copy MNI brain mask volume to texture
-	size_t origin[3] = {0, 0, 0};
-	size_t region[3] = {MNI_DATA_W, MNI_DATA_H, MNI_DATA_D};
-	clEnqueueCopyBufferToImage(commandQueue, d_MNI_Brain_Mask, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
-
-	// Interpolate to get the transformed mask (using nearest neighbour interpolation to not smooth mask)
-	runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestKernel, 3, NULL, globalWorkSizeInterpolateVolumeNearest, localWorkSizeInterpolateVolumeNearest, 0, NULL, NULL);
-	clFinish(commandQueue);	
-
-	// Create skullstripped volume, by multiplying original T1 volume with transformed MNI brain mask (the aligned volume is the transformed MNI brain mask)
-	PerformSkullstrip(d_Skullstripped_T1_Volume, d_MNI_T1_Volume, d_Aligned_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-
-
-	//clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_Skullstripped_T1_Volume, 0, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), 0, NULL, NULL);
-
-	// Copy the skullstripped T1 volume to host
-	clEnqueueReadBuffer(commandQueue, d_Skullstripped_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
-
-	// Cleanup
-	AlignTwoVolumesCleanup(); // Memory leak!
-	clReleaseMemObject(d_MNI_T1_Volume);
-	clReleaseMemObject(d_Skullstripped_T1_Volume);
-	clReleaseMemObject(d_MNI_Brain_Mask);
-}
 
 void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
 {
@@ -2712,45 +2649,327 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
 	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Interpolated_EPI_Volume, 0, NULL, NULL);
 
 	// Do the registration between EPI and T1 with several scales, rigid
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters_EPI_T1_Temp, h_Rotations, d_T1_EPI_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID);
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_EPI_T1_Temp, h_Rotations, d_T1_EPI_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE);
 	
 	// Copy the aligned EPI volume to host
-	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Aligned_EPI_Volume, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Aligned_EPI_Volume, 0, NULL, NULL);
 	
-	// Translations 
-	h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Temp[0];
-	h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Temp[1];
-	h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Temp[2];
+	// Get translations 
+	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1_Temp[0];
+	h_Registration_Parameters_EPI_T1_Out[1] = h_Registration_Parameters_EPI_T1_Temp[1];
+	h_Registration_Parameters_EPI_T1_Out[2] = h_Registration_Parameters_EPI_T1_Temp[2];
 
-	// Rotations
-	h_Registration_Parameters_EPI_T1[3] = h_Rotations[0];
-	h_Registration_Parameters_EPI_T1[4] = h_Rotations[1];
-	h_Registration_Parameters_EPI_T1[5] = h_Rotations[2];
+	// Get rotations
+	h_Registration_Parameters_EPI_T1_Out[3] = h_Rotations[0];
+	h_Registration_Parameters_EPI_T1_Out[4] = h_Rotations[1];
+	h_Registration_Parameters_EPI_T1_Out[5] = h_Rotations[2];
 
 	// Cleanup
 	clReleaseMemObject(d_EPI_Volume);
 	clReleaseMemObject(d_T1_Volume);
-	clReleaseMemObject(d_T1_EPI_Volume);
-	AlignTwoVolumesCleanup(); // Memory leak!
+	clReleaseMemObject(d_T1_EPI_Volume);	
+}
+
+void BROCCOLI_LIB::PerformRegistrationEPIT1()
+{
+	// Interpolate EPI volume to T1 resolution and make sure it has the same size, 
+	// the registration is performed to the skullstripped T1 volume, which has MNI size
+	ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
+	
+	// Do the registration between EPI and skullstripped T1 with several scales, rigid
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_EPI_T1_Temp, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID, NO_OVERWRITE);
+	
+	// Get translations 
+	h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Temp[0];
+	h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Temp[1];
+	h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Temp[2];
+
+	// Get rotations
+	h_Registration_Parameters_EPI_T1[3] = h_Rotations[0];
+	h_Registration_Parameters_EPI_T1[4] = h_Rotations[1];
+	h_Registration_Parameters_EPI_T1[5] = h_Rotations[2];
+}
+
+void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
+{
+	// Allocate memory for T1 volume, MNI volume and T1 volume of MNI size
+	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	
+	// Copy data to T1 volume and MNI volume
+	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Volume , 0, NULL, NULL);
+
+	// Interpolate T1 volume to MNI resolution and make sure it has the same size
+	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
+	
+	// Copy the MNI T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
+
+	// Do the registration between T1 and MNI with several scales
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE);
+	
+	// Copy the aligned T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
+				
+	// Allocate memory for skullstripped T1 volume and MNI brain mask
+	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+
+	// Copy MNI brain mask to device
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	// Calculate inverse transform between T1 and MNI
+	InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI_Out);
+
+	// Now apply the inverse transformation between MNI and T1, to transform MNI brain mask to T1 space
+	TransformVolume(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NEAREST);
+
+	// Interpolate T1 volume to MNI resolution and make sure it has the same size (again since we overwrote the volume previously, to be able to copy it to the host)
+	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
+
+	// Create skullstripped volume, by multiplying original T1 volume with transformed MNI brain mask 
+	PerformSkullstrip(d_Skullstripped_T1_Volume, d_MNI_T1_Volume, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	// Copy the skullstripped T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_Skullstripped_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
+
+	// Cleanup	
+	clReleaseMemObject(d_T1_Volume);
+	clReleaseMemObject(d_MNI_Volume);
+	clReleaseMemObject(d_MNI_T1_Volume);
+	clReleaseMemObject(d_Skullstripped_T1_Volume);
+	clReleaseMemObject(d_MNI_Brain_Mask);
 }
 
 // Performs registration between one high resolution T1 volume and a high resolution MNI volume (brain template)
 void BROCCOLI_LIB::PerformRegistrationT1MNI()
 {
 	// Interpolate T1 volume to MNI resolution and make sure it has the same size
-	//ChangeVolumeResolutionAndSize(d_T1_Volume, d_Interpolated_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
+	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);       
 	
-	// Do the registration with several scales
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 8, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE);
+	// Do the registration between T1 and MNI with several scales (we do not need the aligned T1 volume so do not overwrite)
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, NO_OVERWRITE);
+						
+	// Calculate inverse transform between T1 and MNI
+	InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI);
 	
-	// Copy the aligned volume to host
-	clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
+	// Now apply the inverse transformation between MNI and T1, to transform MNI brain mask to T1 space
+	TransformVolume(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NEAREST);
 
-	// Cleanup allocated memory
-	AlignTwoVolumesCleanup();	
+	// Create skullstripped volume, by multiplying original T1 volume with transformed MNI brain mask
+	PerformSkullstrip(d_Skullstripped_T1_Volume, d_MNI_T1_Volume, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 }
 
+void BROCCOLI_LIB::TransformVolume(cl_mem d_Volume, float* h_Registration_Parameters_, int DATA_W, int DATA_H, int DATA_D, int INTERPOLATION_MODE)
+{
+	// Allocate constant memory
+	cl_mem c_Parameters = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), NULL, &createBufferErrorRegistrationParameters);
 
+	// Copy parameter vector to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_Parameters, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), h_Registration_Parameters_, 0, NULL, NULL);
+
+	// Allocate memory for texture
+	cl_image_format format;
+	format.image_channel_data_type = CL_FLOAT;
+	format.image_channel_order = CL_INTENSITY;
+	cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+
+	// Copy volume to texture
+	size_t origin[3] = {0, 0, 0};
+	size_t region[3] = {DATA_W, DATA_H, DATA_D};
+	clEnqueueCopyBufferToImage(commandQueue, d_Volume, d_Volume_Texture, 0, origin, region, 0, NULL, NULL);
+	
+	SetGlobalAndLocalWorkSizesInterpolateVolume(DATA_W, DATA_H, DATA_D);
+
+	// Interpolate to get the transformed volume
+	if (INTERPOLATION_MODE == LINEAR)
+	{
+		clSetKernelArg(InterpolateVolumeLinearKernel, 0, sizeof(cl_mem), &d_Volume);
+		clSetKernelArg(InterpolateVolumeLinearKernel, 1, sizeof(cl_mem), &d_Volume_Texture);
+		clSetKernelArg(InterpolateVolumeLinearKernel, 2, sizeof(cl_mem), &c_Parameters);
+		clSetKernelArg(InterpolateVolumeLinearKernel, 3, sizeof(int), &DATA_W);
+		clSetKernelArg(InterpolateVolumeLinearKernel, 4, sizeof(int), &DATA_H);
+		clSetKernelArg(InterpolateVolumeLinearKernel, 5, sizeof(int), &DATA_D);	
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+		clFinish(commandQueue);	
+	}
+	else if (INTERPOLATION_MODE == NEAREST)
+	{
+		clSetKernelArg(InterpolateVolumeNearestKernel, 0, sizeof(cl_mem), &d_Volume);
+		clSetKernelArg(InterpolateVolumeNearestKernel, 1, sizeof(cl_mem), &d_Volume_Texture);
+		clSetKernelArg(InterpolateVolumeNearestKernel, 2, sizeof(cl_mem), &c_Parameters);
+		clSetKernelArg(InterpolateVolumeNearestKernel, 3, sizeof(int), &DATA_W);
+		clSetKernelArg(InterpolateVolumeNearestKernel, 4, sizeof(int), &DATA_H);
+		clSetKernelArg(InterpolateVolumeNearestKernel, 5, sizeof(int), &DATA_D);	
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestKernel, 3, NULL, globalWorkSizeInterpolateVolumeNearest, localWorkSizeInterpolateVolumeNearest, 0, NULL, NULL);
+		clFinish(commandQueue);	
+	}
+
+	clReleaseMemObject(d_Volume_Texture);
+	clReleaseMemObject(c_Parameters);
+}
+
+void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
+{
+	//------------------------
+
+	// Allocate memory on device
+	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Volume , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	PerformRegistrationT1MNI();
+
+	h_Registration_Parameters_T1_MNI_Out[0] = h_Registration_Parameters_T1_MNI[0];
+	h_Registration_Parameters_T1_MNI_Out[1] = h_Registration_Parameters_T1_MNI[1];
+	h_Registration_Parameters_T1_MNI_Out[2] = h_Registration_Parameters_T1_MNI[2];
+	h_Registration_Parameters_T1_MNI_Out[3] = h_Registration_Parameters_T1_MNI[3];
+	h_Registration_Parameters_T1_MNI_Out[4] = h_Registration_Parameters_T1_MNI[4];
+	h_Registration_Parameters_T1_MNI_Out[5] = h_Registration_Parameters_T1_MNI[5];
+	h_Registration_Parameters_T1_MNI_Out[6] = h_Registration_Parameters_T1_MNI[6];
+	h_Registration_Parameters_T1_MNI_Out[7] = h_Registration_Parameters_T1_MNI[7];
+	h_Registration_Parameters_T1_MNI_Out[8] = h_Registration_Parameters_T1_MNI[8];
+	h_Registration_Parameters_T1_MNI_Out[9] = h_Registration_Parameters_T1_MNI[9];
+	h_Registration_Parameters_T1_MNI_Out[10] = h_Registration_Parameters_T1_MNI[10];
+	h_Registration_Parameters_T1_MNI_Out[11] = h_Registration_Parameters_T1_MNI[11];
+
+	// Cleanup
+	clReleaseMemObject(d_T1_Volume);
+	clReleaseMemObject(d_MNI_Volume);
+	clReleaseMemObject(d_MNI_Brain_Mask);
+
+
+	//------------------------
+
+	// Allocate memory on device
+	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+		
+	PerformRegistrationEPIT1();
+	
+	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1[0];
+	h_Registration_Parameters_EPI_T1_Out[1] = h_Registration_Parameters_EPI_T1[1];
+	h_Registration_Parameters_EPI_T1_Out[2] = h_Registration_Parameters_EPI_T1[2];
+	h_Registration_Parameters_EPI_T1_Out[3] = h_Registration_Parameters_EPI_T1[3];
+	h_Registration_Parameters_EPI_T1_Out[4] = h_Registration_Parameters_EPI_T1[4];
+	h_Registration_Parameters_EPI_T1_Out[5] = h_Registration_Parameters_EPI_T1[5];
+	
+	clReleaseMemObject(d_MNI_T1_Volume);
+	clReleaseMemObject(d_Skullstripped_T1_Volume);
+	clReleaseMemObject(d_EPI_Volume);
+	clReleaseMemObject(d_T1_EPI_Volume);
+
+	//------------------------
+
+	
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+	d_Motion_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+	
+
+	
+	//h_Motion_Parameters = (float*)malloc(EPI_DATA_T * 6 * sizeof(float));
+
+	PerformMotionCorrection();
+		
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		for (int p = 0; p < 6; p++)
+		{
+			h_Motion_Parameters_Out[t + p * EPI_DATA_T] = h_Motion_Parameters[t + p * EPI_DATA_T];
+		}
+	}
+	
+	clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
+
+
+	//-------------------------------
+
+	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	// Allocate memory for smoothing filters
+	c_Smoothing_Filter_X = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Y = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Z = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	
+	// Copy smoothing filters to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_X, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_X , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Y, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Y , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Z, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Z , 0, NULL, NULL);
+	
+	PerformSmoothing(d_Smoothed_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, c_Smoothing_Filter_X, c_Smoothing_Filter_Y, c_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	
+	clEnqueueReadBuffer(commandQueue, d_Smoothed_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Smoothed_fMRI_Volumes, 0, NULL, NULL);
+
+	clReleaseMemObject(c_Smoothing_Filter_X);
+	clReleaseMemObject(c_Smoothing_Filter_Y);
+	clReleaseMemObject(c_Smoothing_Filter_Z);
+
+
+	//-------------------------------	
+
+	d_Mask = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);	
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), NULL, NULL);	
+	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	d_Beta_Contrasts = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);	
+	d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+	d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_REGRESSORS * EPI_DATA_T * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM , 0, NULL, NULL);
+
+
+	CalculateStatisticalMapsGLMFirstLevel();
+
+	// Copy data to host
+	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+
+	//free(h_Motion_Parameters);
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
+	clReleaseMemObject(d_Smoothed_fMRI_Volumes);
+
+	clReleaseMemObject(d_Mask);
+	clReleaseMemObject(c_X_GLM);
+	clReleaseMemObject(c_xtxxt_GLM);
+	clReleaseMemObject(c_Contrasts);
+	clReleaseMemObject(c_ctxtxc_GLM);
+
+	
+
+	clReleaseMemObject(d_Beta_Volumes);
+	clReleaseMemObject(d_Statistical_Maps);
+	clReleaseMemObject(d_Beta_Contrasts);
+	clReleaseMemObject(d_Residuals);
+	clReleaseMemObject(d_Residual_Variances);
+
+	//CalculateSlicesPreprocessedfMRIData();
+}
 
 // Performs slice timing correction of an fMRI dataset
 void BROCCOLI_LIB::PerformSliceTimingCorrection()
@@ -2776,6 +2995,19 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 	// Set the first volume as the reference volume
 	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Reference_Volume, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 
+	// Copy the first volume to the corrected volumes
+	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);	
+
+	// Translations
+	h_Motion_Parameters_Out[0 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters_Out[1 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters_Out[2 * EPI_DATA_T] = 0.0f;
+
+	// Rotations
+	h_Motion_Parameters_Out[3 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters_Out[4 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters_Out[5 * EPI_DATA_T] = 0.0f;
+
 	// Run the registration for each volume
 	for (int t = 1; t < EPI_DATA_T; t++)
 	{
@@ -2788,7 +3020,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 		clEnqueueCopyBufferToImage(commandQueue, d_fMRI_Volumes, d_Original_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), origin, region, 0, NULL, NULL);
 		
 		// Do rigid registration with only one scale
-		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID);
+		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION, RIGID);
 
 		// Copy the corrected volume to the corrected volumes
 		clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_Motion_Corrected_fMRI_Volumes, 0, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
@@ -2796,14 +3028,14 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 		// Write the total parameter vector to host
 
 		// Translations
-		h_Motion_Parameters[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0];
-		h_Motion_Parameters[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1];
-		h_Motion_Parameters[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2];
+		h_Motion_Parameters_Out[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0];
+		h_Motion_Parameters_Out[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1];
+		h_Motion_Parameters_Out[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2];
 
 		// Rotations
-		h_Motion_Parameters[t + 3 * EPI_DATA_T] = h_Rotations[0];
-		h_Motion_Parameters[t + 4 * EPI_DATA_T] = h_Rotations[1];
-		h_Motion_Parameters[t + 5 * EPI_DATA_T] = h_Rotations[2];
+		h_Motion_Parameters_Out[t + 3 * EPI_DATA_T] = h_Rotations[0];
+		h_Motion_Parameters_Out[t + 4 * EPI_DATA_T] = h_Rotations[1];
+		h_Motion_Parameters_Out[t + 5 * EPI_DATA_T] = h_Rotations[2];
 	}
 		
 	// Copy all corrected volumes to host
@@ -2825,8 +3057,21 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	// Set the first volume as the reference volume
 	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Reference_Volume, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 
+	// Copy the first volume to the corrected volumes
+	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
+	
+	// Translations
+	h_Motion_Parameters[0 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters[1 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters[2 * EPI_DATA_T] = 0.0f;
+
+	// Rotations
+	h_Motion_Parameters[3 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters[4 * EPI_DATA_T] = 0.0f;
+	h_Motion_Parameters[5 * EPI_DATA_T] = 0.0f;
+
 	// Run the registration for each volume
-	for (int t = 0; t < EPI_DATA_T; t++)
+	for (int t = 1; t < EPI_DATA_T; t++)
 	{
 		// Set a new volume to be aligned
 		clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Aligned_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
@@ -2837,7 +3082,7 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 		clEnqueueCopyBufferToImage(commandQueue, d_fMRI_Volumes, d_Original_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), origin, region, 0, NULL, NULL);
 		
 		// Do rigid registration with only one scale
-		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID);
+		AlignTwoVolumes(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION, RIGID);
 
 		// Copy the corrected volume to the corrected volumes
 		clEnqueueCopyBuffer(commandQueue, d_Aligned_Volume, d_Motion_Corrected_fMRI_Volumes, 0, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
@@ -2854,10 +3099,7 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 		h_Motion_Parameters[t + 4 * EPI_DATA_T] = h_Rotations[1];
 		h_Motion_Parameters[t + 5 * EPI_DATA_T] = h_Rotations[2];
 	}
-	
-	// Copy all corrected volumes to host
-	clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
-
+		
 	// Cleanup allocated memory
 	AlignTwoVolumesCleanup();
 }
@@ -3028,19 +3270,19 @@ void BROCCOLI_LIB::PerformDetrending()
 // Processing
 
 // Runs all the preprocessing steps and the statistical analysis for one subject
-void BROCCOLI_LIB::PerformPreprocessingAndCalculateStatisticalMaps()
+void BROCCOLI_LIB::PerformFirstLevelAnalysis()
 {
-	//PerformRegistrationEPIT1();
-	//PerformRegistrationT1MNI();
-
-    //PerformSliceTimingCorrection();
+	PerformRegistrationT1MNI();
+	PerformRegistrationEPIT1();
+	//PerformSliceTimingCorrection();
 	PerformMotionCorrection();
 	//PerformSmoothing();	
-	PerformDetrending();
-	//CalculateStatisticalMapsFirstLevel();
+	//PerformDetrending();
+	CalculateStatisticalMapsGLMFirstLevel();
 
 	//CalculateSlicesPreprocessedfMRIData();
 }
+
 
 void BROCCOLI_LIB::PerformGLMWrapper()
 {
@@ -3142,30 +3384,55 @@ void BROCCOLI_LIB::PerformGLMWrapper()
 // Calculates a statistical map for first level analysis
 void BROCCOLI_LIB::CalculateStatisticalMapsGLMFirstLevel()
 {
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);	
+
 	// Calculate beta values
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
-	clSetKernelArg(CalculateBetaValuesGLMKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 1, sizeof(cl_mem), &d_Smoothed_fMRI_Volumes);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 2, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_GLM);
-	clSetKernelArg(CalculateBetaValuesGLMKernel, 4, sizeof(cl_mem), &c_Censor);
-	clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuesGLMKernel, 3, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, NULL);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 4, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 5, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 6, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 7, sizeof(int), &EPI_DATA_T);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 8, sizeof(int), &NUMBER_OF_REGRESSORS);
+	//clSetKernelArg(CalculateBetaValuesGLMKernel, 4, sizeof(cl_mem), &c_Censor);
+	//kernel_error = clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuesGLMKernel, 3, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, NULL);
+	kernel_error = clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuesGLMKernel, 3, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, &event);
 	clFinish(commandQueue);
+	
+	
+	clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+	clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+	convolution_time += time_end - time_start;
 
 	// Calculate t-values and residuals
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residuals);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_Smoothed_fMRI_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 6, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 7, sizeof(cl_mem), &c_X_GLM);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrasts);
 	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
-	clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(int),   &EPI_DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 11, sizeof(int),   &EPI_DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 12, sizeof(int),   &EPI_DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 13, sizeof(int),   &EPI_DATA_T);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 14, sizeof(int),   &NUMBER_OF_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
+	//clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
+	//kernel_error = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	kernel_error = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, &event);
 	clFinish(commandQueue);
 
+	clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+	clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+	convolution_time += time_end - time_start;
+
+	
 	// Estimate auto correlation from residuals
 
 	// Remove auto correlation from regressors and data

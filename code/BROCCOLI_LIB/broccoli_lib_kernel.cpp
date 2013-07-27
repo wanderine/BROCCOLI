@@ -2074,14 +2074,14 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 	}
 
 	int t = 0;
-	//float beta[20];
-	__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
+	float beta[20];
+	//__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 	
 	// Reset all beta values
 	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{
-		//beta[r] = 0.0f;
-		beta[tIdx.y][tIdx.x][r] = 0.0f;
+		beta[r] = 0.0f;
+		//beta[tIdx.y][tIdx.x][r] = 0.0f;
 	}
 
 	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
@@ -2094,8 +2094,8 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 			// Loop over regressors
 			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 			{
-				//beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
-				beta[tIdx.y][tIdx.x][r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+				beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+				//beta[tIdx.y][tIdx.x][r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
 			}
 		//}
 	}
@@ -2103,8 +2103,8 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 	// Save beta values
 	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{
-		//Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
-		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[tIdx.y][tIdx.x][r];
+		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
+		//Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[tIdx.y][tIdx.x][r];
 	}
 }
 
@@ -2144,14 +2144,14 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	//float beta[20];
-	__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
+	float beta[20];
+	//__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 
 	// Load beta values into shared memory
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{ 
-		//beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-		beta[tIdx.y][tIdx.x][r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+		//beta[tIdx.y][tIdx.x][r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
 	}
 
 	// Calculate the mean of the error eps
@@ -2163,8 +2163,8 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 			{ 
-				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
 			}
 			meaneps += eps;
 			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
@@ -2181,8 +2181,8 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 			{
-				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
 			}
 			vareps += (eps - meaneps) * (eps - meaneps);
 		//}
@@ -2197,8 +2197,8 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 		float contrast_value = 0.0f;
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			//contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[tIdx.y][tIdx.x][r];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+			//contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[tIdx.y][tIdx.x][r];
 		}	
 		Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		

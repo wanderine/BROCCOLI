@@ -39,7 +39,7 @@ mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GP
 
 load filters.mat
 
-subject = 23;
+subject = 22;
 voxel_size = 1;
 
 T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -98,7 +98,7 @@ figure; imagesc(squeeze(MNI(:,:,slice))); colormap gray
 
 %%
 
-number_of_iterations_for_image_registration = 60;
+number_of_iterations_for_image_registration = 30;
 coarsest_scale = 4/voxel_size;
 MM_EPI_Z_CUT = 20;
 

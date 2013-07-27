@@ -164,6 +164,12 @@ typedef unsigned short int uint16;
 #define RIGID 1
 #define AFFINE 2
 
+#define NEAREST 0
+#define LINEAR 1
+
+#define DO_OVERWRITE 0
+#define NO_OVERWRITE 1
+
 #define PI 3.1415f
 
 class BROCCOLI_LIB
@@ -188,7 +194,9 @@ class BROCCOLI_LIB
 		void SetImageRegistrationFilterSize(int N);
 		void SetImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
 		void SetNumberOfIterationsForImageRegistration(int N);
-		void SetCoarsestScale(int N);
+		void SetNumberOfIterationsForMotionCorrection(int N);
+		void SetCoarsestScaleT1MNI(int N);
+		void SetCoarsestScaleEPIT1(int N);
 		void SetMMT1ZCUT(int mm);
 		void SetMMEPIZCUT(int mm);
 
@@ -214,6 +222,8 @@ class BROCCOLI_LIB
 		void SetOutputInterpolatedT1Volume(float*);
 		void SetOutputInterpolatedEPIVolume(float*);
 		void SetOutputDownsampledVolume(float*);
+		void SetOutputMotionCorrectedfMRIVolumes(float*);
+		void SetOutputSmoothedfMRIVolumes(float*);
 		void SetOutputData(float* output);
 
 		void SetfMRIDataFilename(std::string filename);
@@ -354,7 +364,8 @@ class BROCCOLI_LIB
 		void WritefMRIDataNIFTI();
 		
 		// Preprocessing
-		void PerformRegistrationEPIT1(int t);
+		void TransformVolume(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int INTERPOLATION_MODE);
+		void PerformRegistrationEPIT1();
 		void PerformRegistrationT1MNI();
 		void PerformRegistrationT1MNIWrapper();
 		void PerformRegistrationEPIT1Wrapper();
@@ -366,14 +377,13 @@ class BROCCOLI_LIB
 		void PerformSmoothingWrapper();
 
 		// Processing
-		void PerformPreprocessingAndCalculateStatisticalMaps();				
-		void CalculateStatisticalMapGLMFirstLevel();
-		void CalculateStatisticalMapGLMSecondLevel();
+		void PerformFirstLevelAnalysis();				
+		void PerformFirstLevelAnalysisWrapper();				
+		void CalculateStatisticalMapsGLMFirstLevel();
+		void CalculateStatisticalMapsGLMSecondLevel();
 		void CalculatePermutationTestThresholdSingleSubject();
 		void CalculatePermutationTestThresholdMultiSubject();
 		
-		void CalculateStatisticalMapsGLMFirstLevel();
-		void CalculateStatisticalMapsGLMSecondLevel();
 		void PerformGLMWrapper();
 
 		
@@ -423,7 +433,7 @@ class BROCCOLI_LIB
 		void Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE);
 		void NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
 		void AlignTwoVolumes(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE);
-		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE);
+		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE);
 		void AlignTwoVolumesCleanup();
 		void AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D);
 		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z);
@@ -673,7 +683,8 @@ class BROCCOLI_LIB
 		int IMAGE_REGISTRATION_FILTER_SIZE;
 		int NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
 		int NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION;
-		int COARSEST_SCALE;
+		int NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
+		int COARSEST_SCALE_T1_MNI, COARSEST_SCALE_EPI_T1;
 		int MM_T1_Z_CUT, MM_EPI_Z_CUT;
 		int	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS;
 		
@@ -747,14 +758,14 @@ class BROCCOLI_LIB
 		float       *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_3_Real; 
 		float       *h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag; 
 		float		 h_A_Matrix[144], h_Inverse_A_Matrix[144], h_h_Vector[12];
-		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12], h_Registration_Parameters_EPI_T1_Temp[12], h_Registration_Parameters_Motion_Correction[12], *h_Registration_Parameters_T1_MNI, *h_Registration_Parameters_EPI_T1;
+		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12], h_Registration_Parameters_EPI_T1_Temp[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], *h_Registration_Parameters_T1_MNI_Out, h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out;
 		float		 h_Rotations[3], h_Rotations_Temp[3];
 		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
 	
 		float *h_Registration_Parameters_Out;
 		// Motion correction
 		float		*h_Motion_Corrected_fMRI_Volumes;		
-		float		*h_Motion_Parameters;
+		float		*h_Motion_Parameters_Out, h_Motion_Parameters[2000];
 		
 		// fMRI - T1
 		float		*h_Aligned_fMRI_Volume;

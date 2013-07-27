@@ -41,6 +41,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, COARSEST_SCALE, MM_T1_Z_CUT;
     int             OPENCL_PLATFORM;
     
+    int T1_DATA_H, T1_DATA_W, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
+    
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
     
@@ -109,7 +111,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const int *ARRAY_DIMENSIONS_MNI = mxGetDimensions(prhs[1]);
     const int *ARRAY_DIMENSIONS_FILTER = mxGetDimensions(prhs[9]);
     
-    int T1_DATA_H, T1_DATA_W, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
+    
     NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS = 12;
     
     T1_DATA_H = ARRAY_DIMENSIONS_T1[0];
@@ -272,7 +274,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);
     BROCCOLI.SetImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
     BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
-    BROCCOLI.SetCoarsestScale(COARSEST_SCALE);
+    BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE);
     BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
     BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
     BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume);

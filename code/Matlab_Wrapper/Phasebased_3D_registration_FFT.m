@@ -146,7 +146,6 @@ s1 = sind(angle1);
 c1 = cosd(angle1);
 angle3 = atan2(s1*p_matrix(3,1)-c1*p_matrix(2,1),c1*p_matrix(2,2)-s1*p_matrix(3,2))*180/pi;
 rotations = [angle1, angle2, angle3];
-
     
 compensated_volume = vol2prim;
 registration_parameters = p;
