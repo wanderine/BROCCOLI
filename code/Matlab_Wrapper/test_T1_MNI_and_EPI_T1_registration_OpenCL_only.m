@@ -39,7 +39,7 @@ mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GP
 
 load filters.mat
 
-subject = 22;
+subject = 21;
 voxel_size = 1;
 
 T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -53,7 +53,7 @@ MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
 EPI = double(EPI_nii.img);
-EPI = EPI(:,:,:,5);
+EPI = EPI(:,:,:,1);
 EPI = EPI/max(EPI(:));
 
 [sy sx sz] = size(T1)

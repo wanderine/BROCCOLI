@@ -33,7 +33,7 @@ addpath('D:\BROCCOLI_test_data')
 
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
-subject = 27;
+subject = 21;
 voxel_size = 1;
 
 T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -235,6 +235,10 @@ imagesc(motion_corrected_volumes_cpu(:,:,slice,1)); colorbar
 title('MC cpu')
 
 figure
+imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar
+title('MC cpu - gpu')
+
+figure
 imagesc(smoothed_volumes_opencl(:,:,slice,1)); colorbar
 title('SM')
 
@@ -242,6 +246,9 @@ figure
 imagesc(smoothed_volumes_cpu(:,:,slice,1)); colorbar
 title('SM cpu')
 
+figure
+imagesc([smoothed_volumes_cpu(:,:,slice,2) - smoothed_volumes_opencl(:,:,slice,2)]); colorbar
+title('SM cpu - gpu')
 
 figure
 imagesc(beta_volumes(:,:,slice,1)); colorbar
@@ -250,6 +257,10 @@ title('Beta')
 figure
 imagesc(betas_cpu(:,:,slice,1)); colorbar
 title('Beta cpu')
+
+figure
+imagesc([betas_cpu(:,:,slice,1) - beta_volumes(:,:,slice,1)]); colorbar
+title('Beta cpu - gpu')
 
 figure
 imagesc(residual_variances(:,:,slice)); colorbar

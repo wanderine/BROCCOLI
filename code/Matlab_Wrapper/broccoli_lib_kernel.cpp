@@ -1800,12 +1800,10 @@ __kernel void CalculateHVector(__global float* h_vector, __global const float* h
 	h_vector[h_vector_element] = vector_value;
 }
 
-
-
-__constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
+__constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
 	
 
-__kernel void InterpolateVolumeLinear(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void InterpolateVolumeNearest(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1814,41 +1812,7 @@ __kernel void InterpolateVolumeLinear(__global float* Volume, read_only image3d_
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
-	float4 Motion_Vector;
-	float xf, yf, zf;
-
-    // (motion_vector.x)   (p0)   (p3  p4  p5)   (x)
-	// (motion_vector.y) = (p1) + (p6  p7  p8) * (y)
- 	// (motion_vector.z)   (p2)   (p9 p10 p11)   (z)
-
-	// Change to coordinate system with origo in (sx - 1)/2 (sy - 1)/2 (sz - 1)/2
-	xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
-	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
-	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
-
-	Motion_Vector.x = x + c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf + 0.5f;
-	Motion_Vector.y = y + c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf + 0.5f;
-	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;	
-	Motion_Vector.w = 0.0f;
-
-	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-	Volume[idx] = Interpolated_Value.x;
-}
-
-__constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
-	
-
-__kernel void InterpolateVolumeNearest(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
+	int idx = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
 	float4 Motion_Vector;
 	float xf, yf, zf;
 
@@ -1870,8 +1834,44 @@ __kernel void InterpolateVolumeNearest(__global float* Volume, read_only image3d
 	Volume[idx] = Interpolated_Value.x;
 }
 
+__constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_LINEAR;
+	
 
-__kernel void RescaleVolume(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void InterpolateVolumeLinear(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
+	float4 Motion_Vector;
+	float xf, yf, zf;
+
+    // (motion_vector.x)   (p0)   (p3  p4  p5)   (x)
+	// (motion_vector.y) = (p1) + (p6  p7  p8) * (y)
+ 	// (motion_vector.z)   (p2)   (p9 p10 p11)   (z)
+
+	// Change to coordinate system with origo in (sx - 1)/2 (sy - 1)/2 (sz - 1)/2
+	xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+	Motion_Vector.x = x + c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf + 0.5f;
+	Motion_Vector.y = y + c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf + 0.5f;
+	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;	
+	Motion_Vector.w = 0.0f;
+
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
+	Volume[idx] = Interpolated_Value.x;
+}
+
+
+
+
+__kernel void RescaleVolumeLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -1965,6 +1965,7 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	}			
 }
 
+
 __kernel void CopyEPIVolumeToT1(__global float* T1_EPI_Volume,__global float* Interpolated_EPI_Volume, __private int T1_DATA_W, __private int T1_DATA_H, __private int T1_DATA_D, __private int EPI_DATA_W_INTERPOLATED, __private int EPI_DATA_H_INTERPOLATED, __private int EPI_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_EPI_Z_CUT, __private float T1_VOXEL_SIZE_Z)
 {
 	int x = get_global_id(0);
@@ -1975,7 +1976,7 @@ __kernel void CopyEPIVolumeToT1(__global float* T1_EPI_Volume,__global float* In
 	int x_T1, x_Interpolated;
 	int y_T1, y_Interpolated;
 	int z_T1, z_Interpolated;
-	
+
 	// Interpolated EPI volume larger than T1 volume
 	// Remove half of the columns in each direction
 	if (x_diff > 0)
@@ -2037,6 +2038,78 @@ __kernel void CopyEPIVolumeToT1(__global float* T1_EPI_Volume,__global float* In
 }
 
 
+__kernel void CopyVolumeToNew(__global float* New_Volume,__global float* Interpolated_Volume, __private int NEW_DATA_W, __private int NEW_DATA_H, __private int NEW_DATA_D, __private int DATA_W_INTERPOLATED, __private int DATA_H_INTERPOLATED, __private int DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_Z_CUT, __private float NEW_VOXEL_SIZE_Z, __private int VOLUME)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int NEW_idx, Interpolated_idx;
+	int x_NEW, x_Interpolated;
+	int y_NEW, y_Interpolated;
+	int z_NEW, z_Interpolated;
+	
+	// Interpolated volume larger than new volume
+	// Remove half of the columns in each direction
+	if (x_diff > 0)
+	{
+		x_NEW = x;
+		x_Interpolated = x + (int)round((float)x_diff/2.0);
+	}
+	// Interpolated volume smaller than new volume
+	// Put interpolated volume in the middle of the new volume
+	else
+	{
+		x_NEW = x + (int)round((float)abs(x_diff)/2.0);
+		x_Interpolated = x;
+	}
+	// Interpolated EPI volume larger than T1 volume
+	// Remove half of the rows in each direction
+	if (y_diff > 0)
+	{
+		y_NEW = y;
+		y_Interpolated = y + (int)round((float)y_diff/2.0);
+	}
+	// Interpolated EPI volume smaller than T1 volume
+	// Put interpolated EPI volume in the middle of the T1 volume
+	else
+	{
+		y_NEW = y + (int)round((float)abs(y_diff)/2.0);
+		y_Interpolated = y;
+	}
+	// Interpolated EPI volume larger than T1 volume
+	// Remove half the slices in each direction
+	if (z_diff > 0)
+	{
+		z_NEW = z;
+		z_Interpolated = z + (int)round((float)z_diff/2.0) + (int)round((float)MM_Z_CUT/NEW_VOXEL_SIZE_Z);
+	}
+	// Interpolated EPI volume smaller than T1 volume
+	// Put interpolated EPI volume in the middle of the T1 volume
+	else
+	{
+		z_NEW = z + (int)round((float)abs(z_diff)/2.0);
+		z_Interpolated = z + (int)round((float)MM_Z_CUT/NEW_VOXEL_SIZE_Z);
+	}
+
+	// Make sure we are not reading outside any volume
+	if ( (x_Interpolated >= DATA_W_INTERPOLATED) || (y_Interpolated >= DATA_H_INTERPOLATED) || (z_Interpolated >= DATA_D_INTERPOLATED) || (x_NEW >= NEW_DATA_W) || (y_NEW >= NEW_DATA_H) || (z_NEW >= NEW_DATA_D) )
+	{
+		return;
+	}
+	else if ( (x_Interpolated < 0) || (y_Interpolated < 0) || (z_Interpolated < 0) || (x_NEW < 0) || (y_NEW < 0) || (z_NEW < 0) )
+	{
+		return;
+	}
+	else
+	{
+		NEW_idx = Calculate4DIndex(x_NEW,y_NEW,z_NEW,VOLUME,NEW_DATA_W,NEW_DATA_H,NEW_DATA_D);
+		Interpolated_idx = Calculate3DIndex(x_Interpolated,y_Interpolated,z_Interpolated,DATA_W_INTERPOLATED,DATA_H_INTERPOLATED);
+		New_Volume[NEW_idx] = Interpolated_Volume[Interpolated_idx];
+	}			
+}
+
+
 __kernel void MultiplyVolumes(__global float* Result, __global const float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
 	int x = get_global_id(0);
@@ -2049,6 +2122,20 @@ __kernel void MultiplyVolumes(__global float* Result, __global const float* Volu
 	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
 
 	Result[idx] = Volume1[idx] * Volume2[idx];
+}
+
+__kernel void MultiplyVolumesOverwrite(__global float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+
+	Volume1[idx] = Volume1[idx] * Volume2[idx];
 }
 
 // Statistical functions

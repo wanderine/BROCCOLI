@@ -73,9 +73,9 @@ for t = 2:st
     z_translations(t) = z_translation;
     
     % Rotation in 3 directions
-    x_rotation = 0.1*randn; % degrees
-    y_rotation = 0.1*randn; % degrees
-    z_rotation = 0.1*randn; % degrees
+    x_rotation = randn; % degrees
+    y_rotation = randn; % degrees
+    z_rotation = randn; % degrees
     
     x_rotations(t) = x_rotation;
     y_rotations(t) = y_rotation;
@@ -255,10 +255,16 @@ plot(motion_parameters_opencl(:,6),'b')
 hold off
 legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations OpenCL')
 
-for t = 1:st    
-    figure(5)
-    imagesc([fMRI_volumes(:,:,18,t) motion_corrected_volumes_cpu(:,:,18,t)  motion_corrected_volumes_opencl(:,:,18,t) ])
-    pause(0.1)
-end
+slice = 18;
+
+figure
+imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar
+title('MC cpu - gpu')
+
+%for t = 1:st    
+%    figure(5)
+%    imagesc([fMRI_volumes(:,:,18,t) motion_corrected_volumes_cpu(:,:,18,t)  motion_corrected_volumes_opencl(:,:,18,t) ])
+%    pause(0.1)
+%end
 
 
