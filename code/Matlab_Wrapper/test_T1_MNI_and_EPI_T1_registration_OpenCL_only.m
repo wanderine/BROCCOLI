@@ -39,7 +39,7 @@ mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GP
 
 load filters.mat
 
-subject = 21;
+subject = 34;
 voxel_size = 1;
 
 T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);

@@ -179,8 +179,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int BETA_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float);
     //int BETA_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float);
     int RESIDUAL_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
-    //int STATISTICAL_MAPS_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);           
-    int STATISTICAL_MAPS_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);           
+    int STATISTICAL_MAPS_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);           
+    //int STATISTICAL_MAPS_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);           
     
     mexPrintf("fMRI data size : %i x %i x %i x %i \n", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     mexPrintf("T1 data size : %i x %i x %i \n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
@@ -214,18 +214,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         
     NUMBER_OF_DIMENSIONS = 3;
     int ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES[3];
-    ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES[0] = EPI_DATA_H;
-    ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES[1] = EPI_DATA_W;
-    ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES[2] = EPI_DATA_D;
+    ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES[0] = MNI_DATA_H; //EPI_DATA_H;
+    ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES[1] = MNI_DATA_W; //EPI_DATA_W;
+    ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES[2] = MNI_DATA_D; //EPI_DATA_D;
     
     plhs[2] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_RESIDUAL_VARIANCES,mxDOUBLE_CLASS, mxREAL);
     h_Residual_Variances_double = mxGetPr(plhs[2]);          
     
     NUMBER_OF_DIMENSIONS = 4;
     int ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[4];
-    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[0] = EPI_DATA_H;
-    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[1] = EPI_DATA_W;
-    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[2] = EPI_DATA_D;
+    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[0] = MNI_DATA_H; //EPI_DATA_H;
+    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[1] = MNI_DATA_W; //EPI_DATA_W;
+    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[2] = MNI_DATA_D; //EPI_DATA_D;
     ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[3] = NUMBER_OF_CONTRASTS;
     
     plhs[3] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS,mxDOUBLE_CLASS, mxREAL);
@@ -421,10 +421,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_REGRESSORS);
     //unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_REGRESSORS);
     //unpack_float2double_volumes(h_Residuals_double, h_Residuals, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-    //unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+    unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    //unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     //unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
-    unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS);        
+    unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);            
+    //unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS);        
     
     // Free all the allocated memory on the host
     

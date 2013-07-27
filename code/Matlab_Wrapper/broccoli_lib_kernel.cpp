@@ -2124,7 +2124,7 @@ __kernel void MultiplyVolumes(__global float* Result, __global const float* Volu
 	Result[idx] = Volume1[idx] * Volume2[idx];
 }
 
-__kernel void MultiplyVolumesOverwrite(__global float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void MultiplyVolumesOverwrite(__global float* Volumes1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -2133,9 +2133,10 @@ __kernel void MultiplyVolumesOverwrite(__global float* Volume1, __global const f
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+	int idx3D = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+	int idx4D = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
 
-	Volume1[idx] = Volume1[idx] * Volume2[idx];
+	Volumes1[idx4D] = Volumes1[idx4D] * Volume2[idx3D];
 }
 
 // Statistical functions

@@ -33,7 +33,7 @@ addpath('D:\BROCCOLI_test_data')
 
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
-subject = 28;
+subject = 38;
 voxel_size = 1;
 
 T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -74,13 +74,13 @@ number_of_iterations_for_image_registration = 30;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 4/voxel_size;
-MM_T1_Z_CUT = 10;
-MM_EPI_Z_CUT = 20;
+MM_T1_Z_CUT = 10/voxel_size;
+MM_EPI_Z_CUT = 20/voxel_size;
 load filters.mat
 
 %%
 % Create smoothing filters
-smoothing_filter_x = fspecial('gaussian',9,0.5);
+smoothing_filter_x = fspecial('gaussian',9,0.15);
 smoothing_filter_x = smoothing_filter_x(:,5);
 smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
 smoothing_filter_y = smoothing_filter_x;
@@ -99,7 +99,8 @@ while NN < st
     X_GLM_((NN+11):(NN+20),1) =  0;  % Rest
     NN = NN + 20;
 end
-X_GLM(:,1) = X_GLM_(1:st) - mean(X_GLM_(1:st));
+a = X_GLM_(1:st) - mean(X_GLM_(1:st));
+X_GLM(:,1) = a/norm(a(:));
 my_ones = ones(st,1);
 X_GLM(:,2) = my_ones/norm(my_ones);
 a = -(st-1)/2:(st-1)/2;
@@ -146,6 +147,7 @@ hold on
 plot(motion_parameters(:,3),'b')
 hold off
 title('Translation')
+legend('X','Y','Z')
 
 figure
 plot(motion_parameters(:,4),'g')
@@ -155,18 +157,10 @@ hold on
 plot(motion_parameters(:,6),'b')
 hold off
 title('Rotation')
+legend('X','Y','Z')
 
-slice = round(sz/2);
 
-figure
-imagesc(residual_variances(:,:,slice)); colorbar
-title('Residual variances')
-
-figure
-imagesc(statistical_maps(:,:,slice)); colorbar
-title('t-values')
-
-slice = 100;
+slice = 100/voxel_size;
 
 figure
 imagesc(MNI(:,:,slice)); colorbar
@@ -182,6 +176,14 @@ title('Beta 2')
 figure
 imagesc(beta_volumes(:,:,slice,3)); colorbar
 title('Beta 3')
+
+figure
+imagesc(residual_variances(:,:,slice)); colorbar
+title('Residual variances')
+
+figure
+imagesc(statistical_maps(:,:,slice,1)); colorbar
+title('t-values')
 
 %%
 

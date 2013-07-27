@@ -2344,6 +2344,7 @@ void BROCCOLI_LIB::AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D)
 	clSetKernelArg(InterpolateVolumeLinearKernel, 5, sizeof(int), &DATA_D);	
 	clSetKernelArg(InterpolateVolumeLinearKernel, 6, sizeof(int), &volume);	
 
+	/*
 	clSetKernelArg(InterpolateVolumeCubicKernel, 0, sizeof(cl_mem), &d_Aligned_Volume);
 	clSetKernelArg(InterpolateVolumeCubicKernel, 1, sizeof(cl_mem), &d_Original_Volume);
 	clSetKernelArg(InterpolateVolumeCubicKernel, 2, sizeof(cl_mem), &c_Registration_Parameters);
@@ -2351,6 +2352,7 @@ void BROCCOLI_LIB::AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D)
 	clSetKernelArg(InterpolateVolumeCubicKernel, 4, sizeof(int), &DATA_H);
 	clSetKernelArg(InterpolateVolumeCubicKernel, 5, sizeof(int), &DATA_D);	
 	clSetKernelArg(InterpolateVolumeCubicKernel, 6, sizeof(int), &volume);	
+	*/
 }
 
 // This function is used by all registration functions, to cleanup
@@ -3168,7 +3170,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	// Allocate memory on device
 	d_Beta_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
+	d_Statistical_Maps_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
+	d_Residual_Variances_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
 	
+
 	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
 
 
@@ -3176,6 +3181,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	// Copy data to host
 	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);	
+	clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);	
 	//clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
 	//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
@@ -3204,40 +3211,60 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_Residual_Variances);
 
 	clReleaseMemObject(d_Beta_Volumes_MNI);
+	clReleaseMemObject(d_Statistical_Maps_MNI);
+	clReleaseMemObject(d_Residual_Variances_MNI);
 
 	//CalculateSlicesPreprocessedfMRIData();
 }
 
 void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 {
-	ChangeVolumesResolutionAndSize(d_Beta_Volumes_MNI, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_REGRESSORS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT);       	
+	// Calculate transformation parameters for EPI -> MNI
+	for (int p = 0; p < 12; p++)
+	{
+		h_Registration_Parameters_EPI_MNI[p] = h_Registration_Parameters_EPI_T1_Affine[p] + h_Registration_Parameters_T1_MNI[p]; 
+	}
 		
-	h_Registration_Parameters_EPI_MNI[0] = h_Registration_Parameters_EPI_T1_Affine[0] + h_Registration_Parameters_T1_MNI[0]; 
-	h_Registration_Parameters_EPI_MNI[1] = h_Registration_Parameters_EPI_T1_Affine[1] + h_Registration_Parameters_T1_MNI[1]; 
-	h_Registration_Parameters_EPI_MNI[2] = h_Registration_Parameters_EPI_T1_Affine[2] + h_Registration_Parameters_T1_MNI[2]; 
-
-	h_Registration_Parameters_EPI_MNI[3] = h_Registration_Parameters_EPI_T1_Affine[3] + h_Registration_Parameters_T1_MNI[3];
-	h_Registration_Parameters_EPI_MNI[4] = h_Registration_Parameters_EPI_T1_Affine[4] + h_Registration_Parameters_T1_MNI[4];
-	h_Registration_Parameters_EPI_MNI[5] = h_Registration_Parameters_EPI_T1_Affine[5] + h_Registration_Parameters_T1_MNI[5];
-	h_Registration_Parameters_EPI_MNI[6] = h_Registration_Parameters_EPI_T1_Affine[6] + h_Registration_Parameters_T1_MNI[6];
-	h_Registration_Parameters_EPI_MNI[7] = h_Registration_Parameters_EPI_T1_Affine[7] + h_Registration_Parameters_T1_MNI[7];
-	h_Registration_Parameters_EPI_MNI[8] = h_Registration_Parameters_EPI_T1_Affine[8] + h_Registration_Parameters_T1_MNI[8];
-	h_Registration_Parameters_EPI_MNI[9] = h_Registration_Parameters_EPI_T1_Affine[9] + h_Registration_Parameters_T1_MNI[9];
-	h_Registration_Parameters_EPI_MNI[10] = h_Registration_Parameters_EPI_T1_Affine[10] + h_Registration_Parameters_T1_MNI[10];
-	h_Registration_Parameters_EPI_MNI[11] = h_Registration_Parameters_EPI_T1_Affine[11] + h_Registration_Parameters_T1_MNI[11];
-
+	ChangeVolumesResolutionAndSize(d_Beta_Volumes_MNI, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_REGRESSORS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT);       				
 	TransformVolumes(d_Beta_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_REGRESSORS, LINEAR);	
 
+	ChangeVolumesResolutionAndSize(d_Statistical_Maps_MNI, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT);       				
+	TransformVolumes(d_Statistical_Maps_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, LINEAR);	
+
+	ChangeVolumesResolutionAndSize(d_Residual_Variances_MNI, d_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT);       				
+	TransformVolumes(d_Residual_Variances_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, LINEAR);	
+
+
+	
 	SetGlobalAndLocalWorkSizesMultiplyVolumes(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
-	clSetKernelArg(MultiplyVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Beta_Volumes_MNI);
-	clSetKernelArg(MultiplyVolumesOverwriteKernel, 1, sizeof(cl_mem), &d_MNI_Brain_Mask);
-	clSetKernelArg(MultiplyVolumesOverwriteKernel, 2, sizeof(int), &MNI_DATA_W);
-	clSetKernelArg(MultiplyVolumesOverwriteKernel, 3, sizeof(int), &MNI_DATA_H);
-	clSetKernelArg(MultiplyVolumesOverwriteKernel, 4, sizeof(int), &MNI_DATA_D);
+	for (int volume = 0; volume < NUMBER_OF_REGRESSORS; volume++)
+	{
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Beta_Volumes_MNI);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 1, sizeof(cl_mem), &d_MNI_Brain_Mask);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 2, sizeof(int), &MNI_DATA_W);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 3, sizeof(int), &MNI_DATA_H);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 4, sizeof(int), &MNI_DATA_D);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 5, sizeof(int), &volume);
 	
-	runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
-	clFinish(commandQueue);	
+		runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
+		clFinish(commandQueue);	
+	}
+
+	for (int volume = 0; volume < NUMBER_OF_CONTRASTS; volume++)
+	{
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Statistical_Maps_MNI);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 1, sizeof(cl_mem), &d_MNI_Brain_Mask);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 2, sizeof(int), &MNI_DATA_W);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 3, sizeof(int), &MNI_DATA_H);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 4, sizeof(int), &MNI_DATA_D);
+		clSetKernelArg(MultiplyVolumesOverwriteKernel, 5, sizeof(int), &volume);
+	
+		runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
+		clFinish(commandQueue);	
+	}
+	
+
 }
 
 // Performs slice timing correction of an fMRI dataset
@@ -3297,9 +3324,9 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 		// Write the total parameter vector to host
 
 		// Translations
-		h_Motion_Parameters_Out[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0];
-		h_Motion_Parameters_Out[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1];
-		h_Motion_Parameters_Out[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2];
+		h_Motion_Parameters_Out[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0] * EPI_VOXEL_SIZE_X;
+		h_Motion_Parameters_Out[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1] * EPI_VOXEL_SIZE_Y;
+		h_Motion_Parameters_Out[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2] * EPI_VOXEL_SIZE_Z;
 
 		// Rotations
 		h_Motion_Parameters_Out[t + 3 * EPI_DATA_T] = h_Rotations[0];
@@ -3359,9 +3386,9 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 		// Write the total parameter vector to host
 		
 		// Translations
-		h_Motion_Parameters[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0];
-		h_Motion_Parameters[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1];
-		h_Motion_Parameters[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2];
+		h_Motion_Parameters[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0] * EPI_VOXEL_SIZE_X;
+		h_Motion_Parameters[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1] * EPI_VOXEL_SIZE_Y;
+		h_Motion_Parameters[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2] * EPI_VOXEL_SIZE_Z;
 
 		// Rotations
 		h_Motion_Parameters[t + 3 * EPI_DATA_T] = h_Rotations[0];
