@@ -120,6 +120,8 @@ for it = 1:max_its
     p_diff = sum((p_old(:) - p(:)).^2);
     p_old = p;    
     
+    
+    
     % Find movement field
     x_motion_vectors(:) = p(1) + [x(:) y(:) z(:)]*p(4:6);
     y_motion_vectors(:) = p(2) + [x(:) y(:) z(:)]*p(7:9);

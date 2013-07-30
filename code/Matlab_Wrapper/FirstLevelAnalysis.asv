@@ -168,8 +168,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int T1_DATA_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
     int MNI_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
     
-    int EPI_VOLUME_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-    
     int QUADRATURE_FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
     
     int T1_MNI_PARAMETERS_SIZE = NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE * sizeof(float);
@@ -292,21 +290,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     NUMBER_OF_DIMENSIONS = 3;
     int ARRAY_DIMENSIONS_OUT_AR_ESTIMATES[3];
-    ARRAY_DIMENSIONS_OUT_AR_ESTIMATES[0] = EPI_DATA_H;
-    ARRAY_DIMENSIONS_OUT_AR_ESTIMATES[1] = EPI_DATA_W;
-    ARRAY_DIMENSIONS_OUT_AR_ESTIMATES[2] = EPI_DATA_D;
+    ARRAY_DIMENSIONS_OUT_AR_ESTIMATES[0] = DATA_H;
+    ARRAY_DIMENSIONS_OUT_AR_ESTIMATES[1] = DATA_W;
+    ARRAY_DIMENSIONS_OUT_AR_ESTIMATES[2] = DATA_D;
     
     plhs[10] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
     h_AR1_Estimates_double = mxGetPr(plhs[10]);          
     
-    plhs[11] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
+    plhs[5] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
     h_AR2_Estimates_double = mxGetPr(plhs[11]);          
     
-    plhs[12] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
-    h_AR3_Estimates_double = mxGetPr(plhs[12]);          
+    plhs[6] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
+    h_AR3_Estimates_double = mxGetPr(plhs[6]);          
     
-    plhs[13] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
-    h_AR4_Estimates_double = mxGetPr(plhs[13]);  
+    plhs[7] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
+    h_AR4_Estimates_double = mxGetPr(plhs[7]);  
     
     // ------------------------------------------------
     
@@ -346,11 +344,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Residual_Variances                = (float *)mxMalloc(MNI_DATA_SIZE);
     h_Statistical_Maps                  = (float *)mxMalloc(STATISTICAL_MAPS_DATA_SIZE);
         
-    h_AR1_Estimates                     = (float *)mxMalloc(EPI_VOLUME_SIZE);
-    h_AR2_Estimates                     = (float *)mxMalloc(EPI_VOLUME_SIZE);
-    h_AR3_Estimates                     = (float *)mxMalloc(EPI_VOLUME_SIZE);
-    h_AR4_Estimates                     = (float *)mxMalloc(EPI_VOLUME_SIZE);
-    
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     pack_double2float_volume(h_T1_Volume, h_T1_Volume_double, T1_DATA_W, T1_DATA_H, T1_DATA_D);
@@ -424,7 +417,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputResiduals(h_Residuals);
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
-    BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
     
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
             
@@ -447,7 +439,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     
     int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 18; i++)
     {
         if (runKernelErrors[i] != 0)
         {
@@ -464,17 +456,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volumes(h_Smoothed_fMRI_Volumes_double, h_Smoothed_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_REGRESSORS);
     //unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_REGRESSORS);
-    unpack_float2double_volumes(h_Residuals_double, h_Residuals, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+    //unpack_float2double_volumes(h_Residuals_double, h_Residuals, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     //unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     //unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
     unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);            
     //unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS);        
-    
-    unpack_float2double_volume(h_AR1_Estimates_double, h_AR1_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-    unpack_float2double_volume(h_AR2_Estimates_double, h_AR2_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-    unpack_float2double_volume(h_AR3_Estimates_double, h_AR3_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-    unpack_float2double_volume(h_AR4_Estimates_double, h_AR4_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     
     // Free all the allocated memory on the host
     
@@ -513,10 +500,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Residual_Variances);
     mxFree(h_Statistical_Maps);
    
-    mxFree(h_AR1_Estimates);
-    mxFree(h_AR2_Estimates);
-    mxFree(h_AR3_Estimates);
-    mxFree(h_AR4_Estimates);
     
     //mexAtExit(cleanUp);
     

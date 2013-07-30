@@ -28,19 +28,30 @@ clear all
 clc
 close all
 
+addpath('D:\nifti_matlab')
+addpath('D:\BROCCOLI_test_data')
+
 %mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 %filename = '../../test_data/msit_1.6mm_1.nii';
 
-load ../../test_data/hand_movements_right.mat
-fMRI_volumes = vol_exp;
+%load ../../test_data/hand_movements_right.mat
+%fMRI_volumes = vol_exp;
+
+subject = 21;
+EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
+fMRI_volumes = double(EPI_nii.img);
+fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
+%fMRI_volumes = fMRI_volumes(:,:,1:22,:);
+
 reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
-number_of_iterations_for_motion_correction = 10;
+number_of_iterations_for_motion_correction = 5;
 load filters.mat
 opencl_platform = 0;
+
 
 %%
 % Create random translations, for testing
@@ -59,8 +70,7 @@ z_rotations = zeros(st,1);
 factor = 0.15;
 
 for t = 2:st
-    
-    original_volume = fMRI_volumes(:,:,:,2);
+        
     middle_x = (sx-1)/2;
     middle_y = (sy-1)/2;
     middle_z = (sz-1)/2;
@@ -119,8 +129,9 @@ for t = 2:st
     rz_t(:) = z_translation;
     
     %altered_volume = interp3(xi,yi,zi,original_volume,rx_r,ry_r,rz_r,'cubic');
-    altered_volume = interp3(xi,yi,zi,original_volume,rx_r-rx_t,ry_r-ry_t,rz_r-rz_t,'cubic');
+    altered_volume = interp3(xi,yi,zi,reference_volume,rx_r-rx_t,ry_r-ry_t,rz_r-rz_t,'cubic');
     altered_volume(isnan(altered_volume)) = 0;
+    altered_volume = altered_volume + 0.05*randn(size(altered_volume));
     
     % Then add translation
     
@@ -281,10 +292,10 @@ figure
 imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar
 title('MC cpu - gpu')
 
-%for t = 1:st    
+% for t = 1:st    
 %    figure(5)
 %    imagesc([fMRI_volumes(:,:,18,t) motion_corrected_volumes_cpu(:,:,18,t)  motion_corrected_volumes_opencl(:,:,18,t) ])
 %    pause(0.1)
-%end
+% end
 
 

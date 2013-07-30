@@ -31,10 +31,12 @@ close all
 addpath('D:\nifti_matlab')
 addpath('D:\BROCCOLI_test_data')
 
+%mex FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
-subject = 24;
+subject = 29;
 voxel_size = 1;
+opencl_platform = 0;
 
 T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);
 T1 = double(T1_nii.img);
@@ -47,12 +49,13 @@ MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
 fMRI_volumes = double(EPI_nii.img);
-%fMRI_volumes = fMRI_volumes(1:64,1:64,1:22,:);
+%fMRI_volumes = fMRI_volumes(:,:,1:22,:);
+fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
+
+EPI = fMRI_volumes(:,:,:,1);
+EPI = EPI/max(EPI(:));
 
 [sy sx sz] = size(T1)
-
-
-opencl_platform = 0;
 
 T1_voxel_size_x = T1_nii.hdr.dime.pixdim(2);
 T1_voxel_size_y = T1_nii.hdr.dime.pixdim(3);
@@ -67,46 +70,22 @@ EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
 EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 %%
+% Settings for image registration
 number_of_iterations_for_image_registration = 30;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 4/voxel_size;
-MM_T1_Z_CUT = 10;
-MM_EPI_Z_CUT = 20;
+MM_T1_Z_CUT = 10/voxel_size;
+MM_EPI_Z_CUT = 20/voxel_size;
 load filters.mat
-
-[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
-
 
 %%
 % Create smoothing filters
-smoothing_filter_x = fspecial('gaussian',9,1);
+smoothing_filter_x = fspecial('gaussian',9,0.75);
 smoothing_filter_x = smoothing_filter_x(:,5);
 smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
 smoothing_filter_y = smoothing_filter_x;
 smoothing_filter_z = smoothing_filter_x;
-
-temp = zeros(1,9,1);
-temp(1,:,1) = smoothing_filter_x;
-smoothing_filter_xx = temp;
-
-temp = zeros(9,1,1);
-temp(:,1,1) = smoothing_filter_y;
-smoothing_filter_yy = temp;
-
-temp = zeros(1,1,9);
-temp(1,1,:) = smoothing_filter_z;
-smoothing_filter_zz = temp;
-
-smoothed_volumes_cpu = zeros(size(fMRI_volumes));
-for t = 1:size(fMRI_volumes,4)
-   volume = motion_corrected_volumes_cpu(:,:,:,t);
-   %volume = fMRI_volumes(:,:,:,t);
-   smoothed_volume = convn(volume,smoothing_filter_xx,'same');
-   smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');   
-   smoothed_volume = convn(smoothed_volume,smoothing_filter_zz,'same');
-   smoothed_volumes_cpu(:,:,:,t) = smoothed_volume;
-end
 
 %%
 % Create regressors
@@ -117,13 +96,14 @@ X_GLM_ = zeros(st,5);
 X_GLM_ = zeros(st,1);
 NN = 0;
 while NN < st
-    X_GLM_((NN+1):(NN+10),1) =   0;  % Activity
-    X_GLM_((NN+11):(NN+20),1) =  1;  % Rest
+    X_GLM_((NN+1):(NN+10),1) =   1;  % Activity
+    X_GLM_((NN+11):(NN+20),1) =  0;  % Rest
     NN = NN + 20;
 end
-X_GLM(:,1) = X_GLM_(1:st) - mean(X_GLM_(1:st));
-a = ones(st,1)/st;
-X_GLM(:,2) = a/norm(a(:));
+a = X_GLM_(1:st) - mean(X_GLM_(1:st));
+X_GLM(:,1) = a/norm(a(:));
+my_ones = ones(st,1);
+X_GLM(:,2) = my_ones/norm(my_ones);
 a = -(st-1)/2:(st-1)/2;
 b = a.*a;
 c = a.*a.*a;
@@ -145,37 +125,12 @@ for i = 1:size(contrasts,2)
 end
 ctxtxc_GLM
 
-mask = ones(sy,sx,sz,st);
-statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
-betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
-residuals_cpu = zeros(sy,sx,sz,st);
-residual_variances_cpu = zeros(sy,sx,sz);
-
-for x = 1:sx
-    for y = 1:sy
-        for z = 1:sz
-            timeseries = squeeze(smoothed_volumes_cpu(y,x,z,:));
-            %timeseries = timeseries - mean(timeseries);            
-            beta = xtxxt_GLM*timeseries;
-            betas_cpu(y,x,z,:) = beta;
-            eps = timeseries - X_GLM*beta;
-            residuals_cpu(y,x,z,:) = eps;
-            %residual_variances_cpu(y,x,z) = sum((eps-mean(eps)).^2)/(st-size(X_GLM,2));
-            residual_variances_cpu(y,x,z) = var(eps);
-            for i = 1:size(contrasts,2)
-                contrast = contrasts(:,i);
-                statistical_maps_cpu(y,x,z,i) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM(i));
-            end
-        end
-    end
-end
-
-
 %%
 
-
 tic
-[beta_volumes, residuals, residual_variances, statistical_maps, T1_MNI_registration_parameters, EPI_T1_registration_parameters, EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl] = ... 
+[beta_volumes, residuals, residual_variances, statistical_maps, T1_MNI_registration_parameters, EPI_T1_registration_parameters, ...
+ EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl ...
+ ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
 T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
 coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z, ...
@@ -188,9 +143,6 @@ EPI_T1_registration_parameters
 
 EPI_MNI_registration_parameters
 
-%%
-
-
 figure
 plot(motion_parameters(:,1),'g')
 hold on
@@ -199,15 +151,7 @@ hold on
 plot(motion_parameters(:,3),'b')
 hold off
 title('Translation')
-
-figure
-plot(motion_parameters_cpu(:,1),'g')
-hold on
-plot(motion_parameters_cpu(:,2),'r')
-hold on
-plot(motion_parameters_cpu(:,3),'b')
-hold off
-title('Translation CPU')
+legend('X','Y','Z')
 
 figure
 plot(motion_parameters(:,4),'g')
@@ -217,75 +161,75 @@ hold on
 plot(motion_parameters(:,6),'b')
 hold off
 title('Rotation')
+legend('X','Y','Z')
 
-figure
-plot(rotations_cpu(:,1),'g')
-hold on
-plot(rotations_cpu(:,2),'r')
-hold on
-plot(rotations_cpu(:,3),'b')
-hold off
-title('Rotation CPU')
 
-slice = 13;
-
-figure
-imagesc(motion_corrected_volumes_opencl(:,:,slice,1)); colorbar
-title('MC')
-
-figure
-imagesc(motion_corrected_volumes_cpu(:,:,slice,1)); colorbar
-title('MC cpu')
-
-figure
-imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar
-title('MC cpu - gpu')
-
-figure
-imagesc(smoothed_volumes_opencl(:,:,slice,1)); colorbar
-title('SM')
-
-figure
-imagesc(smoothed_volumes_cpu(:,:,slice,1)); colorbar
-title('SM cpu')
-
-figure
-imagesc([smoothed_volumes_cpu(:,:,slice,2) - smoothed_volumes_opencl(:,:,slice,2)]); colorbar
-title('SM cpu - gpu')
-
-figure
-imagesc(beta_volumes(:,:,100,2)); colorbar
-title('Beta')
-
-figure
-imagesc(betas_cpu(:,:,slice,1)); colorbar
-title('Beta cpu')
+slice = 100/voxel_size;
 
 %figure
-%imagesc([betas_cpu(:,:,slice,1) - beta_volumes(:,:,slice,1)]); colorbar
-%title('Beta cpu - gpu')
+%imagesc(motion_corrected_volumes_opencl(:,:,20,10)); colorbar
+
+
+%figure
+%imagesc(smoothed_volumes_opencl(:,:,20,10)); colorbar
+
 
 figure
-imagesc(residual_variances(:,:,100)); colorbar
-title('Residual variances')
+imagesc(MNI(:,:,slice)); colorbar
+
+%figure
+%imagesc(beta_volumes(:,:,slice,1)); colorbar
+%title('Beta 1')
 
 figure
-imagesc(residual_variances_cpu(:,:,slice)); colorbar
-title('Residual variances cpu')
+imagesc(beta_volumes(:,:,slice,2)); colorbar
+title('Beta 2')
+
+%figure
+%imagesc(beta_volumes(:,:,slice,3)); colorbar
+%title('Beta 3')
+
+%figure
+%imagesc(residual_variances(:,:,slice)); colorbar
+%title('Residual variances')
 
 figure
-imagesc(statistical_maps(:,:,slice)); colorbar
+imagesc(statistical_maps(:,:,slice,1)); colorbar
 title('t-values')
 
 figure
-imagesc(statistical_maps_cpu(:,:,slice)); colorbar
-title('t-values cpu')
+imagesc(ar1_estimates(:,:,30)); colorbar
+
+figure
+imagesc(ar2_estimates(:,:,30)); colorbar
+
+figure
+imagesc(ar3_estimates(:,:,30)); colorbar
+
+figure
+imagesc(ar4_estimates(:,:,30)); colorbar
+title('Residual timeserie')
 
 
+figure
+imagesc(residuals(:,:,30)); colorbar
+title('Residuals')
 
-% for t = 1:st    
-%     figure(100)
-%     imagesc([fMRI_volumes(:,:,38,t) motion_corrected_volumes_cpu(:,:,38,t)  motion_corrected_volumes_opencl(:,:,38,t) ])
-%     pause(0.1)
-% end
+
+means = mean(residuals,4);
+figure
+imagesc(means(:,:,30)); colorbar
+title('Means of residuals')
+
+means = squeeze(mean(mean(mean(residuals))));
+figure
+plot(squeeze(abs(fftshift(fft(means))))); colorbar
+title('Spectra of mean residual')
+
+figure
+plot(squeeze(means)); colorbar
+title('Mean residual timeseries')
+
+%%
+
 

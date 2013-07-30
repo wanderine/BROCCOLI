@@ -42,21 +42,41 @@ fMRI_volumes = vol_exp;
 [sy sx sz st] = size(fMRI_volumes);
 [sy; sx; sz; st]'
 
-% Create 8 random regressors
-%X_GLM = randn(st,8);
-X_GLM = zeros(st,1);
+% Create regressors
+[sy sx sz st] = size(fMRI_volumes)
+mask = randn(sy,sx,sz);
+
+X_GLM_ = zeros(st,5);
+X_GLM_ = zeros(st,1);
 NN = 0;
 while NN < st
-    X_GLM((NN+1):(NN+10),1) =   1;  % Activity
-    X_GLM((NN+11):(NN+20),1) =  0;  % Rest
+    X_GLM_((NN+1):(NN+10),1) =   0;  % Activity
+    X_GLM_((NN+11):(NN+20),1) =  1;  % Rest
     NN = NN + 20;
 end
-X_GLM = X_GLM(1:st);
+X_GLM(:,1) = X_GLM_(1:st) - mean(X_GLM_(1:st));
+a = ones(st,1)/st;
+X_GLM(:,2) = a/norm(a(:));
+a = -(st-1)/2:(st-1)/2;
+b = a.*a;
+c = a.*a.*a;
+X_GLM(:,3) = a/norm(a(:));
+X_GLM(:,4) = b/norm(b(:));
+X_GLM(:,5) = c/norm(c(:));
+
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
-% Create 10 random contrasts
-%contrasts = randn(size(X_GLM,2),10);
-contrasts = [1];
+% Create contrasts
+%contrasts = zeros(size(X_GLM,2),3);
+contrasts = [1 0 0 0 0]';
+%contrasts(:,1) = [1 0 0 0 0 0 0 0]';
+%contrasts(:,2) = [0 1 0 0 0 0 0 0]';
+%contrasts(:,3) = [0 0 0 0 1 0 0 0]';
+for i = 1:size(contrasts,2)
+    contrast = contrasts(:,i);
+    ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
+end
+ctxtxc_GLM
 
 mask = ones(sy,sx,sz,st);
 statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
@@ -64,11 +84,6 @@ betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
 residuals_cpu = zeros(sy,sx,sz,st);
 residual_variances_cpu = zeros(sy,sx,sz);
 
-
-for i = 1:size(contrasts,2)
-    contrast = contrasts(:,i);
-    ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
-end
 
 for x = 1:sx
     for y = 1:sy
@@ -90,18 +105,39 @@ for x = 1:sx
     end
 end
 
+% Create smoothing filters
+smoothing_filter_x = fspecial('gaussian',9,1);
+smoothing_filter_x = smoothing_filter_x(:,5);
+smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
+smoothing_filter_y = smoothing_filter_x;
+smoothing_filter_z = smoothing_filter_x;
+
 tic
-[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl] = GLM(fMRI_volumes,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,opencl_platform);
+[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl] = GLM(fMRI_volumes,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z,opencl_platform);
 toc
 
-figure
-imagesc([betas_cpu(:,:,1,1) betas_opencl(:,:,1,1)]); colorbar
+slice = 17;
 
 figure
-imagesc([residual_variances_cpu(:,:,1) residual_variances_opencl(:,:,1)]); colorbar
+imagesc([betas_cpu(:,:,slice,1) betas_opencl(:,:,slice,1)]); colorbar
 
 figure
-imagesc([statistical_maps_cpu(:,:,15,1) statistical_maps_opencl(:,:,15,1)]); colorbar
+imagesc([residual_variances_cpu(:,:,slice) residual_variances_opencl(:,:,slice)]); colorbar
+
+figure
+imagesc([statistical_maps_cpu(:,:,slice,1) statistical_maps_opencl(:,:,slice,1)]); colorbar
+
+figure
+imagesc([ar1_estimates_opencl(:,:,slice) ]); colorbar
+
+figure
+imagesc([ar2_estimates_opencl(:,:,slice) ]); colorbar
+
+figure
+imagesc([ar3_estimates_opencl(:,:,slice) ]); colorbar
+
+figure
+imagesc([ar4_estimates_opencl(:,:,slice) ]); colorbar
 
 beta_tot_error = sum(abs(betas_cpu(:) - betas_opencl(:)))
 beta_max_error = max(abs(betas_cpu(:) - betas_opencl(:)))
