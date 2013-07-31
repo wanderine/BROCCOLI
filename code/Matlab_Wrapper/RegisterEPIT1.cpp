@@ -279,7 +279,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
         
     int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 13; i++)
+    for (int i = 0; i < 20; i++)
     {
         if (runKernelErrors[i] != 0)
         {

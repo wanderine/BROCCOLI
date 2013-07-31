@@ -34,11 +34,19 @@ addpath('D:\BROCCOLI_test_data')
 %mex FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
-subject = 29;
+basepath = 'D:\BROCCOLI_test_data\';
+study = 'OpenfMRI';
+substudy = 'Mixed'
+subject = 5;
 voxel_size = 1;
 opencl_platform = 0;
 
-T1_nii = load_nii(['mprage_anonymized' num2str(subject) '.nii.gz']);
+if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
+    T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
+elseif ( strcmp(study,'OpenfMRI'))
+    T1_nii = load_nii([basepath study '\' substudy '\highres' num2str(subject) '.nii.gz']);
+end
+
 T1 = double(T1_nii.img);
 T1 = T1/max(T1(:));
 MNI_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
@@ -47,20 +55,47 @@ MNI = MNI/max(MNI(:));
 MNI_brain_mask_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
 MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
-EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
+
+if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
+    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+elseif ( strcmp(study,'OpenfMRI'))
+    EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
+end
+
 fMRI_volumes = double(EPI_nii.img);
 %fMRI_volumes = fMRI_volumes(:,:,1:22,:);
-fMRI_volumes = fMRI_volumes(:,:,:,5:end);
+%fMRI_volumes = fMRI_volumes(:,:,:,5:end);
+[sy sx sz st] = size(fMRI_volumes)
 %fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
+means = zeros(size(fMRI_volumes));
+mean_volume = mean(fMRI_volumes,4);
+for t = 1:st
+    means(:,:,:,t) = mean_volume;
+end
+fMRI_volumes = fMRI_volumes - means/1.25;
 
 EPI = fMRI_volumes(:,:,:,1);
 EPI = EPI/max(EPI(:));
 
-[sy sx sz] = size(T1)
+[T1_sy T1_sx T1_sz] = size(T1)
+[MNI_sy MNI_sx MNI_sz] = size(MNI)
+[EPI_sy EPI_sx EPI_sz] = size(EPI)
 
-T1_voxel_size_x = T1_nii.hdr.dime.pixdim(2);
-T1_voxel_size_y = T1_nii.hdr.dime.pixdim(3);
-T1_voxel_size_z = T1_nii.hdr.dime.pixdim(4);
+if (strcmp(study,'Beijing'))
+    T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
+    T1_voxel_size_y = T1_nii.hdr.dime.pixdim(2);
+    T1_voxel_size_z = T1_nii.hdr.dime.pixdim(3);
+elseif (strcmp(study,'OpenfMRI'))
+    T1_voxel_size_x = T1_nii.hdr.dime.pixdim(3);
+    T1_voxel_size_y = T1_nii.hdr.dime.pixdim(2);
+    T1_voxel_size_z = T1_nii.hdr.dime.pixdim(4);
+else    
+    T1_voxel_size_x = T1_nii.hdr.dime.pixdim(2);
+    T1_voxel_size_y = T1_nii.hdr.dime.pixdim(3);
+    T1_voxel_size_z = T1_nii.hdr.dime.pixdim(4);
+end
+
+
 
 MNI_voxel_size_x = MNI_nii.hdr.dime.pixdim(2);
 MNI_voxel_size_y = MNI_nii.hdr.dime.pixdim(3);
@@ -72,17 +107,17 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 %%
 % Settings for image registration
-number_of_iterations_for_image_registration = 30;
-number_of_iterations_for_motion_correction = 3;
+number_of_iterations_for_image_registration = 60;
+number_of_iterations_for_motion_correction = 4;
 coarsest_scale_T1_MNI = 8/voxel_size;
-coarsest_scale_EPI_T1 = 4/voxel_size;
-MM_T1_Z_CUT = 10/voxel_size;
+coarsest_scale_EPI_T1 = 8/voxel_size;
+MM_T1_Z_CUT = -40/voxel_size;
 MM_EPI_Z_CUT = 20/voxel_size;
 load filters.mat
 
 %%
 % Create smoothing filters
-smoothing_filter_x = fspecial('gaussian',9,0.3);
+smoothing_filter_x = fspecial('gaussian',9,0.01);
 smoothing_filter_x = smoothing_filter_x(:,5);
 smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
 smoothing_filter_y = smoothing_filter_x;
@@ -171,19 +206,19 @@ slice = 100/voxel_size;
 %imagesc(motion_corrected_volumes_opencl(:,:,20,10)); colorbar
 
 
-%figure
-%imagesc(smoothed_volumes_opencl(:,:,20,10)); colorbar
+figure
+imagesc(smoothed_volumes_opencl(:,:,20,10)); colorbar
 
 
 figure
 imagesc(MNI(:,:,slice)); colorbar
-
-%figure
-%imagesc(beta_volumes(:,:,slice,1)); colorbar
-%title('Beta 1')
-
+% 
+% %figure
+% %imagesc(beta_volumes(:,:,slice,1)); colorbar
+% %title('Beta 1')
+% 
 figure
-imagesc(beta_volumes(:,:,slice,2)); colorbar
+imagesc(beta_volumes(:,:,100,2)); colorbar
 title('Beta 2')
 
 %figure
@@ -194,42 +229,42 @@ title('Beta 2')
 %imagesc(residual_variances(:,:,slice)); colorbar
 %title('Residual variances')
 
-figure
-imagesc(statistical_maps(:,:,slice,1)); colorbar
-title('t-values')
-
-figure
-imagesc(ar1_estimates(:,:,30)); colorbar
-
-figure
-imagesc(ar2_estimates(:,:,30)); colorbar
-
-figure
-imagesc(ar3_estimates(:,:,30)); colorbar
-
-figure
-imagesc(ar4_estimates(:,:,30)); colorbar
-title('Residual timeserie')
-
-
-figure
-imagesc(residuals(:,:,30)); colorbar
-title('Residuals')
-
-
-means = mean(residuals,4);
-figure
-imagesc(means(:,:,30)); colorbar
-title('Means of residuals')
-
-means = squeeze(mean(mean(mean(residuals))));
-figure
-plot(squeeze(abs(fftshift(fft(means))))); colorbar
-title('Spectra of mean residual')
-
-figure
-plot(squeeze(means)); colorbar
-title('Mean residual timeseries')
+%figure
+% imagesc(statistical_maps(:,:,slice,1)); colorbar
+% title('t-values')
+% 
+% figure
+% imagesc(ar1_estimates(:,:,30)); colorbar
+% 
+% figure
+% imagesc(ar2_estimates(:,:,30)); colorbar
+% 
+% figure
+% imagesc(ar3_estimates(:,:,30)); colorbar
+% 
+% figure
+% imagesc(ar4_estimates(:,:,30)); colorbar
+% title('Residual timeserie')
+% 
+% 
+% figure
+% imagesc(residuals(:,:,30)); colorbar
+% title('Residuals')
+% 
+% 
+% means = mean(residuals,4);
+% figure
+% imagesc(means(:,:,30)); colorbar
+% title('Means of residuals')
+% 
+% means = squeeze(mean(mean(mean(residuals))));
+% figure
+% plot(squeeze(abs(fftshift(fft(means))))); colorbar
+% title('Spectra of mean residual')
+% 
+% figure
+% plot(squeeze(means)); colorbar
+% title('Mean residual timeseries')
 
 %%
 
