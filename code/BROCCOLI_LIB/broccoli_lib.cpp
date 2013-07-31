@@ -1976,7 +1976,8 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 		}
 
 		// Solve the equation system A * p = h to obtain the parameter vector
-		SolveEquationSystem(h_A_Matrix, h_h_Vector, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+		//SolveEquationSystem(h_A_Matrix, h_h_Vector, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+		SolveSystemLUDouble(h_Registration_Parameters, h_A_Matrix, h_h_Vector, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
 
 		// Remove everything but translation
 		if (ALIGNMENT_TYPE == TRANSLATION)
@@ -2002,8 +2003,9 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 			{
 				h_Registration_Parameters_Align_Two_Volumes[i] += h_Registration_Parameters[i];
 			}		
-			*/
+			
 			//RemoveTransformationScaling(h_Registration_Parameters_Align_Two_Volumes);			
+			*/
 
 			AddAffineRegistrationParameters(h_Registration_Parameters_Align_Two_Volumes,h_Registration_Parameters);
 
@@ -2139,7 +2141,8 @@ void BROCCOLI_LIB::AlignTwoVolumesDouble(float *h_Registration_Parameters_Align_
 		}
 
 		// Solve the equation system A * p = h to obtain the parameter vector
-		SolveEquationSystemDouble(h_A_Matrix_double, h_h_Vector_double, h_Registration_Parameters_double, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+		//SolveEquationSystemDouble(h_A_Matrix_double, h_h_Vector_double, h_Registration_Parameters_double, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+		SolveSystemLUDoubleDouble(h_Registration_Parameters_double, h_A_Matrix_double, h_h_Vector_double, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
 
 		// Remove everything but translation
 		if (ALIGNMENT_TYPE == TRANSLATION)
@@ -2158,12 +2161,18 @@ void BROCCOLI_LIB::AlignTwoVolumesDouble(float *h_Registration_Parameters_Align_
 		// Remove scaling by doing a SVD and forcing all singular values to be 1
 		else if (ALIGNMENT_TYPE == RIGID)
 		{
+			/*
 			RemoveTransformationScalingDouble(h_Registration_Parameters,h_Registration_Parameters_double);			
 
 			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 			{
 				h_Registration_Parameters_Align_Two_Volumes[i] += h_Registration_Parameters[i];
-			}					
+			}
+			*/
+			
+			RemoveTransformationScalingDouble(h_Registration_Parameters,h_Registration_Parameters_double);			
+
+			AddAffineRegistrationParameters(h_Registration_Parameters_Align_Two_Volumes,h_Registration_Parameters);			
 		}
 		// Keep all parameters
 		else if (ALIGNMENT_TYPE == AFFINE)
@@ -3941,6 +3950,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	d_AR4_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Whitened_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
+	SetMemory(d_Mask, 1.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
 
 	CalculateStatisticalMapsGLMFirstLevel(d_Smoothed_fMRI_Volumes);
 
@@ -4072,7 +4082,8 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 	
 		runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
 		clFinish(commandQueue);	
-	}	
+	}
+	
 }
 
 // Performs slice timing correction of an fMRI dataset
@@ -4493,7 +4504,7 @@ void BROCCOLI_LIB::PerformGLMWrapper()
 	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Y, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Y , 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Z, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Z , 0, NULL, NULL);
 
-	for (it = 0; it < 2; it++)
+	for (int it = 0; it < 2; it++)
 	{
 		// Calculate beta values
 		clSetKernelArg(CalculateBetaValuesGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
@@ -4604,7 +4615,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFirstLevel(cl_mem d_Volumes)
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);	
 	
-	for (int it = 0; it < 2; it++)
+	for (int it = 0; it < 1; it++)
 	{
 		// Calculate beta values
 		clSetKernelArg(CalculateBetaValuesGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
@@ -5958,6 +5969,281 @@ void BROCCOLI_LIB::InvertMatrixDouble(double* inverse_matrix, double* matrix, in
 	free(X);
 }
 
+void BROCCOLI_LIB::SolveSystemLUDouble(float* solution, float* matrix, float* b_vector, int N)
+{
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+	int NUMBER_OF_ROWS = N;
+    int NUMBER_OF_COLUMNS = N;
+    int n = N;
+	int m = N;
+
+    double* LU = (double*)malloc(sizeof(double) * N * N);
+
+    /* Copy A to LU matrix */
+    for(i = 0; i < NUMBER_OF_ROWS * NUMBER_OF_COLUMNS; i++)
+    {
+        LU[i] = (double)matrix[i];
+    }
+
+    /* Perform LU decomposition */
+    double* piv = (double*)malloc(sizeof(double) * N);
+    for (i = 0; i < m; i++)
+    {
+        piv[i] = (double)i;
+    }
+    double pivsign = 1.0;
+    /* Main loop */
+    for (k = 0; k < n; k++)
+    {
+        /* Find pivot */
+        int p = k;
+        for (i = k+1; i < m; i++)
+        {
+            if (abs(LU[i + k * NUMBER_OF_ROWS]) > abs(LU[p + k * NUMBER_OF_ROWS]))
+            {
+                p = i;
+            }
+        }
+        /* Exchange if necessary */
+        if (p != k)
+        {
+            for (j = 0; j < n; j++)
+            {
+            	double t = LU[p + j*NUMBER_OF_ROWS]; LU[p + j*NUMBER_OF_ROWS] = LU[k + j*NUMBER_OF_ROWS]; LU[k + j*NUMBER_OF_ROWS] = t;
+            }
+            int t = (int)piv[p]; piv[p] = piv[k]; piv[k] = (double)t;
+            pivsign = -pivsign;
+        }
+        /* Compute multipliers and eliminate k-th column */
+        if (LU[k + k*NUMBER_OF_ROWS] != 0.0)
+        {
+            for (i = k+1; i < m; i++)
+            {
+                LU[i + k*NUMBER_OF_ROWS] /= LU[k + k*NUMBER_OF_ROWS];
+                for (j = k+1; j < n; j++)
+                {
+                    LU[i + j*NUMBER_OF_ROWS] -= LU[i + k*NUMBER_OF_ROWS]*LU[k + j*NUMBER_OF_ROWS];
+                }
+            }
+        }
+    }
+
+    /* "Solve" equation system AX = B with B containing b vector */
+
+    /* Make an identity matrix of the right size */
+    double* B = (double*)malloc(sizeof(double) * N * N);
+    double* X = (double*)malloc(sizeof(double) * N * N);
+
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+        	if (j == 0)
+        	{
+        		B[i + j * NUMBER_OF_ROWS] = (double)b_vector[i];
+        	}
+        	else
+        	{
+        		B[i + j * NUMBER_OF_ROWS] = 1.0;
+        	}
+        }
+    }
+
+    /* Pivot the identity matrix */
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        int current_row = (int)piv[i];
+
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+            X[i + j * NUMBER_OF_ROWS] = B[current_row + j * NUMBER_OF_ROWS];
+        }
+    }
+
+    /* Solve L*Y = B(piv,:) */
+    for (k = 0; k < n; k++)
+    {
+        for (i = k+1; i < n; i++)
+        {
+            for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+            {
+                X[i + j*NUMBER_OF_ROWS] -= X[k + j*NUMBER_OF_ROWS]*LU[i + k*NUMBER_OF_ROWS];
+            }
+        }
+    }
+    /* Solve U*X = Y */
+    for (k = n-1; k >= 0; k--)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+            X[k + j*NUMBER_OF_ROWS] /= LU[k + k*NUMBER_OF_ROWS];
+        }
+        for (i = 0; i < k; i++)
+        {
+            for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+            {
+                X[i + j*NUMBER_OF_ROWS] -= X[k + j*NUMBER_OF_ROWS]*LU[i + k*NUMBER_OF_ROWS];
+            }
+        }
+    }
+
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+        	if (j == 0)
+        	{
+        		solution[i] = (float)X[i + j * NUMBER_OF_ROWS];
+        	}
+        }
+    }
+
+	free(LU);
+	free(piv);
+	free(B);
+	free(X);
+}
+
+void BROCCOLI_LIB::SolveSystemLUDoubleDouble(double* solution, double* matrix, double* b_vector, int N)
+{
+    int i = 0;
+    int j = 0;
+    int k = 0;
+
+	int NUMBER_OF_ROWS = N;
+    int NUMBER_OF_COLUMNS = N;
+    int n = N;
+	int m = N;
+
+    double* LU = (double*)malloc(sizeof(double) * N * N);
+
+    /* Copy A to LU matrix */
+    for(i = 0; i < NUMBER_OF_ROWS * NUMBER_OF_COLUMNS; i++)
+    {
+        LU[i] = matrix[i];
+    }
+
+    /* Perform LU decomposition */
+    double* piv = (double*)malloc(sizeof(double) * N);
+    for (i = 0; i < m; i++)
+    {
+        piv[i] = (double)i;
+    }
+    double pivsign = 1.0;
+    /* Main loop */
+    for (k = 0; k < n; k++)
+    {
+        /* Find pivot */
+        int p = k;
+        for (i = k+1; i < m; i++)
+        {
+            if (abs(LU[i + k * NUMBER_OF_ROWS]) > abs(LU[p + k * NUMBER_OF_ROWS]))
+            {
+                p = i;
+            }
+        }
+        /* Exchange if necessary */
+        if (p != k)
+        {
+            for (j = 0; j < n; j++)
+            {
+            	double t = LU[p + j*NUMBER_OF_ROWS]; LU[p + j*NUMBER_OF_ROWS] = LU[k + j*NUMBER_OF_ROWS]; LU[k + j*NUMBER_OF_ROWS] = t;
+            }
+            int t = (int)piv[p]; piv[p] = piv[k]; piv[k] = (double)t;
+            pivsign = -pivsign;
+        }
+        /* Compute multipliers and eliminate k-th column */
+        if (LU[k + k*NUMBER_OF_ROWS] != 0.0)
+        {
+            for (i = k+1; i < m; i++)
+            {
+                LU[i + k*NUMBER_OF_ROWS] /= LU[k + k*NUMBER_OF_ROWS];
+                for (j = k+1; j < n; j++)
+                {
+                    LU[i + j*NUMBER_OF_ROWS] -= LU[i + k*NUMBER_OF_ROWS]*LU[k + j*NUMBER_OF_ROWS];
+                }
+            }
+        }
+    }
+
+    /* "Solve" equation system AX = B with B containing b vector */
+
+    /* Make an identity matrix of the right size */
+    double* B = (double*)malloc(sizeof(double) * N * N);
+    double* X = (double*)malloc(sizeof(double) * N * N);
+
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+        	if (j == 0)
+        	{
+        		B[i + j * NUMBER_OF_ROWS] = b_vector[i];
+        	}
+        	else
+        	{
+        		B[i + j * NUMBER_OF_ROWS] = 1.0;
+        	}
+        }
+    }
+
+    /* Pivot the identity matrix */
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        int current_row = (int)piv[i];
+
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+            X[i + j * NUMBER_OF_ROWS] = B[current_row + j * NUMBER_OF_ROWS];
+        }
+    }
+
+    /* Solve L*Y = B(piv,:) */
+    for (k = 0; k < n; k++)
+    {
+        for (i = k+1; i < n; i++)
+        {
+            for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+            {
+                X[i + j*NUMBER_OF_ROWS] -= X[k + j*NUMBER_OF_ROWS]*LU[i + k*NUMBER_OF_ROWS];
+            }
+        }
+    }
+    /* Solve U*X = Y */
+    for (k = n-1; k >= 0; k--)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+            X[k + j*NUMBER_OF_ROWS] /= LU[k + k*NUMBER_OF_ROWS];
+        }
+        for (i = 0; i < k; i++)
+        {
+            for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+            {
+                X[i + j*NUMBER_OF_ROWS] -= X[k + j*NUMBER_OF_ROWS]*LU[i + k*NUMBER_OF_ROWS];
+            }
+        }
+    }
+
+    for (i = 0; i < NUMBER_OF_ROWS; i++)
+    {
+        for (j = 0; j < NUMBER_OF_COLUMNS; j++)
+        {
+        	if (j == 0)
+        	{
+        		solution[i] = X[i + j * NUMBER_OF_ROWS];
+        	}
+        }
+    }
+
+	free(LU);
+	free(piv);
+	free(B);
+	free(X);
+}
 
 void BROCCOLI_LIB::CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, int N)
 {

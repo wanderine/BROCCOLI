@@ -488,6 +488,8 @@ class BROCCOLI_LIB
 		void InvertMatrixDouble(double* inverse_matrix, double* matrix, int N);
 		void CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, int N);
 		void SolveEquationSystem(float* h_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N);
+		void SolveSystemLUDouble(float* solution, float* matrix, float* b_vector, int N);
+		void SolveSystemLUDoubleDouble(double* solution, double* matrix, double* b_vector, int N);
 		void SolveEquationSystemDouble(double* h_A_matrix, double* h_h_vector, double* h_Parameter_Vector, int N);
 		void CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters);
 
