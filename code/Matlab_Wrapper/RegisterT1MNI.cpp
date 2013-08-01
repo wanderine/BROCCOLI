@@ -55,6 +55,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Quadrature_Filter_Response_3_Real_double, *h_Quadrature_Filter_Response_3_Imag_double;
     double          *h_Phase_Differences_double, *h_Phase_Certainties_double, *h_Phase_Gradients_double;
     double          *h_Downsampled_Volume_double;
+    double          *h_Slice_Sums_double, *h_Top_Slice_double;
     float           *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_1_Imag;
     float           *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_2_Imag;
     float           *h_Quadrature_Filter_Response_3_Real, *h_Quadrature_Filter_Response_3_Imag;  
@@ -62,6 +63,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     float           *h_Aligned_T1_Volume, *h_Interpolated_T1_Volume, *h_Registration_Parameters;
     float           *h_Downsampled_Volume;
     float           *h_Skullstripped_T1_Volume;
+    float           *h_Slice_Sums, *h_Top_Slice;
     
     //---------------------
     
@@ -74,11 +76,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<11)
+    if(nlhs<13)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>11)
+    if(nlhs>13)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -213,6 +215,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     plhs[10] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DOWNSAMPLED,mxDOUBLE_CLASS, mxREAL);
     h_Downsampled_Volume_double = mxGetPr(plhs[10]);     
+
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_SLICE_SUMS[2];
+    ARRAY_DIMENSIONS_OUT_SLICE_SUMS[0] = MNI_DATA_D;
+    ARRAY_DIMENSIONS_OUT_SLICE_SUMS[1] = 1;    
+
+    plhs[11] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_SLICE_SUMS,mxDOUBLE_CLASS, mxREAL);
+    h_Slice_Sums_double = mxGetPr(plhs[11]);          
+    
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_TOP_SLICE[2];
+    ARRAY_DIMENSIONS_OUT_TOP_SLICE[0] = 1;
+    ARRAY_DIMENSIONS_OUT_TOP_SLICE[1] = 1;    
+    
+    plhs[12] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_TOP_SLICE,mxDOUBLE_CLASS, mxREAL);
+    h_Top_Slice_double = mxGetPr(plhs[12]);     
     
     // ------------------------------------------------
     
@@ -240,6 +258,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Aligned_T1_Volume                    = (float *)mxMalloc(MNI_VOLUME_SIZE);
     h_Skullstripped_T1_Volume              = (float *)mxMalloc(MNI_VOLUME_SIZE);    
     h_Registration_Parameters              = (float *)mxMalloc(IMAGE_REGISTRATION_PARAMETERS_SIZE);
+    h_Slice_Sums                           = (float *)mxMalloc(MNI_DATA_D * sizeof(float));
+    h_Top_Slice                            = (float *)mxMalloc(1 * sizeof(float));
     
     // Reorder and cast data
     pack_double2float_volume(h_T1_Volume, h_T1_Volume_double, T1_DATA_W, T1_DATA_H, T1_DATA_D);
@@ -285,6 +305,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
     BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
+    BROCCOLI.SetOutputSliceSums(h_Slice_Sums);
+    BROCCOLI.SetOutputTopSlice(h_Top_Slice);
     
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
             
@@ -331,6 +353,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_Phase_Certainties_double, h_Phase_Certainties, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Phase_Gradients_double, h_Phase_Gradients, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);    
     unpack_float2double_volume(h_Downsampled_Volume_double, h_Downsampled_Volume, DOWNSAMPLED_DATA_W, DOWNSAMPLED_DATA_H, DOWNSAMPLED_DATA_D);    
+    unpack_float2double(h_Slice_Sums_double, h_Slice_Sums, MNI_DATA_D);
+    unpack_float2double(h_Top_Slice_double, h_Top_Slice, 1);
     
     // Free all the allocated memory on the host
     mxFree(h_T1_Volume);
@@ -356,6 +380,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Aligned_T1_Volume); 
     mxFree(h_Skullstripped_T1_Volume); 
     mxFree(h_Registration_Parameters);
+    mxFree(h_Slice_Sums);
+    mxFree(h_Top_Slice);
     
     //mexAtExit(cleanUp);
     

@@ -208,6 +208,11 @@ void BROCCOLI_LIB::SetStartValues()
 
 	convolution_time = 0.0;
 
+	for (int i = 0; i < 50; i++)
+	{
+		OpenCLCreateBufferErrors[i] = 0.0f;
+		OpenCLRunKernelErrors[i] = 0.0f;
+	}
 }
 
 void BROCCOLI_LIB::ResetAllPointers()
@@ -519,7 +524,9 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM)
 	CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
 	CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
 	CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);	
-
+	CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);	
+	CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);	
+	CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);	
 
 	CalculateAMatrixAndHVector2DValuesXDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesXDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
 	CalculateAMatrixAndHVector2DValuesYDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesYDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
@@ -851,6 +858,51 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DAT
 	globalWorkSizeMultiplyVolumes[0] = xBlocks * localWorkSizeMultiplyVolumes[0];
 	globalWorkSizeMultiplyVolumes[1] = yBlocks * localWorkSizeMultiplyVolumes[1];
 	globalWorkSizeMultiplyVolumes[2] = zBlocks * localWorkSizeMultiplyVolumes[2];
+}
+
+void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateTopBrainSlice(int DATA_W, int DATA_H, int DATA_D)
+{	
+	localWorkSizeCalculateMagnitudes[0] = 32;
+	localWorkSizeCalculateMagnitudes[1] = 16;
+	localWorkSizeCalculateMagnitudes[2] = 1;
+	
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateMagnitudes[0]);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculateMagnitudes[1]);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeCalculateMagnitudes[2]);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	globalWorkSizeCalculateMagnitudes[0] = xBlocks * localWorkSizeCalculateMagnitudes[0];
+	globalWorkSizeCalculateMagnitudes[1] = yBlocks * localWorkSizeCalculateMagnitudes[1];
+	globalWorkSizeCalculateMagnitudes[2] = zBlocks * localWorkSizeCalculateMagnitudes[2];
+	
+	localWorkSizeCalculateColumnSums[0] = 32;
+	localWorkSizeCalculateColumnSums[1] = 16;
+	localWorkSizeCalculateColumnSums[2] = 1;
+	
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculateColumnSums[0]);
+	yBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeCalculateColumnSums[1]);
+	zBlocks = 1;
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	globalWorkSizeCalculateColumnSums[0] = xBlocks * localWorkSizeCalculateColumnSums[0];
+	globalWorkSizeCalculateColumnSums[1] = yBlocks * localWorkSizeCalculateColumnSums[1];
+	globalWorkSizeCalculateColumnSums[2] = 1;
+	
+	localWorkSizeCalculateRowSums[0] = 32;
+	localWorkSizeCalculateRowSums[1] = 1;
+	localWorkSizeCalculateRowSums[2] = 1;
+	
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeCalculateRowSums[0]);
+	yBlocks = 1;
+	zBlocks = 1;
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	globalWorkSizeCalculateRowSums[0] = xBlocks * localWorkSizeCalculateRowSums[0];
+	globalWorkSizeCalculateRowSums[1] = 1;
+	globalWorkSizeCalculateRowSums[2] = 1;
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D)
@@ -1190,6 +1242,15 @@ void BROCCOLI_LIB::SetOutputAREstimates(float* ar1, float* ar2, float* ar3, floa
 }
 
 
+void BROCCOLI_LIB::SetOutputSliceSums(float* output)
+{
+	h_Slice_Sums = output;
+}
+
+void BROCCOLI_LIB::SetOutputTopSlice(float* output)
+{
+	h_Top_Slice = output;
+}
 
 
 void BROCCOLI_LIB::SetDataType(int type)
@@ -3059,8 +3120,9 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	
 	// Interpolate T1 volume to the same voxel size as the MNI volume
 	runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
-	clFinish(commandQueue);	
-	
+	clFinish(commandQueue);			
+
+
 	// Now make sure that the interpolated T1 volume has the same number of voxels as the MNI volume in each direction
 	int x_diff = T1_DATA_W_INTERPOLATED - MNI_DATA_W;
 	int y_diff = T1_DATA_H_INTERPOLATED - MNI_DATA_H;
@@ -3069,8 +3131,66 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	// Set all values to zero
 	SetMemory(d_MNI_T1_Volume, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
 
+	// Make an initial move to MNI size
 	SetGlobalAndLocalWorkSizesCopyVolumeToNew(mymax(MNI_DATA_W,T1_DATA_W_INTERPOLATED),mymax(MNI_DATA_H,T1_DATA_H_INTERPOLATED),mymax(MNI_DATA_D,T1_DATA_D_INTERPOLATED));
 
+	int MM_T1_Z_CUT_ = MM_T1_Z_CUT * (int)MNI_VOXEL_SIZE_X;
+
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 0, sizeof(cl_mem), &d_MNI_T1_Volume);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 1, sizeof(cl_mem), &d_Interpolated_T1_Volume);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 2, sizeof(int), &MNI_DATA_W);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 3, sizeof(int), &MNI_DATA_H);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 4, sizeof(int), &MNI_DATA_D);	
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 5, sizeof(int), &T1_DATA_W_INTERPOLATED);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 6, sizeof(int), &T1_DATA_H_INTERPOLATED);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 7, sizeof(int), &T1_DATA_D_INTERPOLATED);	
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 8, sizeof(int), &x_diff);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 9, sizeof(int), &y_diff);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 10, sizeof(int), &z_diff);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 11, sizeof(int), &MM_T1_Z_CUT_);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 12, sizeof(float), &MNI_VOXEL_SIZE_Z);
+	
+	runKernelErrorCopyVolume = clEnqueueNDRangeKernel(commandQueue, CopyT1VolumeToMNIKernel, 3, NULL, globalWorkSizeCopyVolumeToNew, localWorkSizeCopyVolumeToNew, 0, NULL, NULL);
+	clFinish(commandQueue);	
+	
+	// Check where the top of the brain is in the moved T1 volume
+	int top_slice;
+	CalculateTopBrainSlice(top_slice, d_MNI_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, MM_T1_Z_CUT);
+	
+	int diff;
+	if (MNI_VOXEL_SIZE_X == 1.0f)
+	{
+        //if (skull_stripped == 0)
+		//{
+			diff = top_slice - 172;
+		//}
+		//else
+		//{
+		//  NEW_T1_Z_CUT = top_slice - 150;
+		//}
+    }
+	else if (MNI_VOXEL_SIZE_X == 2.0f)
+	{
+		//if (skull_stripped == 0)
+		//{
+			diff = top_slice - 85;
+		//}
+		//else
+		//{
+		//  NEW_T1_Z_CUT = top_slice - 75;
+		//}
+    }
+
+	// Make final move to MNI size
+	MM_T1_Z_CUT_ = MM_T1_Z_CUT * (int)MNI_VOXEL_SIZE_X + (int)round((float)diff/2.0);
+
+	//*h_Top_Slice = top_slice;
+	//*h_Top_Slice = MM_T1_Z_CUT;
+	*h_Top_Slice = top_slice;
+
+	// Set all values to zero again
+	SetMemory(d_MNI_T1_Volume, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+	
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 0, sizeof(cl_mem), &d_MNI_T1_Volume);
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 1, sizeof(cl_mem), &d_Interpolated_T1_Volume);
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 2, sizeof(int), &MNI_DATA_W);
@@ -3090,6 +3210,100 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 
 	clReleaseMemObject(d_Interpolated_T1_Volume);
 	clReleaseMemObject(d_T1_Volume_Texture);
+}
+
+void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut)
+{
+	SetGlobalAndLocalWorkSizesCalculateTopBrainSlice(DATA_W, DATA_H, DATA_D);
+
+	AlignTwoVolumesSetup(DATA_W, DATA_H, DATA_D);
+
+	// Apply quadrature filters to brain volume
+	NonseparableConvolution3D(d_q21_Real, d_q21_Imag, d_q22_Real, d_q22_Imag, d_q23_Real, d_q23_Imag, d_Volume, DATA_W, DATA_H, DATA_D);
+
+	cl_mem d_Magnitudes = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Column_Sums = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Sums = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_D * sizeof(float), NULL, NULL);
+
+	// Calculate filter magnitudes
+	clSetKernelArg(CalculateMagnitudesKernel, 0, sizeof(cl_mem), &d_Magnitudes);
+	clSetKernelArg(CalculateMagnitudesKernel, 1, sizeof(cl_mem), &d_q23_Real);
+	clSetKernelArg(CalculateMagnitudesKernel, 2, sizeof(cl_mem), &d_q23_Imag);
+	clSetKernelArg(CalculateMagnitudesKernel, 3, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateMagnitudesKernel, 4, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateMagnitudesKernel, 5, sizeof(int), &DATA_D);
+	
+	runKernelErrorCalculateMagnitudes = clEnqueueNDRangeKernel(commandQueue, CalculateMagnitudesKernel, 3, NULL, globalWorkSizeCalculateMagnitudes, localWorkSizeCalculateMagnitudes, 0, NULL, NULL);
+	clFinish(commandQueue);	
+
+	// Calculate sum of filter response magnitudes for each slice
+	clSetKernelArg(CalculateColumnSumsKernel, 0, sizeof(cl_mem), &d_Column_Sums);
+	clSetKernelArg(CalculateColumnSumsKernel, 1, sizeof(cl_mem), &d_Magnitudes);
+	clSetKernelArg(CalculateColumnSumsKernel, 2, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateColumnSumsKernel, 3, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateColumnSumsKernel, 4, sizeof(int), &DATA_D);
+
+	runKernelErrorCalculateColumnSums = clEnqueueNDRangeKernel(commandQueue, CalculateColumnSumsKernel, 2, NULL, globalWorkSizeCalculateColumnSums, localWorkSizeCalculateColumnSums, 0, NULL, NULL);
+	clFinish(commandQueue);	
+
+	clSetKernelArg(CalculateRowSumsKernel, 0, sizeof(cl_mem), &d_Sums);
+	clSetKernelArg(CalculateRowSumsKernel, 1, sizeof(cl_mem), &d_Column_Sums);
+	clSetKernelArg(CalculateRowSumsKernel, 2, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateRowSumsKernel, 3, sizeof(int), &DATA_D);
+	
+	runKernelErrorCalculateRowSums = clEnqueueNDRangeKernel(commandQueue, CalculateRowSumsKernel, 2, NULL, globalWorkSizeCalculateRowSums, localWorkSizeCalculateRowSums, 0, NULL, NULL);
+	clFinish(commandQueue);	
+
+	// Copy slice sums to host
+	float* h_Sums = (float*)malloc(DATA_D * sizeof(float));
+	float* h_Derivatives = (float*)malloc(DATA_D * sizeof(float));
+	clEnqueueReadBuffer(commandQueue, d_Sums, CL_TRUE, 0, DATA_D * sizeof(float), h_Sums, 0, NULL, NULL);
+
+	// Fix sums to remove unwanted derivatives
+	for (int z = DATA_D - 1; z >= (DATA_D - z_cut - 4 - 1); z--)
+	{
+		h_Sums[z] = h_Sums[DATA_D - 1 - z_cut - 4 - 1];
+	}
+	for (int z = (int)round((float)DATA_D/2.0); z >= 0; z--)
+	{
+		h_Sums[z] = 0.0f;
+	}
+
+	for (int z = 0; z < DATA_D; z++)
+	{
+		h_Slice_Sums[z] = h_Sums[z];
+	}
+
+
+	// Reset all derivatives
+	for (int z = 0; z < DATA_D; z++)
+	{
+		h_Derivatives[z] = 0.0f;
+	}
+
+	// Calculate derivative of sums
+	for (int z = 1; z < DATA_D; z++)
+	{
+		h_Derivatives[z] = h_Sums[z-1] - h_Sums[z];
+	}
+
+	// Find max derivative
+	float max_slope = -10000.0f;
+	for (int z = 0; z < DATA_D; z++)
+	{
+		if (h_Derivatives[z] > max_slope)
+		{
+			max_slope = h_Derivatives[z];
+			slice = z;
+		}
+	}
+
+	AlignTwoVolumesCleanup();
+	clReleaseMemObject(d_Magnitudes);
+	clReleaseMemObject(d_Column_Sums);
+	clReleaseMemObject(d_Sums);
+	free(h_Sums);
+	free(h_Derivatives);
 }
 
 void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z)
@@ -3658,8 +3872,10 @@ void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
 
 	// Do the registration between T1 and MNI with several scales
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE);
-	
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE);	
+	//AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE);	
+	//AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE);	
+
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
 				

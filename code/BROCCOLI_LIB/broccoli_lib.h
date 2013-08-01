@@ -170,7 +170,9 @@ typedef unsigned short int uint16;
 #define DO_OVERWRITE 0
 #define NO_OVERWRITE 1
 
-#define PI 3.1415
+#define PI 3.14159265359
+
+#define INITIAL_MM_T1_Z_CUT 25
 
 class BROCCOLI_LIB
 {
@@ -226,6 +228,8 @@ class BROCCOLI_LIB
 		void SetOutputMotionCorrectedfMRIVolumes(float*);
 		void SetOutputSmoothedfMRIVolumes(float*);
 		void SetOutputAREstimates(float*, float*, float*, float*);
+		void SetOutputSliceSums(float*);
+		void SetOutputTopSlice(float*);
 		
 		void SetfMRIDataFilename(std::string filename);
 			
@@ -424,6 +428,8 @@ class BROCCOLI_LIB
 
 	private:
 
+
+
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryDouble(cl_mem memory, double value, int N);
 		void SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
@@ -435,8 +441,9 @@ class BROCCOLI_LIB
 		void SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesMemset(int N);
 		void SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DATA_H, int DATA_D);
-		
+		void SetGlobalAndLocalWorkSizesCalculateTopBrainSlice(int DATA_W, int DATA_H, int DATA_D);
 
+		void CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut);
 		void PerformSkullstrip(cl_mem d_Skullstripped_T1_Volume, cl_mem d_Aligned_T1_Volume, cl_mem d_MNI_Brain_Mask, int DATA_W, int DATA_H, int DATA_D);
 
 		void Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE);
@@ -557,6 +564,7 @@ class BROCCOLI_LIB
 		cl_kernel RescaleVolumeNearestKernel, RescaleVolumeLinearKernel, RescaleVolumeCubicKernel;
 		cl_kernel CopyT1VolumeToMNIKernel, CopyEPIVolumeToT1Kernel, CopyVolumeToNewKernel;
 		cl_kernel MultiplyVolumesKernel, MultiplyVolumesOverwriteKernel;
+		cl_kernel CalculateMagnitudesKernel, CalculateColumnSumsKernel, CalculateRowSumsKernel;
 
 		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
 
@@ -576,6 +584,9 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCopyT1VolumeToMNI, createKernelErrorCopyEPIVolumeToT1, createKernelErrorCopyVolumeToNew;
 		cl_int createKernelErrorMultiplyVolumes;
 		cl_int createKernelErrorMultiplyVolumesOverwrite;
+		cl_int createKernelErrorCalculateMagnitudes;
+		cl_int createKernelErrorCalculateColumnSums;
+		cl_int createKernelErrorCalculateRowSums;
 		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
 		cl_int createKernelErrorEstimateAR4Models, createKernelErrorApplyWhiteningAR4;
 
@@ -608,6 +619,9 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateStatisticalMapsGLM;
 		cl_int runKernelErrorEstimateAR4Models;
 		cl_int runKernelErrorApplyWhiteningAR4;
+		cl_int runKernelErrorCalculateMagnitudes;
+		cl_int runKernelErrorCalculateColumnSums;
+		cl_int runKernelErrorCalculateRowSums;
 
 		int OpenCLCreateBufferErrors[50];
 		int OpenCLRunKernelErrors[50];
@@ -641,6 +655,9 @@ class BROCCOLI_LIB
 		size_t localWorkSizeInterpolateVolumeCubic[3];
 		size_t localWorkSizeMultiplyVolumes[3];
 		size_t localWorkSizeCopyVolumeToNew[3];
+		size_t localWorkSizeCalculateMagnitudes[3];
+		size_t localWorkSizeCalculateColumnSums[3];
+		size_t localWorkSizeCalculateRowSums[3];
 
 		size_t localWorkSizeCalculateBetaValuesGLM[3];		
 		size_t localWorkSizeCalculateStatisticalMapsGLM[3];
@@ -676,6 +693,10 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeInterpolateVolumeCubic[3];
 		size_t globalWorkSizeMultiplyVolumes[3];
 		size_t globalWorkSizeCopyVolumeToNew[3];
+		size_t globalWorkSizeCalculateMagnitudes[3];
+		size_t globalWorkSizeCalculateColumnSums[3];
+		size_t globalWorkSizeCalculateRowSums[3];
+
 
 		size_t globalWorkSizeCalculateBetaValuesGLM[3];
 		size_t globalWorkSizeCalculateStatisticalMapsGLM[3];
@@ -811,6 +832,8 @@ class BROCCOLI_LIB
 		float		 h_Rotations[3], h_Rotations_Temp[3];
 		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
 	
+		float		*h_Slice_Sums, *h_Top_Slice;
+
 		float *h_Registration_Parameters_Out;
 		// Motion correction
 		float		*h_Motion_Corrected_fMRI_Volumes;		

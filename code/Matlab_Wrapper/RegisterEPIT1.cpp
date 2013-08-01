@@ -190,7 +190,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     plhs[8] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_FILTER_RESPONSE,mxDOUBLE_CLASS, mxREAL);
     h_Phase_Gradients_double = mxGetPr(plhs[8]);          
-        
+    
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
@@ -214,6 +215,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Phase_Gradients                      = (float *)mxMalloc(T1_VOLUME_SIZE);  
     h_Aligned_EPI_Volume                   = (float *)mxMalloc(T1_VOLUME_SIZE);
     h_Registration_Parameters              = (float *)mxMalloc(IMAGE_REGISTRATION_PARAMETERS_SIZE);
+
     
     // Reorder and cast data
     pack_double2float_volume(h_EPI_Volume, h_EPI_Volume_double, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
@@ -255,6 +257,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
     BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
+
     
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
             
@@ -299,6 +302,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_Phase_Differences_double, h_Phase_Differences, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Phase_Certainties_double, h_Phase_Certainties, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Phase_Gradients_double, h_Phase_Gradients, T1_DATA_W, T1_DATA_H, T1_DATA_D);    
+
     
     // Free all the allocated memory on the host
     mxFree(h_EPI_Volume);    
@@ -321,6 +325,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Phase_Gradients);
     mxFree(h_Aligned_EPI_Volume); 
     mxFree(h_Registration_Parameters);
+
     
     //mexAtExit(cleanUp);
     

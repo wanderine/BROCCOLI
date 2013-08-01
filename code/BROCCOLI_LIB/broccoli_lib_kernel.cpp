@@ -28,6 +28,11 @@
 
 
 // Help functions
+int Calculate2DIndex(int x, int y, int DATA_W)
+{
+	return x + y * DATA_W;
+}
+
 int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H)
 {
 	return x + y * DATA_W + z * DATA_W * DATA_H;
@@ -2260,6 +2265,53 @@ __kernel void RescaleVolumeLinear(__global float* Volume, read_only image3d_t Or
 	Volume[idx] = Interpolated_Value.x;
 }
 
+__kernel void CalculateMagnitudes(__global float* Magnitudes, __global const float* Real, __global const float* Imag, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (y >= DATA_H || z >= DATA_D)
+		return;
+
+	float r = Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+	float i = Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+	Magnitudes[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = sqrt(r * r + i * i);
+}
+
+__kernel void CalculateColumnSums(__global float* Sums, __global const float* Volume, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int y = get_global_id(0);	
+	int z = get_global_id(1);
+
+	if (y >= DATA_H || z >= DATA_D)
+		return;
+
+	float sum = 0.0f;
+	for (int x = 0; x < DATA_W; x++)
+	{
+		sum += Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+	}
+
+	Sums[Calculate2DIndex(y,z,DATA_H)] = sum;
+}
+
+__kernel void CalculateRowSums(__global float* Sums, __global const float* Image, __private int DATA_H, __private int DATA_D)
+{
+	int z = get_global_id(0);
+
+	if (z >= DATA_D)
+		return;
+
+	float sum = 0.0f;
+	for (int y = 0; y < DATA_H; y++)
+	{
+		sum += Image[Calculate2DIndex(y,z,DATA_H)];
+	}
+
+	Sums[z] = sum;
+}
+
 __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_T1_Z_CUT, __private float MNI_VOXEL_SIZE_Z)
 {
 	int x = get_global_id(0);
@@ -2300,8 +2352,7 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 		y_Interpolated = y;
 	}
 	// Interpolated T1 volume larger than MNI volume
-	// Remove bottom slices (since it is normally only neck tissue)
-	// Remove some additional slices to make the T1-MNI registration easier (since it is normally only neck tissue)
+	// Remove bottom slices
 	if (z_diff > 0)
 	{
 		z_MNI = z;
@@ -2309,14 +2360,13 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 	}
 	// Interpolated T1 volume smaller than MNI volume
 	// Put interpolated T1 volume in the middle of the MNI volume
-	// Remove some additional slices to make the T1-MNI registration easier (since it is normally only neck tissue)
 	else
 	{
 		z_MNI = z + (int)round((float)abs(z_diff)/2.0);
 		z_Interpolated = z + (int)round((float)MM_T1_Z_CUT/MNI_VOXEL_SIZE_Z);
 	}
 
-	// Make sure we are not reading outside any volume
+	// Make sure we are not reading or writing outside any volume
 	if ( (x_Interpolated >= T1_DATA_W_INTERPOLATED) || (y_Interpolated >= T1_DATA_H_INTERPOLATED) || (z_Interpolated >= T1_DATA_D_INTERPOLATED) || (x_MNI >= MNI_DATA_W) || (y_MNI >= MNI_DATA_H) || (z_MNI >= MNI_DATA_D) )
 	{
 		return;
