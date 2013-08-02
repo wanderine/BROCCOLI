@@ -166,13 +166,14 @@ typedef unsigned short int uint16;
 
 #define NEAREST 0
 #define LINEAR 1
+#define CUBIC 2
 
 #define DO_OVERWRITE 0
 #define NO_OVERWRITE 1
 
 #define PI 3.14159265359
 
-#define INITIAL_MM_T1_Z_CUT 25
+#define INITIAL_MM_T1_Z_CUT 15
 
 class BROCCOLI_LIB
 {

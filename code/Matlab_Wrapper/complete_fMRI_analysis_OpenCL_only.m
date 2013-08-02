@@ -35,9 +35,11 @@ addpath('D:\BROCCOLI_test_data')
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 basepath = 'D:\BROCCOLI_test_data\';
-study = 'OpenfMRI';
+%study = 'Cambridge';
+study = 'Beijing';
+%study = 'OpenfMRI';
 substudy = 'Mixed'
-subject = 5;
+subject = 4;
 voxel_size = 1;
 opencl_platform = 0;
 
@@ -107,11 +109,11 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 %%
 % Settings for image registration
-number_of_iterations_for_image_registration = 60;
-number_of_iterations_for_motion_correction = 4;
+number_of_iterations_for_image_registration = 40;
+number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 8/voxel_size;
-MM_T1_Z_CUT = -40/voxel_size;
+MM_T1_Z_CUT = 15/voxel_size;
 MM_EPI_Z_CUT = 20/voxel_size;
 load filters.mat
 
@@ -211,15 +213,25 @@ imagesc(smoothed_volumes_opencl(:,:,20,10)); colorbar
 
 
 figure
-imagesc(MNI(:,:,slice)); colorbar
+imagesc(MNI(:,:,slice)); colormap gray
+
+figure
+imagesc(beta_volumes(:,:,slice,2)); colormap gray
+title('Beta 2')
+
+figure
+imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
+
+figure
+imagesc(flipud(squeeze(beta_volumes(slice,:,:,2))')); colormap gray
+title('Beta 2')
+
+
 % 
 % %figure
 % %imagesc(beta_volumes(:,:,slice,1)); colorbar
 % %title('Beta 1')
 % 
-figure
-imagesc(beta_volumes(:,:,100,2)); colorbar
-title('Beta 2')
 
 %figure
 %imagesc(beta_volumes(:,:,slice,3)); colorbar

@@ -2241,8 +2241,128 @@ __kernel void InterpolateVolumeLinear(__global float* Volume, read_only image3d_
 	Volume[idx] = Interpolated_Value.x;
 }
 
+float bspline(float t)
+{
+	t = fabs(t);
+	const float a = 2.0f - t;
+
+	if (t < 1.0f) return 2.0f/3.0f - 0.5f*t*t*a;
+	else if (t < 2.0f) return a*a*a / 6.0f;
+	else return 0.0f;
+}
 
 
+
+__kernel void InterpolateVolumeCubic(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
+	float3 Motion_Vector;
+	float xf, yf, zf;
+
+    // (motion_vector.x)   (p0)   (p3  p4  p5)   (x)
+	// (motion_vector.y) = (p1) + (p6  p7  p8) * (y)
+ 	// (motion_vector.z)   (p2)   (p9 p10 p11)   (z)
+
+	// Change to coordinate system with origo in (sx - 1)/2 (sy - 1)/2 (sz - 1)/2
+	xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+	Motion_Vector.x = x + c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf + 0.5f;
+	Motion_Vector.y = y + c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf + 0.5f;
+	Motion_Vector.z = z + c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf + 0.5f;	
+	
+
+	const float3 coord_grid = Motion_Vector - 0.5f;
+	float3 index = floor(coord_grid);
+	const float3 fraction = coord_grid - index;
+	index = index + 0.5f;  //move from [-0.5, extent-0.5] to [0, extent]
+
+	float result;
+	
+	for (float z=-1.0f; z < 2.5f; z += 1.0f)  //range [-1, 2]
+	{
+		float bsplineZ = bspline(z-fraction.z);
+		float w = index.z + z;
+		for (float y=-1.0f; y < 2.5f; y += 1.0f)
+		{
+			float bsplineYZ = bspline(y-fraction.y) * bsplineZ;
+			float v = index.y + y;
+			for (float x=-1.0f; x < 2.5f; x += 1.0f)
+			{
+				float bsplineXYZ = bspline(x-fraction.x) * bsplineYZ;
+				float u = index.x + x;
+				float4 vector;
+				vector.x = u;
+				vector.y = v;
+				vector.z = w;
+				vector.w = 0.0f;
+				float4 temp = read_imagef(Original_Volume, volume_sampler_linear, vector);
+				result += temp.x * bsplineXYZ;
+			}
+		}
+	}
+	
+	Volume[idx] = result;
+}
+
+
+
+__kernel void RescaleVolumeCubic(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
+	float3 Motion_Vector;
+	
+	Motion_Vector.x = x * VOXEL_DIFFERENCE_X + 0.5f;
+	Motion_Vector.y = y * VOXEL_DIFFERENCE_Y + 0.5f;
+	Motion_Vector.z = z * VOXEL_DIFFERENCE_Z + 0.5f;
+	
+	const float3 coord_grid = Motion_Vector - 0.5f;
+	float3 index = floor(coord_grid);
+	const float3 fraction = coord_grid - index;
+	index = index + 0.5f;  //move from [-0.5, extent-0.5] to [0, extent]
+
+	float result;
+
+	for (float z=-1.0f; z < 2.5f; z += 1.0f)  //range [-1, 2]
+	{
+		float bsplineZ = bspline(z-fraction.z);
+		float w = index.z + z;
+		for (float y=-1.0f; y < 2.5f; y += 1.0f)
+		{
+			float bsplineYZ = bspline(y-fraction.y) * bsplineZ;
+			float v = index.y + y;
+			for (float x=-1.0f; x < 2.5f; x += 1.0f)
+			{
+				float bsplineXYZ = bspline(x-fraction.x) * bsplineYZ;
+				float u = index.x + x;
+				float4 vector;
+				vector.x = u;
+				vector.y = v;
+				vector.z = w;
+				vector.w = 0.0f;
+				float4 temp = read_imagef(Original_Volume, volume_sampler_linear, vector);
+				result += bsplineXYZ * temp.x;
+			}
+		}
+	}
+	
+	Volume[idx] = result;
+}
 
 __kernel void RescaleVolumeLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
 {
