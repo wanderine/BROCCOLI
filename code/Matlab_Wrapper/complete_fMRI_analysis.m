@@ -34,11 +34,13 @@ addpath('D:\BROCCOLI_test_data')
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 basepath = 'D:\BROCCOLI_test_data\';
-study = 'OpenfMRI';
+%study = 'OpenfMRI';
+study = 'Beijing';
 substudy = 'Mixed'
-subject = 5;
-voxel_size = 1;
+subject = 1;
+voxel_size = 2;
 opencl_platform = 0;
+opencl_device = 0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -217,7 +219,7 @@ EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_ope
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
 T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
 coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z, ...
-X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,opencl_platform);
+X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,opencl_platform,opencl_device);
 toc
 
 T1_MNI_registration_parameters
@@ -292,7 +294,7 @@ imagesc([smoothed_volumes_cpu(:,:,slice,2) - smoothed_volumes_opencl(:,:,slice,2
 title('SM cpu - gpu')
 
 figure
-imagesc(beta_volumes(:,:,100,2)); colorbar
+imagesc(beta_volumes(:,:,slice,2)); colorbar
 title('Beta')
 
 figure
@@ -304,7 +306,7 @@ title('Beta cpu')
 %title('Beta cpu - gpu')
 
 figure
-imagesc(residual_variances(:,:,100)); colorbar
+imagesc(residual_variances(:,:,slice)); colorbar
 title('Residual variances')
 
 figure

@@ -39,7 +39,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double		    *h_T1_Volume_double, *h_EPI_Volume_double, *h_Quadrature_Filter_1_Real_double, *h_Quadrature_Filter_2_Real_double, *h_Quadrature_Filter_3_Real_double, *h_Quadrature_Filter_1_Imag_double, *h_Quadrature_Filter_2_Imag_double, *h_Quadrature_Filter_3_Imag_double;
     float           *h_T1_Volume, *h_EPI_Volume, *h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Imag;
     int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, COARSEST_SCALE, MM_EPI_Z_CUT;
-    int             OPENCL_PLATFORM;
+    int             OPENCL_PLATFORM, OPENCL_DEVICE;
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -61,11 +61,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<15)
+    if(nrhs<16)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>15)
+    if(nrhs>16)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -99,6 +99,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     COARSEST_SCALE  = (int)mxGetScalar(prhs[12]);
     MM_EPI_Z_CUT  = (int)mxGetScalar(prhs[13]);
     OPENCL_PLATFORM  = (int)mxGetScalar(prhs[14]);
+    OPENCL_DEVICE  = (int)mxGetScalar(prhs[15]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_EPI = mxGetDimensions(prhs[0]);
@@ -229,7 +230,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM);
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
 
     BROCCOLI.SetEPIWidth(EPI_DATA_W);
     BROCCOLI.SetEPIHeight(EPI_DATA_H);
@@ -256,21 +257,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
     BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
-    BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
+    BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);       
+    
+    
+    /*
+     * Error checking     
+     */
 
+    int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
+	int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
+	int createContextError = BROCCOLI.GetOpenCLCreateContextError();
+	int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
+	int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
+	int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
+	int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
+	int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
+          
+    mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
+    mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
+    mexPrintf("Create context error is %d \n",createContextError);
+    mexPrintf("Get create context info error is %d \n",getContextInfoError);
+    mexPrintf("Create command queue error is %d \n",createCommandQueueError);
+    mexPrintf("Create program error is %d \n",createProgramError);
+    mexPrintf("Build program error is %d \n",buildProgramError);
+    mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
-    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
-            
-    BROCCOLI.PerformRegistrationEPIT1Wrapper();
-    
-    int error = BROCCOLI.GetOpenCLError();
-    mexPrintf("Error is %d \n",error);
-    
-    int createKernelError = BROCCOLI.GetOpenCLCreateKernelError();
-    mexPrintf("Create kernel error is %d \n",createKernelError);
-    
-    double convolution_time = BROCCOLI.GetProcessingTimeConvolution();
-    mexPrintf("Convolution time is %f ms \n",convolution_time/1000000.0);
+    int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
+    for (int i = 0; i < 34; i++)
+    {
+        if (createKernelErrors[i] != 0)
+        {
+            mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+        }
+    }
     
     int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
     for (int i = 0; i < 30; i++)
@@ -290,6 +309,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }
     } 
     
+    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());                    		
+    
+    BROCCOLI.PerformRegistrationEPIT1Wrapper();
+    
+    
+    
+    double convolution_time = BROCCOLI.GetProcessingTimeConvolution();
+    mexPrintf("Convolution time is %f ms \n",convolution_time/1000000.0);
+
     unpack_float2double_volume(h_Aligned_EPI_Volume_double, h_Aligned_EPI_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Interpolated_EPI_Volume_double, h_Interpolated_EPI_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double(h_Registration_Parameters_double, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);

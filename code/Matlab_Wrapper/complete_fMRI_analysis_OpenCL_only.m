@@ -35,13 +35,17 @@ addpath('D:\BROCCOLI_test_data')
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 basepath = 'D:\BROCCOLI_test_data\';
+study = 'Oulu';
+%study = 'ICBM';
 %study = 'Cambridge';
-study = 'Beijing';
+%study = 'Beijing';
 %study = 'OpenfMRI';
-substudy = 'Mixed'
-subject = 4;
-voxel_size = 1;
+substudy = 'Mixed';
+subject = 3;
+voxel_size = 2;
+beta_space = 1;
 opencl_platform = 0;
+opencl_device = 0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -109,7 +113,7 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 %%
 % Settings for image registration
-number_of_iterations_for_image_registration = 40;
+number_of_iterations_for_image_registration = 70;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 8/voxel_size;
@@ -172,7 +176,7 @@ tic
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
 T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
 coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z, ...
-X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,opencl_platform);
+X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform, opencl_device);
 toc
 
 T1_MNI_registration_parameters
@@ -216,8 +220,13 @@ figure
 imagesc(MNI(:,:,slice)); colormap gray
 
 figure
-imagesc(beta_volumes(:,:,slice,2)); colormap gray
+imagesc(beta_volumes(:,:,slice,2)); colormap gray; 
 title('Beta 2')
+
+figure
+%imagesc(statistical_maps(20:end-19,20:end-19,slice,1)); colorbar
+imagesc(statistical_maps(:,:,slice,1));
+title('t-values')
 
 figure
 imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
@@ -226,6 +235,9 @@ figure
 imagesc(flipud(squeeze(beta_volumes(slice,:,:,2))')); colormap gray
 title('Beta 2')
 
+figure
+imagesc(flipud(squeeze(statistical_maps(slice,:,:,1))'));
+title('t-values')
 
 % 
 % %figure
@@ -241,9 +253,7 @@ title('Beta 2')
 %imagesc(residual_variances(:,:,slice)); colorbar
 %title('Residual variances')
 
-%figure
-% imagesc(statistical_maps(:,:,slice,1)); colorbar
-% title('t-values')
+
 % 
 % figure
 % imagesc(ar1_estimates(:,:,30)); colorbar
