@@ -33,6 +33,7 @@ close all
 mex -g GLM.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
 opencl_platform = 0;
+opencl_device = 0;
 
 %sx = 63; sy = 65; sz = 31; st = 100;
 %fMRI_volumes = randn(sy,sx,sz,st);
@@ -113,7 +114,7 @@ smoothing_filter_y = smoothing_filter_x;
 smoothing_filter_z = smoothing_filter_x;
 
 tic
-[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl] = GLM(fMRI_volumes,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z,opencl_platform);
+[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl] = GLM(fMRI_volumes,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z,opencl_platform,opencl_device);
 toc
 
 slice = 17;

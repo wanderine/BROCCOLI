@@ -60,17 +60,17 @@ float round( float d )
 // Constructors
 
 BROCCOLI_LIB::BROCCOLI_LIB()
-{
-	SetStartValues();
+{	
 	OPENCL_INITIATED = 0;
+	SetStartValues();
 	ResetAllPointers();
 }
 
-BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform)
+BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device)
 {
-	OpenCLInitiate(platform);
-	OPENCL_INITIATED = 1;
 	SetStartValues();
+	OPENCL_INITIATED = 0;
+	OpenCLInitiate(platform,device);	
 	ResetAllPointers();
 	//AllocateMemory();
 	//ReadImageRegistrationFilters();
@@ -133,6 +133,8 @@ BROCCOLI_LIB::~BROCCOLI_LIB()
 
 void BROCCOLI_LIB::SetStartValues()
 {
+	BETA_SPACE = EPI;
+
 	FILE_TYPE = RAW;
 	DATA_TYPE = FLOAT;
 
@@ -210,9 +212,109 @@ void BROCCOLI_LIB::SetStartValues()
 
 	for (int i = 0; i < 50; i++)
 	{
-		OpenCLCreateBufferErrors[i] = 0.0f;
-		OpenCLRunKernelErrors[i] = 0.0f;
+		OpenCLCreateBufferErrors[i] = 0;
+		OpenCLRunKernelErrors[i] = 0;
+		OpenCLCreateKernelErrors[i] = 0;
 	}
+
+	createBufferErrorAlignedVolume = 0;
+	createBufferErrorReferenceVolume = 0;
+	createBufferErrorq11Real = 0;
+	createBufferErrorq11Imag = 0; 
+	createBufferErrorq12Real = 0;
+	createBufferErrorq12Imag = 0;
+	createBufferErrorq13Real = 0;
+	createBufferErrorq13Imag = 0;
+	createBufferErrorq21Real = 0;
+	createBufferErrorq21Imag = 0;
+	createBufferErrorq22Real = 0;
+	createBufferErrorq22Imag = 0;
+	createBufferErrorq23Real = 0;
+	createBufferErrorq23Imag = 0;
+	createBufferErrorPhaseDifferences = 0;
+	createBufferErrorPhaseCertainties = 0;
+	createBufferErrorPhaseGradients = 0;
+	createBufferErrorAMatrix = 0;
+	createBufferErrorHVector = 0;
+	createBufferErrorAMatrix2DValues = 0;
+	createBufferErrorAMatrix1DValues = 0;
+	createBufferErrorHVector2DValues = 0;
+	createBufferErrorHVector1DValues = 0;
+	createBufferErrorQuadratureFilter1Real = 0;
+	createBufferErrorQuadratureFilter1Imag = 0;
+	createBufferErrorQuadratureFilter2Real = 0;
+	createBufferErrorQuadratureFilter2Imag = 0;
+	createBufferErrorQuadratureFilter3Real = 0;
+	createBufferErrorQuadratureFilter3Imag = 0;   
+	createBufferErrorRegistrationParameters = 0;
+	createBufferErrorBetaVolumesMNI = 0;
+	createBufferErrorStatisticalMapsMNI = 0;
+	createBufferErrorResidualVariancesMNI = 0;
+
+	runKernelErrorNonseparableConvolution3DComplex = 0;
+	runKernelErrorMemset = 0;
+	runKernelErrorCalculatePhaseDifferencesAndCertainties = 0;
+	runKernelErrorCalculatePhaseGradientsX = 0;
+	runKernelErrorCalculatePhaseGradientsY = 0;
+	runKernelErrorCalculatePhaseGradientsZ = 0;
+	runKernelErrorCalculateAMatrixAndHVector2DValuesX = 0;
+	runKernelErrorCalculateAMatrixAndHVector2DValuesY = 0;
+	runKernelErrorCalculateAMatrixAndHVector2DValuesZ = 0;
+	runKernelErrorCalculateAMatrix1DValues = 0;
+	runKernelErrorCalculateHVector1DValues = 0;
+	runKernelErrorCalculateAMatrix = 0;
+	runKernelErrorCalculateHVector = 0;
+	runKernelErrorInterpolateVolume = 0;
+	runKernelErrorCalculateBetaValuesGLM = 0;
+	runKernelErrorCalculateStatisticalMapsGLM = 0;
+    runKernelErrorRescaleVolume = 0;
+	runKernelErrorCopyVolume = 0;
+	runKernelErrorEstimateAR4Models = 0;
+	runKernelErrorApplyWhiteningAR4 = 0;
+
+	createKernelErrorMemset = 0;
+	createKernelErrorSeparableConvolutionRows = 0;
+	createKernelErrorSeparableConvolutionColumns = 0;
+	createKernelErrorSeparableConvolutionRods = 0;
+	createKernelErrorNonseparableConvolution3DComplex = 0;
+	createKernelErrorCalculatePhaseDifferencesAndCertainties = 0;
+	createKernelErrorCalculatePhaseGradientsX = 0;
+	createKernelErrorCalculatePhaseGradientsY = 0;
+	createKernelErrorCalculatePhaseGradientsZ = 0;
+	createKernelErrorCalculateAMatrixAndHVector2DValuesX = 0;
+	createKernelErrorCalculateAMatrixAndHVector2DValuesY = 0;
+	createKernelErrorCalculateAMatrixAndHVector2DValuesZ = 0;
+	createKernelErrorCalculateAMatrix1DValues = 0;
+	createKernelErrorCalculateHVector1DValues = 0;
+	createKernelErrorCalculateAMatrix = 0;
+	createKernelErrorCalculateHVector = 0;
+	createKernelErrorInterpolateVolumeNearest = 0;
+	createKernelErrorInterpolateVolumeLinear = 0;
+	createKernelErrorInterpolateVolumeCubic = 0;
+	createKernelErrorRescaleVolumeNearest = 0;
+	createKernelErrorRescaleVolumeLinear = 0;
+	createKernelErrorRescaleVolumeCubic = 0;
+	createKernelErrorCopyT1VolumeToMNI = 0;
+	createKernelErrorCopyEPIVolumeToT1 = 0;
+	createKernelErrorCopyVolumeToNew = 0;
+	createKernelErrorMultiplyVolumes = 0;
+	createKernelErrorMultiplyVolumesOverwrite = 0;
+	createKernelErrorCalculateMagnitudes = 0;
+	createKernelErrorCalculateColumnSums = 0;
+	createKernelErrorCalculateRowSums = 0;
+	createKernelErrorCalculateBetaValuesGLM = 0;
+	createKernelErrorCalculateStatisticalMapsGLM = 0;
+	createKernelErrorEstimateAR4Models = 0;
+	createKernelErrorApplyWhiteningAR4 = 0;
+
+	getPlatformIDsError = 0;
+	getDeviceIDsError = 0;		
+	createContextError = 0;
+	getContextInfoError = 0;
+	createCommandQueueError = 0;
+	createProgramError = 0;
+	buildProgramError = 0;
+	getProgramBuildInfoError = 0;
 }
 
 void BROCCOLI_LIB::ResetAllPointers()
@@ -282,7 +384,7 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 	cl_uint platformIdCount = 0;
 	clGetPlatformIDs (0, NULL, &platformIdCount);
 	std::vector<cl_platform_id> platformIds (platformIdCount);
-	clGetPlatformIDs (platformIdCount, platformIds.data (), NULL);
+	clGetPlatformIDs (platformIdCount, platformIds.data(), NULL);
 
 	// Loop over platforms
 	for (uint i = 0; i < platformIdCount; i++) 
@@ -453,173 +555,310 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 // Add compilation from binary
 // Add to select CPU or GPU
 
-void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM)
+void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE)
 {
 	char* value;
 	size_t valueSize;
+	cl_device_id *clDevices;
 
   	// Get platforms
 	cl_uint platformIdCount = 0;
-	clGetPlatformIDs (0, NULL, &platformIdCount);
-	std::vector<cl_platform_id> platformIds (platformIdCount);
-	clGetPlatformIDs (platformIdCount, platformIds.data(), NULL);              
-	
-	// Create context
-	const cl_context_properties contextProperties [] =
+	getPlatformIDsError = clGetPlatformIDs (0, NULL, &platformIdCount);
+
+	if (getPlatformIDsError == SUCCESS)
 	{
-	    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[OPENCL_PLATFORM]), 0, 0
-	};
+		std::vector<cl_platform_id> platformIds(platformIdCount);
+		getPlatformIDsError = clGetPlatformIDs(platformIdCount, platformIds.data(), NULL);              
 
-	// Get devices for current platform
-	cl_uint deviceIdCount = 0;
-	clGetDeviceIDs (platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
-	std::vector<cl_device_id> deviceIds (deviceIdCount);
-	clGetDeviceIDs (platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
+		if (getPlatformIDsError == SUCCESS)
+		{	
+			// Create context
+			const cl_context_properties contextProperties [] =
+			{
+			    CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[OPENCL_PLATFORM]), 0, 0
+			};
 
-	context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &error);	
-	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
-	cl_device_id *clDevices = (cl_device_id *) malloc(valueSize);
-	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
-
-	// Create a command queue
-	commandQueue = clCreateCommandQueue(context, deviceIds[0], CL_QUEUE_PROFILING_ENABLE, &error);
-
-	// Read the kernel code from file
-	std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
-	std::ostringstream oss;
-	oss << kernelFile.rdbuf();
-	std::string src = oss.str();
-	const char *srcstr = src.c_str();
-
-	// Create a program and build the code
-	program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &error);
-	clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
-
-	// Get build info        
-    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);        
-    value = (char*)malloc(valueSize);
-    clGetProgramBuildInfo(program, deviceIds[0], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
-	build_info.append(value);
-	free(value);
-
-	// Create kernels
-
-	SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&createKernelErrorSeparableConvolutionRows);	
-	SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&createKernelErrorSeparableConvolutionColumns);
-	SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&createKernelErrorSeparableConvolutionRods);	
+			// Get devices for current platform
+			cl_uint deviceIdCount = 0;
+			getDeviceIDsError = clGetDeviceIDs (platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
 	
-	// Kernels for image registration	
-	MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
-	MemsetDoubleKernel = clCreateKernel(program,"MemsetDouble",&createKernelErrorMemset);
+			if (getDeviceIDsError == SUCCESS)
+			{	
+				std::vector<cl_device_id> deviceIds (deviceIdCount);
+				getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
 
-	NonseparableConvolution3DComplexKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplex",&createKernelErrorNonseparableConvolution3DComplex);
-	CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
-	CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
-	CalculatePhaseGradientsYKernel = clCreateKernel(program,"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
-	CalculatePhaseGradientsZKernel = clCreateKernel(program,"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
-	CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
-	CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
-	CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
-	CalculateAMatrix1DValuesKernel = clCreateKernel(program,"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
-	CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
-	CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
-	CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);	
-	CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);	
-	CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);	
-	CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);	
+				if (getDeviceIDsError == SUCCESS)
+				{	
+					context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &createContextError);	
 
-	CalculateAMatrixAndHVector2DValuesXDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesXDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
-	CalculateAMatrixAndHVector2DValuesYDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesYDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
-	CalculateAMatrixAndHVector2DValuesZDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
-	CalculateAMatrix1DValuesDoubleKernel = clCreateKernel(program,"CalculateAMatrix1DValuesDouble",&createKernelErrorCalculateAMatrix1DValues);
-	CalculateHVector1DValuesDoubleKernel = clCreateKernel(program,"CalculateHVector1DValuesDouble",&createKernelErrorCalculateHVector1DValues);
-	CalculateAMatrixDoubleKernel = clCreateKernel(program,"CalculateAMatrixDouble",&createKernelErrorCalculateAMatrix);
-	CalculateHVectorDoubleKernel = clCreateKernel(program,"CalculateHVectorDouble",&createKernelErrorCalculateHVector);	
+					if (createContextError == SUCCESS)
+					{	
+						getContextInfoError = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);	
 
+						if (getContextInfoError == SUCCESS)
+						{
+							clDevices = (cl_device_id *) malloc(valueSize);
+							getContextInfoError = clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
 
-	InterpolateVolumeNearestKernel = clCreateKernel(program,"InterpolateVolumeNearest",&createKernelErrorInterpolateVolumeNearest);       
-	InterpolateVolumeLinearKernel = clCreateKernel(program,"InterpolateVolumeLinear",&createKernelErrorInterpolateVolumeLinear);       
-	InterpolateVolumeCubicKernel = clCreateKernel(program,"InterpolateVolumeCubic",&createKernelErrorInterpolateVolumeCubic);       
-	RescaleVolumeLinearKernel = clCreateKernel(program,"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
-	RescaleVolumeCubicKernel = clCreateKernel(program,"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
-	CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);       
-	CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);       
-	CopyVolumeToNewKernel = clCreateKernel(program,"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);       
-	MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);       
-	MultiplyVolumesOverwriteKernel = clCreateKernel(program,"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);       
+							if (getContextInfoError == SUCCESS)
+							{
+								// Create a command queue
+								commandQueue = clCreateCommandQueue(context, deviceIds[OPENCL_DEVICE], CL_QUEUE_PROFILING_ENABLE, &createCommandQueueError);
 
-	// Kernels for statistical analysis	
-	CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
-	CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateStatisticalMapsGLM",&createKernelErrorCalculateStatisticalMapsGLM);
-	EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
-	ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
+								// Get vendor name
+								clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
+								value = (char*) malloc(valueSize);
+								clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_VENDOR, valueSize, value, NULL);
+								std::string vendor_string(value);
 
-	//clFinish(commandQueue);
+								size_t npos = vendor_string.find("NVIDIA");
+								size_t ipos = vendor_string.find("Intel");
+								size_t apos = vendor_string.find("Advanced");
+
+								if (npos != std::string::npos)
+								{
+									VENDOR = NVIDIA;
+								}
+								else if (ipos != std::string::npos)
+								{
+									VENDOR = INTEL;
+								}
+								else if (apos != std::string::npos)
+								{
+									VENDOR = AMD;
+								}
+								
+								free(value);
+								
+								if (createCommandQueueError == SUCCESS)
+								{	
+									// Read the kernel code from file
+									std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
+									std::ostringstream oss;
+									oss << kernelFile.rdbuf();
+									std::string src = oss.str();
+									const char *srcstr = src.c_str();
+	
+									// Create a program and build the code
+									program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);	
+
+									if (createProgramError == SUCCESS)
+									{		
+										buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+
+										// Get build info        
+										valueSize = 0;
+										getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);        
+
+										if (getProgramBuildInfoError == SUCCESS)
+										{
+											value = (char*)malloc(valueSize);
+											getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
+
+											if (getProgramBuildInfoError == SUCCESS)
+											{			
+												build_info.append(value);
+											
+												// Create kernels
+												
+												MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
+												//MemsetDoubleKernel = clCreateKernel(program,"MemsetDouble",&createKernelErrorMemset);
+
+												if ( (VENDOR == NVIDIA) || (VENDOR == INTEL))
+												{
+													NonseparableConvolution3DComplexKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplex",&createKernelErrorNonseparableConvolution3DComplex);
+													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&createKernelErrorSeparableConvolutionRows);	
+													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&createKernelErrorSeparableConvolutionColumns);
+													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&createKernelErrorSeparableConvolutionRods);		
+												}
+												else if (VENDOR == AMD)
+												{
+													NonseparableConvolution3DComplexKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexAMD",&createKernelErrorNonseparableConvolution3DComplex);
+													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsAMD",&createKernelErrorSeparableConvolutionRows);	
+													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsAMD",&createKernelErrorSeparableConvolutionColumns);
+													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsAMD",&createKernelErrorSeparableConvolutionRods);		
+												}
+												CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
+												CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
+												CalculatePhaseGradientsYKernel = clCreateKernel(program,"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
+												CalculatePhaseGradientsZKernel = clCreateKernel(program,"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
+												CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
+												CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
+												CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
+												CalculateAMatrix1DValuesKernel = clCreateKernel(program,"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
+												CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
+												CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
+												CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);	
+												CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);	
+												CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);	
+												CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);	
+
+												//CalculateAMatrixAndHVector2DValuesXDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesXDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
+												//CalculateAMatrixAndHVector2DValuesYDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesYDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
+												//CalculateAMatrixAndHVector2DValuesZDoubleKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZDouble",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
+												//CalculateAMatrix1DValuesDoubleKernel = clCreateKernel(program,"CalculateAMatrix1DValuesDouble",&createKernelErrorCalculateAMatrix1DValues);
+												//CalculateHVector1DValuesDoubleKernel = clCreateKernel(program,"CalculateHVector1DValuesDouble",&createKernelErrorCalculateHVector1DValues);
+												//CalculateAMatrixDoubleKernel = clCreateKernel(program,"CalculateAMatrixDouble",&createKernelErrorCalculateAMatrix);
+												//CalculateHVectorDoubleKernel = clCreateKernel(program,"CalculateHVectorDouble",&createKernelErrorCalculateHVector);	
+												InterpolateVolumeNearestKernel = clCreateKernel(program,"InterpolateVolumeNearest",&createKernelErrorInterpolateVolumeNearest);       
+												InterpolateVolumeLinearKernel = clCreateKernel(program,"InterpolateVolumeLinear",&createKernelErrorInterpolateVolumeLinear);       
+												InterpolateVolumeCubicKernel = clCreateKernel(program,"InterpolateVolumeCubic",&createKernelErrorInterpolateVolumeCubic);       
+												RescaleVolumeLinearKernel = clCreateKernel(program,"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
+												RescaleVolumeCubicKernel = clCreateKernel(program,"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
+												CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);       
+												CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);       
+												CopyVolumeToNewKernel = clCreateKernel(program,"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);       
+												MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);       
+												MultiplyVolumesOverwriteKernel = clCreateKernel(program,"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);       
+
+												// Kernels for statistical analysis	
+												CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
+												CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateStatisticalMapsGLM",&createKernelErrorCalculateStatisticalMapsGLM);
+												EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
+												ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);	
+
+												OPENCL_INITIATED = 1;
+											}		
+											free(value);
+										}
+									}
+								}
+							}
+							free(clDevices);
+						}
+					}					
+				}
+			}
+		}
+	}
 }
+
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D)
 {		
-	//----------------------------------
-	// Separable convolution rows
-	//----------------------------------
+	if ( (VENDOR == NVIDIA) || (VENDOR == INTEL) )
+	{
+		//----------------------------------
+		// Separable convolution rows
+		//----------------------------------
 
-	localWorkSizeSeparableConvolutionRows[0] = 32;
-	localWorkSizeSeparableConvolutionRows[1] = 8;
-	localWorkSizeSeparableConvolutionRows[2] = 2;
+		localWorkSizeSeparableConvolutionRows[0] = 32;
+		localWorkSizeSeparableConvolutionRows[1] = 8;
+		localWorkSizeSeparableConvolutionRows[2] = 2;
 
-	// Calculate how many blocks are required
-	// ConvolutionRows yields 32 * 8 * 8 valid filter responses per block (x,y,z)
-	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_ROWS);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_ROWS);
+		// Calculate how many blocks are required
+		// ConvolutionRows yields 32 * 8 * 8 valid filter responses per block (x,y,z)
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_ROWS);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_ROWS);
 
-	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
-	globalWorkSizeSeparableConvolutionRows[0] = xBlocks * localWorkSizeSeparableConvolutionRows[0];
-	globalWorkSizeSeparableConvolutionRows[1] = yBlocks * localWorkSizeSeparableConvolutionRows[1];
-	globalWorkSizeSeparableConvolutionRows[2] = zBlocks * localWorkSizeSeparableConvolutionRows[2];
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionRows[0] = xBlocks * localWorkSizeSeparableConvolutionRows[0];
+		globalWorkSizeSeparableConvolutionRows[1] = yBlocks * localWorkSizeSeparableConvolutionRows[1];
+		globalWorkSizeSeparableConvolutionRows[2] = zBlocks * localWorkSizeSeparableConvolutionRows[2];
 
-	//----------------------------------
-	// Separable convolution columns
-	//----------------------------------
+		//----------------------------------
+		// Separable convolution columns
+		//----------------------------------
 
-	localWorkSizeSeparableConvolutionColumns[0] = 32;
-	localWorkSizeSeparableConvolutionColumns[1] = 8;
-	localWorkSizeSeparableConvolutionColumns[2] = 2;
+		localWorkSizeSeparableConvolutionColumns[0] = 32;
+		localWorkSizeSeparableConvolutionColumns[1] = 8;
+		localWorkSizeSeparableConvolutionColumns[2] = 2;
 
-    // Calculate how many blocks are required
-	// ConvolutionColumns yields 24 * 16 * 8 valid filter responses per block (x,y,z)
-	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_COLUMNS);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS);
+		// Calculate how many blocks are required
+		// ConvolutionColumns yields 24 * 16 * 8 valid filter responses per block (x,y,z)
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_COLUMNS);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS);
 
-	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
-	globalWorkSizeSeparableConvolutionColumns[0] = xBlocks * localWorkSizeSeparableConvolutionColumns[0];
-	globalWorkSizeSeparableConvolutionColumns[1] = yBlocks * localWorkSizeSeparableConvolutionColumns[1];
-	globalWorkSizeSeparableConvolutionColumns[2] = zBlocks * localWorkSizeSeparableConvolutionColumns[2];
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionColumns[0] = xBlocks * localWorkSizeSeparableConvolutionColumns[0];
+		globalWorkSizeSeparableConvolutionColumns[1] = yBlocks * localWorkSizeSeparableConvolutionColumns[1];
+		globalWorkSizeSeparableConvolutionColumns[2] = zBlocks * localWorkSizeSeparableConvolutionColumns[2];
 
-	//----------------------------------
-	// Separable convolution rods
-	//----------------------------------
+		//----------------------------------
+		// Separable convolution rods
+		//----------------------------------
 
-	localWorkSizeSeparableConvolutionRods[0] = 32;
-	localWorkSizeSeparableConvolutionRods[1] = 2;
-	localWorkSizeSeparableConvolutionRods[2] = 8;
+		localWorkSizeSeparableConvolutionRods[0] = 32;
+		localWorkSizeSeparableConvolutionRods[1] = 2;
+		localWorkSizeSeparableConvolutionRods[2] = 8;
 
-	// Calculate how many blocks are required
-	// ConvolutionRods yields 32 * 8 * 8 valid filter responses per block (x,y,z)
-	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_RODS);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
+		// Calculate how many blocks are required
+		// ConvolutionRods yields 32 * 8 * 8 valid filter responses per block (x,y,z)
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_RODS);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
 
-	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
-	globalWorkSizeSeparableConvolutionRods[0] = xBlocks * localWorkSizeSeparableConvolutionRods[0];
-	globalWorkSizeSeparableConvolutionRods[1] = yBlocks * localWorkSizeSeparableConvolutionRods[1];
-	globalWorkSizeSeparableConvolutionRods[2] = zBlocks * localWorkSizeSeparableConvolutionRods[2];
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionRods[0] = xBlocks * localWorkSizeSeparableConvolutionRods[0];
+		globalWorkSizeSeparableConvolutionRods[1] = yBlocks * localWorkSizeSeparableConvolutionRods[1];
+		globalWorkSizeSeparableConvolutionRods[2] = zBlocks * localWorkSizeSeparableConvolutionRods[2];
+	}
+	else if (VENDOR == AMD)
+	{
+		//----------------------------------
+		// Separable convolution rows
+		//----------------------------------
+
+		localWorkSizeSeparableConvolutionRows[0] = 32;
+		localWorkSizeSeparableConvolutionRows[1] = 8;
+		localWorkSizeSeparableConvolutionRows[2] = 1;
+
+		// Calculate how many blocks are required
+		// ConvolutionRows yields 32 * 8 * 8 valid filter responses per block (x,y,z)
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_ROWS);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_ROWS);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionRows[0] = xBlocks * localWorkSizeSeparableConvolutionRows[0];
+		globalWorkSizeSeparableConvolutionRows[1] = yBlocks * localWorkSizeSeparableConvolutionRows[1];
+		globalWorkSizeSeparableConvolutionRows[2] = zBlocks * localWorkSizeSeparableConvolutionRows[2];
+
+		//----------------------------------
+		// Separable convolution columns
+		//----------------------------------
+
+		localWorkSizeSeparableConvolutionColumns[0] = 32;
+		localWorkSizeSeparableConvolutionColumns[1] = 8;
+		localWorkSizeSeparableConvolutionColumns[2] = 1;
+
+		// Calculate how many blocks are required
+		// ConvolutionColumns yields 24 * 16 * 8 valid filter responses per block (x,y,z)
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_COLUMNS);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionColumns[0] = xBlocks * localWorkSizeSeparableConvolutionColumns[0];
+		globalWorkSizeSeparableConvolutionColumns[1] = yBlocks * localWorkSizeSeparableConvolutionColumns[1];
+		globalWorkSizeSeparableConvolutionColumns[2] = zBlocks * localWorkSizeSeparableConvolutionColumns[2];
+
+		//----------------------------------
+		// Separable convolution rods
+		//----------------------------------
+
+		localWorkSizeSeparableConvolutionRods[0] = 32;
+		localWorkSizeSeparableConvolutionRods[1] = 1;
+		localWorkSizeSeparableConvolutionRods[2] = 8;
+
+		// Calculate how many blocks are required
+		// ConvolutionRods yields 32 * 8 * 8 valid filter responses per block (x,y,z)
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_RODS);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionRods[0] = xBlocks * localWorkSizeSeparableConvolutionRods[0];
+		globalWorkSizeSeparableConvolutionRods[1] = yBlocks * localWorkSizeSeparableConvolutionRods[1];
+		globalWorkSizeSeparableConvolutionRods[2] = zBlocks * localWorkSizeSeparableConvolutionRods[2];
+	}
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMemset(int N)
 {	
-	localWorkSizeMemset[0] = 512;
+	localWorkSizeMemset[0] = 256;
 	localWorkSizeMemset[1] = 1;
 	localWorkSizeMemset[2] = 1;
 
@@ -632,24 +871,40 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMemset(int N)
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D)
 {	
-	//----------------------------------
-	// Non-separable convolution
-	//----------------------------------
+	if ( (VENDOR == NVIDIA) || (VENDOR == INTEL) )
+	{
+		localWorkSizeNonseparableConvolution3DComplex[0] = 32;
+		localWorkSizeNonseparableConvolution3DComplex[1] = 32;
+		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
 
-	localWorkSizeNonseparableConvolution3DComplex[0] = 32;
-	localWorkSizeNonseparableConvolution3DComplex[1] = 32;
-	localWorkSizeNonseparableConvolution3DComplex[2] = 1;
+		// Calculate how many blocks are required
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
 
-	// Calculate how many blocks are required
-	xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeNonseparableConvolution3DComplex[0] = xBlocks * localWorkSizeNonseparableConvolution3DComplex[0];
+		globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
+		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
+	}
+	else if (VENDOR == AMD)
+	{
+		localWorkSizeNonseparableConvolution3DComplex[0] = 16;
+		localWorkSizeNonseparableConvolution3DComplex[1] = 16;
+		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
 
-	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
-	globalWorkSizeNonseparableConvolution3DComplex[0] = xBlocks * localWorkSizeNonseparableConvolution3DComplex[0];
-	globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
-	globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
+		// Calculate how many blocks are required
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_AMD);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_AMD);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeNonseparableConvolution3DComplex[0] = xBlocks * localWorkSizeNonseparableConvolution3DComplex[0];
+		globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
+		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
+	}
 }
+
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int DATA_H, int DATA_D)
 {	
@@ -657,7 +912,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	// Phase differences and certainties
 	//----------------------------------
 
-	localWorkSizeCalculatePhaseDifferencesAndCertainties[0] = 32;
+	localWorkSizeCalculatePhaseDifferencesAndCertainties[0] = 16;
 	localWorkSizeCalculatePhaseDifferencesAndCertainties[1] = 16;
 	localWorkSizeCalculatePhaseDifferencesAndCertainties[2] = 1;
 
@@ -675,7 +930,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	// Phase gradients
 	//----------------------------------
 
-	localWorkSizeCalculatePhaseGradients[0] = 32;
+	localWorkSizeCalculatePhaseGradients[0] = 16;
 	localWorkSizeCalculatePhaseGradients[1] = 16;
 	localWorkSizeCalculatePhaseGradients[2] = 1;
 
@@ -754,7 +1009,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesRescaleVolume(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeRescaleVolumeLinear[0] = 32;
+	localWorkSizeRescaleVolumeLinear[0] = 16;
 	localWorkSizeRescaleVolumeLinear[1] = 16;
 	localWorkSizeRescaleVolumeLinear[2] = 1;
 
@@ -767,7 +1022,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesRescaleVolume(int DATA_W, int DATA_
 	globalWorkSizeRescaleVolumeLinear[1] = yBlocks * localWorkSizeRescaleVolumeLinear[1];
 	globalWorkSizeRescaleVolumeLinear[2] = zBlocks * localWorkSizeRescaleVolumeLinear[2];
 
-	localWorkSizeRescaleVolumeCubic[0] = 32;
+	localWorkSizeRescaleVolumeCubic[0] = 16;
 	localWorkSizeRescaleVolumeCubic[1] = 16;
 	localWorkSizeRescaleVolumeCubic[2] = 1;
 
@@ -783,7 +1038,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesRescaleVolume(int DATA_W, int DATA_
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeInterpolateVolumeNearest[0] = 32;
+	localWorkSizeInterpolateVolumeNearest[0] = 16;
 	localWorkSizeInterpolateVolumeNearest[1] = 16;
 	localWorkSizeInterpolateVolumeNearest[2] = 1;
 
@@ -796,7 +1051,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int D
 	globalWorkSizeInterpolateVolumeNearest[1] = yBlocks * localWorkSizeInterpolateVolumeNearest[1];
 	globalWorkSizeInterpolateVolumeNearest[2] = zBlocks * localWorkSizeInterpolateVolumeNearest[2];
 
-	localWorkSizeInterpolateVolumeLinear[0] = 32;
+	localWorkSizeInterpolateVolumeLinear[0] = 16;
 	localWorkSizeInterpolateVolumeLinear[1] = 16;
 	localWorkSizeInterpolateVolumeLinear[2] = 1;
 
@@ -809,7 +1064,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int D
 	globalWorkSizeInterpolateVolumeLinear[1] = yBlocks * localWorkSizeInterpolateVolumeLinear[1];
 	globalWorkSizeInterpolateVolumeLinear[2] = zBlocks * localWorkSizeInterpolateVolumeLinear[2];
 
-	localWorkSizeInterpolateVolumeCubic[0] = 32;
+	localWorkSizeInterpolateVolumeCubic[0] = 16;
 	localWorkSizeInterpolateVolumeCubic[1] = 16;
 	localWorkSizeInterpolateVolumeCubic[2] = 1;
 
@@ -825,7 +1080,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int D
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeCopyVolumeToNew[0] = 32;
+	localWorkSizeCopyVolumeToNew[0] = 16;
 	localWorkSizeCopyVolumeToNew[1] = 16;
 	localWorkSizeCopyVolumeToNew[2] = 1;
 
@@ -845,7 +1100,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DAT
 	// Statistical calculations
 	//----------------------------------
 
-	localWorkSizeMultiplyVolumes[0] = 32;
+	localWorkSizeMultiplyVolumes[0] = 16;
 	localWorkSizeMultiplyVolumes[1] = 16;
 	localWorkSizeMultiplyVolumes[2] = 1;
 	
@@ -862,7 +1117,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DAT
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateTopBrainSlice(int DATA_W, int DATA_H, int DATA_D)
 {	
-	localWorkSizeCalculateMagnitudes[0] = 32;
+	localWorkSizeCalculateMagnitudes[0] = 16;
 	localWorkSizeCalculateMagnitudes[1] = 16;
 	localWorkSizeCalculateMagnitudes[2] = 1;
 	
@@ -876,7 +1131,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateTopBrainSlice(int DATA_W, 
 	globalWorkSizeCalculateMagnitudes[1] = yBlocks * localWorkSizeCalculateMagnitudes[1];
 	globalWorkSizeCalculateMagnitudes[2] = zBlocks * localWorkSizeCalculateMagnitudes[2];
 	
-	localWorkSizeCalculateColumnSums[0] = 32;
+	localWorkSizeCalculateColumnSums[0] = 16;
 	localWorkSizeCalculateColumnSums[1] = 16;
 	localWorkSizeCalculateColumnSums[2] = 1;
 	
@@ -911,7 +1166,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	// Statistical calculations
 	//----------------------------------
 
-	localWorkSizeCalculateBetaValuesGLM[0] = 32;
+	localWorkSizeCalculateBetaValuesGLM[0] = 16;
 	localWorkSizeCalculateBetaValuesGLM[1] = 16;
 	localWorkSizeCalculateBetaValuesGLM[2] = 1;
 	
@@ -925,7 +1180,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeCalculateBetaValuesGLM[1] = yBlocks * localWorkSizeCalculateBetaValuesGLM[1];
 	globalWorkSizeCalculateBetaValuesGLM[2] = zBlocks * localWorkSizeCalculateBetaValuesGLM[2];
 
-	localWorkSizeCalculateStatisticalMapsGLM[0] = 32;
+	localWorkSizeCalculateStatisticalMapsGLM[0] = 16;
 	localWorkSizeCalculateStatisticalMapsGLM[1] = 16;
 	localWorkSizeCalculateStatisticalMapsGLM[2] = 1;
 
@@ -940,7 +1195,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeCalculateStatisticalMapsGLM[2] = zBlocks * localWorkSizeCalculateStatisticalMapsGLM[2];
 
 
-	localWorkSizeEstimateAR4Models[0] = 32;
+	localWorkSizeEstimateAR4Models[0] = 16;
 	localWorkSizeEstimateAR4Models[1] = 16;
 	localWorkSizeEstimateAR4Models[2] = 1;
 	
@@ -954,7 +1209,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeEstimateAR4Models[1] = yBlocks * localWorkSizeEstimateAR4Models[1];
 	globalWorkSizeEstimateAR4Models[2] = zBlocks * localWorkSizeEstimateAR4Models[2];
 
-	localWorkSizeApplyWhiteningAR4[0] = 32;
+	localWorkSizeApplyWhiteningAR4[0] = 16;
 	localWorkSizeApplyWhiteningAR4[1] = 16;
 	localWorkSizeApplyWhiteningAR4[2] = 1;
 	
@@ -974,12 +1229,12 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 void BROCCOLI_LIB::OpenCLCleanup()
 {
 	if (OPENCL_INITIATED == 1)
-	{
+	{		
 	    clReleaseKernel(SeparableConvolutionRowsKernel);
 		clReleaseKernel(SeparableConvolutionColumnsKernel);
 		clReleaseKernel(SeparableConvolutionRodsKernel);
 		clReleaseKernel(MemsetKernel);
-		clReleaseKernel(NonseparableConvolution3DComplexKernel);
+		clReleaseKernel(NonseparableConvolution3DComplexKernel);		
 		clReleaseKernel(CalculatePhaseDifferencesAndCertaintiesKernel);
 		clReleaseKernel(CalculatePhaseGradientsXKernel);
 		clReleaseKernel(CalculatePhaseGradientsYKernel);
@@ -1002,9 +1257,10 @@ void BROCCOLI_LIB::OpenCLCleanup()
 		clReleaseKernel(CopyVolumeToNewKernel);
 		clReleaseKernel(CalculateBetaValuesGLMKernel);
 		clReleaseKernel(CalculateStatisticalMapsGLMKernel);
+		
 		clReleaseProgram(program);    
 		clReleaseCommandQueue(commandQueue);
-		clReleaseContext(context);
+		clReleaseContext(context);		
 	}
 }
 
@@ -1252,6 +1508,11 @@ void BROCCOLI_LIB::SetOutputTopSlice(float* output)
 	h_Top_Slice = output;
 }
 
+void BROCCOLI_LIB::SetBetaSpace(int space)
+{
+	BETA_SPACE = space;
+}
+
 
 void BROCCOLI_LIB::SetDataType(int type)
 {
@@ -1471,13 +1732,88 @@ int BROCCOLI_LIB::GetOpenCLError()
 	return error;
 }
 
-int BROCCOLI_LIB::GetOpenCLCreateKernelError()
+int BROCCOLI_LIB::GetOpenCLPlatformIDsError()
 {
-	//return createKernelErrorNonseparableConvolution3DComplex;
-	//return createKernelErrorCalculatePhaseDifferencesAndCertainties;
-	//return createKernelErrorCalculatePhaseGradientsX;
-	//return createKernelErrorInterpolateVolumeLinear;
-	return createKernelErrorRescaleVolumeLinear;
+	return getPlatformIDsError;
+}
+
+int BROCCOLI_LIB::GetOpenCLDeviceIDsError()	
+{
+	return getDeviceIDsError;
+}
+
+int BROCCOLI_LIB::GetOpenCLCreateContextError()
+{
+	return createContextError;
+}
+
+int BROCCOLI_LIB::GetOpenCLContextInfoError()
+{
+	return getContextInfoError;
+}
+
+int BROCCOLI_LIB::GetOpenCLCreateCommandQueueError()
+{
+	return createCommandQueueError;
+}
+
+int BROCCOLI_LIB::GetOpenCLCreateProgramError()
+{
+	return createProgramError;
+}
+
+int BROCCOLI_LIB::GetOpenCLBuildProgramError()
+{
+	return buildProgramError;
+}
+
+int BROCCOLI_LIB::GetOpenCLProgramBuildInfoError()
+{
+	return getProgramBuildInfoError;
+}
+
+
+
+
+
+int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
+{	
+	OpenCLCreateKernelErrors[0] = createKernelErrorMemset;
+	OpenCLCreateKernelErrors[1] = createKernelErrorSeparableConvolutionRows;
+	OpenCLCreateKernelErrors[2] = createKernelErrorSeparableConvolutionColumns;
+	OpenCLCreateKernelErrors[3] = createKernelErrorSeparableConvolutionRods;
+	OpenCLCreateKernelErrors[4] = createKernelErrorNonseparableConvolution3DComplex;
+	OpenCLCreateKernelErrors[5] = createKernelErrorCalculatePhaseDifferencesAndCertainties;
+	OpenCLCreateKernelErrors[6] = createKernelErrorCalculatePhaseGradientsX;
+	OpenCLCreateKernelErrors[7] = createKernelErrorCalculatePhaseGradientsY;
+	OpenCLCreateKernelErrors[8] = createKernelErrorCalculatePhaseGradientsZ;
+	OpenCLCreateKernelErrors[9] = createKernelErrorCalculateAMatrixAndHVector2DValuesX;
+	OpenCLCreateKernelErrors[10] = createKernelErrorCalculateAMatrixAndHVector2DValuesY;
+	OpenCLCreateKernelErrors[11] = createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
+	OpenCLCreateKernelErrors[12] = createKernelErrorCalculateAMatrix1DValues;
+	OpenCLCreateKernelErrors[13] = createKernelErrorCalculateHVector1DValues;
+	OpenCLCreateKernelErrors[14] = createKernelErrorCalculateAMatrix;
+	OpenCLCreateKernelErrors[15] = createKernelErrorCalculateHVector;
+	OpenCLCreateKernelErrors[16] = createKernelErrorInterpolateVolumeNearest;
+	OpenCLCreateKernelErrors[17] = createKernelErrorInterpolateVolumeLinear;
+	OpenCLCreateKernelErrors[18] = createKernelErrorInterpolateVolumeCubic;
+	OpenCLCreateKernelErrors[19] = createKernelErrorRescaleVolumeNearest;
+	OpenCLCreateKernelErrors[20] = createKernelErrorRescaleVolumeLinear;
+	OpenCLCreateKernelErrors[21] = createKernelErrorRescaleVolumeCubic;
+	OpenCLCreateKernelErrors[22] = createKernelErrorCopyT1VolumeToMNI;
+	OpenCLCreateKernelErrors[23] = createKernelErrorCopyEPIVolumeToT1;
+	OpenCLCreateKernelErrors[24] = createKernelErrorCopyVolumeToNew;
+	OpenCLCreateKernelErrors[25] = createKernelErrorMultiplyVolumes;
+	OpenCLCreateKernelErrors[26] = createKernelErrorMultiplyVolumesOverwrite;
+	OpenCLCreateKernelErrors[27] = createKernelErrorCalculateMagnitudes;
+	OpenCLCreateKernelErrors[28] = createKernelErrorCalculateColumnSums;
+	OpenCLCreateKernelErrors[29] = createKernelErrorCalculateRowSums;
+	OpenCLCreateKernelErrors[30] = createKernelErrorCalculateBetaValuesGLM;
+	OpenCLCreateKernelErrors[31] = createKernelErrorCalculateStatisticalMapsGLM;
+	OpenCLCreateKernelErrors[32] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[33] = createKernelErrorApplyWhiteningAR4;	
+
+	return OpenCLCreateKernelErrors;
 }
 
 int* BROCCOLI_LIB::GetOpenCLCreateBufferErrors()
@@ -1871,7 +2207,7 @@ void BROCCOLI_LIB::Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE)
 	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_2_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_2_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_2_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_2_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_3_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_3_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_3_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_3_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_3_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_3_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);	
 }
 
 void BROCCOLI_LIB::NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D)
@@ -1905,7 +2241,7 @@ void BROCCOLI_LIB::NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag,
 
 		clSetKernelArg(NonseparableConvolution3DComplexKernel, 13, sizeof(int), &z_offset);
 		runKernelErrorNonseparableConvolution3DComplex = clEnqueueNDRangeKernel(commandQueue, NonseparableConvolution3DComplexKernel, 3, NULL, globalWorkSizeNonseparableConvolution3DComplex, localWorkSizeNonseparableConvolution3DComplex, 0, NULL, NULL);
-		//error = clEnqueueNDRangeKernel(commandQueue, NonseparableConvolution3DComplexKernel, 3, NULL, globalWorkSizeNonseparableConvolution3DComplex, localWorkSizeNonseparableConvolution3DComplex, 0, NULL, &event);
+
 		clFinish(commandQueue);
 		z_offset++;
 
@@ -1940,6 +2276,15 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 {
 	// Calculate the filter responses for the reference volume (only needed once)	
 	NonseparableConvolution3D(d_q11_Real, d_q11_Imag, d_q12_Real, d_q12_Imag, d_q13_Real, d_q13_Imag, d_Reference_Volume, DATA_W, DATA_H, DATA_D);
+
+	/*
+	clEnqueueReadBuffer(commandQueue, d_q11_Real, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Quadrature_Filter_Response_1_Real, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_q11_Imag, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Quadrature_Filter_Response_1_Imag, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_q12_Real, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Quadrature_Filter_Response_2_Real, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_q12_Imag, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Quadrature_Filter_Response_2_Imag, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_q13_Real, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Quadrature_Filter_Response_3_Real, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_q13_Imag, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Quadrature_Filter_Response_3_Imag, 0, NULL, NULL);
+	*/
 
 	// Reset the parameter vector
 	for (int p = 0; p < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; p++)
@@ -2090,8 +2435,8 @@ void BROCCOLI_LIB::AlignTwoVolumes(float *h_Registration_Parameters_Align_Two_Vo
 		clEnqueueWriteBuffer(commandQueue, c_Registration_Parameters, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), h_Registration_Parameters_Align_Two_Volumes, 0, NULL, NULL);
 
 		// Interpolate to get the new volume
-		//runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+		//runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
 		clFinish(commandQueue);				
 	}
 
@@ -2400,7 +2745,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 
 	SetGlobalAndLocalWorkSizesRescaleVolume(NEW_DATA_W, NEW_DATA_H, NEW_DATA_D);
 
-	/*
+	
 	clSetKernelArg(RescaleVolumeLinearKernel, 0, sizeof(cl_mem), &d_Changed_Volume);
 	clSetKernelArg(RescaleVolumeLinearKernel, 1, sizeof(cl_mem), &d_Volume_Texture);
 	clSetKernelArg(RescaleVolumeLinearKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -2412,8 +2757,8 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 	
 	runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
 	clFinish(commandQueue);	
-	*/
-
+	
+	/*
 	clSetKernelArg(RescaleVolumeCubicKernel, 0, sizeof(cl_mem), &d_Changed_Volume);
 	clSetKernelArg(RescaleVolumeCubicKernel, 1, sizeof(cl_mem), &d_Volume_Texture);
 	clSetKernelArg(RescaleVolumeCubicKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -2425,7 +2770,8 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 	
 	runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
 	clFinish(commandQueue);	
-	
+	*/
+
 	clReleaseMemObject(d_Volume_Texture);
 }
 
@@ -2513,8 +2859,8 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 			clEnqueueWriteBuffer(commandQueue, c_Registration_Parameters, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), h_Registration_Parameters_Align_Two_Volumes_Several_Scales, 0, NULL, NULL);
 
 			// Apply transformation to next scale
-			//error = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
-			error = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+			error = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+			//error = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
 			clFinish(commandQueue);	
 
 			// Copy transformed volume back to image (texture)
@@ -2540,7 +2886,7 @@ void BROCCOLI_LIB::AlignTwoVolumesSeveralScales(float *h_Registration_Parameters
 			if (OVERWRITE == DO_OVERWRITE)
 			{
 				// Transform the original volume once with the final registration parameters, to remove effects of several interpolations
-				TransformVolume(d_Original_Aligned_Volume, h_Registration_Parameters_Align_Two_Volumes_Several_Scales, DATA_W, DATA_H, DATA_D, CUBIC);
+				TransformVolume(d_Original_Aligned_Volume, h_Registration_Parameters_Align_Two_Volumes_Several_Scales, DATA_W, DATA_H, DATA_D, LINEAR);
 			}
 		}		
 	}	
@@ -2592,12 +2938,14 @@ void BROCCOLI_LIB::AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D)
 	d_h_Vector_1D_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), NULL, &createBufferErrorHVector1DValues);
 
 	// Allocate constant memory
+	
 	c_Quadrature_Filter_1_Real = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter1Real);
 	c_Quadrature_Filter_1_Imag = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter1Imag);
 	c_Quadrature_Filter_2_Real = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter2Real);
 	c_Quadrature_Filter_2_Imag = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter2Imag);
 	c_Quadrature_Filter_3_Real = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter3Real);
 	c_Quadrature_Filter_3_Imag = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter3Imag);	
+		
 	c_Registration_Parameters = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), NULL, &createBufferErrorRegistrationParameters);
 
 	// Set all kernel arguments
@@ -2944,12 +3292,14 @@ void BROCCOLI_LIB::AlignTwoVolumesCleanup()
 	clReleaseMemObject(d_h_Vector_2D_Values);
 	clReleaseMemObject(d_h_Vector_1D_Values);
 
+	
 	clReleaseMemObject(c_Quadrature_Filter_1_Real);
 	clReleaseMemObject(c_Quadrature_Filter_1_Imag);
 	clReleaseMemObject(c_Quadrature_Filter_2_Real);
 	clReleaseMemObject(c_Quadrature_Filter_2_Imag);
 	clReleaseMemObject(c_Quadrature_Filter_3_Real);
 	clReleaseMemObject(c_Quadrature_Filter_3_Imag);
+	
 	clReleaseMemObject(c_Registration_Parameters);	
 }
 
@@ -3139,7 +3489,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 
 	SetGlobalAndLocalWorkSizesRescaleVolume(T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
 
-	/*
+	
 	clSetKernelArg(RescaleVolumeLinearKernel, 0, sizeof(cl_mem), &d_Interpolated_T1_Volume);
 	clSetKernelArg(RescaleVolumeLinearKernel, 1, sizeof(cl_mem), &d_T1_Volume_Texture);
 	clSetKernelArg(RescaleVolumeLinearKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -3152,9 +3502,9 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	// Interpolate T1 volume to the same voxel size as the MNI volume
 	runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
 	clFinish(commandQueue);			
-	*/
-
 	
+
+	/*
 	clSetKernelArg(RescaleVolumeCubicKernel, 0, sizeof(cl_mem), &d_Interpolated_T1_Volume);
 	clSetKernelArg(RescaleVolumeCubicKernel, 1, sizeof(cl_mem), &d_T1_Volume_Texture);
 	clSetKernelArg(RescaleVolumeCubicKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -3167,7 +3517,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	// Interpolate T1 volume to the same voxel size as the MNI volume
 	runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
 	clFinish(commandQueue);			
-	
+	*/
 
 
 	// Now make sure that the interpolated T1 volume has the same number of voxels as the MNI volume in each direction
@@ -3181,7 +3531,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	// Make an initial move to MNI size
 	SetGlobalAndLocalWorkSizesCopyVolumeToNew(mymax(MNI_DATA_W,T1_DATA_W_INTERPOLATED),mymax(MNI_DATA_H,T1_DATA_H_INTERPOLATED),mymax(MNI_DATA_D,T1_DATA_D_INTERPOLATED));
 
-	int MM_T1_Z_CUT_ = MM_T1_Z_CUT * (int)MNI_VOXEL_SIZE_X;
+	int MM_T1_Z_CUT_ = MM_T1_Z_CUT / (int)MNI_VOXEL_SIZE_X;
 
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 0, sizeof(cl_mem), &d_MNI_T1_Volume);
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 1, sizeof(cl_mem), &d_Interpolated_T1_Volume);
@@ -3202,7 +3552,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	
 	// Check where the top of the brain is in the moved T1 volume
 	int top_slice;
-	CalculateTopBrainSlice(top_slice, d_MNI_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, MM_T1_Z_CUT);
+	CalculateTopBrainSlice(top_slice, d_MNI_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, MM_T1_Z_CUT_);
 	
 	int diff;
 	if (MNI_VOXEL_SIZE_X == 1.0f)
@@ -3228,8 +3578,8 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 		//}
     }
 
-	// Make final move to MNI size
-	MM_T1_Z_CUT_ = MM_T1_Z_CUT * (int)MNI_VOXEL_SIZE_X + (int)round((float)diff/2.0);
+	// Make final move to MNI size, only move half the distance since T1 brains normally are smaller than the MNI brain
+	MM_T1_Z_CUT_ = MM_T1_Z_CUT / (int)MNI_VOXEL_SIZE_X + (int)round((float)diff/1.5f);
 
 	//*h_Top_Slice = top_slice;
 	//*h_Top_Slice = MM_T1_Z_CUT;
@@ -3250,7 +3600,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 8, sizeof(int), &x_diff);
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 9, sizeof(int), &y_diff);
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 10, sizeof(int), &z_diff);
-	clSetKernelArg(CopyT1VolumeToMNIKernel, 11, sizeof(int), &MM_T1_Z_CUT);
+	clSetKernelArg(CopyT1VolumeToMNIKernel, 11, sizeof(int), &MM_T1_Z_CUT_); // ? streck eller inte?
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 12, sizeof(float), &MNI_VOXEL_SIZE_Z);
 	
 	runKernelErrorCopyVolume = clEnqueueNDRangeKernel(commandQueue, CopyT1VolumeToMNIKernel, 3, NULL, globalWorkSizeCopyVolumeToNew, localWorkSizeCopyVolumeToNew, 0, NULL, NULL);
@@ -3340,7 +3690,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	// Make move to MNI size
 	SetGlobalAndLocalWorkSizesCopyVolumeToNew(mymax(MNI_DATA_W,T1_DATA_W_INTERPOLATED),mymax(MNI_DATA_H,T1_DATA_H_INTERPOLATED),mymax(MNI_DATA_D,T1_DATA_D_INTERPOLATED));
 
-	MM_T1_Z_CUT = INITIAL_MM_T1_Z_CUT * (int)MNI_VOXEL_SIZE_X;
+	MM_T1_Z_CUT = INITIAL_MM_T1_Z_CUT / (int)MNI_VOXEL_SIZE_X;
 
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 0, sizeof(cl_mem), &d_MNI_T1_Volume);
 	clSetKernelArg(CopyT1VolumeToMNIKernel, 1, sizeof(cl_mem), &d_Interpolated_T1_Volume);
@@ -3512,6 +3862,10 @@ void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_
 	free(h_Derivatives);
 }
 
+
+
+
+
 void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z)
 {	
 	// Calculate volume size for the same voxel size
@@ -3539,7 +3893,7 @@ void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_m
 
 	SetGlobalAndLocalWorkSizesRescaleVolume(EPI_DATA_W_INTERPOLATED, EPI_DATA_H_INTERPOLATED, EPI_DATA_D_INTERPOLATED);
 
-	/*
+	
 	clSetKernelArg(RescaleVolumeLinearKernel, 0, sizeof(cl_mem), &d_Interpolated_EPI_Volume);
 	clSetKernelArg(RescaleVolumeLinearKernel, 1, sizeof(cl_mem), &d_EPI_Volume_Texture);
 	clSetKernelArg(RescaleVolumeLinearKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -3552,9 +3906,9 @@ void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_m
 	// Interpolate EPI volume to the same voxel size as the new volume
 	runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
 	clFinish(commandQueue);	
-	*/
-
 	
+
+	/*
 	clSetKernelArg(RescaleVolumeCubicKernel, 0, sizeof(cl_mem), &d_Interpolated_EPI_Volume);
 	clSetKernelArg(RescaleVolumeCubicKernel, 1, sizeof(cl_mem), &d_EPI_Volume_Texture);
 	clSetKernelArg(RescaleVolumeCubicKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -3567,7 +3921,7 @@ void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_m
 	// Interpolate EPI volume to the same voxel size as the new volume
 	runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
 	clFinish(commandQueue);	
-	
+	*/
 
 	// Now make sure that the interpolated T1 volume has the same number of voxels as the MNI volume in each direction
 	int x_diff = EPI_DATA_W_INTERPOLATED - T1_DATA_W;
@@ -3624,7 +3978,7 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d
 
 	SetGlobalAndLocalWorkSizesCopyVolumeToNew(mymax(NEW_DATA_W,DATA_W_INTERPOLATED),mymax(NEW_DATA_H,DATA_H_INTERPOLATED),mymax(NEW_DATA_D,DATA_D_INTERPOLATED));
 		
-	/*
+	
 	clSetKernelArg(RescaleVolumeLinearKernel, 0, sizeof(cl_mem), &d_Interpolated_Volume);
 	clSetKernelArg(RescaleVolumeLinearKernel, 1, sizeof(cl_mem), &d_Volume_Texture);
 	clSetKernelArg(RescaleVolumeLinearKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -3633,9 +3987,9 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d
 	clSetKernelArg(RescaleVolumeLinearKernel, 5, sizeof(int), &DATA_W_INTERPOLATED);
 	clSetKernelArg(RescaleVolumeLinearKernel, 6, sizeof(int), &DATA_H_INTERPOLATED);
 	clSetKernelArg(RescaleVolumeLinearKernel, 7, sizeof(int), &DATA_D_INTERPOLATED);		
-	*/
-
 	
+
+	/*
 	clSetKernelArg(RescaleVolumeCubicKernel, 0, sizeof(cl_mem), &d_Interpolated_Volume);
 	clSetKernelArg(RescaleVolumeCubicKernel, 1, sizeof(cl_mem), &d_Volume_Texture);
 	clSetKernelArg(RescaleVolumeCubicKernel, 2, sizeof(float), &VOXEL_DIFFERENCE_X);
@@ -3644,7 +3998,7 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d
 	clSetKernelArg(RescaleVolumeCubicKernel, 5, sizeof(int), &DATA_W_INTERPOLATED);
 	clSetKernelArg(RescaleVolumeCubicKernel, 6, sizeof(int), &DATA_H_INTERPOLATED);
 	clSetKernelArg(RescaleVolumeCubicKernel, 7, sizeof(int), &DATA_D_INTERPOLATED);		
-	
+	*/
 
 
 	// Make sure that the interpolated EPI volume has the same number of voxels as the new volume in each direction
@@ -3663,7 +4017,8 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d
 	clSetKernelArg(CopyVolumeToNewKernel, 8, sizeof(int), &x_diff);
 	clSetKernelArg(CopyVolumeToNewKernel, 9, sizeof(int), &y_diff);
 	clSetKernelArg(CopyVolumeToNewKernel, 10, sizeof(int), &z_diff);
-	clSetKernelArg(CopyVolumeToNewKernel, 11, sizeof(int), &MM_Z_CUT);
+	//clSetKernelArg(CopyVolumeToNewKernel, 11, sizeof(int), &MM_Z_CUT);
+	clSetKernelArg(CopyVolumeToNewKernel, 11, sizeof(int), &MM_EPI_Z_CUT);
 	clSetKernelArg(CopyVolumeToNewKernel, 12, sizeof(float), &NEW_VOXEL_SIZE_Z);
 	
 	// Set all values to zero
@@ -3677,8 +4032,8 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d
 		clEnqueueCopyBufferToImage(commandQueue, d_Volumes, d_Volume_Texture, volume * DATA_W * DATA_H * DATA_D * sizeof(float), origin, region, 0, NULL, NULL);
 		
 		// Rescale current volume to the same voxel size as the new volume
-		//runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
+		//runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
 		clFinish(commandQueue);	
 		
 		clSetKernelArg(CopyVolumeToNewKernel, 13, sizeof(int), &volume);
@@ -4094,6 +4449,7 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1()
 
 void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 {
+	
 	// Allocate memory for T1 volume, MNI volume and T1 volume of MNI size
 	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
 	d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
@@ -4108,12 +4464,10 @@ void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 	
 	// Copy the MNI T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
-
+	
 	// Do the registration between T1 and MNI with several scales
-	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE);	
-	//AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE);	
-	//AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE);	
-
+	AlignTwoVolumesSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE);		
+	
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
 				
@@ -4144,7 +4498,7 @@ void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 	clReleaseMemObject(d_MNI_Volume);
 	clReleaseMemObject(d_MNI_T1_Volume);
 	clReleaseMemObject(d_Skullstripped_T1_Volume);
-	clReleaseMemObject(d_MNI_Brain_Mask);
+	clReleaseMemObject(d_MNI_Brain_Mask);		
 }
 
 // Performs registration between one high resolution T1 volume and a high resolution MNI volume (brain template)
@@ -4447,17 +4801,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(c_Smoothing_Filter_Y);
 	clReleaseMemObject(c_Smoothing_Filter_Z);
 
-	// Allocate memory on device
-	d_Beta_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
-	d_Statistical_Maps_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
-	d_Residual_Variances_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorResidualVariancesMNI);
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_MNI,h_Registration_Parameters_EPI_T1_Affine,h_Registration_Parameters_T1_MNI);
+
 	
-
-	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
-
-
-	TransformFirstLevelResultsToMNI();
-
 	h_Registration_Parameters_EPI_MNI_Out[0] = h_Registration_Parameters_EPI_MNI[0];
 	h_Registration_Parameters_EPI_MNI_Out[1] = h_Registration_Parameters_EPI_MNI[1];
 	h_Registration_Parameters_EPI_MNI_Out[2] = h_Registration_Parameters_EPI_MNI[2];
@@ -4472,13 +4818,32 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_Registration_Parameters_EPI_MNI_Out[11] = h_Registration_Parameters_EPI_MNI[11];
 
 	// Copy data to host
-	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
-	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);	
-	clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);	
-	//clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
-	//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	if (BETA_SPACE == MNI)
+	{
+		// Allocate memory on device
+		d_Beta_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
+		d_Statistical_Maps_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
+		d_Residual_Variances_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorResidualVariancesMNI);
+	
+		clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+		TransformFirstLevelResultsToMNI();
+
+		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);	
+
+		clReleaseMemObject(d_Beta_Volumes_MNI);
+		clReleaseMemObject(d_Statistical_Maps_MNI);
+		clReleaseMemObject(d_Residual_Variances_MNI);
+	}
+	else if (BETA_SPACE == EPI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+		//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);		
+	}
 
 	clReleaseMemObject(d_MNI_Brain_Mask);
 
@@ -4502,40 +4867,26 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_Residuals);
 	clReleaseMemObject(d_Residual_Variances);
 
-	clReleaseMemObject(d_Beta_Volumes_MNI);
-	clReleaseMemObject(d_Statistical_Maps_MNI);
-	clReleaseMemObject(d_Residual_Variances_MNI);
+	
 
 	//CalculateSlicesPreprocessedfMRIData();
 }
 
 void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 {
-	// Calculate transformation parameters for EPI -> MNI
-	
-	/*
-	for (int p = 0; p < 12; p++)
-	{
-		h_Registration_Parameters_EPI_MNI[p] = h_Registration_Parameters_EPI_T1_Affine[p] + h_Registration_Parameters_T1_MNI[p]; 
-	}
-	*/
-
-	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_MNI,h_Registration_Parameters_EPI_T1_Affine,h_Registration_Parameters_T1_MNI);
-
-		
 	ChangeVolumesResolutionAndSize(d_Beta_Volumes_MNI, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_REGRESSORS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT);       				
-	TransformVolumes(d_Beta_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_REGRESSORS, CUBIC);	
+	TransformVolumes(d_Beta_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_REGRESSORS, LINEAR);	
 
 	ChangeVolumesResolutionAndSize(d_Statistical_Maps_MNI, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT);       				
-	TransformVolumes(d_Statistical_Maps_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, CUBIC);	
+	TransformVolumes(d_Statistical_Maps_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, LINEAR);	
 
 	ChangeVolumesResolutionAndSize(d_Residual_Variances_MNI, d_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT);       				
-	TransformVolumes(d_Residual_Variances_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, CUBIC);	
+	TransformVolumes(d_Residual_Variances_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, LINEAR);	
 
-
-	/*
+	
 	SetGlobalAndLocalWorkSizesMultiplyVolumes(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
+	/*
 	for (int volume = 0; volume < NUMBER_OF_REGRESSORS; volume++)
 	{
 		clSetKernelArg(MultiplyVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Beta_Volumes_MNI);
@@ -4548,6 +4899,7 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 		runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
 		clFinish(commandQueue);	
 	}
+	*/
 
 	for (int volume = 0; volume < NUMBER_OF_CONTRASTS; volume++)
 	{
@@ -4561,7 +4913,7 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 		runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
 		clFinish(commandQueue);	
 	}
-	*/
+	
 	
 }
 
@@ -4773,7 +5125,7 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 	}
 	
 	// Copy result back to host
-	clEnqueueReadBuffer(commandQueue, d_Smoothed_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Result, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Smoothed_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Smoothed_fMRI_Volumes, 0, NULL, NULL);
 	
 	// Free memory
 	clReleaseMemObject(d_Convolved_Rows);

@@ -35,12 +35,14 @@ mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDI
 
 basepath = 'D:\BROCCOLI_test_data\';
 %study = 'OpenfMRI';
-study = 'Beijing';
+%study = 'Beijing';
+study = 'Cambridge';
 substudy = 'Mixed'
-subject = 1;
+subject = 2;
 voxel_size = 2;
 opencl_platform = 0;
-opencl_device = 0;
+opencl_device = 2;
+beta_space = 0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -213,14 +215,17 @@ end
 %%
 
 
+
 tic
 [beta_volumes, residuals, residual_variances, statistical_maps, T1_MNI_registration_parameters, EPI_T1_registration_parameters, ...
-EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl, ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
+ EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl ...
+ ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
 T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
 coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z, ...
-X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,opencl_platform,opencl_device);
+X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform,opencl_device);
 toc
+
 
 T1_MNI_registration_parameters
 
@@ -294,7 +299,7 @@ imagesc([smoothed_volumes_cpu(:,:,slice,2) - smoothed_volumes_opencl(:,:,slice,2
 title('SM cpu - gpu')
 
 figure
-imagesc(beta_volumes(:,:,slice,2)); colorbar
+imagesc(beta_volumes(:,:,slice,1)); colorbar
 title('Beta')
 
 figure

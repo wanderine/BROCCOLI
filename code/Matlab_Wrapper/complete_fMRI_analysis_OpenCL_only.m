@@ -35,16 +35,16 @@ addpath('D:\BROCCOLI_test_data')
 mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
 basepath = 'D:\BROCCOLI_test_data\';
-study = 'Oulu';
+%study = 'Oulu';
 %study = 'ICBM';
-%study = 'Cambridge';
+study = 'Cambridge';
 %study = 'Beijing';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
-subject = 3;
+subject = 2;
 voxel_size = 2;
 beta_space = 1;
-opencl_platform = 0;
+opencl_platform = 2;
 opencl_device = 0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
@@ -123,7 +123,7 @@ load filters.mat
 
 %%
 % Create smoothing filters
-smoothing_filter_x = fspecial('gaussian',9,0.01);
+smoothing_filter_x = fspecial('gaussian',9,1.01);
 smoothing_filter_x = smoothing_filter_x(:,5);
 smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
 smoothing_filter_y = smoothing_filter_x;
@@ -176,7 +176,7 @@ tic
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
 T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
 coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z, ...
-X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform, opencl_device);
+X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform,opencl_device);
 toc
 
 T1_MNI_registration_parameters

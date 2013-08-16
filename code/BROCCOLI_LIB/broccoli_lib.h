@@ -29,8 +29,6 @@
 #include "nifti1.h"
 #include "nifti1_io.h"
 
-//#include <vector_types.h>
-
 #include <opencl.h>
 
 #include <string>
@@ -41,6 +39,9 @@
 typedef unsigned int uint;
 typedef unsigned char uchar;
 typedef unsigned short int uint16;
+
+#define EPI 0
+#define MNI 1
 
 #define CCA 0
 #define GLM 1
@@ -160,6 +161,9 @@ typedef unsigned short int uint16;
 #define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D 90
 #define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D 58
 
+#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_AMD 122
+#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_AMD 58
+
 #define TRANSLATION 0
 #define RIGID 1
 #define AFFINE 2
@@ -175,13 +179,19 @@ typedef unsigned short int uint16;
 
 #define INITIAL_MM_T1_Z_CUT 15
 
+#define SUCCESS 0
+
+#define NVIDIA 0
+#define INTEL 1
+#define AMD 2
+
 class BROCCOLI_LIB
 {
 	public:
 
 		// Constructor & destructor
 		BROCCOLI_LIB();
-		BROCCOLI_LIB(cl_uint OPENCL_PLATFORM);
+		BROCCOLI_LIB(cl_uint platform, cl_uint device);
 		~BROCCOLI_LIB();
 
 		// Set functions for GUI / Wrappers
@@ -208,6 +218,7 @@ class BROCCOLI_LIB
 		void SetInputT1Volume(float* input);
 		void SetInputMNIVolume(float* input);
 		void SetInputMNIBrainMask(float* input);
+
 		void SetOutputBetaVolumes(float* output);
 		void SetOutputResiduals(float* output);
 		void SetOutputResidualVariances(float* output);
@@ -231,6 +242,7 @@ class BROCCOLI_LIB
 		void SetOutputAREstimates(float*, float*, float*, float*);
 		void SetOutputSliceSums(float*);
 		void SetOutputTopSlice(float*);
+		void SetBetaSpace(int space);
 		
 		void SetfMRIDataFilename(std::string filename);
 			
@@ -291,9 +303,18 @@ class BROCCOLI_LIB
 		std::string GetOpenCLBuildInfoString();
 
 		int GetOpenCLError();
-		int GetOpenCLCreateKernelError();
+		int* GetOpenCLCreateKernelErrors();
 		int* GetOpenCLCreateBufferErrors();
 		int* GetOpenCLRunKernelErrors();
+
+		int GetOpenCLPlatformIDsError();
+		int GetOpenCLDeviceIDsError();		
+		int GetOpenCLCreateContextError();
+		int GetOpenCLContextInfoError();
+		int GetOpenCLCreateCommandQueueError();
+		int GetOpenCLCreateProgramError();
+		int GetOpenCLBuildProgramError();
+		int GetOpenCLProgramBuildInfoError();
 
 		double GetProcessingTimeSliceTimingCorrection();
 		double GetProcessingTimeMotionCorrection();
@@ -421,7 +442,7 @@ class BROCCOLI_LIB
 		void CalculateSlicesActivityData();
 
 		void GetOpenCLInfo();
-		void OpenCLInitiate(cl_uint OPENCL_PLATFORM);
+		void OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
 		void OpenCLTest();
 
 		void ChangeT1VolumeResolutionAndSizeWrapper();
@@ -433,7 +454,7 @@ class BROCCOLI_LIB
 
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryDouble(cl_mem memory, double value, int N);
-		void SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);		
 		void SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D);
@@ -538,6 +559,8 @@ class BROCCOLI_LIB
 
 		// OpenCL
 
+		int VENDOR;
+
 		cl_context context;
 		cl_command_queue commandQueue;
 		cl_program program;
@@ -548,6 +571,15 @@ class BROCCOLI_LIB
 		
 		cl_uint OPENCL_PLATFORM;
 		int OPENCL_INITIATED;
+
+		cl_int getPlatformIDsError;
+		cl_int getDeviceIDsError;		
+		cl_int createContextError;
+		cl_int getContextInfoError;
+		cl_int createCommandQueueError;
+		cl_int createProgramError;
+		cl_int buildProgramError;
+		cl_int getProgramBuildInfoError;
 
 		// OpenCL kernels
 
@@ -626,6 +658,7 @@ class BROCCOLI_LIB
 
 		int OpenCLCreateBufferErrors[50];
 		int OpenCLRunKernelErrors[50];
+		int OpenCLCreateKernelErrors[50];
 
 		double convolution_time;
 		cl_event event;
@@ -709,6 +742,7 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeGeneratePermutedfMRIVolumesAR4[3];
 
 		// General
+		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
 		nifti_image *nifti_data;
 
@@ -903,6 +937,8 @@ class BROCCOLI_LIB
 		cl_mem      d_q11_Imag, d_q12_Imag, d_q13_Imag, d_q21_Imag, d_q22_Imag, d_q23_Imag;
 		cl_mem		c_Quadrature_Filter_1_Real, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_3_Real;
 		cl_mem		c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Imag;
+		cl_mem		c_Quadrature_Filter_1_Real_AMD, c_Quadrature_Filter_2_Real_AMD, c_Quadrature_Filter_3_Real_AMD;
+		cl_mem		c_Quadrature_Filter_1_Imag_AMD, c_Quadrature_Filter_2_Imag_AMD, c_Quadrature_Filter_3_Imag_AMD;
 		cl_mem		c_Registration_Parameters;
 	
 		// Motion correction

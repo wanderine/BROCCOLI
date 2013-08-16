@@ -37,12 +37,12 @@ mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA'
 
 %filename = '../../test_data/msit_1.6mm_1.nii';
 
-%load ../../test_data/hand_movements_right.mat
-%fMRI_volumes = vol_exp;
+load ../../test_data/hand_movements_right.mat
+fMRI_volumes = vol_exp;
 
-subject = 21;
-EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
-fMRI_volumes = double(EPI_nii.img);
+%subject = 21;
+%EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
+%fMRI_volumes = double(EPI_nii.img);
 fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
 %fMRI_volumes = fMRI_volumes(:,:,1:22,:);
 
@@ -50,7 +50,8 @@ reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
 number_of_iterations_for_motion_correction = 5;
 load filters.mat
-opencl_platform = 0;
+opencl_platform = 2;
+opencl_device = 0;
 
 
 %%
@@ -151,7 +152,7 @@ fMRI_volumes = generated_fMRI_volumes;
 [motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
 
 tic
-[motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = MotionCorrection(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction,opencl_platform);
+[motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = MotionCorrection(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction,opencl_platform,opencl_device);
 toc
 
 quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1,'same');

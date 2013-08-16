@@ -32,7 +32,8 @@ close all
 
 mex -g Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-opencl_platform = 1;
+opencl_platform = 2;
+opencl_device = 0;
 
 %fMRI_volumes = randn(69,123,33,100);
 load ../../test_data/hand_movements_right.mat
@@ -74,7 +75,7 @@ for t = 1:size(fMRI_volumes,4)
 end
 
 tic
-smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z,opencl_platform);
+smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z,opencl_platform,opencl_device);
 toc
 
 figure
