@@ -201,6 +201,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.PerformSmoothingWrapper();
     }
     
+    int programBinarySize = BROCCOLI.GetProgramBinarySize();
+    int writtenElements = BROCCOLI.GetWrittenElements();
+    
+    mexPrintf("Program size is %i and written elements are %i \n", programBinarySize,writtenElements);  
     
     unpack_float2double_volumes(h_Filter_Response_double, h_Filter_Response, DATA_W, DATA_H, DATA_D, DATA_T);
         

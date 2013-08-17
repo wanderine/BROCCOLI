@@ -297,6 +297,9 @@ class BROCCOLI_LIB
 
 		// Get functions for GUI / Wrappers
 		
+		int GetProgramBinarySize();
+		int GetWrittenElements();
+
 		const char* GetOpenCLDeviceInfoChar();
 		const char* GetOpenCLBuildInfoChar();
 		
@@ -453,6 +456,10 @@ class BROCCOLI_LIB
 
 	private:
 
+		size_t programBinarySize, writtenElements;
+		std::string binaryFilename;
+		cl_int CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, const char* filename);
+		bool SaveProgramBinary(cl_program program, cl_device_id device, const char* filename);
 
 		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z);
 

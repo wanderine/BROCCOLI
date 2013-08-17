@@ -133,6 +133,9 @@ BROCCOLI_LIB::~BROCCOLI_LIB()
 
 void BROCCOLI_LIB::SetStartValues()
 {
+	programBinarySize = 0;
+	writtenElements = 0;
+
 	BETA_SPACE = EPI;
 
 	FILE_TYPE = RAW;
@@ -480,6 +483,15 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 			device_info.append("\n");
 			free(value);
             
+			// Get device extensions
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_EXTENSIONS, 0, NULL, &valueSize);
+			value = (char*) malloc(valueSize);
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_EXTENSIONS, valueSize, value, NULL);            
+			device_info.append("Device extensions: ");
+			device_info.append(value);
+			device_info.append("\n");
+			free(value);
+
 			// Get global memory size
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
 			device_info.append("Global memory size in MB: ");
@@ -489,6 +501,15 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 			device_info.append(temp_stream.str());
 			device_info.append("\n");
             
+			// Get global memory cache size
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(memorySize), &memorySize, NULL);            
+			device_info.append("Global memory cache size in KB: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << memorySize/ (1024);            
+			device_info.append(temp_stream.str());
+			device_info.append("\n");            			
+
 			// Get local (shared) memory size
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
 			device_info.append("Local memory size in KB: ");
@@ -552,8 +573,133 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 	}
 }
 
-// Add compilation from binary
-// Add to select CPU or GPU
+cl_int BROCCOLI_LIB::CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, const char* filename)
+{
+	FILE* fp = fopen(filename, "rb");
+	if (fp == NULL)
+	{
+		program = NULL;
+		return -1;
+	}
+
+	// Determine the size of the binary
+	size_t binarySize;
+	fseek(fp, 0, SEEK_END);
+	binarySize = ftell(fp);
+	rewind(fp);
+
+	// Load binary from disk
+	unsigned char* programBinary = new unsigned char[binarySize];
+	fread(programBinary, 1, binarySize, fp);
+	fclose(fp);
+
+	cl_int binaryStatus;
+
+	program = clCreateProgramWithBinary(context, 1, &device, &binarySize, (const unsigned char**)&programBinary, &binaryStatus, &error);
+	delete [] programBinary;
+
+	if (binaryStatus != SUCCESS)
+	{
+		program = NULL;
+		return binaryStatus;
+	}	
+
+	if (error != SUCCESS)
+	{
+		program = NULL;
+		return error;
+	}
+	else
+	{
+		return error;
+	}	
+}
+
+bool BROCCOLI_LIB::SaveProgramBinary(cl_program program, cl_device_id device, const char* filename)
+{
+	// Get number of devices for program
+	cl_uint numDevices = 0;
+	error = clGetProgramInfo(program, CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &numDevices, NULL);
+
+	if (error != SUCCESS)
+	{
+		return false;
+	}
+
+	// Get device IDs
+	cl_device_id* devices = new cl_device_id[numDevices];
+	error = clGetProgramInfo(program, CL_PROGRAM_DEVICES, sizeof(cl_device_id) * numDevices, devices, NULL);
+
+	if (error != SUCCESS)
+	{
+		delete [] devices;
+		return false;
+	}
+
+	// Get size of each program binary
+	size_t* programBinarySizes = new size_t[numDevices];
+	error = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t) * numDevices, programBinarySizes, NULL);
+
+	if (error != SUCCESS)
+	{
+		delete [] devices;
+		delete [] programBinarySizes;
+		return false;
+	}
+
+	// Allocate temporar memory
+	unsigned char** programBinaries = new unsigned char*[numDevices];
+	
+	for (cl_uint i = 0; i < numDevices; i++)
+	{
+		programBinaries[i] = new unsigned char[programBinarySizes[i]];
+	}
+
+	// Get all program binaries
+	error = clGetProgramInfo(program, CL_PROGRAM_BINARIES, sizeof(unsigned char*) * numDevices, programBinaries, NULL);
+
+	if (error != SUCCESS)
+	{
+		delete [] devices;
+		delete [] programBinarySizes;
+		for (cl_uint i = 0; i < numDevices; i++)
+		{
+			delete [] programBinaries[i];
+		}
+		delete [] programBinaries;
+		return false;
+	}
+
+	for (cl_uint i = 0; i < numDevices; i++)
+	{
+		if (devices[i] == device)
+		{
+			FILE* fp = fopen(filename, "wb");
+			if (fp != NULL)
+			{
+				programBinarySize = programBinarySizes[i];
+				writtenElements = fwrite(programBinaries[i], 1, programBinarySizes[i], fp);
+				fclose(fp);
+				break;				
+			}
+			else
+			{
+				return false;
+			}
+		}
+	}
+
+	delete [] devices;
+	delete [] programBinarySizes;
+	for (cl_uint i = 0; i < numDevices; i++)
+	{
+		delete [] programBinaries[i];
+	}
+	delete [] programBinaries;
+	return true;
+}
+
+
 
 void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE)
 {
@@ -584,7 +730,7 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	
 			if (getDeviceIDsError == SUCCESS)
 			{	
-				std::vector<cl_device_id> deviceIds (deviceIdCount);
+				std::vector<cl_device_id> deviceIds(deviceIdCount);
 				getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
 
 				if (getDeviceIDsError == SUCCESS)
@@ -601,10 +747,7 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 							getContextInfoError = clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
 
 							if (getContextInfoError == SUCCESS)
-							{
-								// Create a command queue
-								commandQueue = clCreateCommandQueue(context, deviceIds[OPENCL_DEVICE], CL_QUEUE_PROFILING_ENABLE, &createCommandQueueError);
-
+							{								
 								// Get vendor name
 								clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
 								value = (char*) malloc(valueSize);
@@ -618,34 +761,53 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 								if (npos != std::string::npos)
 								{
 									VENDOR = NVIDIA;
+									binaryFilename = "broccoli_lib_kernel_Nvidia.bin";
 								}
 								else if (ipos != std::string::npos)
 								{
 									VENDOR = INTEL;
+									binaryFilename = "broccoli_lib_kernel_Intel.bin";
 								}
 								else if (apos != std::string::npos)
 								{
 									VENDOR = AMD;
+									binaryFilename = "broccoli_lib_kernel_AMD.bin";
 								}
 								
 								free(value);
 								
+								// Create a command queue
+								commandQueue = clCreateCommandQueue(context, deviceIds[OPENCL_DEVICE], CL_QUEUE_PROFILING_ENABLE, &createCommandQueueError);
+
 								if (createCommandQueueError == SUCCESS)
 								{	
-									// Read the kernel code from file
-									std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
-									std::ostringstream oss;
-									oss << kernelFile.rdbuf();
-									std::string src = oss.str();
-									const char *srcstr = src.c_str();
-	
-									// Create a program and build the code
-									program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);	
+									// First try to compile from binary file
+									createProgramError = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryFilename.c_str());									
+									buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
 
-									if (createProgramError == SUCCESS)
-									{		
+									// Otherwise compile from source code
+									if (buildProgramError != SUCCESS)
+									{
+										// Read the kernel code from file
+										std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
+										std::ostringstream oss;
+										oss << kernelFile.rdbuf();
+										std::string src = oss.str();
+										const char *srcstr = src.c_str();
+	
+										// Create a program and build the code
+										program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);																					
 										buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
 
+										// Save to binary file
+										if (buildProgramError == SUCCESS)
+										{
+											SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename.c_str());
+										}
+									}
+									
+									if (buildProgramError == SUCCESS)
+									{												
 										// Get build info        
 										valueSize = 0;
 										getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);        
@@ -1710,6 +1872,16 @@ void BROCCOLI_LIB::SetSmoothingAmountAR(float mm)
 
 
 // Get functions for GUI / Wrappers
+
+int BROCCOLI_LIB::GetProgramBinarySize()
+{
+	return programBinarySize;
+}
+
+int BROCCOLI_LIB::GetWrittenElements()
+{
+	return writtenElements;
+}
 
 const char* BROCCOLI_LIB::GetOpenCLDeviceInfoChar()
 {

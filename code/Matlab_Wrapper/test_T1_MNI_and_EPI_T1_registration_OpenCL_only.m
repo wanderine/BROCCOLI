@@ -49,7 +49,7 @@ substudy = 'Mixed';
 %substudy = 'Balloon';
 subject = 2;
 voxel_size = 2;
-opencl_platform = 0;
+opencl_platform = 1;
 opencl_device = 0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
