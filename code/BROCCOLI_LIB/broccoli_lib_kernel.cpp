@@ -186,11 +186,10 @@ void GetParameterIndices(int* i, int* j, int parameter)
 
 
 
-__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __global const float* Certainty, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
-	//int z = get_local_size(2) * get_group_id(2) * 4 + get_local_id(2);	
 	int z = get_group_id(2) * VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_ROWS + get_local_id(2);
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
@@ -217,44 +216,44 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && (z < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 2,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 2,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 2,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 4,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 4,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 4,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 6,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 6,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 6,DATA_W, DATA_H)];
 	}
 
 	// Second half main data + lower apron
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && (z < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 2,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 2,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 2,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 4,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 4,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 4,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 6,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 6,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 6,DATA_W, DATA_H)];
 	}
 
 	// Make sure all threads have written to local memory
@@ -336,11 +335,10 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 	
 }
 
-__kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response, __global const float* Volume, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response, __global const float* Volume, __global const float* Certainty, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
-	//int z = get_local_size(2) * get_group_id(2) * 4 + get_local_id(2);
 	int z = get_group_id(2) * VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_ROWS + get_local_id(2);
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
@@ -376,84 +374,84 @@ __kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response, __glo
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && (z < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 1) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 1][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 1,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 1][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 1,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 1,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 2,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 2,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 2,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 3) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 3][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 3,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 3][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 3,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 3,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 4,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 4,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 4,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 5) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 5][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 5,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 5][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 5,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 5,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 6,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 6,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 6,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y - 4) >= 0) && ((y - 4) < DATA_H) && ((z + 7) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 7,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] = Volume[Calculate4DIndex(x,y - 4,z + 7,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y - 4,z + 7,DATA_W, DATA_H)];
 	}
 
 	// Second half main data + lower apron
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && (z < DATA_D) )
 	{
-		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 1) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 1][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 1,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 1][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 1,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 1,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 2) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 2,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 2][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 2,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 2,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 3) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 3][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 3,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 3][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 3,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 3,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 4) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 4,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 4][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 4,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 4,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 5) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 5][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 5,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 5][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 5,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 5,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 6) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 6,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 6][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 6,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 6,DATA_W, DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && ((z + 7) < DATA_D) )
 	{
-		l_Volume[tIdx.z + 7][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 7,t,DATA_W, DATA_H, DATA_D)];
+		l_Volume[tIdx.z + 7][tIdx.y + 8][tIdx.x] = Volume[Calculate4DIndex(x,y + 4,z + 7,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + 4,z + 7,DATA_W, DATA_H)];
 	}
 
 	// Make sure all threads have written to local memory
@@ -1230,7 +1228,7 @@ __kernel void SeparableConvolutionColumnsAMD(__global float *Filter_Response, __
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS 8
 
 
-__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global float* Volume, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global float* Volume, __global const float* Smoothed_Certainty, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	//int x = get_global_id(0);
 	//int y = get_local_size(1) * get_group_id(1) * 4 + get_local_id(1); 
@@ -1322,7 +1320,7 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 2) < DATA_H) && (z < DATA_D) )
@@ -1339,7 +1337,7 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 2,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 2,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 2,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && (z < DATA_D) )
@@ -1356,7 +1354,7 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 4,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 4,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 4,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 6) < DATA_H) && (z < DATA_D) )
@@ -1373,17 +1371,13 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 6,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 6,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 6,z,DATA_W,DATA_H)];
 	}
 }
 
 
-__kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __global float* Volume, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __global float* Volume, __global const float* Smoothed_Certainty, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
-	//int x = get_global_id(0);
-	//int y = get_local_size(1) * get_group_id(1) * 4 + get_local_id(1); 
-	//int z = get_global_id(2);
-
 	int x = get_global_id(0);
 	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS + get_local_id(1); 
 	int z = get_global_id(2);
@@ -1518,7 +1512,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 1) < DATA_H) && (z < DATA_D) )
@@ -1535,7 +1529,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 1][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 1][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 1,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 1,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 1,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 2) < DATA_H) && (z < DATA_D) )
@@ -1552,7 +1546,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 2][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 2,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 2,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 2,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 3) < DATA_H) && (z < DATA_D) )
@@ -1569,7 +1563,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 3][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 3][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 3,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 3,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 3,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 4) < DATA_H) && (z < DATA_D) )
@@ -1586,7 +1580,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 4][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 4,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 4,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 4,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 5) < DATA_H) && (z < DATA_D) )
@@ -1603,7 +1597,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 5][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 5][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 5,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 5,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 5,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 6) < DATA_H) && (z < DATA_D) )
@@ -1620,7 +1614,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 6][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 6,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 6,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 6,z,DATA_W,DATA_H)];
 	}
 
 	if ( (x < DATA_W) && ((y + 7) < DATA_H) && (z < DATA_D) )
@@ -1637,7 +1631,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __glo
 		sum += l_Volume[tIdx.z + 7][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Z[1];
 		sum += l_Volume[tIdx.z + 8][tIdx.y + 7][tIdx.x] * c_Smoothing_Filter_Z[0];
 
-		Filter_Response[Calculate4DIndex(x,y + 7,z,t,DATA_W,DATA_H,DATA_D)] = sum;
+		Filter_Response[Calculate4DIndex(x,y + 7,z,t,DATA_W,DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y + 7,z,DATA_W,DATA_H)];
 	}
 }
 

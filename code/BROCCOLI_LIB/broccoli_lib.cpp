@@ -1555,11 +1555,6 @@ void BROCCOLI_LIB::SetThresholdStatus(bool status)
 	THRESHOLD_ACTIVITY_MAP = status;
 }
 
-void BROCCOLI_LIB::SetSmoothingAmount(int amount)
-{
-	SMOOTHING_AMOUNT_MM = amount;
-	ReadSmoothingFilters();
-}
 
 void BROCCOLI_LIB::SetNumberOfBasisFunctionsDetrending(int N)
 {
@@ -1698,7 +1693,16 @@ void BROCCOLI_LIB::SetNumberOfPermutations(int value)
 }
 
 
+void BROCCOLI_LIB::SetSmoothingAmount(float mm)
+{
+	EPI_Smoothing_FWHM = mm;
+}
 
+void BROCCOLI_LIB::SetSmoothingAmountAR(float mm)
+{
+	AR_Smoothing_FWHM = mm;
+}
+		
 
 
 
@@ -4740,6 +4744,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
+	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+
 	// Allocate memory for smoothing filters
 	c_Smoothing_Filter_X = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
 	c_Smoothing_Filter_Y = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
@@ -5056,7 +5062,39 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 }
 
 
+void BROCCOLI_LIB::CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z)
+{
+	int halfSize = (size - 1) / 2;
+	double sigma_x = (double)smoothing_FWHM / 2.354 / voxel_size_x;
+	double sigma_y = (double)smoothing_FWHM / 2.354 / voxel_size_y;
+	double sigma_z = (double)smoothing_FWHM / 2.354 / voxel_size_z;
+    
+	double sigma_x2 = 2 * sigma_x * sigma_x;
+	double sigma_y2 = 2 * sigma_y * sigma_y;
+	double sigma_z2 = 2 * sigma_z * sigma_z;
 
+	float u, sumX, sumY, sumZ;
+	sumX = 0.0;
+	sumY = 0.0;
+	sumZ = 0.0;
+
+	for (int i = 0; i < size; i++) 
+	{
+		u = (float)(i - halfSize);
+		Smoothing_Filter_X[i] = expf(-powf(u,2) / sigma_x2);
+		Smoothing_Filter_Y[i] = expf(-powf(u,2) / sigma_y2);
+		Smoothing_Filter_Z[i] = expf(-powf(u,2) / sigma_z2);
+		sumX += Smoothing_Filter_X[i];
+		sumY += Smoothing_Filter_Y[i];
+		sumZ += Smoothing_Filter_Z[i];
+	}
+	for (int i = 0; i < size; i++) 
+	{
+		Smoothing_Filter_X[i] /= sumX;
+		Smoothing_Filter_Y[i] /= sumY;
+		Smoothing_Filter_Z[i] /= sumZ;
+	}
+}
 
 void BROCCOLI_LIB::PerformSmoothingWrapper()
 {
@@ -5070,6 +5108,12 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 	// Allocate memory for volumes
 	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+	
+	d_Certainty = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_Smoothed_Certainty = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	SetMemory(d_Certainty, 1.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
+	SetMemory(d_Smoothed_Certainty, 1.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
 
 	// Copy volumes to device
 	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
@@ -5077,6 +5121,8 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 	// Allocate temporary memory
 	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
 
 	// Copy smoothing filters to constant memory
 	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_X, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_X , 0, NULL, NULL);
@@ -5086,11 +5132,12 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 	// Set arguments for the kernels
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Y);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &EPI_DATA_W);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &EPI_DATA_H);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &EPI_DATA_D);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &EPI_DATA_T);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 8, sizeof(int), &EPI_DATA_T);
 
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Convolved_Columns);
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Convolved_Rows);
@@ -5102,16 +5149,17 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 
 	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Smoothed_fMRI_Volumes);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Z);
-    clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &EPI_DATA_W);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &EPI_DATA_H);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &EPI_DATA_D);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &EPI_DATA_T);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Smoothed_Certainty);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+    clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 8, sizeof(int), &EPI_DATA_T);
 
 	// Loop over volumes
 	for (int v = 0; v < EPI_DATA_T; v++)
 	{		
-		clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(int), &v);
+		clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &v);
 		kernel_error = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
 		clFinish(commandQueue);
 			
@@ -5119,7 +5167,7 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 		kernel_error = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionColumnsKernel, 3, NULL, globalWorkSizeSeparableConvolutionColumns, localWorkSizeSeparableConvolutionColumns, 0, NULL, NULL);
 		clFinish(commandQueue);
 		
-		clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(int), &v);
+		clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &v);
 		kernel_error = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
 		clFinish(commandQueue);	
 	}
@@ -5134,12 +5182,14 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 	clReleaseMemObject(d_fMRI_Volumes);
 	clReleaseMemObject(d_Smoothed_fMRI_Volumes);
 
+	clReleaseMemObject(d_Certainty);
+	clReleaseMemObject(d_Smoothed_Certainty);
+
 	clReleaseMemObject(c_Smoothing_Filter_X);
 	clReleaseMemObject(c_Smoothing_Filter_Y);
 	clReleaseMemObject(c_Smoothing_Filter_Z);
 }
 
-// Performs smoothing of a number of volumes
 void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	SetGlobalAndLocalWorkSizesSeparableConvolution(DATA_W,DATA_H,DATA_D);
@@ -5148,14 +5198,21 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes,
 	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
+	cl_mem d_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Smoothed_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+
+	SetMemory(d_Certainty, 1.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_Smoothed_Certainty, 1.0f, DATA_W * DATA_H * DATA_D);
+
 	// Set arguments for the kernels
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Y);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &DATA_W);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_H);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_D);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &DATA_T);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 8, sizeof(int), &DATA_T);
 
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Convolved_Columns);
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Convolved_Rows);
@@ -5167,17 +5224,17 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes,
 
 	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Smoothed_Volumes);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Z);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &DATA_W);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_H);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_D);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &DATA_T);
-
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Smoothed_Certainty);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 8, sizeof(int), &DATA_T);
 
 	// Loop over volumes
 	for (int v = 0; v < DATA_T; v++)
 	{
-		clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(int), &v);
+		clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &v);
 		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
 		clFinish(commandQueue);
 
@@ -5185,7 +5242,68 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes,
 		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionColumnsKernel, 3, NULL, globalWorkSizeSeparableConvolutionColumns, localWorkSizeSeparableConvolutionColumns, 0, NULL, NULL);
 		clFinish(commandQueue);
 	
-		clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(int), &v);
+		clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &v);
+		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+
+	// Free temporary memory
+	clReleaseMemObject(d_Convolved_Rows);
+	clReleaseMemObject(d_Convolved_Columns);
+
+	clReleaseMemObject(d_Certainty);
+	clReleaseMemObject(d_Smoothed_Certainty);
+}
+
+
+void BROCCOLI_LIB::PerformSmoothingNormalized(cl_mem d_Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+{
+	SetGlobalAndLocalWorkSizesSeparableConvolution(DATA_W,DATA_H,DATA_D);
+
+	// Allocate temporary memory
+	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+
+	// Set arguments for the kernels
+	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 8, sizeof(int), &DATA_T);
+
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_X);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 7, sizeof(int), &DATA_T);
+
+	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Smoothed_Volumes);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Smoothed_Certainty);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 8, sizeof(int), &DATA_T);
+
+
+	// Loop over volumes
+	for (int v = 0; v < DATA_T; v++)
+	{
+		clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &v);
+		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		clSetKernelArg(SeparableConvolutionColumnsKernel, 3, sizeof(int), &v);
+		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionColumnsKernel, 3, NULL, globalWorkSizeSeparableConvolutionColumns, localWorkSizeSeparableConvolutionColumns, 0, NULL, NULL);
+		clFinish(commandQueue);
+	
+		clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &v);
 		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
@@ -5204,9 +5322,16 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Volumes, cl_mem c_Smoothing_Filter_
 	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
+	cl_mem d_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Smoothed_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+
+	SetMemory(d_Certainty, 1.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_Smoothed_Certainty, 1.0f, DATA_W * DATA_H * DATA_D);
+
 	// Set arguments for the kernels
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Certainty);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_Y);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &DATA_W);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_H);
@@ -5229,7 +5354,6 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Volumes, cl_mem c_Smoothing_Filter_
 	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_D);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &DATA_T);
 
-
 	// Loop over volumes
 	for (int v = 0; v < DATA_T; v++)
 	{
@@ -5242,6 +5366,66 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Volumes, cl_mem c_Smoothing_Filter_
 		clFinish(commandQueue);
 	
 		clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(int), &v);
+		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+
+	// Free temporary memory
+	clReleaseMemObject(d_Convolved_Rows);
+	clReleaseMemObject(d_Convolved_Columns);
+
+	clReleaseMemObject(d_Certainty);
+	clReleaseMemObject(d_Smoothed_Certainty);
+}
+
+void BROCCOLI_LIB::PerformSmoothingNormalized(cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+{
+	SetGlobalAndLocalWorkSizesSeparableConvolution(DATA_W,DATA_H,DATA_D);
+
+	// Allocate temporary memory
+	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	
+	// Set arguments for the kernels
+	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 8, sizeof(int), &DATA_T);
+
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_X);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 4, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 5, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 6, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 7, sizeof(int), &DATA_T);
+
+	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Smoothed_Certainty);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 8, sizeof(int), &DATA_T);
+
+
+	// Loop over volumes
+	for (int v = 0; v < DATA_T; v++)
+	{
+		clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &v);
+		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		clSetKernelArg(SeparableConvolutionColumnsKernel, 3, sizeof(int), &v);
+		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionColumnsKernel, 3, NULL, globalWorkSizeSeparableConvolutionColumns, localWorkSizeSeparableConvolutionColumns, 0, NULL, NULL);
+		clFinish(commandQueue);
+	
+		clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &v);
 		clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}

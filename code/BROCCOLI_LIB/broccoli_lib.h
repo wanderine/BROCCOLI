@@ -204,6 +204,8 @@ class BROCCOLI_LIB
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
+		void SetSmoothingAmount(float);
+		void SetSmoothingAmountAR(float);
 		void SetImageRegistrationFilterSize(int N);
 		void SetImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
 		void SetNumberOfIterationsForImageRegistration(int N);
@@ -212,6 +214,7 @@ class BROCCOLI_LIB
 		void SetCoarsestScaleEPIT1(int N);
 		void SetMMT1ZCUT(int mm);
 		void SetMMEPIZCUT(int mm);
+
 
 		void SetInputfMRIVolumes(float* input);
 		void SetInputEPIVolume(float* input);
@@ -247,8 +250,6 @@ class BROCCOLI_LIB
 		void SetfMRIDataFilename(std::string filename);
 			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);		
-		void SetSmoothingAmount(int value);
-		void SetSmoothingDimensionality(int dimensionality);
 		void SetNumberOfBasisFunctionsDetrending(int N);
 		void SetAnalysisMethod(int method);
 		void SetWriteStatus(bool status);
@@ -402,7 +403,9 @@ class BROCCOLI_LIB
 		void PerformMotionCorrectionWrapper();		
 		void PerformDetrending();
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void PerformSmoothingNormalized(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothing(cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void PerformSmoothingNormalized(cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingWrapper();
 
 		// Processing
@@ -451,6 +454,7 @@ class BROCCOLI_LIB
 	private:
 
 
+		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z);
 
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryDouble(cl_mem memory, double value, int N);
@@ -800,6 +804,9 @@ class BROCCOLI_LIB
 		// Smoothing
 		int	SMOOTHING_FILTER_SIZE;
 		int	SMOOTHING_AMOUNT_MM;
+
+		float EPI_Smoothing_FWHM;
+		float AR_Smoothing_FWHM;
 			
 		double* smoothed_curve;
 
@@ -949,6 +956,7 @@ class BROCCOLI_LIB
 		cl_mem		d_EPI_Volume, d_T1_EPI_Volume;
 			
 		// Smoothing
+		cl_mem		d_Certainty;
 		cl_mem		d_Smoothed_Certainty;
 		cl_mem		d_Smoothed_fMRI_Volumes;
 		

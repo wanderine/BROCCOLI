@@ -36,7 +36,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double	        *h_Smoothing_Filter_X_double, *h_Smoothing_Filter_Y_double, *h_Smoothing_Filter_Z_double;
     float		    *h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;       
     
-    float           Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
+    float           Smoothing_FWHM;
     
     int             OPENCL_PLATFORM, OPENCL_DEVICE;
     
@@ -51,11 +51,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<10)
+    if(nrhs<7)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>10)
+    if(nrhs>7)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -76,11 +76,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Smoothing_Filter_Y_double = (double*)mxGetData(prhs[2]);
     h_Smoothing_Filter_Z_double = (double*)mxGetData(prhs[3]);
     EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[4]);
-    EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[5]);
-    EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[6]);
-    Smoothing_FWHM = (float)mxGetScalar(prhs[7]);
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[8]);
-    OPENCL_DEVICE  = (int)mxGetScalar(prhs[9]);
+    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[5]);
+    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[]);
+    Smoothing_FWHM = (float)mxGetScalar(prhs[4]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[5]);
+    OPENCL_DEVICE  = (int)mxGetScalar(prhs[6]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
@@ -137,9 +137,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetEPIHeight(DATA_H);
     BROCCOLI.SetEPIDepth(DATA_D);
     BROCCOLI.SetEPITimepoints(DATA_T);
-    BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
-    BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
-    BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Filter_Response);
     BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);

@@ -28,17 +28,27 @@ clear all
 clc
 close all
 
-%mex Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
+mex Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-mex -g Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
+%mex -g Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-opencl_platform = 2;
+smoothing_FWHM = 6.0;
+
+opencl_platform = 0;
 opencl_device = 0;
 
 %fMRI_volumes = randn(69,123,33,100);
 load ../../test_data/hand_movements_right.mat
 fMRI_volumes = vol_exp;
 [sy sx sz st] = size(fMRI_volumes);
+
+voxel_size_x = 3.75;
+voxel_size_y = 3.75;
+voxel_size_z = 3.75;
+
+sigma_x = smoothing_FWHM / 2.354 / voxel_size_x;
+sigma_y = smoothing_FWHM / 2.354 / voxel_size_y;
+sigma_z = smoothing_FWHM / 2.354 / voxel_size_z;
 
 %filter_x = randn(9,1);
 %filter_x = filter_x / sum(abs(filter_x));
@@ -47,11 +57,17 @@ fMRI_volumes = vol_exp;
 %filter_z = randn(9,1);
 %filter_z = filter_z / sum(abs(filter_z));
 
-filter_x = fspecial('gaussian',9,1);
+filter_x = fspecial('gaussian',9,sigma_x);
 filter_x = filter_x(:,5);
 filter_x = filter_x / sum(abs(filter_x));
-filter_y = filter_x;
-filter_z = filter_x;
+
+filter_y = fspecial('gaussian',9,sigma_y);
+filter_y = filter_y(:,5);
+filter_y = filter_y / sum(abs(filter_y));
+
+filter_z = fspecial('gaussian',9,sigma_z);
+filter_z = filter_z(:,5);
+filter_z = filter_z / sum(abs(filter_z));
 
 temp = zeros(1,9,1);
 temp(1,:,1) = filter_x;
@@ -75,7 +91,7 @@ for t = 1:size(fMRI_volumes,4)
 end
 
 tic
-smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z,opencl_platform,opencl_device);
+smoothed_volumes_opencl = Smoothing(fMRI_volumes,filter_x,filter_y,filter_z,voxel_size_x,voxel_size_y,voxel_size_z,smoothing_FWHM,opencl_platform,opencl_device);
 toc
 
 figure
