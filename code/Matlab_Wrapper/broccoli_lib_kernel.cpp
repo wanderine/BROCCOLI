@@ -4238,6 +4238,48 @@ __kernel void CalculateRowSums(__global float* Sums, __global const float* Image
 	Sums[z] = sum;
 }
 
+float mymax(float a, float b)
+{
+	if (a > b)
+		return a;
+	else
+		return b;
+}
+
+__kernel void CalculateColumnMaxs(__global float* Maxs, __global const float* Volume, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int y = get_global_id(0);	
+	int z = get_global_id(1);
+
+	if (y >= DATA_H || z >= DATA_D)
+		return;
+
+	float max = -10000.0f;
+	for (int x = 0; x < DATA_W; x++)
+	{
+		max = mymax(max, Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]);
+	}
+
+	Maxs[Calculate2DIndex(y,z,DATA_H)] = max;
+}
+
+__kernel void CalculateRowMaxs(__global float* Maxs, __global const float* Image, __private int DATA_H, __private int DATA_D)
+{
+	int z = get_global_id(0);
+
+	if (z >= DATA_D)
+		return;
+
+	float max = -10000.0f;
+	for (int y = 0; y < DATA_H; y++)
+	{
+		max = mymax(max, Image[Calculate2DIndex(y,z,DATA_H)]);
+	}
+
+	Maxs[z] = max;
+}
+
+
 __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_T1_Z_CUT, __private float MNI_VOXEL_SIZE_Z)
 {
 	int x = get_global_id(0);
@@ -5008,5 +5050,22 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates, __global float* A
 }
 
 
+__kernel void ThresholdVolume(__global float* Thresholded_Volume, __global const float* Volume, __private float threshold, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
 
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+
+	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] >= threshold )
+	{
+		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
+	}
+	else
+	{
+		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+	}
+}
 

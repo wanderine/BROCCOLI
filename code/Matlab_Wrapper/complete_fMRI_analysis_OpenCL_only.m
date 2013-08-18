@@ -41,9 +41,9 @@ study = 'Cambridge';
 %study = 'Beijing';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
-subject = 2;
+subject = 9;
 voxel_size = 2;
-beta_space = 1;
+beta_space = 1; % 0 = EPI, 1 = MNI
 opencl_platform = 2;
 opencl_device = 0;
 
@@ -205,8 +205,12 @@ hold off
 title('Rotation')
 legend('X','Y','Z')
 
+if beta_space == 1
+    slice = 100/voxel_size;
+else
+   slice = round(EPI_sz/2); 
+end
 
-slice = 100/voxel_size;
 
 %figure
 %imagesc(motion_corrected_volumes_opencl(:,:,20,10)); colorbar

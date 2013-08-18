@@ -42,7 +42,7 @@ subject = 2;
 voxel_size = 2;
 opencl_platform = 0;
 opencl_device = 2;
-beta_space = 0;
+beta_space = 1;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);

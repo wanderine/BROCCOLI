@@ -410,6 +410,7 @@ class BROCCOLI_LIB
 		void PerformSmoothing(cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingNormalized(cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingWrapper();
+		void SegmentEPIData();
 
 		// Processing
 		void PerformFirstLevelAnalysis();				
@@ -458,8 +459,8 @@ class BROCCOLI_LIB
 
 		size_t programBinarySize, writtenElements;
 		std::string binaryFilename;
-		cl_int CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, const char* filename);
-		bool SaveProgramBinary(cl_program program, cl_device_id device, const char* filename);
+		cl_int CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, std::string filename);
+		bool SaveProgramBinary(cl_program program, cl_device_id device, std::string filename);
 
 		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z);
 
@@ -475,6 +476,7 @@ class BROCCOLI_LIB
 		void SetGlobalAndLocalWorkSizesMemset(int N);
 		void SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesCalculateTopBrainSlice(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesSegmentEPI(int DATA_W, int DATA_H, int DATA_D);
 
 		void CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut);
 		void PerformSkullstrip(cl_mem d_Skullstripped_T1_Volume, cl_mem d_Aligned_T1_Volume, cl_mem d_MNI_Brain_Mask, int DATA_W, int DATA_H, int DATA_D);
@@ -608,7 +610,10 @@ class BROCCOLI_LIB
 		cl_kernel RescaleVolumeNearestKernel, RescaleVolumeLinearKernel, RescaleVolumeCubicKernel;
 		cl_kernel CopyT1VolumeToMNIKernel, CopyEPIVolumeToT1Kernel, CopyVolumeToNewKernel;
 		cl_kernel MultiplyVolumesKernel, MultiplyVolumesOverwriteKernel;
-		cl_kernel CalculateMagnitudesKernel, CalculateColumnSumsKernel, CalculateRowSumsKernel;
+		cl_kernel CalculateMagnitudesKernel;
+		cl_kernel CalculateColumnSumsKernel, CalculateRowSumsKernel;
+		cl_kernel CalculateColumnMaxsKernel, CalculateRowMaxsKernel;
+		cl_kernel ThresholdVolumeKernel;
 
 		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
 
@@ -631,6 +636,9 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateMagnitudes;
 		cl_int createKernelErrorCalculateColumnSums;
 		cl_int createKernelErrorCalculateRowSums;
+		cl_int createKernelErrorCalculateColumnMaxs;
+		cl_int createKernelErrorCalculateRowMaxs;
+		cl_int createKernelErrorThresholdVolume;
 		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
 		cl_int createKernelErrorEstimateAR4Models, createKernelErrorApplyWhiteningAR4;
 
@@ -666,6 +674,9 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateMagnitudes;
 		cl_int runKernelErrorCalculateColumnSums;
 		cl_int runKernelErrorCalculateRowSums;
+		cl_int runKernelErrorCalculateColumnMaxs;
+		cl_int runKernelErrorCalculateRowMaxs;
+		cl_int runKernelErrorThresholdVolume;
 
 		int OpenCLCreateBufferErrors[50];
 		int OpenCLRunKernelErrors[50];
@@ -703,6 +714,9 @@ class BROCCOLI_LIB
 		size_t localWorkSizeCalculateMagnitudes[3];
 		size_t localWorkSizeCalculateColumnSums[3];
 		size_t localWorkSizeCalculateRowSums[3];
+		size_t localWorkSizeCalculateColumnMaxs[3];
+		size_t localWorkSizeCalculateRowMaxs[3];
+		size_t localWorkSizeThresholdVolume[3];
 
 		size_t localWorkSizeCalculateBetaValuesGLM[3];		
 		size_t localWorkSizeCalculateStatisticalMapsGLM[3];
@@ -741,6 +755,9 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeCalculateMagnitudes[3];
 		size_t globalWorkSizeCalculateColumnSums[3];
 		size_t globalWorkSizeCalculateRowSums[3];
+		size_t globalWorkSizeCalculateColumnMaxs[3];
+		size_t globalWorkSizeCalculateRowMaxs[3];
+		size_t globalWorkSizeThresholdVolume[3];
 
 
 		size_t globalWorkSizeCalculateBetaValuesGLM[3];
@@ -810,8 +827,7 @@ class BROCCOLI_LIB
 
 		// Smoothing
 		int	SMOOTHING_FILTER_SIZE;
-		int	SMOOTHING_AMOUNT_MM;
-
+		
 		float EPI_Smoothing_FWHM;
 		float AR_Smoothing_FWHM;
 			
@@ -933,7 +949,7 @@ class BROCCOLI_LIB
 		
 		// Original data
 		cl_mem		d_fMRI_Volumes;
-		cl_mem		d_Mask;
+		cl_mem		d_EPI_Mask;
 			
 		// Slice timing correction
 		cl_mem		d_fMRI_Volumes_Complex;

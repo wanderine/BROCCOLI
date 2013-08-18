@@ -10,14 +10,14 @@
 
 .const .align 1 .b8 $str[31] = {99, 97, 110, 110, 111, 116, 32, 114, 101, 97, 100, 32, 95, 95, 119, 114, 105, 116, 101, 95, 111, 110, 108, 121, 32, 105, 109, 97, 103, 101, 0};
 .const .align 4 .b8 __GPU_i2opi_f[24] = {65, 144, 67, 60, 153, 149, 98, 219, 192, 221, 52, 245, 209, 87, 39, 252, 41, 21, 68, 78, 110, 131, 249, 162};
+.extern .shared .align 4 .b8 shr_1_l_Volume[16384];
 .extern .shared .align 4 .b8 shr_2_l_Volume[16384];
 .extern .shared .align 4 .b8 shr_3_l_Volume[16384];
 .extern .shared .align 4 .b8 shr_4_l_Volume[16384];
 .extern .shared .align 4 .b8 shr_5_l_Volume[16384];
 .extern .shared .align 4 .b8 shr_6_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_7_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_8_l_Image[24576];
-.extern .shared .align 4 .b8 shr_9_l_Image[32768];
+.extern .shared .align 4 .b8 shr_7_l_Image[24576];
+.extern .shared .align 4 .b8 shr_8_l_Image[32768];
 .visible .global .samplerref volume_sampler_nearest = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = nearest, force_unnormalized_coords = 1 };
 .visible .global .samplerref volume_sampler_linear = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = linear, force_unnormalized_coords = 1 };
 
@@ -89,7 +89,7 @@
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 11;
-	mov.u32 	%r49, shr_2_l_Volume;
+	mov.u32 	%r49, shr_1_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -635,7 +635,7 @@ BB0_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 11;
-	mov.u32 	%r69, shr_3_l_Volume;
+	mov.u32 	%r69, shr_2_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -1645,7 +1645,7 @@ BB1_85:
 	mov.u32 	%r44, %tid.z;
 	// inline asm
 	shl.b32 	%r50, %r44, 11;
-	mov.u32 	%r51, shr_4_l_Volume;
+	mov.u32 	%r51, shr_3_l_Volume;
 	add.s32 	%r52, %r51, %r50;
 	shl.b32 	%r53, %r43, 7;
 	add.s32 	%r54, %r52, %r53;
@@ -2271,7 +2271,7 @@ BB2_53:
 	mov.u32 	%r68, %tid.z;
 	// inline asm
 	shl.b32 	%r74, %r68, 11;
-	mov.u32 	%r75, shr_5_l_Volume;
+	mov.u32 	%r75, shr_4_l_Volume;
 	add.s32 	%r76, %r75, %r74;
 	shl.b32 	%r77, %r67, 7;
 	add.s32 	%r78, %r76, %r77;
@@ -3454,7 +3454,7 @@ BB3_109:
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 10;
-	mov.u32 	%r49, shr_6_l_Volume;
+	mov.u32 	%r49, shr_5_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -3950,7 +3950,7 @@ BB4_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 10;
-	mov.u32 	%r69, shr_7_l_Volume;
+	mov.u32 	%r69, shr_6_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -5585,7 +5585,7 @@ BB7_2:
 	// inline asm
 	mov.u32 	%r54, %tid.y;
 	// inline asm
-	mov.u32 	%r61, shr_8_l_Image;
+	mov.u32 	%r61, shr_7_l_Image;
 	mad.lo.s32 	%r62, %r54, 384, %r61;
 	shl.b32 	%r63, %r53, 2;
 	add.s32 	%r21, %r62, %r63;
@@ -9883,7 +9883,7 @@ BB8_36:
 	mov.u32 	%r74, %tid.y;
 	// inline asm
 	shl.b32 	%r81, %r74, 9;
-	mov.u32 	%r82, shr_9_l_Image;
+	mov.u32 	%r82, shr_8_l_Image;
 	add.s32 	%r83, %r82, %r81;
 	shl.b32 	%r84, %r73, 2;
 	add.s32 	%r21, %r83, %r84;
@@ -22743,6 +22743,162 @@ BB28_6:
 	ret;
 }
 
+.entry CalculateColumnMaxs(
+	.param .u32 .ptr .global .align 4 CalculateColumnMaxs_param_0,
+	.param .u32 .ptr .global .align 4 CalculateColumnMaxs_param_1,
+	.param .u32 CalculateColumnMaxs_param_2,
+	.param .u32 CalculateColumnMaxs_param_3,
+	.param .u32 CalculateColumnMaxs_param_4
+)
+{
+	.reg .f32 	%f<8>;
+	.reg .pred 	%p<7>;
+	.reg .s32 	%r<51>;
+
+
+	ld.param.u32 	%r4, [CalculateColumnMaxs_param_3];
+	ld.param.u32 	%r28, [CalculateColumnMaxs_param_4];
+	// inline asm
+	mov.u32 	%r20, %envreg3;
+	// inline asm
+	// inline asm
+	mov.u32 	%r21, %ntid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r22, %ctaid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r23, %tid.x;
+	// inline asm
+	add.s32 	%r29, %r23, %r20;
+	mad.lo.s32 	%r9, %r22, %r21, %r29;
+	// inline asm
+	mov.u32 	%r24, %envreg4;
+	// inline asm
+	// inline asm
+	mov.u32 	%r25, %ntid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r26, %ctaid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r27, %tid.y;
+	// inline asm
+	add.s32 	%r30, %r27, %r24;
+	mad.lo.s32 	%r14, %r26, %r25, %r30;
+	setp.lt.s32 	%p1, %r9, %r4;
+	setp.lt.s32 	%p2, %r14, %r28;
+	and.pred  	%p3, %p1, %p2;
+	@%p3 bra 	BB29_2;
+
+	ret;
+
+BB29_2:
+	ld.param.u32 	%r46, [CalculateColumnMaxs_param_2];
+	setp.gt.s32 	%p4, %r46, 0;
+	@%p4 bra 	BB29_4;
+
+	mov.f32 	%f7, 0fC61C4000;
+	bra.uni 	BB29_6;
+
+BB29_4:
+	ld.param.u32 	%r48, [CalculateColumnMaxs_param_3];
+	mad.lo.s32 	%r36, %r48, %r14, %r9;
+	ld.param.u32 	%r45, [CalculateColumnMaxs_param_2];
+	mul.lo.s32 	%r37, %r45, %r36;
+	shl.b32 	%r38, %r37, 2;
+	ld.param.u32 	%r43, [CalculateColumnMaxs_param_1];
+	add.s32 	%r49, %r43, %r38;
+	mov.f32 	%f7, 0fC61C4000;
+	mov.u32 	%r50, 0;
+
+BB29_5:
+	ld.global.f32 	%f6, [%r49];
+	setp.gt.f32 	%p5, %f7, %f6;
+	selp.f32 	%f7, %f7, %f6, %p5;
+	add.s32 	%r49, %r49, 4;
+	add.s32 	%r50, %r50, 1;
+	ld.param.u32 	%r44, [CalculateColumnMaxs_param_2];
+	setp.lt.s32 	%p6, %r50, %r44;
+	@%p6 bra 	BB29_5;
+
+BB29_6:
+	ld.param.u32 	%r47, [CalculateColumnMaxs_param_3];
+	mad.lo.s32 	%r39, %r14, %r47, %r9;
+	shl.b32 	%r40, %r39, 2;
+	ld.param.u32 	%r42, [CalculateColumnMaxs_param_0];
+	add.s32 	%r41, %r42, %r40;
+	st.global.f32 	[%r41], %f7;
+	ret;
+}
+
+.entry CalculateRowMaxs(
+	.param .u32 .ptr .global .align 4 CalculateRowMaxs_param_0,
+	.param .u32 .ptr .global .align 4 CalculateRowMaxs_param_1,
+	.param .u32 CalculateRowMaxs_param_2,
+	.param .u32 CalculateRowMaxs_param_3
+)
+{
+	.reg .f32 	%f<8>;
+	.reg .pred 	%p<5>;
+	.reg .s32 	%r<34>;
+
+
+	ld.param.u32 	%r18, [CalculateRowMaxs_param_3];
+	// inline asm
+	mov.u32 	%r14, %envreg3;
+	// inline asm
+	// inline asm
+	mov.u32 	%r15, %ntid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r16, %ctaid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r17, %tid.x;
+	// inline asm
+	add.s32 	%r19, %r17, %r14;
+	mad.lo.s32 	%r8, %r16, %r15, %r19;
+	setp.lt.s32 	%p1, %r8, %r18;
+	@%p1 bra 	BB30_2;
+
+	ret;
+
+BB30_2:
+	ld.param.u32 	%r31, [CalculateRowMaxs_param_2];
+	setp.gt.s32 	%p2, %r31, 0;
+	@%p2 bra 	BB30_4;
+
+	mov.f32 	%f7, 0fC61C4000;
+	bra.uni 	BB30_6;
+
+BB30_4:
+	ld.param.u32 	%r30, [CalculateRowMaxs_param_2];
+	mul.lo.s32 	%r23, %r30, %r8;
+	shl.b32 	%r24, %r23, 2;
+	ld.param.u32 	%r28, [CalculateRowMaxs_param_1];
+	add.s32 	%r32, %r28, %r24;
+	mov.f32 	%f7, 0fC61C4000;
+	mov.u32 	%r33, 0;
+
+BB30_5:
+	ld.global.f32 	%f6, [%r32];
+	setp.gt.f32 	%p3, %f7, %f6;
+	selp.f32 	%f7, %f7, %f6, %p3;
+	add.s32 	%r32, %r32, 4;
+	add.s32 	%r33, %r33, 1;
+	ld.param.u32 	%r29, [CalculateRowMaxs_param_2];
+	setp.lt.s32 	%p4, %r33, %r29;
+	@%p4 bra 	BB30_5;
+
+BB30_6:
+	shl.b32 	%r25, %r8, 2;
+	ld.param.u32 	%r27, [CalculateRowMaxs_param_0];
+	add.s32 	%r26, %r27, %r25;
+	st.global.f32 	[%r26], %f7;
+	ret;
+}
+
 .entry CopyT1VolumeToMNI(
 	.param .u32 .ptr .global .align 4 CopyT1VolumeToMNI_param_0,
 	.param .u32 .ptr .global .align 4 CopyT1VolumeToMNI_param_1,
@@ -22808,7 +22964,7 @@ BB28_6:
 	add.s32 	%r43, %r40, %r37;
 	mad.lo.s32 	%r15, %r39, %r38, %r43;
 	setp.gt.s32 	%p1, %r9, 0;
-	@%p1 bra 	BB29_2;
+	@%p1 bra 	BB31_2;
 
 	ld.param.u32 	%r83, [CopyT1VolumeToMNI_param_8];
 	// inline asm
@@ -22834,9 +22990,9 @@ BB28_6:
 	cvt.rzi.s32.f32 	%r46, %f3;
 	add.s32 	%r94, %r46, %r13;
 	mov.u32 	%r93, %r13;
-	bra.uni 	BB29_3;
+	bra.uni 	BB31_3;
 
-BB29_2:
+BB31_2:
 	ld.param.u32 	%r84, [CopyT1VolumeToMNI_param_8];
 	cvt.rn.f32.s32 	%f8, %r84;
 	div.full.f32 	%f7, %f8, 0f40000000;
@@ -22860,10 +23016,10 @@ BB29_2:
 	mov.u32 	%r94, %r13;
 	mov.u32 	%r93, %r17;
 
-BB29_3:
+BB31_3:
 	ld.param.u32 	%r87, [CopyT1VolumeToMNI_param_9];
 	setp.gt.s32 	%p2, %r87, 0;
-	@%p2 bra 	BB29_5;
+	@%p2 bra 	BB31_5;
 
 	ld.param.u32 	%r85, [CopyT1VolumeToMNI_param_9];
 	// inline asm
@@ -22889,9 +23045,9 @@ BB29_3:
 	cvt.rzi.s32.f32 	%r50, %f9;
 	add.s32 	%r97, %r50, %r14;
 	mov.u32 	%r96, %r14;
-	bra.uni 	BB29_6;
+	bra.uni 	BB31_6;
 
-BB29_5:
+BB31_5:
 	ld.param.u32 	%r86, [CopyT1VolumeToMNI_param_9];
 	cvt.rn.f32.s32 	%f14, %r86;
 	div.full.f32 	%f13, %f14, 0f40000000;
@@ -22915,14 +23071,14 @@ BB29_5:
 	mov.u32 	%r97, %r14;
 	mov.u32 	%r96, %r21;
 
-BB29_6:
+BB31_6:
 	ld.param.u32 	%r91, [CopyT1VolumeToMNI_param_11];
 	cvt.rn.f32.s32 	%f15, %r91;
 	ld.param.f32 	%f24, [CopyT1VolumeToMNI_param_12];
 	div.full.f32 	%f2, %f15, %f24;
 	ld.param.u32 	%r90, [CopyT1VolumeToMNI_param_10];
 	setp.gt.s32 	%p3, %r90, 0;
-	@%p3 bra 	BB29_8;
+	@%p3 bra 	BB31_8;
 
 	ld.param.u32 	%r88, [CopyT1VolumeToMNI_param_10];
 	// inline asm
@@ -22965,9 +23121,9 @@ BB29_6:
 	cvt.rzi.s32.f32 	%r55, %f18;
 	add.s32 	%r99, %r55, %r15;
 	mov.u32 	%r98, %r24;
-	bra.uni 	BB29_9;
+	bra.uni 	BB31_9;
 
-BB29_8:
+BB31_8:
 	// inline asm
 	{ 
 	.reg .b32 	tmp1, tmp2; 
@@ -22989,7 +23145,7 @@ BB29_8:
 	add.s32 	%r99, %r57, %r56;
 	mov.u32 	%r98, %r15;
 
-BB29_9:
+BB31_9:
 	ld.param.u32 	%r81, [CopyT1VolumeToMNI_param_6];
 	setp.lt.s32 	%p4, %r96, %r81;
 	ld.param.u32 	%r79, [CopyT1VolumeToMNI_param_5];
@@ -23007,7 +23163,7 @@ BB29_9:
 	ld.param.u32 	%r77, [CopyT1VolumeToMNI_param_4];
 	setp.lt.s32 	%p13, %r98, %r77;
 	and.pred  	%p14, %p12, %p13;
-	@!%p14 bra 	BB29_12;
+	@!%p14 bra 	BB31_12;
 
 	or.b32  	%r58, %r93, %r96;
 	or.b32  	%r59, %r58, %r99;
@@ -23015,7 +23171,7 @@ BB29_9:
 	or.b32  	%r61, %r60, %r97;
 	or.b32  	%r62, %r61, %r98;
 	setp.lt.s32 	%p15, %r62, 0;
-	@%p15 bra 	BB29_12;
+	@%p15 bra 	BB31_12;
 
 	ld.param.u32 	%r75, [CopyT1VolumeToMNI_param_3];
 	mad.lo.s32 	%r63, %r98, %r75, %r97;
@@ -23034,7 +23190,7 @@ BB29_9:
 	ld.global.f32 	%f23, [%r68];
 	st.global.f32 	[%r70], %f23;
 
-BB29_12:
+BB31_12:
 	ret;
 }
 
@@ -23103,7 +23259,7 @@ BB29_12:
 	add.s32 	%r43, %r40, %r37;
 	mad.lo.s32 	%r15, %r39, %r38, %r43;
 	setp.gt.s32 	%p1, %r9, 0;
-	@%p1 bra 	BB30_2;
+	@%p1 bra 	BB32_2;
 
 	ld.param.u32 	%r84, [CopyEPIVolumeToT1_param_8];
 	// inline asm
@@ -23129,9 +23285,9 @@ BB29_12:
 	cvt.rzi.s32.f32 	%r46, %f3;
 	add.s32 	%r95, %r46, %r13;
 	mov.u32 	%r94, %r13;
-	bra.uni 	BB30_3;
+	bra.uni 	BB32_3;
 
-BB30_2:
+BB32_2:
 	ld.param.u32 	%r85, [CopyEPIVolumeToT1_param_8];
 	cvt.rn.f32.s32 	%f8, %r85;
 	div.full.f32 	%f7, %f8, 0f40000000;
@@ -23155,10 +23311,10 @@ BB30_2:
 	mov.u32 	%r95, %r13;
 	mov.u32 	%r94, %r17;
 
-BB30_3:
+BB32_3:
 	ld.param.u32 	%r88, [CopyEPIVolumeToT1_param_9];
 	setp.gt.s32 	%p2, %r88, 0;
-	@%p2 bra 	BB30_5;
+	@%p2 bra 	BB32_5;
 
 	ld.param.u32 	%r86, [CopyEPIVolumeToT1_param_9];
 	// inline asm
@@ -23184,9 +23340,9 @@ BB30_3:
 	cvt.rzi.s32.f32 	%r50, %f9;
 	add.s32 	%r98, %r50, %r14;
 	mov.u32 	%r97, %r14;
-	bra.uni 	BB30_6;
+	bra.uni 	BB32_6;
 
-BB30_5:
+BB32_5:
 	ld.param.u32 	%r87, [CopyEPIVolumeToT1_param_9];
 	cvt.rn.f32.s32 	%f14, %r87;
 	div.full.f32 	%f13, %f14, 0f40000000;
@@ -23210,14 +23366,14 @@ BB30_5:
 	mov.u32 	%r98, %r14;
 	mov.u32 	%r97, %r21;
 
-BB30_6:
+BB32_6:
 	ld.param.u32 	%r92, [CopyEPIVolumeToT1_param_11];
 	cvt.rn.f32.s32 	%f15, %r92;
 	ld.param.f32 	%f27, [CopyEPIVolumeToT1_param_12];
 	div.full.f32 	%f2, %f15, %f27;
 	ld.param.u32 	%r91, [CopyEPIVolumeToT1_param_10];
 	setp.gt.s32 	%p3, %r91, 0;
-	@%p3 bra 	BB30_8;
+	@%p3 bra 	BB32_8;
 
 	ld.param.u32 	%r89, [CopyEPIVolumeToT1_param_10];
 	// inline asm
@@ -23260,9 +23416,9 @@ BB30_6:
 	cvt.rzi.s32.f32 	%r55, %f18;
 	add.s32 	%r100, %r55, %r15;
 	mov.u32 	%r99, %r24;
-	bra.uni 	BB30_9;
+	bra.uni 	BB32_9;
 
-BB30_8:
+BB32_8:
 	ld.param.u32 	%r90, [CopyEPIVolumeToT1_param_10];
 	cvt.rn.f32.s32 	%f25, %r90;
 	div.full.f32 	%f22, %f25, 0f40000000;
@@ -23302,7 +23458,7 @@ BB30_8:
 	add.s32 	%r100, %r58, %r57;
 	mov.u32 	%r99, %r15;
 
-BB30_9:
+BB32_9:
 	ld.param.u32 	%r82, [CopyEPIVolumeToT1_param_6];
 	setp.lt.s32 	%p4, %r97, %r82;
 	ld.param.u32 	%r80, [CopyEPIVolumeToT1_param_5];
@@ -23320,7 +23476,7 @@ BB30_9:
 	ld.param.u32 	%r78, [CopyEPIVolumeToT1_param_4];
 	setp.lt.s32 	%p13, %r99, %r78;
 	and.pred  	%p14, %p12, %p13;
-	@!%p14 bra 	BB30_12;
+	@!%p14 bra 	BB32_12;
 
 	or.b32  	%r59, %r94, %r97;
 	or.b32  	%r60, %r59, %r100;
@@ -23328,7 +23484,7 @@ BB30_9:
 	or.b32  	%r62, %r61, %r98;
 	or.b32  	%r63, %r62, %r99;
 	setp.lt.s32 	%p15, %r63, 0;
-	@%p15 bra 	BB30_12;
+	@%p15 bra 	BB32_12;
 
 	ld.param.u32 	%r76, [CopyEPIVolumeToT1_param_3];
 	mad.lo.s32 	%r64, %r99, %r76, %r98;
@@ -23347,7 +23503,7 @@ BB30_9:
 	ld.global.f32 	%f26, [%r69];
 	st.global.f32 	[%r71], %f26;
 
-BB30_12:
+BB32_12:
 	ret;
 }
 
@@ -23417,7 +23573,7 @@ BB30_12:
 	add.s32 	%r44, %r41, %r38;
 	mad.lo.s32 	%r16, %r40, %r39, %r44;
 	setp.gt.s32 	%p1, %r9, 0;
-	@%p1 bra 	BB31_2;
+	@%p1 bra 	BB33_2;
 
 	ld.param.u32 	%r87, [CopyVolumeToNew_param_8];
 	// inline asm
@@ -23443,9 +23599,9 @@ BB30_12:
 	cvt.rzi.s32.f32 	%r47, %f3;
 	add.s32 	%r99, %r47, %r14;
 	mov.u32 	%r98, %r14;
-	bra.uni 	BB31_3;
+	bra.uni 	BB33_3;
 
-BB31_2:
+BB33_2:
 	ld.param.u32 	%r88, [CopyVolumeToNew_param_8];
 	cvt.rn.f32.s32 	%f8, %r88;
 	div.full.f32 	%f7, %f8, 0f40000000;
@@ -23469,10 +23625,10 @@ BB31_2:
 	mov.u32 	%r99, %r14;
 	mov.u32 	%r98, %r18;
 
-BB31_3:
+BB33_3:
 	ld.param.u32 	%r91, [CopyVolumeToNew_param_9];
 	setp.gt.s32 	%p2, %r91, 0;
-	@%p2 bra 	BB31_5;
+	@%p2 bra 	BB33_5;
 
 	ld.param.u32 	%r89, [CopyVolumeToNew_param_9];
 	// inline asm
@@ -23498,9 +23654,9 @@ BB31_3:
 	cvt.rzi.s32.f32 	%r51, %f9;
 	add.s32 	%r102, %r51, %r15;
 	mov.u32 	%r101, %r15;
-	bra.uni 	BB31_6;
+	bra.uni 	BB33_6;
 
-BB31_5:
+BB33_5:
 	ld.param.u32 	%r90, [CopyVolumeToNew_param_9];
 	cvt.rn.f32.s32 	%f14, %r90;
 	div.full.f32 	%f13, %f14, 0f40000000;
@@ -23524,14 +23680,14 @@ BB31_5:
 	mov.u32 	%r102, %r15;
 	mov.u32 	%r101, %r22;
 
-BB31_6:
+BB33_6:
 	ld.param.u32 	%r95, [CopyVolumeToNew_param_11];
 	cvt.rn.f32.s32 	%f15, %r95;
 	ld.param.f32 	%f27, [CopyVolumeToNew_param_12];
 	div.full.f32 	%f2, %f15, %f27;
 	ld.param.u32 	%r94, [CopyVolumeToNew_param_10];
 	setp.gt.s32 	%p3, %r94, 0;
-	@%p3 bra 	BB31_8;
+	@%p3 bra 	BB33_8;
 
 	ld.param.u32 	%r92, [CopyVolumeToNew_param_10];
 	// inline asm
@@ -23574,9 +23730,9 @@ BB31_6:
 	cvt.rzi.s32.f32 	%r56, %f18;
 	add.s32 	%r104, %r56, %r16;
 	mov.u32 	%r103, %r25;
-	bra.uni 	BB31_9;
+	bra.uni 	BB33_9;
 
-BB31_8:
+BB33_8:
 	ld.param.u32 	%r93, [CopyVolumeToNew_param_10];
 	cvt.rn.f32.s32 	%f25, %r93;
 	div.full.f32 	%f22, %f25, 0f40000000;
@@ -23616,7 +23772,7 @@ BB31_8:
 	add.s32 	%r104, %r59, %r58;
 	mov.u32 	%r103, %r16;
 
-BB31_9:
+BB33_9:
 	ld.param.u32 	%r85, [CopyVolumeToNew_param_6];
 	setp.lt.s32 	%p4, %r101, %r85;
 	ld.param.u32 	%r83, [CopyVolumeToNew_param_5];
@@ -23634,7 +23790,7 @@ BB31_9:
 	ld.param.u32 	%r81, [CopyVolumeToNew_param_4];
 	setp.lt.s32 	%p13, %r103, %r81;
 	and.pred  	%p14, %p12, %p13;
-	@!%p14 bra 	BB31_12;
+	@!%p14 bra 	BB33_12;
 
 	or.b32  	%r60, %r98, %r101;
 	or.b32  	%r61, %r60, %r104;
@@ -23642,7 +23798,7 @@ BB31_9:
 	or.b32  	%r63, %r62, %r102;
 	or.b32  	%r64, %r63, %r103;
 	setp.lt.s32 	%p15, %r64, 0;
-	@%p15 bra 	BB31_12;
+	@%p15 bra 	BB33_12;
 
 	ld.param.u32 	%r80, [CopyVolumeToNew_param_4];
 	ld.param.u32 	%r96, [CopyVolumeToNew_param_13];
@@ -23664,7 +23820,7 @@ BB31_9:
 	ld.global.f32 	%f26, [%r71];
 	st.global.f32 	[%r73], %f26;
 
-BB31_12:
+BB33_12:
 	ret;
 }
 
@@ -23732,11 +23888,11 @@ BB31_12:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r8, %r21;
 	and.pred  	%p5, %p3, %p4;
-	@%p5 bra 	BB32_2;
+	@%p5 bra 	BB34_2;
 
 	ret;
 
-BB32_2:
+BB34_2:
 	ld.param.u32 	%r35, [MultiplyVolumes_param_4];
 	mad.lo.s32 	%r25, %r8, %r35, %r7;
 	ld.param.u32 	%r34, [MultiplyVolumes_param_3];
@@ -23819,11 +23975,11 @@ BB32_2:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r9, %r5;
 	and.pred  	%p5, %p3, %p4;
-	@%p5 bra 	BB33_2;
+	@%p5 bra 	BB35_2;
 
 	ret;
 
-BB33_2:
+BB35_2:
 	ld.param.u32 	%r37, [MultiplyVolumesOverwrite_param_3];
 	mad.lo.s32 	%r25, %r9, %r37, %r8;
 	ld.param.u32 	%r36, [MultiplyVolumesOverwrite_param_2];
@@ -23858,14 +24014,14 @@ BB33_2:
 	.param .u32 CalculateBetaValuesGLM_param_8
 )
 {
-	.local .align 4 .b8 	__local_depot34[80];
+	.local .align 4 .b8 	__local_depot36[80];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<7>;
 	.reg .pred 	%p<17>;
 	.reg .s32 	%r<159>;
 
 
-	mov.u32 	%SP, __local_depot34;
+	mov.u32 	%SP, __local_depot36;
 	ld.param.u32 	%r5, [CalculateBetaValuesGLM_param_4];
 	ld.param.u32 	%r6, [CalculateBetaValuesGLM_param_5];
 	ld.param.u32 	%r7, [CalculateBetaValuesGLM_param_6];
@@ -23916,7 +24072,7 @@ BB33_2:
 	and.pred  	%p4, %p2, %p3;
 	setp.lt.s32 	%p5, %r24, %r7;
 	and.pred  	%p6, %p4, %p5;
-	@!%p6 bra 	BB34_17;
+	@!%p6 bra 	BB36_17;
 
 	ld.param.u32 	%r131, [CalculateBetaValuesGLM_param_5];
 	mad.lo.s32 	%r71, %r24, %r131, %r19;
@@ -23929,17 +24085,17 @@ BB33_2:
 	setp.eq.f32 	%p7, %f2, 0f00000000;
 	ld.param.u32 	%r145, [CalculateBetaValuesGLM_param_8];
 	setp.gt.s32 	%p1, %r145, 0;
-	@%p7 bra 	BB34_14;
+	@%p7 bra 	BB36_14;
 
 	ld.param.u32 	%r144, [CalculateBetaValuesGLM_param_8];
 	setp.lt.s32 	%p8, %r144, 1;
-	@%p8 bra 	BB34_5;
+	@%p8 bra 	BB36_5;
 
 	mov.u32 	%r76, 0;
 	add.u32 	%r146, %SP, 0;
 	mov.u32 	%r147, %r76;
 
-BB34_4:
+BB36_4:
 	mov.u32 	%r26, %r147;
 	st.local.u32 	[%r146], %r76;
 	add.s32 	%r146, %r146, 4;
@@ -23947,17 +24103,17 @@ BB34_4:
 	ld.param.u32 	%r143, [CalculateBetaValuesGLM_param_8];
 	setp.lt.s32 	%p9, %r28, %r143;
 	mov.u32 	%r147, %r28;
-	@%p9 bra 	BB34_4;
+	@%p9 bra 	BB36_4;
 
-BB34_5:
+BB36_5:
 	ld.param.u32 	%r137, [CalculateBetaValuesGLM_param_7];
 	setp.lt.s32 	%p10, %r137, 1;
-	@%p10 bra 	BB34_11;
+	@%p10 bra 	BB36_11;
 
 	mov.u32 	%r148, 0;
 	ld.param.u32 	%r151, [CalculateBetaValuesGLM_param_3];
 
-BB34_7:
+BB36_7:
 	mov.u32 	%r149, %r151;
 	mov.u32 	%r29, %r149;
 	ld.param.u32 	%r134, [CalculateBetaValuesGLM_param_6];
@@ -23972,13 +24128,13 @@ BB34_7:
 	ld.global.f32 	%f1, [%r89];
 	ld.param.u32 	%r142, [CalculateBetaValuesGLM_param_8];
 	setp.lt.s32 	%p11, %r142, 1;
-	@%p11 bra 	BB34_10;
+	@%p11 bra 	BB36_10;
 
 	mov.u32 	%r153, 0;
 	add.u32 	%r152, %SP, 0;
 	mov.u32 	%r150, %r29;
 
-BB34_9:
+BB36_9:
 	mov.u32 	%r31, %r150;
 	ld.const.f32 	%f3, [%r31];
 	ld.local.f32 	%f4, [%r152];
@@ -23992,20 +24148,20 @@ BB34_9:
 	ld.param.u32 	%r141, [CalculateBetaValuesGLM_param_8];
 	setp.lt.s32 	%p12, %r153, %r141;
 	mov.u32 	%r150, %r35;
-	@%p12 bra 	BB34_9;
+	@%p12 bra 	BB36_9;
 
-BB34_10:
+BB36_10:
 	add.s32 	%r148, %r148, 1;
 	ld.param.u32 	%r135, [CalculateBetaValuesGLM_param_7];
 	setp.lt.s32 	%p13, %r148, %r135;
 	add.s32 	%r38, %r29, 4;
 	mov.u32 	%r151, %r38;
-	@%p13 bra 	BB34_7;
+	@%p13 bra 	BB36_7;
 
-BB34_11:
+BB36_11:
 	ld.param.u32 	%r140, [CalculateBetaValuesGLM_param_8];
 	setp.lt.s32 	%p14, %r140, 1;
-	@%p14 bra 	BB34_17;
+	@%p14 bra 	BB36_17;
 
 	ld.param.u32 	%r129, [CalculateBetaValuesGLM_param_5];
 	mad.lo.s32 	%r101, %r129, %r24, %r19;
@@ -24021,7 +24177,7 @@ BB34_11:
 	mov.u32 	%r156, 0;
 	add.u32 	%r154, %SP, 0;
 
-BB34_13:
+BB36_13:
 	ld.local.f32 	%f6, [%r154];
 	st.global.f32 	[%r155], %f6;
 	add.s32 	%r155, %r155, %r40;
@@ -24029,11 +24185,11 @@ BB34_13:
 	add.s32 	%r156, %r156, 1;
 	ld.param.u32 	%r139, [CalculateBetaValuesGLM_param_8];
 	setp.lt.s32 	%p15, %r156, %r139;
-	@%p15 bra 	BB34_13;
-	bra.uni 	BB34_17;
+	@%p15 bra 	BB36_13;
+	bra.uni 	BB36_17;
 
-BB34_14:
-	@!%p1 bra 	BB34_17;
+BB36_14:
+	@!%p1 bra 	BB36_17;
 
 	ld.param.u32 	%r128, [CalculateBetaValuesGLM_param_5];
 	mad.lo.s32 	%r113, %r128, %r24, %r19;
@@ -24049,7 +24205,7 @@ BB34_14:
 	mov.u32 	%r106, 0;
 	mov.u32 	%r158, %r106;
 
-BB34_16:
+BB36_16:
 	mov.u32 	%r50, %r158;
 	st.global.u32 	[%r157], %r106;
 	add.s32 	%r157, %r157, %r48;
@@ -24057,9 +24213,9 @@ BB34_16:
 	ld.param.u32 	%r138, [CalculateBetaValuesGLM_param_8];
 	setp.lt.s32 	%p16, %r52, %r138;
 	mov.u32 	%r158, %r52;
-	@%p16 bra 	BB34_16;
+	@%p16 bra 	BB36_16;
 
-BB34_17:
+BB36_17:
 	ret;
 }
 
@@ -24082,14 +24238,14 @@ BB34_17:
 	.param .u32 CalculateStatisticalMapsGLM_param_15
 )
 {
-	.local .align 4 .b8 	__local_depot35[80];
+	.local .align 4 .b8 	__local_depot37[80];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<48>;
 	.reg .pred 	%p<26>;
 	.reg .s32 	%r<292>;
 
 
-	mov.u32 	%SP, __local_depot35;
+	mov.u32 	%SP, __local_depot37;
 	ld.param.u32 	%r11, [CalculateStatisticalMapsGLM_param_10];
 	ld.param.u32 	%r12, [CalculateStatisticalMapsGLM_param_11];
 	ld.param.u32 	%r13, [CalculateStatisticalMapsGLM_param_12];
@@ -24140,7 +24296,7 @@ BB34_17:
 	and.pred  	%p7, %p5, %p6;
 	setp.lt.s32 	%p8, %r31, %r13;
 	and.pred  	%p9, %p7, %p8;
-	@!%p9 bra 	BB35_35;
+	@!%p9 bra 	BB37_35;
 
 	ld.param.u32 	%r234, [CalculateStatisticalMapsGLM_param_11];
 	mad.lo.s32 	%r111, %r31, %r234, %r26;
@@ -24153,11 +24309,11 @@ BB34_17:
 	setp.eq.f32 	%p10, %f20, 0f00000000;
 	ld.param.u32 	%r209, [CalculateStatisticalMapsGLM_param_3];
 	add.s32 	%r32, %r209, %r113;
-	@%p10 bra 	BB35_26;
+	@%p10 bra 	BB37_26;
 
 	ld.param.u32 	%r260, [CalculateStatisticalMapsGLM_param_14];
 	setp.lt.s32 	%p11, %r260, 1;
-	@%p11 bra 	BB35_5;
+	@%p11 bra 	BB37_5;
 
 	ld.param.u32 	%r233, [CalculateStatisticalMapsGLM_param_11];
 	mad.lo.s32 	%r123, %r233, %r31, %r26;
@@ -24173,7 +24329,7 @@ BB34_17:
 	mov.u32 	%r267, 0;
 	add.u32 	%r265, %SP, 0;
 
-BB35_4:
+BB37_4:
 	ld.global.f32 	%f21, [%r266];
 	st.local.f32 	[%r265], %f21;
 	add.s32 	%r266, %r266, %r34;
@@ -24181,17 +24337,17 @@ BB35_4:
 	add.s32 	%r267, %r267, 1;
 	ld.param.u32 	%r259, [CalculateStatisticalMapsGLM_param_14];
 	setp.lt.s32 	%p12, %r267, %r259;
-	@%p12 bra 	BB35_4;
+	@%p12 bra 	BB37_4;
 
-BB35_5:
+BB37_5:
 	ld.param.u32 	%r250, [CalculateStatisticalMapsGLM_param_13];
 	setp.gt.s32 	%p1, %r250, 0;
-	@%p1 bra 	BB35_7;
+	@%p1 bra 	BB37_7;
 
 	mov.f32 	%f44, 0f00000000;
-	bra.uni 	BB35_12;
+	bra.uni 	BB37_12;
 
-BB35_7:
+BB37_7:
 	ld.param.u32 	%r249, [CalculateStatisticalMapsGLM_param_13];
 	shl.b32 	%r41, %r249, 2;
 	ld.param.u32 	%r258, [CalculateStatisticalMapsGLM_param_14];
@@ -24200,7 +24356,7 @@ BB35_7:
 	mov.f32 	%f44, 0f00000000;
 	ld.param.u32 	%r271, [CalculateStatisticalMapsGLM_param_7];
 
-BB35_8:
+BB37_8:
 	mov.u32 	%r269, %r271;
 	mov.u32 	%r42, %r269;
 	ld.param.u32 	%r240, [CalculateStatisticalMapsGLM_param_12];
@@ -24213,15 +24369,15 @@ BB35_8:
 	ld.param.u32 	%r211, [CalculateStatisticalMapsGLM_param_4];
 	add.s32 	%r132, %r211, %r131;
 	ld.global.f32 	%f43, [%r132];
-	@%p2 bra 	BB35_9;
-	bra.uni 	BB35_11;
+	@%p2 bra 	BB37_9;
+	bra.uni 	BB37_11;
 
-BB35_9:
+BB37_9:
 	mov.u32 	%r273, 0;
 	add.u32 	%r272, %SP, 0;
 	mov.u32 	%r270, %r42;
 
-BB35_10:
+BB37_10:
 	mov.u32 	%r45, %r270;
 	ld.local.f32 	%f24, [%r272];
 	ld.const.f32 	%f25, [%r45];
@@ -24233,9 +24389,9 @@ BB35_10:
 	ld.param.u32 	%r257, [CalculateStatisticalMapsGLM_param_14];
 	setp.lt.s32 	%p13, %r273, %r257;
 	mov.u32 	%r270, %r49;
-	@%p13 bra 	BB35_10;
+	@%p13 bra 	BB37_10;
 
-BB35_11:
+BB37_11:
 	add.f32 	%f44, %f44, %f43;
 	ld.param.u32 	%r208, [CalculateStatisticalMapsGLM_param_2];
 	add.s32 	%r136, %r208, %r131;
@@ -24245,18 +24401,18 @@ BB35_11:
 	setp.lt.s32 	%p14, %r268, %r248;
 	add.s32 	%r52, %r42, 4;
 	mov.u32 	%r271, %r52;
-	@%p14 bra 	BB35_8;
+	@%p14 bra 	BB37_8;
 
-BB35_12:
+BB37_12:
 	ld.param.u32 	%r247, [CalculateStatisticalMapsGLM_param_13];
 	cvt.rn.f32.s32 	%f27, %r247;
 	div.full.f32 	%f8, %f44, %f27;
-	@%p1 bra 	BB35_14;
+	@%p1 bra 	BB37_14;
 
 	mov.f32 	%f46, 0f00000000;
-	bra.uni 	BB35_19;
+	bra.uni 	BB37_19;
 
-BB35_14:
+BB37_14:
 	ld.param.u32 	%r246, [CalculateStatisticalMapsGLM_param_13];
 	shl.b32 	%r53, %r246, 2;
 	ld.param.u32 	%r256, [CalculateStatisticalMapsGLM_param_14];
@@ -24265,7 +24421,7 @@ BB35_14:
 	mov.f32 	%f46, 0f00000000;
 	ld.param.u32 	%r277, [CalculateStatisticalMapsGLM_param_7];
 
-BB35_15:
+BB37_15:
 	mov.u32 	%r275, %r277;
 	mov.u32 	%r54, %r275;
 	ld.param.u32 	%r239, [CalculateStatisticalMapsGLM_param_12];
@@ -24278,15 +24434,15 @@ BB35_15:
 	ld.param.u32 	%r210, [CalculateStatisticalMapsGLM_param_4];
 	add.s32 	%r142, %r210, %r141;
 	ld.global.f32 	%f45, [%r142];
-	@%p3 bra 	BB35_16;
-	bra.uni 	BB35_18;
+	@%p3 bra 	BB37_16;
+	bra.uni 	BB37_18;
 
-BB35_16:
+BB37_16:
 	mov.u32 	%r279, 0;
 	add.u32 	%r278, %SP, 0;
 	mov.u32 	%r276, %r54;
 
-BB35_17:
+BB37_17:
 	mov.u32 	%r56, %r276;
 	ld.local.f32 	%f30, [%r278];
 	ld.const.f32 	%f31, [%r56];
@@ -24298,9 +24454,9 @@ BB35_17:
 	ld.param.u32 	%r255, [CalculateStatisticalMapsGLM_param_14];
 	setp.lt.s32 	%p15, %r279, %r255;
 	mov.u32 	%r276, %r60;
-	@%p15 bra 	BB35_17;
+	@%p15 bra 	BB37_17;
 
-BB35_18:
+BB37_18:
 	sub.f32 	%f33, %f45, %f8;
 	fma.rn.f32 	%f46, %f33, %f33, %f46;
 	add.s32 	%r274, %r274, 1;
@@ -24308,9 +24464,9 @@ BB35_18:
 	setp.lt.s32 	%p16, %r274, %r245;
 	add.s32 	%r63, %r54, 4;
 	mov.u32 	%r277, %r63;
-	@%p16 bra 	BB35_15;
+	@%p16 bra 	BB37_15;
 
-BB35_19:
+BB37_19:
 	ld.param.u32 	%r244, [CalculateStatisticalMapsGLM_param_13];
 	add.s32 	%r145, %r244, -1;
 	cvt.rn.f32.s32 	%f34, %r145;
@@ -24318,7 +24474,7 @@ BB35_19:
 	st.global.f32 	[%r32], %f16;
 	ld.param.u32 	%r264, [CalculateStatisticalMapsGLM_param_15];
 	setp.lt.s32 	%p17, %r264, 1;
-	@%p17 bra 	BB35_35;
+	@%p17 bra 	BB37_35;
 
 	ld.param.u32 	%r254, [CalculateStatisticalMapsGLM_param_14];
 	shl.b32 	%r64, %r254, 2;
@@ -24326,21 +24482,21 @@ BB35_19:
 	mov.u32 	%r280, 0;
 	ld.param.u32 	%r283, [CalculateStatisticalMapsGLM_param_8];
 
-BB35_21:
+BB37_21:
 	mov.u32 	%r281, %r283;
 	mov.u32 	%r65, %r281;
-	@%p4 bra 	BB35_23;
+	@%p4 bra 	BB37_23;
 
 	mov.f32 	%f47, 0f00000000;
-	bra.uni 	BB35_25;
+	bra.uni 	BB37_25;
 
-BB35_23:
+BB37_23:
 	mov.f32 	%f47, 0f00000000;
 	mov.u32 	%r285, 0;
 	add.u32 	%r284, %SP, 0;
 	mov.u32 	%r282, %r65;
 
-BB35_24:
+BB37_24:
 	mov.u32 	%r67, %r282;
 	ld.local.f32 	%f37, [%r284];
 	ld.const.f32 	%f38, [%r67];
@@ -24351,9 +24507,9 @@ BB35_24:
 	ld.param.u32 	%r253, [CalculateStatisticalMapsGLM_param_14];
 	setp.lt.s32 	%p18, %r285, %r253;
 	mov.u32 	%r282, %r71;
-	@%p18 bra 	BB35_24;
+	@%p18 bra 	BB37_24;
 
-BB35_25:
+BB37_25:
 	ld.param.u32 	%r238, [CalculateStatisticalMapsGLM_param_12];
 	mad.lo.s32 	%r149, %r280, %r238, %r31;
 	ld.param.u32 	%r230, [CalculateStatisticalMapsGLM_param_11];
@@ -24381,15 +24537,15 @@ BB35_25:
 	setp.lt.s32 	%p19, %r280, %r263;
 	add.s32 	%r74, %r65, %r64;
 	mov.u32 	%r283, %r74;
-	@%p19 bra 	BB35_21;
-	bra.uni 	BB35_35;
+	@%p19 bra 	BB37_21;
+	bra.uni 	BB37_35;
 
-BB35_26:
+BB37_26:
 	mov.u32 	%r157, 0;
 	st.global.u32 	[%r32], %r157;
 	ld.param.u32 	%r262, [CalculateStatisticalMapsGLM_param_15];
 	setp.lt.s32 	%p20, %r262, 1;
-	@%p20 bra 	BB35_29;
+	@%p20 bra 	BB37_29;
 
 	mul.lo.s32 	%r159, %r95, %r94;
 	shl.b32 	%r160, %r159, 2;
@@ -24410,7 +24566,7 @@ BB35_26:
 	mov.u32 	%r158, 0;
 	mov.u32 	%r287, %r158;
 
-BB35_28:
+BB37_28:
 	mov.u32 	%r78, %r287;
 	ld.param.u32 	%r203, [CalculateStatisticalMapsGLM_param_0];
 	add.s32 	%r174, %r203, %r286;
@@ -24423,12 +24579,12 @@ BB35_28:
 	ld.param.u32 	%r261, [CalculateStatisticalMapsGLM_param_15];
 	setp.lt.s32 	%p21, %r80, %r261;
 	mov.u32 	%r287, %r80;
-	@%p21 bra 	BB35_28;
+	@%p21 bra 	BB37_28;
 
-BB35_29:
+BB37_29:
 	ld.param.u32 	%r252, [CalculateStatisticalMapsGLM_param_14];
 	setp.lt.s32 	%p22, %r252, 1;
-	@%p22 bra 	BB35_32;
+	@%p22 bra 	BB37_32;
 
 	ld.param.u32 	%r228, [CalculateStatisticalMapsGLM_param_11];
 	mad.lo.s32 	%r184, %r228, %r31, %r26;
@@ -24444,7 +24600,7 @@ BB35_29:
 	mov.u32 	%r177, 0;
 	mov.u32 	%r289, %r177;
 
-BB35_31:
+BB37_31:
 	mov.u32 	%r84, %r289;
 	st.global.u32 	[%r288], %r177;
 	add.s32 	%r288, %r288, %r82;
@@ -24452,12 +24608,12 @@ BB35_31:
 	ld.param.u32 	%r251, [CalculateStatisticalMapsGLM_param_14];
 	setp.lt.s32 	%p23, %r86, %r251;
 	mov.u32 	%r289, %r86;
-	@%p23 bra 	BB35_31;
+	@%p23 bra 	BB37_31;
 
-BB35_32:
+BB37_32:
 	ld.param.u32 	%r243, [CalculateStatisticalMapsGLM_param_13];
 	setp.lt.s32 	%p24, %r243, 1;
-	@%p24 bra 	BB35_35;
+	@%p24 bra 	BB37_35;
 
 	ld.param.u32 	%r227, [CalculateStatisticalMapsGLM_param_11];
 	mad.lo.s32 	%r197, %r227, %r31, %r26;
@@ -24473,7 +24629,7 @@ BB35_32:
 	mov.u32 	%r190, 0;
 	mov.u32 	%r291, %r190;
 
-BB35_34:
+BB37_34:
 	mov.u32 	%r90, %r291;
 	st.global.u32 	[%r290], %r190;
 	add.s32 	%r290, %r290, %r88;
@@ -24481,9 +24637,9 @@ BB35_34:
 	ld.param.u32 	%r242, [CalculateStatisticalMapsGLM_param_13];
 	setp.lt.s32 	%p25, %r92, %r242;
 	mov.u32 	%r291, %r92;
-	@%p25 bra 	BB35_34;
+	@%p25 bra 	BB37_34;
 
-BB35_35:
+BB37_35:
 	ret;
 }
 
@@ -24555,7 +24711,7 @@ BB35_35:
 	and.pred  	%p5, %p3, %p4;
 	setp.lt.s32 	%p6, %r25, %r8;
 	and.pred  	%p7, %p5, %p6;
-	@!%p7 bra 	BB36_11;
+	@!%p7 bra 	BB38_11;
 
 	ld.param.u32 	%r113, [RemoveLinearFit_param_6];
 	mad.lo.s32 	%r62, %r25, %r113, %r20;
@@ -24568,11 +24724,11 @@ BB35_35:
 	setp.eq.f32 	%p8, %f5, 0f00000000;
 	ld.param.u32 	%r121, [RemoveLinearFit_param_8];
 	setp.gt.s32 	%p1, %r121, 0;
-	@%p8 bra 	BB36_8;
+	@%p8 bra 	BB38_8;
 
 	ld.param.u32 	%r120, [RemoveLinearFit_param_8];
 	setp.lt.s32 	%p9, %r120, 1;
-	@%p9 bra 	BB36_11;
+	@%p9 bra 	BB38_11;
 
 	ld.param.u32 	%r123, [RemoveLinearFit_param_9];
 	setp.gt.s32 	%p2, %r123, 0;
@@ -24594,7 +24750,7 @@ BB35_35:
 	shl.b32 	%r30, %r119, 2;
 	ld.param.u32 	%r127, [RemoveLinearFit_param_4];
 
-BB36_4:
+BB38_4:
 	mov.u32 	%r125, %r127;
 	mov.u32 	%r31, %r125;
 	ld.param.u32 	%r115, [RemoveLinearFit_param_7];
@@ -24607,15 +24763,15 @@ BB36_4:
 	ld.param.u32 	%r102, [RemoveLinearFit_param_1];
 	add.s32 	%r82, %r102, %r81;
 	ld.global.f32 	%f9, [%r82];
-	@%p2 bra 	BB36_5;
-	bra.uni 	BB36_7;
+	@%p2 bra 	BB38_5;
+	bra.uni 	BB38_7;
 
-BB36_5:
+BB38_5:
 	mov.u32 	%r129, 0;
 	mov.u32 	%r126, %r31;
 	mov.u32 	%r128, %r28;
 
-BB36_6:
+BB38_6:
 	mov.u32 	%r34, %r128;
 	mov.u32 	%r33, %r126;
 	ld.const.f32 	%f6, [%r33];
@@ -24629,9 +24785,9 @@ BB36_6:
 	setp.lt.s32 	%p10, %r129, %r122;
 	mov.u32 	%r126, %r37;
 	mov.u32 	%r128, %r36;
-	@%p10 bra 	BB36_6;
+	@%p10 bra 	BB38_6;
 
-BB36_7:
+BB38_7:
 	mad.lo.s32 	%r84, %r27, %r124, %r26;
 	shl.b32 	%r85, %r84, 2;
 	ld.param.u32 	%r101, [RemoveLinearFit_param_0];
@@ -24642,11 +24798,11 @@ BB36_7:
 	setp.lt.s32 	%p11, %r124, %r118;
 	add.s32 	%r40, %r31, 4;
 	mov.u32 	%r127, %r40;
-	@%p11 bra 	BB36_4;
-	bra.uni 	BB36_11;
+	@%p11 bra 	BB38_4;
+	bra.uni 	BB38_11;
 
-BB36_8:
-	@!%p1 bra 	BB36_11;
+BB38_8:
+	@!%p1 bra 	BB38_11;
 
 	ld.param.u32 	%r110, [RemoveLinearFit_param_6];
 	mad.lo.s32 	%r94, %r110, %r25, %r20;
@@ -24662,7 +24818,7 @@ BB36_8:
 	mov.u32 	%r87, 0;
 	mov.u32 	%r131, %r87;
 
-BB36_10:
+BB38_10:
 	mov.u32 	%r44, %r131;
 	st.global.u32 	[%r130], %r87;
 	add.s32 	%r130, %r130, %r42;
@@ -24670,9 +24826,9 @@ BB36_10:
 	ld.param.u32 	%r117, [RemoveLinearFit_param_8];
 	setp.lt.s32 	%p12, %r46, %r117;
 	mov.u32 	%r131, %r46;
-	@%p12 bra 	BB36_10;
+	@%p12 bra 	BB38_10;
 
-BB36_11:
+BB38_11:
 	ret;
 }
 
@@ -24747,7 +24903,7 @@ BB36_11:
 	and.pred  	%p4, %p2, %p3;
 	setp.lt.s32 	%p5, %r28, %r10;
 	and.pred  	%p6, %p4, %p5;
-	@!%p6 bra 	BB37_26;
+	@!%p6 bra 	BB39_26;
 
 	ld.param.u32 	%r197, [CalculateStatisticalMapsGLMPermutation_param_8];
 	mad.lo.s32 	%r86, %r28, %r197, %r23;
@@ -24758,21 +24914,21 @@ BB36_11:
 	add.s32 	%r89, %r171, %r88;
 	ld.global.f32 	%f21, [%r89];
 	setp.eq.f32 	%p7, %f21, 0f00000000;
-	@%p7 bra 	BB37_23;
+	@%p7 bra 	BB39_23;
 
 	ld.param.u32 	%r211, [CalculateStatisticalMapsGLMPermutation_param_10];
 	setp.gt.s32 	%p8, %r211, 0;
-	@%p8 bra 	BB37_4;
+	@%p8 bra 	BB39_4;
 
 	mov.f32 	%f44, 0f00000000;
-	bra.uni 	BB37_9;
+	bra.uni 	BB39_9;
 
-BB37_4:
+BB39_4:
 	mov.f32 	%f44, 0f00000000;
 	mov.u32 	%r223, 0;
 	ld.param.u32 	%r226, [CalculateStatisticalMapsGLMPermutation_param_4];
 
-BB37_5:
+BB39_5:
 	mov.u32 	%r224, %r226;
 	mov.u32 	%r30, %r224;
 	ld.param.u32 	%r204, [CalculateStatisticalMapsGLMPermutation_param_9];
@@ -24787,10 +24943,10 @@ BB37_5:
 	ld.global.f32 	%f43, [%r96];
 	ld.param.u32 	%r218, [CalculateStatisticalMapsGLMPermutation_param_11];
 	setp.gt.s32 	%p9, %r218, 0;
-	@%p9 bra 	BB37_6;
-	bra.uni 	BB37_8;
+	@%p9 bra 	BB39_6;
+	bra.uni 	BB39_8;
 
-BB37_6:
+BB39_6:
 	ld.param.u32 	%r194, [CalculateStatisticalMapsGLMPermutation_param_8];
 	mad.lo.s32 	%r104, %r194, %r28, %r23;
 	ld.param.u32 	%r183, [CalculateStatisticalMapsGLMPermutation_param_7];
@@ -24801,7 +24957,7 @@ BB37_6:
 	mov.u32 	%r228, 0;
 	mov.u32 	%r225, %r30;
 
-BB37_7:
+BB39_7:
 	mov.u32 	%r33, %r225;
 	ld.const.f32 	%f24, [%r33];
 	ld.global.f32 	%f25, [%r227];
@@ -24821,33 +24977,33 @@ BB37_7:
 	ld.param.u32 	%r217, [CalculateStatisticalMapsGLMPermutation_param_11];
 	setp.lt.s32 	%p10, %r228, %r217;
 	mov.u32 	%r225, %r37;
-	@%p10 bra 	BB37_7;
+	@%p10 bra 	BB39_7;
 
-BB37_8:
+BB39_8:
 	add.f32 	%f44, %f44, %f43;
 	add.s32 	%r223, %r223, 1;
 	ld.param.u32 	%r209, [CalculateStatisticalMapsGLMPermutation_param_10];
 	setp.lt.s32 	%p11, %r223, %r209;
 	add.s32 	%r40, %r30, 4;
 	mov.u32 	%r226, %r40;
-	@%p11 bra 	BB37_5;
+	@%p11 bra 	BB39_5;
 
-BB37_9:
+BB39_9:
 	ld.param.u32 	%r208, [CalculateStatisticalMapsGLMPermutation_param_10];
 	cvt.rn.f32.s32 	%f8, %r208;
 	div.full.f32 	%f9, %f44, %f8;
 	setp.gt.s32 	%p12, %r208, 0;
-	@%p12 bra 	BB37_11;
+	@%p12 bra 	BB39_11;
 
 	mov.f32 	%f46, 0f00000000;
-	bra.uni 	BB37_16;
+	bra.uni 	BB39_16;
 
-BB37_11:
+BB39_11:
 	mov.f32 	%f46, 0f00000000;
 	mov.u32 	%r229, 0;
 	ld.param.u32 	%r232, [CalculateStatisticalMapsGLMPermutation_param_4];
 
-BB37_12:
+BB39_12:
 	mov.u32 	%r230, %r232;
 	mov.u32 	%r41, %r230;
 	ld.param.u32 	%r202, [CalculateStatisticalMapsGLMPermutation_param_9];
@@ -24862,10 +25018,10 @@ BB37_12:
 	ld.global.f32 	%f45, [%r116];
 	ld.param.u32 	%r216, [CalculateStatisticalMapsGLMPermutation_param_11];
 	setp.gt.s32 	%p13, %r216, 0;
-	@%p13 bra 	BB37_13;
-	bra.uni 	BB37_15;
+	@%p13 bra 	BB39_13;
+	bra.uni 	BB39_15;
 
-BB37_13:
+BB39_13:
 	ld.param.u32 	%r191, [CalculateStatisticalMapsGLMPermutation_param_8];
 	mad.lo.s32 	%r124, %r191, %r28, %r23;
 	ld.param.u32 	%r180, [CalculateStatisticalMapsGLMPermutation_param_7];
@@ -24876,7 +25032,7 @@ BB37_13:
 	mov.u32 	%r234, 0;
 	mov.u32 	%r231, %r41;
 
-BB37_14:
+BB39_14:
 	mov.u32 	%r44, %r231;
 	ld.const.f32 	%f29, [%r44];
 	ld.global.f32 	%f30, [%r233];
@@ -24896,9 +25052,9 @@ BB37_14:
 	ld.param.u32 	%r215, [CalculateStatisticalMapsGLMPermutation_param_11];
 	setp.lt.s32 	%p14, %r234, %r215;
 	mov.u32 	%r231, %r48;
-	@%p14 bra 	BB37_14;
+	@%p14 bra 	BB39_14;
 
-BB37_15:
+BB39_15:
 	sub.f32 	%f32, %f45, %f9;
 	fma.rn.f32 	%f46, %f32, %f32, %f46;
 	add.s32 	%r229, %r229, 1;
@@ -24906,16 +25062,16 @@ BB37_15:
 	setp.lt.s32 	%p15, %r229, %r206;
 	add.s32 	%r51, %r41, 4;
 	mov.u32 	%r232, %r51;
-	@%p15 bra 	BB37_12;
+	@%p15 bra 	BB39_12;
 
-BB37_16:
+BB39_16:
 	ld.param.u32 	%r214, [CalculateStatisticalMapsGLMPermutation_param_11];
 	cvt.rn.f32.s32 	%f33, %r214;
 	sub.f32 	%f34, %f8, %f33;
 	div.full.f32 	%f17, %f46, %f34;
 	ld.param.u32 	%r222, [CalculateStatisticalMapsGLMPermutation_param_12];
 	setp.lt.s32 	%p16, %r222, 1;
-	@%p16 bra 	BB37_26;
+	@%p16 bra 	BB39_26;
 
 	ld.param.u32 	%r213, [CalculateStatisticalMapsGLMPermutation_param_11];
 	setp.gt.s32 	%p1, %r213, 0;
@@ -24934,21 +25090,21 @@ BB37_16:
 	shl.b32 	%r54, %r213, 2;
 	ld.param.u32 	%r238, [CalculateStatisticalMapsGLMPermutation_param_5];
 
-BB37_18:
+BB39_18:
 	mov.u32 	%r236, %r238;
 	mov.u32 	%r55, %r236;
-	@%p1 bra 	BB37_20;
+	@%p1 bra 	BB39_20;
 
 	mov.f32 	%f47, 0f00000000;
-	bra.uni 	BB37_22;
+	bra.uni 	BB39_22;
 
-BB37_20:
+BB39_20:
 	mov.f32 	%f47, 0f00000000;
 	mov.u32 	%r240, 0;
 	mov.u32 	%r237, %r55;
 	mov.u32 	%r239, %r52;
 
-BB37_21:
+BB39_21:
 	mov.u32 	%r58, %r239;
 	mov.u32 	%r57, %r237;
 	ld.global.f32 	%f37, [%r58];
@@ -24961,9 +25117,9 @@ BB37_21:
 	setp.lt.s32 	%p17, %r240, %r212;
 	mov.u32 	%r237, %r61;
 	mov.u32 	%r239, %r60;
-	@%p17 bra 	BB37_21;
+	@%p17 bra 	BB39_21;
 
-BB37_22:
+BB39_22:
 	shl.b32 	%r144, %r235, 2;
 	ld.param.u32 	%r175, [CalculateStatisticalMapsGLMPermutation_param_6];
 	add.s32 	%r145, %r175, %r144;
@@ -24988,13 +25144,13 @@ BB37_22:
 	setp.lt.s32 	%p18, %r235, %r221;
 	add.s32 	%r64, %r55, %r54;
 	mov.u32 	%r238, %r64;
-	@%p18 bra 	BB37_18;
-	bra.uni 	BB37_26;
+	@%p18 bra 	BB39_18;
+	bra.uni 	BB39_26;
 
-BB37_23:
+BB39_23:
 	ld.param.u32 	%r220, [CalculateStatisticalMapsGLMPermutation_param_12];
 	setp.lt.s32 	%p19, %r220, 1;
-	@%p19 bra 	BB37_26;
+	@%p19 bra 	BB39_26;
 
 	ld.param.u32 	%r187, [CalculateStatisticalMapsGLMPermutation_param_8];
 	mad.lo.s32 	%r158, %r187, %r28, %r23;
@@ -25010,7 +25166,7 @@ BB37_23:
 	mov.u32 	%r151, 0;
 	mov.u32 	%r242, %r151;
 
-BB37_25:
+BB39_25:
 	mov.u32 	%r68, %r242;
 	st.global.u32 	[%r241], %r151;
 	add.s32 	%r241, %r241, %r66;
@@ -25018,9 +25174,9 @@ BB37_25:
 	ld.param.u32 	%r219, [CalculateStatisticalMapsGLMPermutation_param_12];
 	setp.lt.s32 	%p20, %r70, %r219;
 	mov.u32 	%r242, %r70;
-	@%p20 bra 	BB37_25;
+	@%p20 bra 	BB39_25;
 
-BB37_26:
+BB39_26:
 	ret;
 }
 
@@ -25094,7 +25250,7 @@ BB37_26:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r27, %r11;
 	and.pred  	%p5, %p3, %p4;
-	@!%p5 bra 	BB38_5;
+	@!%p5 bra 	BB40_5;
 
 	ld.param.u32 	%r129, [GeneratePermutedfMRIVolumesAR4_param_9];
 	mad.lo.s32 	%r52, %r27, %r129, %r22;
@@ -25105,7 +25261,7 @@ BB37_26:
 	add.s32 	%r54, %r119, %r53;
 	ld.global.f32 	%f14, [%r54];
 	setp.eq.f32 	%p6, %f14, 0f00000000;
-	@%p6 bra 	BB38_5;
+	@%p6 bra 	BB40_5;
 
 	ld.param.u32 	%r115, [GeneratePermutedfMRIVolumesAR4_param_2];
 	add.s32 	%r56, %r115, %r53;
@@ -25174,7 +25330,7 @@ BB37_26:
 	st.global.f32 	[%r90], %f34;
 	ld.param.u32 	%r134, [GeneratePermutedfMRIVolumesAR4_param_11];
 	setp.lt.s32 	%p7, %r134, 5;
-	@%p7 bra 	BB38_5;
+	@%p7 bra 	BB40_5;
 
 	ld.param.u32 	%r131, [GeneratePermutedfMRIVolumesAR4_param_10];
 	shl.b32 	%r98, %r131, 2;
@@ -25192,7 +25348,7 @@ BB37_26:
 	shl.b32 	%r30, %r104, 2;
 	ld.param.u32 	%r135, [GeneratePermutedfMRIVolumesAR4_param_7];
 
-BB38_4:
+BB40_4:
 	mov.f32 	%f29, %f33;
 	mov.f32 	%f28, %f32;
 	mov.f32 	%f12, %f31;
@@ -25224,9 +25380,9 @@ BB38_4:
 	mov.f32 	%f31, %f11;
 	mov.f32 	%f32, %f10;
 	mov.f32 	%f33, %f9;
-	@%p8 bra 	BB38_4;
+	@%p8 bra 	BB40_4;
 
-BB38_5:
+BB40_5:
 	ret;
 }
 
@@ -25299,7 +25455,7 @@ BB38_5:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r26, %r10;
 	and.pred  	%p5, %p3, %p4;
-	@!%p5 bra 	BB39_5;
+	@!%p5 bra 	BB41_5;
 
 	ld.param.u32 	%r106, [ApplyWhiteningAR4_param_8];
 	mad.lo.s32 	%r49, %r26, %r106, %r21;
@@ -25310,7 +25466,7 @@ BB38_5:
 	add.s32 	%r51, %r100, %r50;
 	ld.global.f32 	%f13, [%r51];
 	setp.eq.f32 	%p6, %f13, 0f00000000;
-	@%p6 bra 	BB39_5;
+	@%p6 bra 	BB41_5;
 
 	ld.param.u32 	%r96, [ApplyWhiteningAR4_param_2];
 	add.s32 	%r53, %r96, %r50;
@@ -25363,7 +25519,7 @@ BB38_5:
 	st.global.f32 	[%r71], %f23;
 	ld.param.u32 	%r110, [ApplyWhiteningAR4_param_10];
 	setp.lt.s32 	%p7, %r110, 5;
-	@%p7 bra 	BB39_5;
+	@%p7 bra 	BB41_5;
 
 	mul.lo.s32 	%r73, %r36, %r35;
 	shl.b32 	%r74, %r73, 2;
@@ -25385,7 +25541,7 @@ BB38_5:
 	mul.lo.s32 	%r89, %r88, %r101;
 	shl.b32 	%r29, %r89, 2;
 
-BB39_4:
+BB41_4:
 	mov.f32 	%f34, %f38;
 	mov.f32 	%f33, %f37;
 	mov.f32 	%f11, %f36;
@@ -25410,9 +25566,9 @@ BB39_4:
 	mov.f32 	%f36, %f10;
 	mov.f32 	%f37, %f9;
 	mov.f32 	%f38, %f8;
-	@%p8 bra 	BB39_4;
+	@%p8 bra 	BB41_4;
 
-BB39_5:
+BB41_5:
 	ret;
 }
 
@@ -25484,11 +25640,11 @@ BB39_5:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r25, %r9;
 	and.pred  	%p5, %p3, %p4;
-	@%p5 bra 	BB40_2;
+	@%p5 bra 	BB42_2;
 
 	ret;
 
-BB40_2:
+BB42_2:
 	ld.param.u32 	%r91, [EstimateAR4Models_param_7];
 	mad.lo.s32 	%r52, %r25, %r91, %r20;
 	ld.param.u32 	%r88, [EstimateAR4Models_param_6];
@@ -25506,7 +25662,7 @@ BB40_2:
 	add.s32 	%r29, %r81, %r53;
 	ld.param.u32 	%r82, [EstimateAR4Models_param_3];
 	add.s32 	%r30, %r82, %r53;
-	@%p6 bra 	BB40_10;
+	@%p6 bra 	BB42_10;
 
 	ld.param.u32 	%r84, [EstimateAR4Models_param_4];
 	add.s32 	%r56, %r84, %r53;
@@ -25535,12 +25691,12 @@ BB40_2:
 	fma.rn.f32 	%f231, %f229, %f226, 0f00000000;
 	ld.param.u32 	%r96, [EstimateAR4Models_param_9];
 	setp.gt.s32 	%p7, %r96, 4;
-	@%p7 bra 	BB40_5;
+	@%p7 bra 	BB42_5;
 
 	mov.f32 	%f230, 0f00000000;
-	bra.uni 	BB40_7;
+	bra.uni 	BB42_7;
 
-BB40_5:
+BB42_5:
 	ld.param.u32 	%r92, [EstimateAR4Models_param_8];
 	shl.b32 	%r70, %r92, 2;
 	mov.u32 	%r98, 4;
@@ -25557,7 +25713,7 @@ BB40_5:
 	shl.b32 	%r32, %r76, 2;
 	mov.f32 	%f230, 0f00000000;
 
-BB40_6:
+BB42_6:
 	mov.f32 	%f224, %f228;
 	mov.f32 	%f223, %f227;
 	mov.f32 	%f17, %f226;
@@ -25577,9 +25733,9 @@ BB40_6:
 	mov.f32 	%f226, %f16;
 	mov.f32 	%f227, %f15;
 	mov.f32 	%f228, %f14;
-	@%p8 bra 	BB40_6;
+	@%p8 bra 	BB42_6;
 
-BB40_7:
+BB42_7:
 	ld.param.u32 	%r94, [EstimateAR4Models_param_9];
 	cvt.rn.f32.s32 	%f43, %r94;
 	add.f32 	%f44, %f43, 0fBF800000;
@@ -25593,7 +25749,7 @@ BB40_7:
 	add.f32 	%f48, %f43, 0fC0A00000;
 	div.full.f32 	%f33, %f230, %f48;
 	setp.neu.f32 	%p9, %f29, 0f00000000;
-	@%p9 bra 	BB40_9;
+	@%p9 bra 	BB42_9;
 
 	mov.u32 	%r77, 0;
 	st.global.u32 	[%r27], %r77;
@@ -25602,7 +25758,7 @@ BB40_7:
 	st.global.u32 	[%r30], %r77;
 	ret;
 
-BB40_9:
+BB42_9:
 	div.full.f32 	%f49, %f30, %f29;
 	add.f32 	%f50, %f49, 0f3A83126F;
 	div.full.f32 	%f51, %f31, %f29;
@@ -25783,12 +25939,105 @@ BB40_9:
 	st.global.f32 	[%r30], %f222;
 	ret;
 
-BB40_10:
+BB42_10:
 	mov.u32 	%r78, 0;
 	st.global.u32 	[%r27], %r78;
 	st.global.u32 	[%r28], %r78;
 	st.global.u32 	[%r29], %r78;
 	st.global.u32 	[%r30], %r78;
+	ret;
+}
+
+.entry ThresholdVolume(
+	.param .u32 .ptr .global .align 4 ThresholdVolume_param_0,
+	.param .u32 .ptr .global .align 4 ThresholdVolume_param_1,
+	.param .f32 ThresholdVolume_param_2,
+	.param .u32 ThresholdVolume_param_3,
+	.param .u32 ThresholdVolume_param_4,
+	.param .u32 ThresholdVolume_param_5
+)
+{
+	.reg .f32 	%f<4>;
+	.reg .pred 	%p<7>;
+	.reg .s32 	%r<35>;
+
+
+	ld.param.u32 	%r3, [ThresholdVolume_param_3];
+	ld.param.u32 	%r4, [ThresholdVolume_param_4];
+	ld.param.u32 	%r21, [ThresholdVolume_param_5];
+	// inline asm
+	mov.u32 	%r9, %envreg3;
+	// inline asm
+	// inline asm
+	mov.u32 	%r10, %ntid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r11, %ctaid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r12, %tid.x;
+	// inline asm
+	add.s32 	%r22, %r12, %r9;
+	mad.lo.s32 	%r5, %r11, %r10, %r22;
+	// inline asm
+	mov.u32 	%r13, %envreg4;
+	// inline asm
+	// inline asm
+	mov.u32 	%r14, %ntid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r15, %ctaid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r16, %tid.y;
+	// inline asm
+	add.s32 	%r23, %r16, %r13;
+	mad.lo.s32 	%r6, %r15, %r14, %r23;
+	// inline asm
+	mov.u32 	%r17, %envreg5;
+	// inline asm
+	// inline asm
+	mov.u32 	%r18, %ntid.z;
+	// inline asm
+	// inline asm
+	mov.u32 	%r19, %ctaid.z;
+	// inline asm
+	// inline asm
+	mov.u32 	%r20, %tid.z;
+	// inline asm
+	add.s32 	%r24, %r20, %r17;
+	mad.lo.s32 	%r7, %r19, %r18, %r24;
+	setp.lt.s32 	%p1, %r5, %r3;
+	setp.lt.s32 	%p2, %r6, %r4;
+	and.pred  	%p3, %p1, %p2;
+	setp.lt.s32 	%p4, %r7, %r21;
+	and.pred  	%p5, %p3, %p4;
+	@%p5 bra 	BB43_2;
+
+	ret;
+
+BB43_2:
+	ld.param.u32 	%r34, [ThresholdVolume_param_4];
+	mad.lo.s32 	%r25, %r7, %r34, %r6;
+	ld.param.u32 	%r33, [ThresholdVolume_param_3];
+	mad.lo.s32 	%r26, %r25, %r33, %r5;
+	shl.b32 	%r27, %r26, 2;
+	ld.param.u32 	%r32, [ThresholdVolume_param_1];
+	add.s32 	%r28, %r32, %r27;
+	ld.global.f32 	%f2, [%r28];
+	ld.param.f32 	%f3, [ThresholdVolume_param_2];
+	setp.ltu.f32 	%p6, %f2, %f3;
+	ld.param.u32 	%r31, [ThresholdVolume_param_0];
+	add.s32 	%r8, %r31, %r27;
+	@%p6 bra 	BB43_4;
+
+	mov.u32 	%r29, 1065353216;
+	st.global.u32 	[%r8], %r29;
+	ret;
+
+BB43_4:
+	mov.u32 	%r30, 0;
+	st.global.u32 	[%r8], %r30;
 	ret;
 }
 

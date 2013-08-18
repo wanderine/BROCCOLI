@@ -34,8 +34,8 @@ mex -g Smoothing.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Co
 
 smoothing_FWHM = 6.0;
 
-opencl_platform = 0;
-opencl_device = 0;
+opencl_platform = 2;
+opencl_device = 1;
 
 %fMRI_volumes = randn(69,123,33,100);
 load ../../test_data/hand_movements_right.mat
