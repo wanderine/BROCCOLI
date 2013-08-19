@@ -26,164 +26,18 @@
 #ifndef BROCCOLILIB_H
 #define BROCCOLILIB_H
 
+#include "broccoli_constants.h"
+
 #include "nifti1.h"
 #include "nifti1_io.h"
 
 #include <opencl.h>
-
 #include <string>
-
-//#include <cstdlib>
-
 
 typedef unsigned int uint;
 typedef unsigned char uchar;
 typedef unsigned short int uint16;
 
-#define EPI 0
-#define MNI 1
-
-#define CCA 0
-#define GLM 1
-
-#define SILENT 0
-#define VERBOSE 1
-
-#define NO 0
-#define YES 1
-
-#define RAW 0
-#define NIFTI 1
-
-#define FLOAT 0
-#define INT32 1
-#define INT16 2
-#define UINT32 3
-#define UINT16 4
-#define DOUBLE 5
-#define UINT8 6
-
-#define SLICE_TIMING_CORRECTION 0
-#define MOTION_CORRECTION 1
-#define SMOOTHING 2
-#define DETRENDING 3
-#define STATISTICAL_ANALYSIS 4
-#define PERMUTATION_TEST 5
-#define COPY 6
-#define CONVOLVE 7
-#define PHASEDC 8
-#define PHASEG 9
-#define AH2D 10
-#define EQSYSTEM 11
-#define INTERPOLATION 12
-
-#define QF1R 0
-#define QF1I 1
-#define QF2R 2
-#define QF2I 3
-#define QF3R 4
-#define QF3I 5
-#define QF1  6
-#define QF2  7
-#define QF3  8
-#define CCA3D1 14
-#define CCA3D2 15
-#define CCA3D 16
-#define fMRI_VOLUMES 17
-#define XDETREND1 18
-#define XDETREND2 19
-#define CXX 20
-#define SQRTINVCXX 21
-#define XGLM1 22
-#define XGLM2 23
-#define CONTRAST_VECTOR 24
-#define ACTIVITY_VOLUME 25
-#define BRAIN_VOXELS 26
-#define MOTION_CORRECTED_VOLUMES 27
-#define REGISTRATION_PARAMETERS 28
-#define SMOOTHED1 29
-#define SMOOTHED2 30
-#define SMOOTHED3 31
-#define SMOOTHED4 32
-#define DETRENDED1 33
-#define DETRENDED2 34
-#define DETRENDED3 35
-#define DETRENDED4 36
-#define X_SLICE_fMRI 37
-#define Y_SLICE_fMRI 38
-#define Z_SLICE_fMRI 39
-#define X_SLICE_PREPROCESSED_fMRI 40
-#define Y_SLICE_PREPROCESSED_fMRI 41
-#define Z_SLICE_PREPROCESSED_fMRI 42
-#define X_SLICE_ACTIVITY 43
-#define Y_SLICE_ACTIVITY 44
-#define Z_SLICE_ACTIVITY 45
-#define MOTION_PARAMETERS_X 46
-#define MOTION_PARAMETERS_Y 47
-#define MOTION_PARAMETERS_Z 48
-#define PLOT_VALUES_X 49
-#define MOTION_CORRECTED_CURVE 50
-#define SMOOTHED_CURVE 51
-#define DETRENDED_CURVE 52	
-#define ALPHAS1 53
-#define ALPHAS2 54
-#define ALPHAS3 55
-#define ALPHAS4 56
-#define SMOOTHED_ALPHAS1 57
-#define SMOOTHED_ALPHAS2 58
-#define SMOOTHED_ALPHAS3 59
-#define SMOOTHED_ALPHAS4 60
-#define SMOOTHED_CERTAINTY 61
-#define BOLD_REGRESSED_VOLUMES 62
-#define WHITENED_VOLUMES 63
-#define PERMUTED_VOLUMES 64
-#define MAXIMUM_TEST_VALUES 65
-#define PERMUTATION_MATRIX 66
-
-#define NUMBER_OF_HOST_POINTERS 100
-#define NUMBER_OF_DEVICE_POINTERS 100
-
-#define VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_ROWS 32
-#define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS 8
-#define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_ROWS 8
-
-#define VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_COLUMNS 24
-#define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS 16
-#define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS 8
-
-#define VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_RODS 32
-#define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS 8
-#define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS 8
-
-//struct float2 { float x; float y; };
-
-#define HALO 3
-#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D 90
-#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D 58
-
-#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_AMD 122
-#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_AMD 58
-
-#define TRANSLATION 0
-#define RIGID 1
-#define AFFINE 2
-
-#define NEAREST 0
-#define LINEAR 1
-#define CUBIC 2
-
-#define DO_OVERWRITE 0
-#define NO_OVERWRITE 1
-
-#define PI 3.14159265359
-
-#define INITIAL_MM_T1_Z_CUT 15
-
-#define SUCCESS 0
-
-#define NVIDIA 0
-#define INTEL 1
-#define AMD 2
 
 class BROCCOLI_LIB
 {
@@ -204,8 +58,8 @@ class BROCCOLI_LIB
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
-		void SetSmoothingAmount(float);
-		void SetSmoothingAmountAR(float);
+		void SetEPISmoothingAmount(float);
+		void SetARSmoothingAmount(float);
 		void SetImageRegistrationFilterSize(int N);
 		void SetImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
 		void SetNumberOfIterationsForImageRegistration(int N);
@@ -214,7 +68,34 @@ class BROCCOLI_LIB
 		void SetCoarsestScaleEPIT1(int N);
 		void SetMMT1ZCUT(int mm);
 		void SetMMEPIZCUT(int mm);
+		void SetBetaSpace(int space);
+		void SetInterpolationMode(int mode);
+		
+		void SetEPIVoxelSizeX(float value);
+		void SetEPIVoxelSizeY(float value);
+		void SetEPIVoxelSizeZ(float value);
+		void SetEPITR(float value);
 
+		void SetT1VoxelSizeX(float value);
+		void SetT1VoxelSizeY(float value);
+		void SetT1VoxelSizeZ(float value);
+
+		void SetMNIVoxelSizeX(float value);
+		void SetMNIVoxelSizeY(float value);
+		void SetMNIVoxelSizeZ(float value);
+
+		void SetEPIWidth(int w);
+		void SetEPIHeight(int h);
+		void SetEPIDepth(int d);
+		void SetEPITimepoints(int t);
+
+		void SetT1Width(int w);
+		void SetT1Height(int h);
+		void SetT1Depth(int d);
+
+		void SetMNIWidth(int w);
+		void SetMNIHeight(int h);
+		void SetMNIDepth(int d);
 
 		void SetInputfMRIVolumes(float* input);
 		void SetInputEPIVolume(float* input);
@@ -245,16 +126,12 @@ class BROCCOLI_LIB
 		void SetOutputAREstimates(float*, float*, float*, float*);
 		void SetOutputSliceSums(float*);
 		void SetOutputTopSlice(float*);
-		void SetBetaSpace(int space);
 		
-		void SetfMRIDataFilename(std::string filename);
-			
+		void SetfMRIDataFilename(std::string filename);			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);		
 		void SetNumberOfBasisFunctionsDetrending(int N);
-		void SetAnalysisMethod(int method);
-		void SetWriteStatus(bool status);
-		void SetShowPreprocessedType(int value);
-
+		void SetAnalysisMethod(int method);		
+		
 		void SetActivityThreshold(float threshold);
 		void SetThresholdStatus(bool status);
 
@@ -266,75 +143,11 @@ class BROCCOLI_LIB
 		void SetDataType(int type);
 		void SetFileType(int type);
 
-		void SetEPIVoxelSizeX(float value);
-		void SetEPIVoxelSizeY(float value);
-		void SetEPIVoxelSizeZ(float value);
-		void SetEPITR(float value);
-
-		void SetT1VoxelSizeX(float value);
-		void SetT1VoxelSizeY(float value);
-		void SetT1VoxelSizeZ(float value);
-
-		void SetMNIVoxelSizeX(float value);
-		void SetMNIVoxelSizeY(float value);
-		void SetMNIVoxelSizeZ(float value);
-
-		void SetEPIWidth(int w);
-		void SetEPIHeight(int h);
-		void SetEPIDepth(int d);
-		void SetEPITimepoints(int t);
-
-		void SetT1Width(int w);
-		void SetT1Height(int h);
-		void SetT1Depth(int d);
-
-		void SetMNIWidth(int w);
-		void SetMNIHeight(int h);
-		void SetMNIDepth(int d);
-
 		void SetNumberOfPermutations(int value);
 		void SetSignificanceThreshold(float value);
 
 		// Get functions for GUI / Wrappers
 		
-		int GetProgramBinarySize();
-		int GetWrittenElements();
-
-		const char* GetOpenCLDeviceInfoChar();
-		const char* GetOpenCLBuildInfoChar();
-		
-		std::string GetOpenCLDeviceInfoString();
-		std::string GetOpenCLBuildInfoString();
-
-		int GetOpenCLError();
-		int* GetOpenCLCreateKernelErrors();
-		int* GetOpenCLCreateBufferErrors();
-		int* GetOpenCLRunKernelErrors();
-
-		int GetOpenCLPlatformIDsError();
-		int GetOpenCLDeviceIDsError();		
-		int GetOpenCLCreateContextError();
-		int GetOpenCLContextInfoError();
-		int GetOpenCLCreateCommandQueueError();
-		int GetOpenCLCreateProgramError();
-		int GetOpenCLBuildProgramError();
-		int GetOpenCLProgramBuildInfoError();
-
-		double GetProcessingTimeSliceTimingCorrection();
-		double GetProcessingTimeMotionCorrection();
-		double GetProcessingTimeSmoothing();
-		double GetProcessingTimeDetrending();
-		double GetProcessingTimeStatisticalAnalysis();
-		double GetProcessingTimePermutationTest();
-
-		double GetProcessingTimeCopy();
-		double GetProcessingTimeConvolution();
-		double GetProcessingTimePhaseDifferences();
-		double GetProcessingTimePhaseGradients();
-		double GetProcessingTimeAH();
-		double GetProcessingTimeEquationSystem();
-		double GetProcessingTimeInterpolation();
-
 		int GetfMRIDataSliceLocationX();
 		int GetfMRIDataSliceLocationY();
 		int GetfMRIDataSliceLocationZ();
@@ -384,8 +197,47 @@ class BROCCOLI_LIB
 		int GetNumberOfSignificantlyActiveVoxels();
 		int GetNumberOfSignificantlyActiveClusters();
 
-		std::string PrintDeviceInfo();
+		// OpenCL
 
+		const char* GetOpenCLDeviceInfoChar();
+		const char* GetOpenCLBuildInfoChar();
+		
+		std::string GetOpenCLDeviceInfoString();
+		std::string GetOpenCLBuildInfoString();
+
+		int* GetOpenCLCreateKernelErrors();
+		int* GetOpenCLCreateBufferErrors();
+		int* GetOpenCLRunKernelErrors();
+
+		int GetOpenCLPlatformIDsError();
+		int GetOpenCLDeviceIDsError();		
+		int GetOpenCLCreateContextError();
+		int GetOpenCLContextInfoError();
+		int GetOpenCLCreateCommandQueueError();
+		int GetOpenCLCreateProgramError();
+		int GetOpenCLBuildProgramError();
+		int GetOpenCLProgramBuildInfoError();
+
+		int GetProgramBinarySize();
+		int GetWrittenElements();
+
+		// Processing times
+
+		double GetProcessingTimeSliceTimingCorrection();
+		double GetProcessingTimeMotionCorrection();
+		double GetProcessingTimeSmoothing();
+		double GetProcessingTimeDetrending();
+		double GetProcessingTimeStatisticalAnalysis();
+		double GetProcessingTimePermutationTest();
+
+		double GetProcessingTimeCopy();
+		double GetProcessingTimeConvolution();
+		double GetProcessingTimePhaseDifferences();
+		double GetProcessingTimePhaseGradients();
+		double GetProcessingTimeAH();
+		double GetProcessingTimeEquationSystem();
+		double GetProcessingTimeInterpolation();
+				
 		// Read functions
 		void ReadfMRIDataRAW();
 		void ReadfMRIDataNIFTI();
@@ -395,35 +247,39 @@ class BROCCOLI_LIB
 		void WritefMRIDataNIFTI();
 		
 		// Preprocessing
-		void TransformVolume(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int INTERPOLATION_MODE);
-		void TransformVolumes(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
-		void PerformRegistrationEPIT1();
-		void PerformRegistrationT1MNI();
+		void ChangeT1VolumeResolutionAndSizeWrapper();		
 		void PerformRegistrationT1MNIWrapper();
 		void PerformRegistrationEPIT1Wrapper();
-		void PerformSliceTimingCorrection();
-		void PerformMotionCorrection();
+		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();		
 		void PerformDetrending();
-		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
-		void PerformSmoothingNormalized(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
-		void PerformSmoothing(cl_mem d_Volumes, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
-		void PerformSmoothingNormalized(cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, cl_mem c_Smoothing_Filter_X, cl_mem c_Smoothing_Filter_Y, cl_mem c_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingWrapper();
-		void SegmentEPIData();
-
-		// Processing
-		void PerformFirstLevelAnalysis();				
+		void PerformGLMWrapper();
 		void PerformFirstLevelAnalysisWrapper();				
+														
+		void CalculateSlicesfMRIData();
+		void CalculateSlicesPreprocessedfMRIData();
+		void CalculateSlicesActivityData();
+
+		void GetOpenCLInfo();
+		void OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);		
+		
+	private:
+		
+		//------------------------------------------------
+		// High level functions
+		//------------------------------------------------
+		void PerformRegistrationEPIT1();
+		void PerformRegistrationT1MNI();				
+		void SegmentEPIData();		
+		void PerformSliceTimingCorrection();		
+		void PerformMotionCorrection();
+		void PerformFirstLevelAnalysis();				
+
 		void CalculateStatisticalMapsGLMFirstLevel(cl_mem Volumes);
 		void CalculateStatisticalMapsGLMSecondLevel(cl_mem Volumes);
 		void CalculatePermutationTestThresholdSingleSubject();
-		void CalculatePermutationTestThresholdMultiSubject();
-		
-		void TransformFirstLevelResultsToMNI();
-
-		void PerformGLMWrapper();
-
+		void CalculatePermutationTestThresholdMultiSubject();				
 		
 		// Permutation single subject	
 		void SetupParametersPermutationSingleSubject();
@@ -438,90 +294,53 @@ class BROCCOLI_LIB
 
 		// Permutation multi subject	
 		void SetupParametersPermutationMultiSubject();
-		void GeneratePermutationMatrixMultiSubject();
-		
-
+		void GeneratePermutationMatrixMultiSubject();		
 		void CalculateGroupMapPermutation();
 		float FindMaxTestvaluePermutation();
 		
-		void CalculateSlicesfMRIData();
-		void CalculateSlicesPreprocessedfMRIData();
-		void CalculateSlicesActivityData();
-
-		void GetOpenCLInfo();
-		void OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
-		void OpenCLTest();
-
-		void ChangeT1VolumeResolutionAndSizeWrapper();
-
-
-	private:
-
-		size_t programBinarySize, writtenElements;
-		std::string binaryFilename;
-		cl_int CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, std::string filename);
-		bool SaveProgramBinary(cl_program program, cl_device_id device, std::string filename);
-
-		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z);
-
-		void SetMemory(cl_mem memory, float value, int N);
-		void SetMemoryDouble(cl_mem memory, double value, int N);
-		void SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);		
-		void SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesRescaleVolume(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesMemset(int N);
-		void SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesCalculateTopBrainSlice(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesSegmentEPI(int DATA_W, int DATA_H, int DATA_D);
-
-		void CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut);
-		void PerformSkullstrip(cl_mem d_Skullstripped_T1_Volume, cl_mem d_Aligned_T1_Volume, cl_mem d_MNI_Brain_Mask, int DATA_W, int DATA_H, int DATA_D);
-
+		//------------------------------------------------
+		// Convolution functions
+		//------------------------------------------------
 		void Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE);
-		void NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
-		void AlignTwoVolumes(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE);
-		void AlignTwoVolumesDouble(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE);
-		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE);
+		void NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);		
+		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void PerformSmoothingNormalized(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void PerformSmoothing(cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void PerformSmoothingNormalized(cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+				
+		//------------------------------------------------
+		// Functions for image registration		
+		//------------------------------------------------
+		void AlignTwoVolumes(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesDouble(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
 		void AlignTwoVolumesCleanup();
 		void AlignTwoVolumesCleanupDouble();
 		void AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D);
 		void AlignTwoVolumesSetupDouble(int DATA_W, int DATA_H, int DATA_D);
-		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z);
-		void ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z);
-		void ChangeVolumeSize(cl_mem d_Current_Aligned_Volume, cl_mem d_Aligned_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D);       
-		void ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int MM_Z_CUT);
+		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
+		void ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
+		void ChangeVolumeSize(cl_mem d_Current_Aligned_Volume, cl_mem d_Aligned_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);       
+		void ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int MM_Z_CUT, int INTERPOLATION_MODE);
 
-		// Read functions
-		void ReadRealDataInt32(int* data, std::string filename, int N);
-		void ReadRealDataInt16(short int* data, std::string filename, int N);
-		void ReadRealDataUint32(unsigned int* data, std::string filename, int N);
-		void ReadRealDataUint16(unsigned short int* data, std::string filename, int N);
-		void ReadRealDataFloat(float* data, std::string filename, int N);
-		void ReadRealDataDouble(double* data, std::string filename, int N);
-		//void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
-		void ReadImageRegistrationFilters();
-		void ReadSmoothingFilters();
-		void SetupParametersReadData();
+		void TransformVolume(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int INTERPOLATION_MODE);
+		void TransformVolumes(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
+		void TransformFirstLevelResultsToMNI();
 
-		// Write functions
-		void WriteRealDataUint16(unsigned short int* data, std::string filename, int N);
-		void WriteRealDataFloat(float* data, std::string filename, int N);
-		void WriteRealDataDouble(double* data, std::string filename, int N);
-		//void WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
-
-		// OpenCL help functions		
-		
-		void OpenCLCleanup();
-
-		// Other help functions
-		void SetStartValues();
-		void ResetAllPointers();
-		void AllocateMemoryForFilters();
-
+		//------------------------------------------------
+		// Help functions
+		//------------------------------------------------
+		void SetMemory(cl_mem memory, float value, int N);
+		void SetMemoryDouble(cl_mem memory, double value, int N);
+		void CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut);		
+		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
+		void MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);	
+		float CalculateSum(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
+		float CalculateMax(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
+		void ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume, float threshold, int DATA_W, int DATA_H, int DATA_D);
+		cl_int CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, std::string filename);
+		bool SaveProgramBinary(cl_program program, cl_device_id device, std::string filename);
+		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z);
 		//void ConvertRealToComplex(Complex* complex_data, float* real_data, int N);
 		//void ExtractRealData(float* real_data, Complex* complex_data, int N);
 		//void Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N);
@@ -533,25 +352,16 @@ class BROCCOLI_LIB
 		void SolveSystemLUDouble(float* solution, float* matrix, float* b_vector, int N);
 		void SolveSystemLUDoubleDouble(double* solution, double* matrix, double* b_vector, int N);
 		void SolveEquationSystemDouble(double* h_A_matrix, double* h_h_vector, double* h_Parameter_Vector, int N);
-		void CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters);
-
-		void SetupDetrendingBasisFunctions();
-		void SetupStatisticalAnalysisBasisFunctions();
-		void SegmentBrainData();
-		float CalculateMax(float *data, int N);
-		float CalculateMin(float *data, int N);
-		float Gpdf(double value, double shape, double scale);
-		float loggamma(int value);
-
-		void ConvolveWithHRF(float* temp_GLM);
-		void CreateHRF();
-
+		
 		void InvertAffineRegistrationParameters(float* h_Inverse_Parameters, float* h_Parameters);
 		void AddAffineRegistrationParameters(float* h_Old_Parameters, float* h_New_Parameters);
 		void AddAffineRegistrationParametersNextScale(float* h_Old_Parameters, float* h_New_Parameters);
 		void AddAffineRegistrationParameters(float* h_Resulting_Parameters, float* h_New_Parameters, float* h_Old_Parameters);
+		void CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters);					
 		
+		//------------------------------------------------
 		// SVD 3x3
+		//------------------------------------------------
 		double cbrt(double x); 
 		void RemoveTransformationScaling(float* h_Registration_Parameters);
 		void RemoveTransformationScalingDouble(float* h_Registration_Parameters, double* h_Registration_Parameters_double);
@@ -569,22 +379,81 @@ class BROCCOLI_LIB
 		void LDU3(double* A, int* P);
 		void SVD3x3(double* U, double* S, double* V, const double* A);
 
+		void SetupDetrendingBasisFunctions();
+		void SetupStatisticalAnalysisBasisFunctions();
+		float CalculateMax(float *data, int N);
+		float CalculateMin(float *data, int N);
+		float Gpdf(double value, double shape, double scale);
+		float loggamma(int value);
+		void CreateHRF();
+		void ConvolveWithHRF(float* temp_GLM);
 
-		// OpenCL
+		//------------------------------------------------
+		// Set functions
+		//------------------------------------------------
+		void SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);		
+		void SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesRescaleVolume(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesMemset(int N);
+		void SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesCalculateSum(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesThresholdVolume(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesCalculateMagnitudes(int DATA_W, int DATA_H, int DATA_D);		
 
-		int VENDOR;
+		//------------------------------------------------
+		// Read functions
+		//------------------------------------------------
+		void ReadRealDataInt32(int* data, std::string filename, int N);
+		void ReadRealDataInt16(short int* data, std::string filename, int N);
+		void ReadRealDataUint32(unsigned int* data, std::string filename, int N);
+		void ReadRealDataUint16(unsigned short int* data, std::string filename, int N);
+		void ReadRealDataFloat(float* data, std::string filename, int N);
+		void ReadRealDataDouble(double* data, std::string filename, int N);
+		//void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
+		void ReadImageRegistrationFilters();
+		void ReadSmoothingFilters();
+		void SetupParametersReadData();
+
+		//------------------------------------------------
+		// Write functions
+		//------------------------------------------------
+		void WriteRealDataUint16(unsigned short int* data, std::string filename, int N);
+		void WriteRealDataFloat(float* data, std::string filename, int N);
+		void WriteRealDataDouble(double* data, std::string filename, int N);
+		//void WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
+
+		//------------------------------------------------
+		// OpenCL help functions		
+		//------------------------------------------------
+		void OpenCLCleanup();
+
+		void SetStartValues();
+		void ResetAllPointers();
+		void AllocateMemoryForFilters();
+		
+		//------------------------------------------------
+		// OpenCL variables
+		//------------------------------------------------
+		size_t xBlocks, yBlocks, zBlocks;
+		size_t programBinarySize, writtenElements;
 
 		cl_context context;
 		cl_command_queue commandQueue;
 		cl_program program;
 		cl_device_id device;
-		
+
+		std::string binaryFilename;
 		std::string device_info;
 		std::string build_info;
 		
 		cl_uint OPENCL_PLATFORM;
-		int OPENCL_INITIATED;
+		int VENDOR, OPENCL_INITIATED;
 
+		cl_int error;
 		cl_int getPlatformIDsError;
 		cl_int getDeviceIDsError;		
 		cl_int createContextError;
@@ -595,12 +464,11 @@ class BROCCOLI_LIB
 		cl_int getProgramBuildInfoError;
 
 		// OpenCL kernels
-
 		cl_kernel MemsetKernel;
 		cl_kernel MemsetDoubleKernel;
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel, NonseparableConvolution3DComplexKernel;				
 		cl_kernel CalculateBetaValuesGLMKernel, CalculateStatisticalMapsGLMKernel, RemoveLinearFitKernel;
-
+		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
 		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel; 
 		cl_kernel CalculateAMatrixAndHVector2DValuesXDoubleKernel, CalculateAMatrixAndHVector2DValuesYDoubleKernel,CalculateAMatrixAndHVector2DValuesZDoubleKernel; 
@@ -614,13 +482,7 @@ class BROCCOLI_LIB
 		cl_kernel CalculateColumnSumsKernel, CalculateRowSumsKernel;
 		cl_kernel CalculateColumnMaxsKernel, CalculateRowMaxsKernel;
 		cl_kernel ThresholdVolumeKernel;
-
-		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
-
-		cl_kernel	AddKernel;
-
-		cl_int error, kernel_error;
-
+		
 		// Create kernel errors
 		cl_int createKernelErrorMemset;
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods, createKernelErrorNonseparableConvolution3DComplex; 
@@ -641,9 +503,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorThresholdVolume;
 		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
 		cl_int createKernelErrorEstimateAR4Models, createKernelErrorApplyWhiteningAR4;
-
-		size_t threadsX, threadsY, threadsZ, xBlocks, yBlocks, zBlocks;
-
+		
 		// Create buffer errors
 		cl_int createBufferErrorAlignedVolume, createBufferErrorReferenceVolume;
 		cl_int createBufferErrorq11Real, createBufferErrorq11Imag, createBufferErrorq12Real, createBufferErrorq12Imag, createBufferErrorq13Real, createBufferErrorq13Imag;
@@ -657,6 +517,7 @@ class BROCCOLI_LIB
 		cl_int createBufferErrorResidualVariancesMNI;
 
 		// Run kernel errors
+		cl_int runKernelErrorSeparableConvolutionRows, runKernelErrorSeparableConvolutionColumns, runKernelErrorSeparableConvolutionRods;
 		cl_int runKernelErrorNonseparableConvolution3DComplex;
 		cl_int runKernelErrorMemset;
 		cl_int runKernelErrorCalculatePhaseDifferencesAndCertainties, runKernelErrorCalculatePhaseGradientsX, runKernelErrorCalculatePhaseGradientsY, runKernelErrorCalculatePhaseGradientsZ;
@@ -670,7 +531,7 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateBetaValuesGLM;
 		cl_int runKernelErrorCalculateStatisticalMapsGLM;
 		cl_int runKernelErrorEstimateAR4Models;
-		cl_int runKernelErrorApplyWhiteningAR4;
+		cl_int runKernelErrorApplyAR4Whitening;
 		cl_int runKernelErrorCalculateMagnitudes;
 		cl_int runKernelErrorCalculateColumnSums;
 		cl_int runKernelErrorCalculateRowSums;
@@ -687,13 +548,11 @@ class BROCCOLI_LIB
 		cl_ulong time_start, time_end;
 
 		// OpenCL local work sizes
-
 		size_t localWorkSizeMemset[3];
 		size_t localWorkSizeSeparableConvolutionRows[3];
 		size_t localWorkSizeSeparableConvolutionColumns[3];
 		size_t localWorkSizeSeparableConvolutionRods[3];
-		size_t localWorkSizeNonseparableConvolution3DComplex[3];
-		
+		size_t localWorkSizeNonseparableConvolution3DComplex[3];		
 		size_t localWorkSizeCalculatePhaseDifferencesAndCertainties[3];
 		size_t localWorkSizeCalculatePhaseGradients[3];
 		size_t localWorkSizeCalculateAMatrixAndHVector2DValuesX[3];
@@ -717,11 +576,9 @@ class BROCCOLI_LIB
 		size_t localWorkSizeCalculateColumnMaxs[3];
 		size_t localWorkSizeCalculateRowMaxs[3];
 		size_t localWorkSizeThresholdVolume[3];
-
 		size_t localWorkSizeCalculateBetaValuesGLM[3];		
 		size_t localWorkSizeCalculateStatisticalMapsGLM[3];
 		size_t localWorkSizeRemoveLinearFit[3];
-
 		size_t localWorkSizeEstimateAR4Models[3];
 		size_t localWorkSizeApplyWhiteningAR4[3];
 		size_t localWorkSizeGeneratePermutedfMRIVolumesAR4[3];
@@ -729,12 +586,10 @@ class BROCCOLI_LIB
 		// OpenCL global work sizes
 
 		size_t globalWorkSizeMemset[3];
-
 		size_t globalWorkSizeSeparableConvolutionRows[3];
 		size_t globalWorkSizeSeparableConvolutionColumns[3];
 		size_t globalWorkSizeSeparableConvolutionRods[3];
-		size_t globalWorkSizeNonseparableConvolution3DComplex[3];
-		
+		size_t globalWorkSizeNonseparableConvolution3DComplex[3];		
 		size_t globalWorkSizeCalculatePhaseDifferencesAndCertainties[3];
 		size_t globalWorkSizeCalculatePhaseGradients[3];
 		size_t globalWorkSizeCalculateAMatrixAndHVector2DValuesX[3];
@@ -758,18 +613,16 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeCalculateColumnMaxs[3];
 		size_t globalWorkSizeCalculateRowMaxs[3];
 		size_t globalWorkSizeThresholdVolume[3];
-
-
 		size_t globalWorkSizeCalculateBetaValuesGLM[3];
 		size_t globalWorkSizeCalculateStatisticalMapsGLM[3];
-		size_t globalWorkSizeRemoveLinearFit[3];
-		
-
+		size_t globalWorkSizeRemoveLinearFit[3];		
 		size_t globalWorkSizeEstimateAR4Models[3];
 		size_t globalWorkSizeApplyWhiteningAR4[3];
 		size_t globalWorkSizeGeneratePermutedfMRIVolumesAR4[3];
 
-		// General
+		//------------------------------------------------
+		// General variables
+		//------------------------------------------------
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
 		nifti_image *nifti_data;
@@ -783,14 +636,15 @@ class BROCCOLI_LIB
 		int NUMBER_OF_CONTRASTS;
 		int NUMBER_OF_REGRESSORS;
 		float SEGMENTATION_THRESHOLD;
+
+		// Resolution variables	
 		float EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
+		float TR;		
 		float T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
 		float MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
-		int PRINT;
-		int WRITE_DATA;
-		double processing_times[20];
-		int PREPROCESSED;
 
+		double processing_times[20];
+		
 		int X_SLICE_LOCATION_fMRI_DATA, Y_SLICE_LOCATION_fMRI_DATA, Z_SLICE_LOCATION_fMRI_DATA, TIMEPOINT_fMRI_DATA;
 
 		unsigned char* x_slice_fMRI_data;
@@ -805,12 +659,9 @@ class BROCCOLI_LIB
 
 		double* plot_values_x;
 
-		// Slice timing correction
-		float TR;
-		bool SLICE_TIMING_CORRECTED;
-
-		// Image registration
-		bool MOTION_CORRECTED;
+		
+		// Image registration variables
+		int INTERPOLATION_MODE;
 		int IMAGE_REGISTRATION_FILTER_SIZE;
 		int NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
 		int NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION;
@@ -825,22 +676,19 @@ class BROCCOLI_LIB
 
 		double* motion_corrected_curve;
 
-		// Smoothing
-		int	SMOOTHING_FILTER_SIZE;
-		
+		// Smoothing variables
+		int	SMOOTHING_FILTER_SIZE;		
 		float EPI_Smoothing_FWHM;
 		float AR_Smoothing_FWHM;
 			
 		double* smoothed_curve;
 
-		int xBlockDifference, yBlockDifference, zBlockDifference;
-
-		// Detrending
+		// Detrending variables
 		int NUMBER_OF_DETRENDING_BASIS_FUNCTIONS;
 
 		double* detrended_curve;
 				 
-		// Statistical analysis
+		// Statistical analysis variables
 		bool THRESHOLD_ACTIVITY_MAP;
 		float ACTIVITY_THRESHOLD;
 		int ANALYSIS_METHOD;
@@ -848,8 +696,7 @@ class BROCCOLI_LIB
 		int NUMBER_OF_PERIODS;
 		int PERIOD_TIME;
 		
-
-		// Random permutations
+		// Random permutation variables
 		int NUMBER_OF_PERMUTATIONS;
 		float significance_threshold;
 		float permutation_test_threshold;
@@ -864,8 +711,7 @@ class BROCCOLI_LIB
 		void		*host_pointers_static[NUMBER_OF_HOST_POINTERS];
 		void		*host_pointers_permutation[NUMBER_OF_HOST_POINTERS];
 		
-		float		*h_Result;
-
+		// Data pointers
 		float		*h_fMRI_Volumes;
 		float		*h_MNI_Brain_Mask;
 		float		*h_Mask;
@@ -879,12 +725,12 @@ class BROCCOLI_LIB
 		float		*h_Interpolated_EPI_Volume;
 		float		*h_Downsampled_Volume;
 
-		// Slice timing correction
+		// Slice timing correction pointers
 		float		*h_Slice_Timing_Corrections_Real, *h_Slice_Timing_Corrections_Imag;
 		//Complex		*h_Slice_Timing_Corrections;
 		float		*h_Slice_Timing_Corrected_fMRI_Volumes;
 
-		// Image Registration
+		// Image Registration pointers
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag; 		
 //		float2      *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3;
 //		float2      *h_Quadrature_Filter_Response_1, *h_Quadrature_Filter_Response_2, *h_Quadrature_Filter_Response_3; 
@@ -900,23 +746,23 @@ class BROCCOLI_LIB
 		float		*h_Slice_Sums, *h_Top_Slice;
 
 		float *h_Registration_Parameters_Out;
-		// Motion correction
+		// Motion correction variables
 		float		*h_Motion_Corrected_fMRI_Volumes;		
 		float		*h_Motion_Parameters_Out, h_Motion_Parameters[2000];
 		
 		// fMRI - T1
 		float		*h_Aligned_fMRI_Volume;
 
-
-		// Smoothing
-		float		*h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;
+		// Smoothing pointers
+		float		*h_Smoothing_Filter_X_In, *h_Smoothing_Filter_Y_In, *h_Smoothing_Filter_Z_In;
+		float		h_Smoothing_Filter_X[9], h_Smoothing_Filter_Y[9], h_Smoothing_Filter_Z[9];
 		float		*h_Smoothed_fMRI_Volumes;
 		
-		// Detrending
+		// Detrending pointers
 		float		*h_X_Detrend, *h_xtxxt_Detrend;
 		float		*h_Detrended_fMRI_Volumes;
 			
-		// Statistical analysis
+		// Statistical analysis pointers
 		float		*hrf;
 		int			 hrf_length;
 		float       *h_Contrasts;
@@ -930,15 +776,9 @@ class BROCCOLI_LIB
 		float		*h_AR3_Estimates;
 		float		*h_AR4_Estimates;
 			
-		// Random permutations
-		float		*h_Alpha_Smoothing_Kernel;
-		float		*h_Smoothed_Alpha_Certainty;			
+		// Random permutation pointers
 		uint16		*h_Permutation_Matrix;
 		float		*h_Maximum_Test_Values;
-
-		// Covariance pooling
-		float		*h_Variance_Smoothing_Kernel;
-		float		*h_Smoothed_Variance_Certainty;
 
 		//--------------------------------------------------
 		// Device pointers
@@ -947,9 +787,10 @@ class BROCCOLI_LIB
 		float		*device_pointers[NUMBER_OF_DEVICE_POINTERS];
 		float		*device_pointers_permutation[NUMBER_OF_DEVICE_POINTERS];
 		
-		// Original data
+		// Original data 
 		cl_mem		d_fMRI_Volumes;
 		cl_mem		d_EPI_Mask;
+		cl_mem		d_Smoothed_EPI_Mask;
 			
 		// Slice timing correction
 		cl_mem		d_fMRI_Volumes_Complex;
@@ -974,7 +815,7 @@ class BROCCOLI_LIB
 		// Motion correction
 		cl_mem		d_Motion_Corrected_fMRI_Volumes;
 	
-		//
+		// T1-MNI and EPI-T1 registration
 		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_MNI_T1_Volume, d_Interpolated_fMRI_Volume, d_Skullstripped_T1_Volume, d_MNI_Brain_Mask;
 		cl_mem		d_EPI_Volume, d_T1_EPI_Volume;
 			
@@ -1010,8 +851,6 @@ class BROCCOLI_LIB
 		cl_mem		d_Permuted_fMRI_Volumes;
 
 		cl_mem		c_Permutation_Vector;
-		cl_mem		c_AR_Smoothing_Filter_X, c_AR_Smoothing_Filter_Y, c_AR_Smoothing_Filter_Z;
-
 
 		//--------------------------------------------------
 		// Filenames

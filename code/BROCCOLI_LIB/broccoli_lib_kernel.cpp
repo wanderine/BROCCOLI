@@ -4510,7 +4510,7 @@ __kernel void MultiplyVolumes(__global float* Result, __global const float* Volu
 	Result[idx] = Volume1[idx] * Volume2[idx];
 }
 
-__kernel void MultiplyVolumesOverwrite(__global float* Volumes1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+__kernel void MultiplyVolumesOverwrite(__global float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4522,7 +4522,7 @@ __kernel void MultiplyVolumesOverwrite(__global float* Volumes1, __global const 
 	int idx3D = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
 	int idx4D = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
 
-	Volumes1[idx4D] = Volumes1[idx4D] * Volume2[idx3D];
+	Volume1[idx4D] = Volume1[idx4D] * Volume2[idx3D];
 }
 
 // Statistical functions
@@ -4538,7 +4538,7 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 0.0f )
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
@@ -4593,7 +4593,7 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 0.0f )
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
 
@@ -4688,7 +4688,7 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes, __global const f
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 0.0f )
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 		{
@@ -4725,7 +4725,7 @@ __kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 	
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 0.0f )
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
@@ -4790,7 +4790,7 @@ __kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volum
     if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
         return;
 
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 0.0f )
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
 		return;
 
     int t = 0;
@@ -4836,7 +4836,7 @@ __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global 
     if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
         return;
 
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 0.0f )
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
 		return;
 
     int t = 0;
@@ -4936,7 +4936,7 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates, __global float* A
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 0.0f )
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
 	{
         AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
 		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
@@ -5065,7 +5065,7 @@ __kernel void ThresholdVolume(__global float* Thresholded_Volume, __global const
 	}
 	else
 	{
-		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.001f;
 	}
 }
 

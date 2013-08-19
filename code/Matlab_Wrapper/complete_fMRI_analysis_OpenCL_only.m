@@ -47,6 +47,9 @@ beta_space = 1; % 0 = EPI, 1 = MNI
 opencl_platform = 2;
 opencl_device = 0;
 
+EPI_smoothing_amount = 4.0;
+AR_smoothing_amount = 7.0;
+
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
@@ -71,7 +74,8 @@ end
 fMRI_volumes = double(EPI_nii.img);
 %fMRI_volumes = fMRI_volumes(:,:,1:22,:);
 %fMRI_volumes = fMRI_volumes(:,:,:,5:end);
-[sy sx sz st] = size(fMRI_volumes)
+[sy sx sz st] = size(fMRI_volumes);
+[sy sx sz st]
 %fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
 means = zeros(size(fMRI_volumes));
 mean_volume = mean(fMRI_volumes,4);
@@ -83,9 +87,12 @@ fMRI_volumes = fMRI_volumes - means/1.25;
 EPI = fMRI_volumes(:,:,:,1);
 EPI = EPI/max(EPI(:));
 
-[T1_sy T1_sx T1_sz] = size(T1)
-[MNI_sy MNI_sx MNI_sz] = size(MNI)
-[EPI_sy EPI_sx EPI_sz] = size(EPI)
+[T1_sy T1_sx T1_sz] = size(T1);
+[T1_sy T1_sx T1_sz]
+[MNI_sy MNI_sx MNI_sz] = size(MNI);
+[MNI_sy MNI_sx MNI_sz]
+[EPI_sy EPI_sx EPI_sz] = size(EPI);
+[EPI_sy EPI_sx EPI_sz]
 
 if (strcmp(study,'Beijing'))
     T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
@@ -122,16 +129,8 @@ MM_EPI_Z_CUT = 20/voxel_size;
 load filters.mat
 
 %%
-% Create smoothing filters
-smoothing_filter_x = fspecial('gaussian',9,1.01);
-smoothing_filter_x = smoothing_filter_x(:,5);
-smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
-smoothing_filter_y = smoothing_filter_x;
-smoothing_filter_z = smoothing_filter_x;
-
-%%
 % Create regressors
-[sy sx sz st] = size(fMRI_volumes)
+[sy sx sz st] = size(fMRI_volumes);
 mask = randn(sy,sx,sz);
 
 X_GLM_ = zeros(st,5);
@@ -175,7 +174,7 @@ tic
  ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
 T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
-coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z, ...
+coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,EPI_smoothing_amount,AR_smoothing_amount, ...
 X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform,opencl_device);
 toc
 
@@ -192,7 +191,7 @@ plot(motion_parameters(:,2),'r')
 hold on
 plot(motion_parameters(:,3),'b')
 hold off
-title('Translation')
+title('Translation (mm)')
 legend('X','Y','Z')
 
 figure
@@ -202,7 +201,7 @@ plot(motion_parameters(:,5),'r')
 hold on
 plot(motion_parameters(:,6),'b')
 hold off
-title('Rotation')
+title('Rotation (degrees)')
 legend('X','Y','Z')
 
 if beta_space == 1
@@ -258,20 +257,24 @@ title('t-values')
 %title('Residual variances')
 
 
-% 
-% figure
-% imagesc(ar1_estimates(:,:,30)); colorbar
-% 
-% figure
-% imagesc(ar2_estimates(:,:,30)); colorbar
-% 
-% figure
-% imagesc(ar3_estimates(:,:,30)); colorbar
-% 
-% figure
-% imagesc(ar4_estimates(:,:,30)); colorbar
-% title('Residual timeserie')
-% 
+ 
+figure
+imagesc(ar1_estimates(:,:,30)); colorbar
+
+figure
+imagesc(flipud(squeeze(ar1_estimates(slice,:,:,1))'));
+
+%figure
+%imagesc(ar2_estimates(:,:,30)); colorbar
+ 
+%figure
+%imagesc(ar3_estimates(:,:,30)); colorbar
+ 
+%figure
+%imagesc(ar4_estimates(:,:,30)); colorbar
+
+%title('Residual timeserie')
+ 
 % 
 % figure
 % imagesc(residuals(:,:,30)); colorbar

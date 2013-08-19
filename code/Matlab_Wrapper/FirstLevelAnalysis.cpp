@@ -49,6 +49,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Smoothing_Filter_X_double, *h_Smoothing_Filter_Y_double, *h_Smoothing_Filter_Z_double;
     float           *h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;
     int             SMOOTHING_FILTER_LENGTH;
+    float           EPI_SMOOTHING_AMOUNT, AR_SMOOTHING_AMOUNT;
     
     double          *h_Smoothed_fMRI_Volumes_double;
     float           *h_Smoothed_fMRI_Volumes;    
@@ -78,11 +79,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<32)
+    if(nrhs<31)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>32)
+    if(nrhs>31)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -126,24 +127,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION  = (int)mxGetScalar(prhs[21]);
     
-    h_Smoothing_Filter_X_double = (double*)mxGetData(prhs[22]);
-    h_Smoothing_Filter_Y_double = (double*)mxGetData(prhs[23]);
-    h_Smoothing_Filter_Z_double = (double*)mxGetData(prhs[24]);
+    //h_Smoothing_Filter_X_double = (double*)mxGetData(prhs[22]);
+    //h_Smoothing_Filter_Y_double = (double*)mxGetData(prhs[23]);
+    //h_Smoothing_Filter_Z_double = (double*)mxGetData(prhs[24]);
+    EPI_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[22]);
+    AR_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[23]);
     
-    h_X_GLM_double =  (double*)mxGetData(prhs[25]);
-    h_xtxxt_GLM_double =  (double*)mxGetData(prhs[26]);
-    h_Contrasts_double = (double*)mxGetData(prhs[27]);
-    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[28]);
-    BETA_SPACE = (int)mxGetScalar(prhs[29]);
+    h_X_GLM_double =  (double*)mxGetData(prhs[24]);
+    h_xtxxt_GLM_double =  (double*)mxGetData(prhs[25]);
+    h_Contrasts_double = (double*)mxGetData(prhs[26]);
+    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[27]);
+    BETA_SPACE = (int)mxGetScalar(prhs[28]);
     
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[30]);
-    OPENCL_DEVICE = (int)mxGetScalar(prhs[31]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[29]);
+    OPENCL_DEVICE = (int)mxGetScalar(prhs[30]);
     
     const int *ARRAY_DIMENSIONS_EPI = mxGetDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_T1 = mxGetDimensions(prhs[1]);
     const int *ARRAY_DIMENSIONS_MNI = mxGetDimensions(prhs[2]);
     const int *ARRAY_DIMENSIONS_QUADRATURE_FILTER = mxGetDimensions(prhs[13]);        
-    const int *ARRAY_DIMENSIONS_SMOOTHING_FILTER = mxGetDimensions(prhs[22]);        
+    //const int *ARRAY_DIMENSIONS_SMOOTHING_FILTER = mxGetDimensions(prhs[22]);        
     const int *ARRAY_DIMENSIONS_GLM = mxGetDimensions(prhs[25]);
     const int *ARRAY_DIMENSIONS_CONTRAST = mxGetDimensions(prhs[28]);        
     
@@ -161,7 +164,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     MNI_DATA_D = ARRAY_DIMENSIONS_MNI[2];
         
     IMAGE_REGISTRATION_FILTER_SIZE = ARRAY_DIMENSIONS_QUADRATURE_FILTER[0];                   
-    SMOOTHING_FILTER_LENGTH = ARRAY_DIMENSIONS_SMOOTHING_FILTER[0];
+    SMOOTHING_FILTER_LENGTH = 9;
     
     NUMBER_OF_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
     NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[1];
@@ -373,9 +376,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_EPI_MNI_Registration_Parameters    = (float *)mxMalloc(EPI_MNI_PARAMETERS_SIZE);
     h_Motion_Parameters                 = (float *)mxMalloc(MOTION_PARAMETERS_SIZE);
     
-    h_Smoothing_Filter_X                = (float *)mxMalloc(SMOOTHING_FILTER_SIZE);
-    h_Smoothing_Filter_Y                = (float *)mxMalloc(SMOOTHING_FILTER_SIZE);
-    h_Smoothing_Filter_Z                = (float *)mxMalloc(SMOOTHING_FILTER_SIZE);
+    //h_Smoothing_Filter_X                = (float *)mxMalloc(SMOOTHING_FILTER_SIZE);
+    //h_Smoothing_Filter_Y                = (float *)mxMalloc(SMOOTHING_FILTER_SIZE);
+    //h_Smoothing_Filter_Z                = (float *)mxMalloc(SMOOTHING_FILTER_SIZE);
     
     h_Smoothed_fMRI_Volumes             = (float *)mxMalloc(EPI_DATA_SIZE);
     
@@ -407,9 +410,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     pack_double2float_volume(h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
     pack_double2float_volume(h_Quadrature_Filter_3_Imag, h_Quadrature_Filter_3_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
 
-    pack_double2float(h_Smoothing_Filter_X, h_Smoothing_Filter_X_double, SMOOTHING_FILTER_LENGTH);
-    pack_double2float(h_Smoothing_Filter_Y, h_Smoothing_Filter_Y_double, SMOOTHING_FILTER_LENGTH);
-    pack_double2float(h_Smoothing_Filter_Z, h_Smoothing_Filter_Z_double, SMOOTHING_FILTER_LENGTH);
+    //pack_double2float(h_Smoothing_Filter_X, h_Smoothing_Filter_X_double, SMOOTHING_FILTER_LENGTH);
+    //pack_double2float(h_Smoothing_Filter_Y, h_Smoothing_Filter_Y_double, SMOOTHING_FILTER_LENGTH);
+    //pack_double2float(h_Smoothing_Filter_Z, h_Smoothing_Filter_Z_double, SMOOTHING_FILTER_LENGTH);
     
     pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_REGRESSORS * EPI_DATA_T);
     pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_REGRESSORS * EPI_DATA_T);    
@@ -443,6 +446,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetMNIVoxelSizeX(MNI_VOXEL_SIZE_X);
     BROCCOLI.SetMNIVoxelSizeY(MNI_VOXEL_SIZE_Y);
     BROCCOLI.SetMNIVoxelSizeZ(MNI_VOXEL_SIZE_Z); 
+    BROCCOLI.SetInterpolationMode(LINEAR);
     BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);
     BROCCOLI.SetImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
     BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);    
@@ -456,7 +460,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputEPIMNIRegistrationParameters(h_EPI_MNI_Registration_Parameters);
     BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
     BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
-    BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
+    //BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
+    BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
+    BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
     BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
     BROCCOLI.SetNumberOfRegressors(NUMBER_OF_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
@@ -576,9 +582,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_EPI_MNI_Registration_Parameters);
     mxFree(h_Motion_Parameters);
     
-    mxFree(h_Smoothing_Filter_X);
-    mxFree(h_Smoothing_Filter_Y);
-    mxFree(h_Smoothing_Filter_Z);
+    //mxFree(h_Smoothing_Filter_X);
+    //mxFree(h_Smoothing_Filter_Y);
+    //mxFree(h_Smoothing_Filter_Z);
     
     mxFree(h_Smoothed_fMRI_Volumes);
     

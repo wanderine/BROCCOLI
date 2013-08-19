@@ -24082,7 +24082,7 @@ BB35_2:
 	ld.param.u32 	%r122, [CalculateBetaValuesGLM_param_2];
 	add.s32 	%r74, %r122, %r73;
 	ld.global.f32 	%f2, [%r74];
-	setp.eq.f32 	%p7, %f2, 0f00000000;
+	setp.neu.f32 	%p7, %f2, 0f3F800000;
 	ld.param.u32 	%r145, [CalculateBetaValuesGLM_param_8];
 	setp.gt.s32 	%p1, %r145, 0;
 	@%p7 bra 	BB36_14;
@@ -24306,7 +24306,7 @@ BB36_17:
 	ld.param.u32 	%r214, [CalculateStatisticalMapsGLM_param_6];
 	add.s32 	%r114, %r214, %r113;
 	ld.global.f32 	%f20, [%r114];
-	setp.eq.f32 	%p10, %f20, 0f00000000;
+	setp.neu.f32 	%p10, %f20, 0f3F800000;
 	ld.param.u32 	%r209, [CalculateStatisticalMapsGLM_param_3];
 	add.s32 	%r32, %r209, %r113;
 	@%p10 bra 	BB37_26;
@@ -24721,7 +24721,7 @@ BB37_35:
 	ld.param.u32 	%r104, [RemoveLinearFit_param_3];
 	add.s32 	%r64, %r104, %r63;
 	ld.global.f32 	%f5, [%r64];
-	setp.eq.f32 	%p8, %f5, 0f00000000;
+	setp.neu.f32 	%p8, %f5, 0f3F800000;
 	ld.param.u32 	%r121, [RemoveLinearFit_param_8];
 	setp.gt.s32 	%p1, %r121, 0;
 	@%p8 bra 	BB38_8;
@@ -24913,7 +24913,7 @@ BB38_11:
 	ld.param.u32 	%r171, [CalculateStatisticalMapsGLMPermutation_param_3];
 	add.s32 	%r89, %r171, %r88;
 	ld.global.f32 	%f21, [%r89];
-	setp.eq.f32 	%p7, %f21, 0f00000000;
+	setp.neu.f32 	%p7, %f21, 0f3F800000;
 	@%p7 bra 	BB39_23;
 
 	ld.param.u32 	%r211, [CalculateStatisticalMapsGLMPermutation_param_10];
@@ -25260,7 +25260,7 @@ BB39_26:
 	ld.param.u32 	%r119, [GeneratePermutedfMRIVolumesAR4_param_6];
 	add.s32 	%r54, %r119, %r53;
 	ld.global.f32 	%f14, [%r54];
-	setp.eq.f32 	%p6, %f14, 0f00000000;
+	setp.neu.f32 	%p6, %f14, 0f3F800000;
 	@%p6 bra 	BB40_5;
 
 	ld.param.u32 	%r115, [GeneratePermutedfMRIVolumesAR4_param_2];
@@ -25465,7 +25465,7 @@ BB40_5:
 	ld.param.u32 	%r100, [ApplyWhiteningAR4_param_6];
 	add.s32 	%r51, %r100, %r50;
 	ld.global.f32 	%f13, [%r51];
-	setp.eq.f32 	%p6, %f13, 0f00000000;
+	setp.neu.f32 	%p6, %f13, 0f3F800000;
 	@%p6 bra 	BB41_5;
 
 	ld.param.u32 	%r96, [ApplyWhiteningAR4_param_2];
@@ -25653,7 +25653,7 @@ BB42_2:
 	ld.param.u32 	%r85, [EstimateAR4Models_param_5];
 	add.s32 	%r54, %r85, %r53;
 	ld.global.f32 	%f34, [%r54];
-	setp.eq.f32 	%p6, %f34, 0f00000000;
+	setp.neu.f32 	%p6, %f34, 0f3F800000;
 	ld.param.u32 	%r79, [EstimateAR4Models_param_0];
 	add.s32 	%r27, %r79, %r53;
 	ld.param.u32 	%r80, [EstimateAR4Models_param_1];
@@ -26036,7 +26036,7 @@ BB43_2:
 	ret;
 
 BB43_4:
-	mov.u32 	%r30, 0;
+	mov.u32 	%r30, 981668463;
 	st.global.u32 	[%r8], %r30;
 	ret;
 }

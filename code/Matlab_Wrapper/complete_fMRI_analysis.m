@@ -38,11 +38,15 @@ basepath = 'D:\BROCCOLI_test_data\';
 %study = 'Beijing';
 study = 'Cambridge';
 substudy = 'Mixed'
-subject = 2;
+subject = 9;
 voxel_size = 2;
-opencl_platform = 0;
-opencl_device = 2;
-beta_space = 1;
+beta_space = 1; % 0 = EPI, 1 = MNI
+opencl_platform = 2;
+opencl_device = 0;
+
+
+EPI_smoothing_amount = 6.0;
+AR_smoothing_amount = 7.0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -121,11 +125,63 @@ load filters.mat
 
 %%
 % Create smoothing filters
-smoothing_filter_x = fspecial('gaussian',9,1);
+
+sigma_x = 4 / 2.354 / EPI_voxel_size_x;
+sigma_y = 4 / 2.354 / EPI_voxel_size_y;
+sigma_z = 4 / 2.354 / EPI_voxel_size_z;
+
+smoothing_filter_x = fspecial('gaussian',9,sigma_x);
 smoothing_filter_x = smoothing_filter_x(:,5);
 smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
-smoothing_filter_y = smoothing_filter_x;
-smoothing_filter_z = smoothing_filter_x;
+
+smoothing_filter_y = fspecial('gaussian',9,sigma_y);
+smoothing_filter_y = smoothing_filter_y(:,5);
+smoothing_filter_y = smoothing_filter_y / sum(abs(smoothing_filter_y));
+
+smoothing_filter_z = fspecial('gaussian',9,sigma_z);
+smoothing_filter_z = smoothing_filter_z(:,5);
+smoothing_filter_z = smoothing_filter_z / sum(abs(smoothing_filter_z));
+
+temp = zeros(1,9,1);
+temp(1,:,1) = smoothing_filter_x;
+smoothing_filter_xx = temp;
+
+temp = zeros(9,1,1);
+temp(:,1,1) = smoothing_filter_y;
+smoothing_filter_yy = temp;
+
+temp = zeros(1,1,9);
+temp(1,1,:) = smoothing_filter_z;
+smoothing_filter_zz = temp;
+
+volume = fMRI_volumes(:,:,:,1);
+smoothed_volume = convn(volume,smoothing_filter_xx,'same');
+smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');   
+smoothed_volume = convn(smoothed_volume,smoothing_filter_zz,'same');
+   
+threshold = 0.9 * mean(smoothed_volume(:));
+brain_mask = double(smoothed_volume >= threshold) + 0.001;
+   
+smoothed_volume = convn(brain_mask,smoothing_filter_xx,'same');
+smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');   
+smoothed_brain_mask = convn(smoothed_volume,smoothing_filter_zz,'same');
+
+
+sigma_x = EPI_smoothing_amount / 2.354 / EPI_voxel_size_x;
+sigma_y = EPI_smoothing_amount / 2.354 / EPI_voxel_size_y;
+sigma_z = EPI_smoothing_amount / 2.354 / EPI_voxel_size_z;
+
+smoothing_filter_x = fspecial('gaussian',9,sigma_x);
+smoothing_filter_x = smoothing_filter_x(:,5);
+smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
+
+smoothing_filter_y = fspecial('gaussian',9,sigma_y);
+smoothing_filter_y = smoothing_filter_y(:,5);
+smoothing_filter_y = smoothing_filter_y / sum(abs(smoothing_filter_y));
+
+smoothing_filter_z = fspecial('gaussian',9,sigma_z);
+smoothing_filter_z = smoothing_filter_z(:,5);
+smoothing_filter_z = smoothing_filter_z / sum(abs(smoothing_filter_z));
 
 temp = zeros(1,9,1);
 temp(1,:,1) = smoothing_filter_x;
@@ -143,11 +199,21 @@ smoothed_volumes_cpu = zeros(size(fMRI_volumes));
 for t = 1:size(fMRI_volumes,4)
    volume = motion_corrected_volumes_cpu(:,:,:,t);
    %volume = fMRI_volumes(:,:,:,t);
+   smoothed_volume = convn(volume .* brain_mask,smoothing_filter_xx,'same');
+   smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');   
+   smoothed_volume = convn(smoothed_volume,smoothing_filter_zz,'same');
+   smoothed_volumes_cpu(:,:,:,t) = smoothed_volume ./ smoothed_brain_mask;
+end
+
+smoothed_volumes_cpu2 = zeros(size(fMRI_volumes));
+for t = 1:size(fMRI_volumes,4)
+   volume = motion_corrected_volumes_cpu(:,:,:,t);   
    smoothed_volume = convn(volume,smoothing_filter_xx,'same');
    smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');   
    smoothed_volume = convn(smoothed_volume,smoothing_filter_zz,'same');
-   smoothed_volumes_cpu(:,:,:,t) = smoothed_volume;
+   smoothed_volumes_cpu2(:,:,:,t) = smoothed_volume;
 end
+
 
 %%
 % Create regressors
@@ -222,7 +288,7 @@ tic
  ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
 T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
-coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z, ...
+coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,EPI_smoothing_amount, AR_smoothing_amount, ...
 X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform,opencl_device);
 toc
 
@@ -287,11 +353,19 @@ imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_op
 title('MC cpu - gpu')
 
 figure
-imagesc(smoothed_volumes_opencl(:,:,slice,1)); colorbar
+imagesc(smoothed_volumes_opencl(:,:,slice,1) .* brain_mask(:,:,slice)); colorbar
 title('SM')
 
 figure
+imagesc(smoothed_volumes_cpu(:,:,slice,1) .* brain_mask(:,:,slice)); colorbar
+title('SM cpu')
+
+figure
 imagesc(smoothed_volumes_cpu(:,:,slice,1)); colorbar
+title('SM cpu')
+
+figure
+imagesc(smoothed_volumes_cpu2(:,:,slice,1)); colorbar
 title('SM cpu')
 
 figure

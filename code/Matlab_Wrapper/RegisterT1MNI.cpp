@@ -292,6 +292,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetInputT1Volume(h_T1_Volume);
     BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
     BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
+    BROCCOLI.SetInterpolationMode(LINEAR);
     BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);
     BROCCOLI.SetImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
     BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
