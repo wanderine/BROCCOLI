@@ -532,7 +532,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     { 
         BROCCOLI.PerformFirstLevelAnalysisWrapper();
     }
-    
+    else
+    {
+        mexPrintf("OPENCL error detected, aborting \n");
+    }    
     
     unpack_float2double(h_T1_MNI_Registration_Parameters_double, h_T1_MNI_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE);
     unpack_float2double(h_EPI_T1_Registration_Parameters_double, h_EPI_T1_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID);

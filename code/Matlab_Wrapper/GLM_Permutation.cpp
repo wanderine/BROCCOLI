@@ -36,32 +36,36 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     float           EPI_SMOOTHING_AMOUNT, AR_SMOOTHING_AMOUNT;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
     
-    int             OPENCL_PLATFORM, OPENCL_DEVICE;
+    int             NUMBER_OF_PERMUTATIONS, OPENCL_PLATFORM, OPENCL_DEVICE;
     
     //-----------------------
     // Output pointers        
     
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
     double          *h_AR1_Estimates_double, *h_AR2_Estimates_double, *h_AR3_Estimates_double, *h_AR4_Estimates_double;
+    double          *h_Permutation_Distribution_double;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;
     float           *h_AR1_Estimates, *h_AR2_Estimates, *h_AR3_Estimates, *h_AR4_Estimates;
+    float           *h_Permutation_Distribution;
+    double          *h_Detrended_fMRI_Volumes_double, *h_Whitened_fMRI_Volumes_double, *h_Permuted_fMRI_Volumes_double;
+    float           *h_Detrended_fMRI_Volumes, *h_Whitened_fMRI_Volumes, *h_Permuted_fMRI_Volumes;
     
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<12)
+    if(nrhs<13)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>12)
+    if(nrhs>13)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<8)
+    if(nlhs<12)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>8)
+    if(nlhs>12)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -79,35 +83,38 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[7]);
     EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[8]);
     EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[9]);
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[10]);
-    OPENCL_DEVICE  = (int)mxGetScalar(prhs[11]);
+    NUMBER_OF_PERMUTATIONS = (int)mxGetScalar(prhs[10]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[11]);
+    OPENCL_DEVICE  = (int)mxGetScalar(prhs[12]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_GLM = mxGetDimensions(prhs[1]);
     const int *ARRAY_DIMENSIONS_CONTRAST = mxGetDimensions(prhs[4]);
     
-    int DATA_H, DATA_W, DATA_D, DATA_T, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS;
+    int DATA_H, DATA_W, DATA_D, DATA_T, NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_CONTRASTS;
     
     DATA_H = ARRAY_DIMENSIONS_DATA[0];
     DATA_W = ARRAY_DIMENSIONS_DATA[1];
     DATA_D = ARRAY_DIMENSIONS_DATA[2];
     DATA_T = ARRAY_DIMENSIONS_DATA[3];
     
-    NUMBER_OF_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
+    NUMBER_OF_GLM_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
     NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[1];
                 
     int DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
-    int GLM_SIZE = DATA_T * NUMBER_OF_REGRESSORS * sizeof(float);
-    int CONTRAST_SIZE = NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
+    int GLM_SIZE = DATA_T * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
+    int CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     int CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-    int BETA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_REGRESSORS * sizeof(float);
+    int BETA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     int STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    int DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * sizeof(float);
     
     mexPrintf("Data size : %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
-    mexPrintf("Number of regressors : %i \n",  NUMBER_OF_REGRESSORS);
+    mexPrintf("Number of regressors : %i \n",  NUMBER_OF_GLM_REGRESSORS);
     mexPrintf("Number of contrasts : %i \n",  NUMBER_OF_CONTRASTS);
+    mexPrintf("Number of permutations : %i \n",  NUMBER_OF_PERMUTATIONS);
     
     //-------------------------------------------------
     // Output to Matlab
@@ -118,7 +125,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ARRAY_DIMENSIONS_OUT_BETA[0] = DATA_H;
     ARRAY_DIMENSIONS_OUT_BETA[1] = DATA_W;
     ARRAY_DIMENSIONS_OUT_BETA[2] = DATA_D;
-    ARRAY_DIMENSIONS_OUT_BETA[3] = NUMBER_OF_REGRESSORS;
+    ARRAY_DIMENSIONS_OUT_BETA[3] = NUMBER_OF_GLM_REGRESSORS;
     
     plhs[0] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_BETA,mxDOUBLE_CLASS, mxREAL);
     h_Beta_Volumes_double = mxGetPr(plhs[0]);          
@@ -170,11 +177,38 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[7] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
     h_AR4_Estimates_double = mxGetPr(plhs[7]);          
     
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_DISTRIBUTION[2];
+    ARRAY_DIMENSIONS_OUT_DISTRIBUTION[0] = NUMBER_OF_PERMUTATIONS;
+    ARRAY_DIMENSIONS_OUT_DISTRIBUTION[1] = 1;
+    
+    plhs[8] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DISTRIBUTION,mxDOUBLE_CLASS, mxREAL);
+    h_Permutation_Distribution_double = mxGetPr(plhs[8]);          
+    
+    NUMBER_OF_DIMENSIONS = 4;
+    int ARRAY_DIMENSIONS_OUT_DETRENDED[4];
+    ARRAY_DIMENSIONS_OUT_DETRENDED[0] = DATA_H;
+    ARRAY_DIMENSIONS_OUT_DETRENDED[1] = DATA_W;
+    ARRAY_DIMENSIONS_OUT_DETRENDED[2] = DATA_D;
+    ARRAY_DIMENSIONS_OUT_DETRENDED[3] = DATA_T;
+    
+    plhs[9] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DETRENDED,mxDOUBLE_CLASS, mxREAL);
+    h_Detrended_fMRI_Volumes_double = mxGetPr(plhs[9]);          
+    
+    plhs[10] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DETRENDED,mxDOUBLE_CLASS, mxREAL);
+    h_Whitened_fMRI_Volumes_double = mxGetPr(plhs[10]);          
+    
+    plhs[11] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DETRENDED,mxDOUBLE_CLASS, mxREAL);
+    h_Permuted_fMRI_Volumes_double = mxGetPr(plhs[11]);          
     
     // ------------------------------------------------
     
     // Allocate memory on the host
     h_fMRI_Volumes                 = (float *)mxMalloc(DATA_SIZE);
+    h_Detrended_fMRI_Volumes       = (float *)mxMalloc(DATA_SIZE);
+    h_Whitened_fMRI_Volumes        = (float *)mxMalloc(DATA_SIZE);
+    h_Permuted_fMRI_Volumes        = (float *)mxMalloc(DATA_SIZE);
+    
     h_X_GLM                        = (float *)mxMalloc(GLM_SIZE);
     h_xtxxt_GLM                    = (float *)mxMalloc(GLM_SIZE);
     h_Contrasts                    = (float *)mxMalloc(CONTRAST_SIZE);
@@ -189,12 +223,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_AR2_Estimates                = (float *)mxMalloc(VOLUME_SIZE);
     h_AR3_Estimates                = (float *)mxMalloc(VOLUME_SIZE);
     h_AR4_Estimates                = (float *)mxMalloc(VOLUME_SIZE);
+    
+    h_Permutation_Distribution     = (float *)mxMalloc(DISTRIBUTION_SIZE);
+    
+    
         
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, DATA_W, DATA_H, DATA_D, DATA_T);
-    pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);
-    pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);    
-    pack_double2float(h_Contrasts, h_Contrasts_double, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS);
+    pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_GLM_REGRESSORS * DATA_T);
+    pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_GLM_REGRESSORS * DATA_T);    
+    pack_double2float(h_Contrasts, h_Contrasts_double, NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS);
     pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_CONTRASTS);
     
     //------------------------
@@ -205,12 +243,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetEPIHeight(DATA_H);
     BROCCOLI.SetEPIDepth(DATA_D);
     BROCCOLI.SetEPITimepoints(DATA_T);   
-    BROCCOLI.SetNumberOfRegressors(NUMBER_OF_REGRESSORS);
+    BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
     BROCCOLI.SetContrasts(h_Contrasts);
     BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
+    BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
     BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
     BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
     BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);  
@@ -221,8 +260,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
     BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
+    BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
+    BROCCOLI.SetOutputDetrendedfMRIVolumes(h_Detrended_fMRI_Volumes);
+    BROCCOLI.SetOutputWhitenedfMRIVolumes(h_Whitened_fMRI_Volumes);
+    BROCCOLI.SetOutputPermutedfMRIVolumes(h_Permuted_fMRI_Volumes);
     
-  
     /*
      * Error checking     
      */
@@ -246,7 +288,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
     int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 34; i++)
+    for (int i = 0; i < 39; i++)
     {
         if (createKernelErrors[i] != 0)
         {
@@ -276,14 +318,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
     {        
-        BROCCOLI.PerformGLMWrapper();
+        BROCCOLI.CalculatePermutationTestThresholdFirstLevelWrapper();
     }
     else
     {
         mexPrintf("OPENCL error detected, aborting \n");
     }
     
-    unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
+    
+    unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, DATA_W, DATA_H, DATA_D, NUMBER_OF_GLM_REGRESSORS);
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, DATA_W, DATA_H, DATA_D, DATA_T);
     unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, DATA_W, DATA_H, DATA_D, NUMBER_OF_CONTRASTS);
@@ -291,9 +334,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_AR2_Estimates_double, h_AR2_Estimates, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_AR3_Estimates_double, h_AR3_Estimates, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_AR4_Estimates_double, h_AR4_Estimates, DATA_W, DATA_H, DATA_D);
-        
+    unpack_float2double(h_Permutation_Distribution_double, h_Permutation_Distribution, NUMBER_OF_PERMUTATIONS);        
+    unpack_float2double_volumes(h_Detrended_fMRI_Volumes_double, h_Detrended_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
+    unpack_float2double_volumes(h_Whitened_fMRI_Volumes_double, h_Whitened_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
+    unpack_float2double_volumes(h_Permuted_fMRI_Volumes_double, h_Permuted_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
+    
     // Free all the allocated memory on the host
     mxFree(h_fMRI_Volumes);
+    mxFree(h_Detrended_fMRI_Volumes);
+    mxFree(h_Whitened_fMRI_Volumes);
+    mxFree(h_Permuted_fMRI_Volumes);
+    
     mxFree(h_X_GLM);
     mxFree(h_xtxxt_GLM);    
     mxFree(h_Contrasts);
@@ -308,6 +359,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_AR2_Estimates);
     mxFree(h_AR3_Estimates);
     mxFree(h_AR4_Estimates);
+    
+    mxFree(h_Permutation_Distribution);
     
     return;
 }

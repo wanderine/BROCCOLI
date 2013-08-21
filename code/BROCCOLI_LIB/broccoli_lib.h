@@ -52,11 +52,13 @@ class BROCCOLI_LIB
 		
 		void SetOpenCLPlatform(int N);
 		void SetMask(float* input);
-		void SetNumberOfRegressors(int NR);
+		void SetNumberOfGLMRegressors(int NR);
+		void SetNumberOfDetrendingRegressors(int NR);
 		void SetNumberOfContrasts(int NC);
 		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
+		void SetNumberOfPermutations(int);
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
 		void SetEPISmoothingAmount(float);
 		void SetARSmoothingAmount(float);
@@ -123,9 +125,14 @@ class BROCCOLI_LIB
 		void SetOutputDownsampledVolume(float*);
 		void SetOutputMotionCorrectedfMRIVolumes(float*);
 		void SetOutputSmoothedfMRIVolumes(float*);
+		void SetOutputDetrendedfMRIVolumes(float*);
+		void SetOutputWhitenedfMRIVolumes(float*);
+		void SetOutputPermutedfMRIVolumes(float*);
 		void SetOutputAREstimates(float*, float*, float*, float*);
 		void SetOutputSliceSums(float*);
 		void SetOutputTopSlice(float*);
+		void SetOutputPermutationDistribution(float*);
+
 		
 		void SetfMRIDataFilename(std::string filename);			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);		
@@ -143,7 +150,6 @@ class BROCCOLI_LIB
 		void SetDataType(int type);
 		void SetFileType(int type);
 
-		void SetNumberOfPermutations(int value);
 		void SetSignificanceThreshold(float value);
 
 		// Get functions for GUI / Wrappers
@@ -252,10 +258,11 @@ class BROCCOLI_LIB
 		void PerformRegistrationEPIT1Wrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();		
-		void PerformDetrending();
+		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
 		void PerformGLMWrapper();
-		void PerformFirstLevelAnalysisWrapper();				
+		void PerformFirstLevelAnalysisWrapper();		
+		void CalculatePermutationTestThresholdFirstLevelWrapper();
 														
 		void CalculateSlicesfMRIData();
 		void CalculateSlicesPreprocessedfMRIData();
@@ -277,24 +284,28 @@ class BROCCOLI_LIB
 		void PerformFirstLevelAnalysis();				
 
 		void CalculateStatisticalMapsGLMFirstLevel(cl_mem Volumes);
+		void CalculateStatisticalMapsGLMFirstLevelPermutation(cl_mem Volumes);
 		void CalculateStatisticalMapsGLMSecondLevel(cl_mem Volumes);
-		void CalculatePermutationTestThresholdSingleSubject();
-		void CalculatePermutationTestThresholdMultiSubject();				
+		void CalculatePermutationTestThresholdFirstLevel(cl_mem Volumes);
+		
+		void CalculatePermutationTestThresholdSecondLevel();				
 		
 		// Permutation single subject	
 		void SetupParametersPermutationSingleSubject();
-		void GeneratePermutationMatrixSingleSubject();
+		void GeneratePermutationMatrixFirstLevel();
 		void PerformDetrendingPriorPermutation();
 		void CreateBOLDRegressedVolumes();
+		void PerformWhitening(cl_mem whitened_volumes, cl_mem volumes);
 		void WhitenfMRIVolumes();
-		void GeneratePermutedfMRIVolumes();
+		void GeneratePermutedVolumesFirstLevel(cl_mem permuted_volumes, cl_mem whitened_volumes, int permutation);
+		void GeneratePermutedVolumesSecondLevel(cl_mem permuted_volumes, cl_mem volumes, int permutation);
 		void PerformDetrendingPermutation();
 		void PerformSmoothingPermutation(); 
 		void CalculateStatisticalMapPermutation();
 
 		// Permutation multi subject	
 		void SetupParametersPermutationMultiSubject();
-		void GeneratePermutationMatrixMultiSubject();		
+		void GeneratePermutationMatrixSecondLevel();		
 		void CalculateGroupMapPermutation();
 		float FindMaxTestvaluePermutation();
 		
@@ -379,8 +390,8 @@ class BROCCOLI_LIB
 		void LDU3(double* A, int* P);
 		void SVD3x3(double* U, double* S, double* V, const double* A);
 
-		void SetupDetrendingBasisFunctions();
-		void SetupStatisticalAnalysisBasisFunctions();
+		void SetupDetrendingRegressors(int N);
+		void SetupStatisticalAnalysisRegressors();
 		float CalculateMax(float *data, int N);
 		float CalculateMin(float *data, int N);
 		float Gpdf(double value, double shape, double scale);
@@ -401,6 +412,7 @@ class BROCCOLI_LIB
 		void SetGlobalAndLocalWorkSizesMemset(int N);
 		void SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesCalculateSum(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesCalculateMax(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesThresholdVolume(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesCalculateMagnitudes(int DATA_W, int DATA_H, int DATA_D);		
 
@@ -467,8 +479,8 @@ class BROCCOLI_LIB
 		cl_kernel MemsetKernel;
 		cl_kernel MemsetDoubleKernel;
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel, NonseparableConvolution3DComplexKernel;				
-		cl_kernel CalculateBetaValuesGLMKernel, CalculateStatisticalMapsGLMKernel, RemoveLinearFitKernel;
-		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedfMRIVolumesAR4Kernel;
+		cl_kernel CalculateBetaValuesGLMKernel, CalculateStatisticalMapsGLMKernel, CalculateStatisticalMapsGLMPermutationKernel, RemoveLinearFitKernel;
+		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedVolumesFirstLevelKernel, GeneratePermutedVolumesSecondLevelKernel;
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
 		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel; 
 		cl_kernel CalculateAMatrixAndHVector2DValuesXDoubleKernel, CalculateAMatrixAndHVector2DValuesYDoubleKernel,CalculateAMatrixAndHVector2DValuesZDoubleKernel; 
@@ -501,9 +513,11 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateColumnMaxs;
 		cl_int createKernelErrorCalculateRowMaxs;
 		cl_int createKernelErrorThresholdVolume;
-		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM;
+		cl_int createKernelErrorCalculateBetaValuesGLM, createKernelErrorCalculateStatisticalMapsGLM, createKernelErrorCalculateStatisticalMapsGLMPermutation;
 		cl_int createKernelErrorEstimateAR4Models, createKernelErrorApplyWhiteningAR4;
-		
+		cl_int createKernelErrorGeneratePermutedVolumesFirstLevel, createKernelErrorGeneratePermutedVolumesSecondLevel;
+		cl_int createKernelErrorRemoveLinearFit;
+
 		// Create buffer errors
 		cl_int createBufferErrorAlignedVolume, createBufferErrorReferenceVolume;
 		cl_int createBufferErrorq11Real, createBufferErrorq11Imag, createBufferErrorq12Real, createBufferErrorq12Imag, createBufferErrorq13Real, createBufferErrorq13Imag;
@@ -532,12 +546,15 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateStatisticalMapsGLM;
 		cl_int runKernelErrorEstimateAR4Models;
 		cl_int runKernelErrorApplyAR4Whitening;
+		cl_int runKernelErrorGeneratePermutedVolumesFirstLevel;
+		cl_int runKernelErrorGeneratePermutedVolumesSecondLevel;
 		cl_int runKernelErrorCalculateMagnitudes;
 		cl_int runKernelErrorCalculateColumnSums;
 		cl_int runKernelErrorCalculateRowSums;
 		cl_int runKernelErrorCalculateColumnMaxs;
 		cl_int runKernelErrorCalculateRowMaxs;
 		cl_int runKernelErrorThresholdVolume;
+		cl_int runKernelErrorRemoveLinearFit;
 
 		int OpenCLCreateBufferErrors[50];
 		int OpenCLRunKernelErrors[50];
@@ -581,7 +598,8 @@ class BROCCOLI_LIB
 		size_t localWorkSizeRemoveLinearFit[3];
 		size_t localWorkSizeEstimateAR4Models[3];
 		size_t localWorkSizeApplyWhiteningAR4[3];
-		size_t localWorkSizeGeneratePermutedfMRIVolumesAR4[3];
+		size_t localWorkSizeGeneratePermutedVolumesFirstLevel[3];
+		size_t localWorkSizeGeneratePermutedVolumesSecondLevel[3];
 
 		// OpenCL global work sizes
 
@@ -618,7 +636,8 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeRemoveLinearFit[3];		
 		size_t globalWorkSizeEstimateAR4Models[3];
 		size_t globalWorkSizeApplyWhiteningAR4[3];
-		size_t globalWorkSizeGeneratePermutedfMRIVolumesAR4[3];
+		size_t globalWorkSizeGeneratePermutedVolumesFirstLevel[3];
+		size_t globalWorkSizeGeneratePermutedVolumesSecondLevel[3];
 
 		//------------------------------------------------
 		// General variables
@@ -634,7 +653,8 @@ class BROCCOLI_LIB
 				
 		int NUMBER_OF_SUBJECTS;
 		int NUMBER_OF_CONTRASTS;
-		int NUMBER_OF_REGRESSORS;
+		int NUMBER_OF_GLM_REGRESSORS;
+		int NUMBER_OF_DETRENDING_REGRESSORS;
 		float SEGMENTATION_THRESHOLD;
 
 		// Resolution variables	
@@ -683,9 +703,7 @@ class BROCCOLI_LIB
 			
 		double* smoothed_curve;
 
-		// Detrending variables
-		int NUMBER_OF_DETRENDING_BASIS_FUNCTIONS;
-
+		
 		double* detrended_curve;
 				 
 		// Statistical analysis variables
@@ -761,6 +779,8 @@ class BROCCOLI_LIB
 		// Detrending pointers
 		float		*h_X_Detrend, *h_xtxxt_Detrend;
 		float		*h_Detrended_fMRI_Volumes;
+		float		*h_Whitened_fMRI_Volumes;
+		float		*h_Permuted_fMRI_Volumes;
 			
 		// Statistical analysis pointers
 		float		*hrf;
@@ -778,6 +798,7 @@ class BROCCOLI_LIB
 			
 		// Random permutation pointers
 		uint16		*h_Permutation_Matrix;
+		float		*h_Permutation_Distribution;
 		float		*h_Maximum_Test_Values;
 
 		//--------------------------------------------------
@@ -791,7 +812,8 @@ class BROCCOLI_LIB
 		cl_mem		d_fMRI_Volumes;
 		cl_mem		d_EPI_Mask;
 		cl_mem		d_Smoothed_EPI_Mask;
-			
+		cl_mem		d_Group_Mask;	
+
 		// Slice timing correction
 		cl_mem		d_fMRI_Volumes_Complex;
 		cl_mem		d_Shifters;
@@ -830,12 +852,11 @@ class BROCCOLI_LIB
 
 		// Detrending
 		cl_mem		d_Detrended_fMRI_Volumes;
-		cl_mem		c_X_Detrend;
+		cl_mem		c_xtxxt_Detrend, c_X_Detrend;
 
 		// Statistical analysis		
 		cl_mem		d_Beta_Volumes, d_Beta_Volumes_MNI;
-		cl_mem		d_Statistical_Maps, d_Statistical_Maps_MNI;
-		float		c_xtxxt_Detrend;
+		cl_mem		d_Statistical_Maps, d_Statistical_Maps_MNI;		
 		cl_mem		c_Censor;
 		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrasts, c_ctxtxc_GLM;
 		cl_mem		d_Beta_Contrasts;

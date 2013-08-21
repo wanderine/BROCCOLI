@@ -47,7 +47,7 @@ beta_space = 1; % 0 = EPI, 1 = MNI
 opencl_platform = 2;
 opencl_device = 0;
 
-EPI_smoothing_amount = 4.0;
+EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
@@ -108,8 +108,6 @@ else
     T1_voxel_size_z = T1_nii.hdr.dime.pixdim(4);
 end
 
-
-
 MNI_voxel_size_x = MNI_nii.hdr.dime.pixdim(2);
 MNI_voxel_size_y = MNI_nii.hdr.dime.pixdim(3);
 MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
@@ -120,12 +118,12 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 %%
 % Settings for image registration
-number_of_iterations_for_image_registration = 70;
+number_of_iterations_for_image_registration = 40;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
-coarsest_scale_EPI_T1 = 8/voxel_size;
-MM_T1_Z_CUT = 15/voxel_size;
-MM_EPI_Z_CUT = 20/voxel_size;
+coarsest_scale_EPI_T1 = 4/voxel_size;
+MM_T1_Z_CUT = 60;
+MM_EPI_Z_CUT = 20;
 load filters.mat
 
 %%
@@ -228,7 +226,7 @@ title('Beta 2')
 
 figure
 %imagesc(statistical_maps(20:end-19,20:end-19,slice,1)); colorbar
-imagesc(statistical_maps(:,:,slice,1));
+imagesc(statistical_maps(:,:,slice,1)); colorbar
 title('t-values')
 
 figure
@@ -239,7 +237,7 @@ imagesc(flipud(squeeze(beta_volumes(slice,:,:,2))')); colormap gray
 title('Beta 2')
 
 figure
-imagesc(flipud(squeeze(statistical_maps(slice,:,:,1))'));
+imagesc(flipud(squeeze(statistical_maps(slice,:,:,1))')); colorbar
 title('t-values')
 
 % 
@@ -259,10 +257,10 @@ title('t-values')
 
  
 figure
-imagesc(ar1_estimates(:,:,30)); colorbar
+imagesc(ar1_estimates(:,:,32)); colorbar
 
 figure
-imagesc(flipud(squeeze(ar1_estimates(slice,:,:,1))'));
+imagesc(flipud(squeeze(ar1_estimates(35,:,:,1))')); colorbar
 
 %figure
 %imagesc(ar2_estimates(:,:,30)); colorbar

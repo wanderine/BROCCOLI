@@ -200,6 +200,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {        
         BROCCOLI.PerformSmoothingWrapper();
     }
+    else
+    {
+        mexPrintf("OPENCL error detected, aborting \n");
+    }
     
     int programBinarySize = BROCCOLI.GetProgramBinarySize();
     int writtenElements = BROCCOLI.GetWrittenElements();

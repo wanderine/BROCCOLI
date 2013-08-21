@@ -10,14 +10,14 @@
 
 .const .align 1 .b8 $str[31] = {99, 97, 110, 110, 111, 116, 32, 114, 101, 97, 100, 32, 95, 95, 119, 114, 105, 116, 101, 95, 111, 110, 108, 121, 32, 105, 109, 97, 103, 101, 0};
 .const .align 4 .b8 __GPU_i2opi_f[24] = {65, 144, 67, 60, 153, 149, 98, 219, 192, 221, 52, 245, 209, 87, 39, 252, 41, 21, 68, 78, 110, 131, 249, 162};
-.extern .shared .align 4 .b8 shr_1_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_2_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_3_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_4_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_5_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_6_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_7_l_Image[24576];
-.extern .shared .align 4 .b8 shr_8_l_Image[32768];
+.extern .shared .align 4 .b8 shr_9_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_10_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_11_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_12_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_13_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_14_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_15_l_Image[24576];
+.extern .shared .align 4 .b8 shr_16_l_Image[32768];
 .visible .global .samplerref volume_sampler_nearest = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = nearest, force_unnormalized_coords = 1 };
 .visible .global .samplerref volume_sampler_linear = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = linear, force_unnormalized_coords = 1 };
 
@@ -89,7 +89,7 @@
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 11;
-	mov.u32 	%r49, shr_1_l_Volume;
+	mov.u32 	%r49, shr_9_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -635,7 +635,7 @@ BB0_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 11;
-	mov.u32 	%r69, shr_2_l_Volume;
+	mov.u32 	%r69, shr_10_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -1645,7 +1645,7 @@ BB1_85:
 	mov.u32 	%r44, %tid.z;
 	// inline asm
 	shl.b32 	%r50, %r44, 11;
-	mov.u32 	%r51, shr_3_l_Volume;
+	mov.u32 	%r51, shr_11_l_Volume;
 	add.s32 	%r52, %r51, %r50;
 	shl.b32 	%r53, %r43, 7;
 	add.s32 	%r54, %r52, %r53;
@@ -2271,7 +2271,7 @@ BB2_53:
 	mov.u32 	%r68, %tid.z;
 	// inline asm
 	shl.b32 	%r74, %r68, 11;
-	mov.u32 	%r75, shr_4_l_Volume;
+	mov.u32 	%r75, shr_12_l_Volume;
 	add.s32 	%r76, %r75, %r74;
 	shl.b32 	%r77, %r67, 7;
 	add.s32 	%r78, %r76, %r77;
@@ -3454,7 +3454,7 @@ BB3_109:
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 10;
-	mov.u32 	%r49, shr_5_l_Volume;
+	mov.u32 	%r49, shr_13_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -3950,7 +3950,7 @@ BB4_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 10;
-	mov.u32 	%r69, shr_6_l_Volume;
+	mov.u32 	%r69, shr_14_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -5585,7 +5585,7 @@ BB7_2:
 	// inline asm
 	mov.u32 	%r54, %tid.y;
 	// inline asm
-	mov.u32 	%r61, shr_7_l_Image;
+	mov.u32 	%r61, shr_15_l_Image;
 	mad.lo.s32 	%r62, %r54, 384, %r61;
 	shl.b32 	%r63, %r53, 2;
 	add.s32 	%r21, %r62, %r63;
@@ -9883,7 +9883,7 @@ BB8_36:
 	mov.u32 	%r74, %tid.y;
 	// inline asm
 	shl.b32 	%r81, %r74, 9;
-	mov.u32 	%r82, shr_8_l_Image;
+	mov.u32 	%r82, shr_16_l_Image;
 	add.s32 	%r83, %r82, %r81;
 	shl.b32 	%r84, %r73, 2;
 	add.s32 	%r21, %r83, %r84;
@@ -24643,6 +24643,384 @@ BB37_35:
 	ret;
 }
 
+.entry CalculateStatisticalMapsGLMPermutation(
+	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMPermutation_param_0,
+	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMPermutation_param_1,
+	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMPermutation_param_2,
+	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMPermutation_param_3,
+	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMPermutation_param_4,
+	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMPermutation_param_5,
+	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMPermutation_param_6,
+	.param .u32 CalculateStatisticalMapsGLMPermutation_param_7,
+	.param .u32 CalculateStatisticalMapsGLMPermutation_param_8,
+	.param .u32 CalculateStatisticalMapsGLMPermutation_param_9,
+	.param .u32 CalculateStatisticalMapsGLMPermutation_param_10,
+	.param .u32 CalculateStatisticalMapsGLMPermutation_param_11,
+	.param .u32 CalculateStatisticalMapsGLMPermutation_param_12
+)
+{
+	.local .align 4 .b8 	__local_depot38[80];
+	.reg .b32 	%SP;
+	.reg .f32 	%f<51>;
+	.reg .pred 	%p<23>;
+	.reg .s32 	%r<232>;
+
+
+	mov.u32 	%SP, __local_depot38;
+	ld.param.u32 	%r8, [CalculateStatisticalMapsGLMPermutation_param_7];
+	ld.param.u32 	%r9, [CalculateStatisticalMapsGLMPermutation_param_8];
+	ld.param.u32 	%r10, [CalculateStatisticalMapsGLMPermutation_param_9];
+	// inline asm
+	mov.u32 	%r83, %envreg3;
+	// inline asm
+	// inline asm
+	mov.u32 	%r84, %ntid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r85, %ctaid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r86, %tid.x;
+	// inline asm
+	add.s32 	%r98, %r86, %r83;
+	mad.lo.s32 	%r18, %r85, %r84, %r98;
+	// inline asm
+	mov.u32 	%r87, %envreg4;
+	// inline asm
+	// inline asm
+	mov.u32 	%r88, %ntid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r89, %ctaid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r90, %tid.y;
+	// inline asm
+	add.s32 	%r99, %r90, %r87;
+	mad.lo.s32 	%r23, %r89, %r88, %r99;
+	// inline asm
+	mov.u32 	%r91, %envreg5;
+	// inline asm
+	// inline asm
+	mov.u32 	%r92, %ntid.z;
+	// inline asm
+	// inline asm
+	mov.u32 	%r93, %ctaid.z;
+	// inline asm
+	// inline asm
+	mov.u32 	%r94, %tid.z;
+	// inline asm
+	add.s32 	%r100, %r94, %r91;
+	mad.lo.s32 	%r28, %r93, %r92, %r100;
+	setp.lt.s32 	%p3, %r18, %r8;
+	setp.lt.s32 	%p4, %r23, %r9;
+	and.pred  	%p5, %p3, %p4;
+	setp.lt.s32 	%p6, %r28, %r10;
+	and.pred  	%p7, %p5, %p6;
+	@!%p7 bra 	BB38_35;
+
+	ld.param.u32 	%r178, [CalculateStatisticalMapsGLMPermutation_param_8];
+	mad.lo.s32 	%r101, %r28, %r178, %r23;
+	ld.param.u32 	%r172, [CalculateStatisticalMapsGLMPermutation_param_7];
+	mad.lo.s32 	%r102, %r101, %r172, %r18;
+	shl.b32 	%r103, %r102, 2;
+	ld.param.u32 	%r161, [CalculateStatisticalMapsGLMPermutation_param_2];
+	add.s32 	%r104, %r161, %r103;
+	ld.global.f32 	%f21, [%r104];
+	setp.neu.f32 	%p8, %f21, 0f3F800000;
+	@%p8 bra 	BB38_32;
+
+	ld.param.u32 	%r199, [CalculateStatisticalMapsGLMPermutation_param_11];
+	setp.gt.s32 	%p1, %r199, 0;
+	setp.lt.s32 	%p9, %r199, 1;
+	@%p9 bra 	BB38_5;
+
+	mov.u32 	%r106, 0;
+	add.u32 	%r204, %SP, 0;
+	mov.u32 	%r205, %r106;
+
+BB38_4:
+	mov.u32 	%r30, %r205;
+	st.local.u32 	[%r204], %r106;
+	add.s32 	%r204, %r204, 4;
+	add.s32 	%r32, %r30, 1;
+	ld.param.u32 	%r198, [CalculateStatisticalMapsGLMPermutation_param_11];
+	setp.lt.s32 	%p10, %r32, %r198;
+	mov.u32 	%r205, %r32;
+	@%p10 bra 	BB38_4;
+
+BB38_5:
+	ld.param.u32 	%r192, [CalculateStatisticalMapsGLMPermutation_param_10];
+	setp.gt.s32 	%p2, %r192, 0;
+	setp.lt.s32 	%p11, %r192, 1;
+	@%p11 bra 	BB38_11;
+
+	ld.param.u32 	%r191, [CalculateStatisticalMapsGLMPermutation_param_10];
+	shl.b32 	%r33, %r191, 2;
+	mov.u32 	%r206, 0;
+	ld.param.u32 	%r209, [CalculateStatisticalMapsGLMPermutation_param_3];
+
+BB38_7:
+	mov.u32 	%r207, %r209;
+	mov.u32 	%r34, %r207;
+	ld.param.u32 	%r183, [CalculateStatisticalMapsGLMPermutation_param_9];
+	mad.lo.s32 	%r109, %r206, %r183, %r28;
+	ld.param.u32 	%r177, [CalculateStatisticalMapsGLMPermutation_param_8];
+	mad.lo.s32 	%r110, %r109, %r177, %r23;
+	ld.param.u32 	%r171, [CalculateStatisticalMapsGLMPermutation_param_7];
+	mad.lo.s32 	%r111, %r110, %r171, %r18;
+	shl.b32 	%r112, %r111, 2;
+	ld.param.u32 	%r160, [CalculateStatisticalMapsGLMPermutation_param_1];
+	add.s32 	%r113, %r160, %r112;
+	ld.global.f32 	%f1, [%r113];
+	@!%p1 bra 	BB38_10;
+
+	mov.u32 	%r211, 0;
+	add.u32 	%r210, %SP, 0;
+	mov.u32 	%r208, %r34;
+
+BB38_9:
+	mov.u32 	%r36, %r208;
+	ld.const.f32 	%f22, [%r36];
+	ld.local.f32 	%f23, [%r210];
+	fma.rn.f32 	%f24, %f1, %f22, %f23;
+	st.local.f32 	[%r210], %f24;
+	add.s32 	%r210, %r210, 4;
+	add.s32 	%r40, %r36, %r33;
+	add.s32 	%r211, %r211, 1;
+	ld.param.u32 	%r197, [CalculateStatisticalMapsGLMPermutation_param_11];
+	setp.lt.s32 	%p12, %r211, %r197;
+	mov.u32 	%r208, %r40;
+	@%p12 bra 	BB38_9;
+
+BB38_10:
+	add.s32 	%r206, %r206, 1;
+	ld.param.u32 	%r190, [CalculateStatisticalMapsGLMPermutation_param_10];
+	setp.lt.s32 	%p13, %r206, %r190;
+	add.s32 	%r43, %r34, 4;
+	mov.u32 	%r209, %r43;
+	@%p13 bra 	BB38_7;
+
+BB38_11:
+	@%p2 bra 	BB38_13;
+
+	mov.f32 	%f47, 0f00000000;
+	bra.uni 	BB38_18;
+
+BB38_13:
+	ld.param.u32 	%r189, [CalculateStatisticalMapsGLMPermutation_param_10];
+	shl.b32 	%r44, %r189, 2;
+	mov.f32 	%f47, 0f00000000;
+	mov.u32 	%r212, 0;
+	ld.param.u32 	%r215, [CalculateStatisticalMapsGLMPermutation_param_4];
+
+BB38_14:
+	mov.u32 	%r213, %r215;
+	mov.u32 	%r45, %r213;
+	ld.param.u32 	%r182, [CalculateStatisticalMapsGLMPermutation_param_9];
+	mad.lo.s32 	%r117, %r212, %r182, %r28;
+	ld.param.u32 	%r176, [CalculateStatisticalMapsGLMPermutation_param_8];
+	mad.lo.s32 	%r118, %r117, %r176, %r23;
+	ld.param.u32 	%r170, [CalculateStatisticalMapsGLMPermutation_param_7];
+	mad.lo.s32 	%r119, %r118, %r170, %r18;
+	shl.b32 	%r120, %r119, 2;
+	ld.param.u32 	%r159, [CalculateStatisticalMapsGLMPermutation_param_1];
+	add.s32 	%r121, %r159, %r120;
+	ld.global.f32 	%f46, [%r121];
+	@%p1 bra 	BB38_15;
+	bra.uni 	BB38_17;
+
+BB38_15:
+	mov.u32 	%r217, 0;
+	add.u32 	%r216, %SP, 0;
+	mov.u32 	%r214, %r45;
+
+BB38_16:
+	mov.u32 	%r47, %r214;
+	ld.local.f32 	%f27, [%r216];
+	ld.const.f32 	%f28, [%r47];
+	neg.f32 	%f29, %f28;
+	fma.rn.f32 	%f46, %f29, %f27, %f46;
+	add.s32 	%r216, %r216, 4;
+	add.s32 	%r51, %r47, %r44;
+	add.s32 	%r217, %r217, 1;
+	ld.param.u32 	%r196, [CalculateStatisticalMapsGLMPermutation_param_11];
+	setp.lt.s32 	%p14, %r217, %r196;
+	mov.u32 	%r214, %r51;
+	@%p14 bra 	BB38_16;
+
+BB38_17:
+	add.f32 	%f47, %f47, %f46;
+	add.s32 	%r212, %r212, 1;
+	ld.param.u32 	%r188, [CalculateStatisticalMapsGLMPermutation_param_10];
+	setp.lt.s32 	%p15, %r212, %r188;
+	add.s32 	%r54, %r45, 4;
+	mov.u32 	%r215, %r54;
+	@%p15 bra 	BB38_14;
+
+BB38_18:
+	ld.param.u32 	%r187, [CalculateStatisticalMapsGLMPermutation_param_10];
+	cvt.rn.f32.s32 	%f30, %r187;
+	div.full.f32 	%f9, %f47, %f30;
+	@%p2 bra 	BB38_20;
+
+	mov.f32 	%f49, 0f00000000;
+	bra.uni 	BB38_25;
+
+BB38_20:
+	ld.param.u32 	%r186, [CalculateStatisticalMapsGLMPermutation_param_10];
+	shl.b32 	%r55, %r186, 2;
+	mov.f32 	%f49, 0f00000000;
+	mov.u32 	%r218, 0;
+	ld.param.u32 	%r221, [CalculateStatisticalMapsGLMPermutation_param_4];
+
+BB38_21:
+	mov.u32 	%r219, %r221;
+	mov.u32 	%r56, %r219;
+	ld.param.u32 	%r181, [CalculateStatisticalMapsGLMPermutation_param_9];
+	mad.lo.s32 	%r125, %r218, %r181, %r28;
+	ld.param.u32 	%r175, [CalculateStatisticalMapsGLMPermutation_param_8];
+	mad.lo.s32 	%r126, %r125, %r175, %r23;
+	ld.param.u32 	%r169, [CalculateStatisticalMapsGLMPermutation_param_7];
+	mad.lo.s32 	%r127, %r126, %r169, %r18;
+	shl.b32 	%r128, %r127, 2;
+	ld.param.u32 	%r158, [CalculateStatisticalMapsGLMPermutation_param_1];
+	add.s32 	%r129, %r158, %r128;
+	ld.global.f32 	%f48, [%r129];
+	@%p1 bra 	BB38_22;
+	bra.uni 	BB38_24;
+
+BB38_22:
+	mov.u32 	%r223, 0;
+	add.u32 	%r222, %SP, 0;
+	mov.u32 	%r220, %r56;
+
+BB38_23:
+	mov.u32 	%r58, %r220;
+	ld.local.f32 	%f33, [%r222];
+	ld.const.f32 	%f34, [%r58];
+	neg.f32 	%f35, %f34;
+	fma.rn.f32 	%f48, %f35, %f33, %f48;
+	add.s32 	%r222, %r222, 4;
+	add.s32 	%r62, %r58, %r55;
+	add.s32 	%r223, %r223, 1;
+	ld.param.u32 	%r195, [CalculateStatisticalMapsGLMPermutation_param_11];
+	setp.lt.s32 	%p16, %r223, %r195;
+	mov.u32 	%r220, %r62;
+	@%p16 bra 	BB38_23;
+
+BB38_24:
+	sub.f32 	%f36, %f48, %f9;
+	fma.rn.f32 	%f49, %f36, %f36, %f49;
+	add.s32 	%r218, %r218, 1;
+	ld.param.u32 	%r185, [CalculateStatisticalMapsGLMPermutation_param_10];
+	setp.lt.s32 	%p17, %r218, %r185;
+	add.s32 	%r65, %r56, 4;
+	mov.u32 	%r221, %r65;
+	@%p17 bra 	BB38_21;
+
+BB38_25:
+	ld.param.u32 	%r184, [CalculateStatisticalMapsGLMPermutation_param_10];
+	add.s32 	%r132, %r184, -1;
+	cvt.rn.f32.s32 	%f37, %r132;
+	div.full.f32 	%f17, %f49, %f37;
+	ld.param.u32 	%r203, [CalculateStatisticalMapsGLMPermutation_param_12];
+	setp.lt.s32 	%p18, %r203, 1;
+	@%p18 bra 	BB38_35;
+
+	ld.param.u32 	%r194, [CalculateStatisticalMapsGLMPermutation_param_11];
+	shl.b32 	%r66, %r194, 2;
+	mov.u32 	%r224, 0;
+	ld.param.u32 	%r227, [CalculateStatisticalMapsGLMPermutation_param_5];
+
+BB38_27:
+	mov.u32 	%r225, %r227;
+	mov.u32 	%r67, %r225;
+	@%p1 bra 	BB38_29;
+
+	mov.f32 	%f50, 0f00000000;
+	bra.uni 	BB38_31;
+
+BB38_29:
+	mov.f32 	%f50, 0f00000000;
+	mov.u32 	%r229, 0;
+	add.u32 	%r228, %SP, 0;
+	mov.u32 	%r226, %r67;
+
+BB38_30:
+	mov.u32 	%r69, %r226;
+	ld.local.f32 	%f40, [%r228];
+	ld.const.f32 	%f41, [%r69];
+	fma.rn.f32 	%f50, %f41, %f40, %f50;
+	add.s32 	%r228, %r228, 4;
+	add.s32 	%r73, %r69, 4;
+	add.s32 	%r229, %r229, 1;
+	ld.param.u32 	%r193, [CalculateStatisticalMapsGLMPermutation_param_11];
+	setp.lt.s32 	%p19, %r229, %r193;
+	mov.u32 	%r226, %r73;
+	@%p19 bra 	BB38_30;
+
+BB38_31:
+	shl.b32 	%r136, %r224, 2;
+	ld.param.u32 	%r166, [CalculateStatisticalMapsGLMPermutation_param_6];
+	add.s32 	%r137, %r166, %r136;
+	ld.const.f32 	%f44, [%r137];
+	mul.f32 	%f43, %f17, %f44;
+	// inline asm
+	rsqrt.approx.f32 	%f42, %f43;
+	// inline asm
+	mul.f32 	%f45, %f50, %f42;
+	ld.param.u32 	%r180, [CalculateStatisticalMapsGLMPermutation_param_9];
+	mad.lo.s32 	%r138, %r224, %r180, %r28;
+	ld.param.u32 	%r174, [CalculateStatisticalMapsGLMPermutation_param_8];
+	mad.lo.s32 	%r139, %r138, %r174, %r23;
+	ld.param.u32 	%r168, [CalculateStatisticalMapsGLMPermutation_param_7];
+	mad.lo.s32 	%r140, %r139, %r168, %r18;
+	shl.b32 	%r141, %r140, 2;
+	ld.param.u32 	%r157, [CalculateStatisticalMapsGLMPermutation_param_0];
+	add.s32 	%r142, %r157, %r141;
+	st.global.f32 	[%r142], %f45;
+	add.s32 	%r224, %r224, 1;
+	ld.param.u32 	%r202, [CalculateStatisticalMapsGLMPermutation_param_12];
+	setp.lt.s32 	%p20, %r224, %r202;
+	add.s32 	%r76, %r67, %r66;
+	mov.u32 	%r227, %r76;
+	@%p20 bra 	BB38_27;
+	bra.uni 	BB38_35;
+
+BB38_32:
+	ld.param.u32 	%r201, [CalculateStatisticalMapsGLMPermutation_param_12];
+	setp.lt.s32 	%p21, %r201, 1;
+	@%p21 bra 	BB38_35;
+
+	ld.param.u32 	%r173, [CalculateStatisticalMapsGLMPermutation_param_8];
+	mad.lo.s32 	%r150, %r173, %r28, %r23;
+	ld.param.u32 	%r167, [CalculateStatisticalMapsGLMPermutation_param_7];
+	mad.lo.s32 	%r151, %r167, %r150, %r18;
+	shl.b32 	%r152, %r151, 2;
+	ld.param.u32 	%r156, [CalculateStatisticalMapsGLMPermutation_param_0];
+	add.s32 	%r230, %r156, %r152;
+	ld.param.u32 	%r179, [CalculateStatisticalMapsGLMPermutation_param_9];
+	mul.lo.s32 	%r153, %r179, %r173;
+	mul.lo.s32 	%r154, %r153, %r167;
+	shl.b32 	%r78, %r154, 2;
+	mov.u32 	%r143, 0;
+	mov.u32 	%r231, %r143;
+
+BB38_34:
+	mov.u32 	%r80, %r231;
+	st.global.u32 	[%r230], %r143;
+	add.s32 	%r230, %r230, %r78;
+	add.s32 	%r82, %r80, 1;
+	ld.param.u32 	%r200, [CalculateStatisticalMapsGLMPermutation_param_12];
+	setp.lt.s32 	%p22, %r82, %r200;
+	mov.u32 	%r231, %r82;
+	@%p22 bra 	BB38_34;
+
+BB38_35:
+	ret;
+}
+
 .entry RemoveLinearFit(
 	.param .u32 .ptr .global .align 4 RemoveLinearFit_param_0,
 	.param .u32 .ptr .global .align 4 RemoveLinearFit_param_1,
@@ -24656,543 +25034,210 @@ BB37_35:
 	.param .u32 RemoveLinearFit_param_9
 )
 {
-	.reg .f32 	%f<10>;
-	.reg .pred 	%p<13>;
-	.reg .s32 	%r<132>;
+	.local .align 4 .b8 	__local_depot39[40];
+	.reg .b32 	%SP;
+	.reg .f32 	%f<11>;
+	.reg .pred 	%p<15>;
+	.reg .s32 	%r<143>;
 
 
+	mov.u32 	%SP, __local_depot39;
 	ld.param.u32 	%r6, [RemoveLinearFit_param_5];
 	ld.param.u32 	%r7, [RemoveLinearFit_param_6];
 	ld.param.u32 	%r8, [RemoveLinearFit_param_7];
 	// inline asm
-	mov.u32 	%r47, %envreg3;
+	mov.u32 	%r52, %envreg3;
 	// inline asm
 	// inline asm
-	mov.u32 	%r48, %ntid.x;
+	mov.u32 	%r53, %ntid.x;
 	// inline asm
 	// inline asm
-	mov.u32 	%r49, %ctaid.x;
+	mov.u32 	%r54, %ctaid.x;
 	// inline asm
 	// inline asm
-	mov.u32 	%r50, %tid.x;
+	mov.u32 	%r55, %tid.x;
 	// inline asm
-	add.s32 	%r59, %r50, %r47;
-	mad.lo.s32 	%r15, %r49, %r48, %r59;
+	add.s32 	%r64, %r55, %r52;
+	mad.lo.s32 	%r15, %r54, %r53, %r64;
 	// inline asm
-	mov.u32 	%r51, %envreg4;
-	// inline asm
-	// inline asm
-	mov.u32 	%r52, %ntid.y;
+	mov.u32 	%r56, %envreg4;
 	// inline asm
 	// inline asm
-	mov.u32 	%r53, %ctaid.y;
+	mov.u32 	%r57, %ntid.y;
 	// inline asm
 	// inline asm
-	mov.u32 	%r54, %tid.y;
-	// inline asm
-	add.s32 	%r60, %r54, %r51;
-	mad.lo.s32 	%r20, %r53, %r52, %r60;
-	// inline asm
-	mov.u32 	%r55, %envreg5;
+	mov.u32 	%r58, %ctaid.y;
 	// inline asm
 	// inline asm
-	mov.u32 	%r56, %ntid.z;
+	mov.u32 	%r59, %tid.y;
+	// inline asm
+	add.s32 	%r65, %r59, %r56;
+	mad.lo.s32 	%r20, %r58, %r57, %r65;
+	// inline asm
+	mov.u32 	%r60, %envreg5;
 	// inline asm
 	// inline asm
-	mov.u32 	%r57, %ctaid.z;
+	mov.u32 	%r61, %ntid.z;
 	// inline asm
 	// inline asm
-	mov.u32 	%r58, %tid.z;
-	// inline asm
-	add.s32 	%r61, %r58, %r55;
-	mad.lo.s32 	%r25, %r57, %r56, %r61;
-	setp.lt.s32 	%p3, %r15, %r6;
-	setp.lt.s32 	%p4, %r20, %r7;
-	and.pred  	%p5, %p3, %p4;
-	setp.lt.s32 	%p6, %r25, %r8;
-	and.pred  	%p7, %p5, %p6;
-	@!%p7 bra 	BB38_11;
-
-	ld.param.u32 	%r113, [RemoveLinearFit_param_6];
-	mad.lo.s32 	%r62, %r25, %r113, %r20;
-	ld.param.u32 	%r109, [RemoveLinearFit_param_5];
-	mad.lo.s32 	%r26, %r62, %r109, %r15;
-	shl.b32 	%r63, %r26, 2;
-	ld.param.u32 	%r104, [RemoveLinearFit_param_3];
-	add.s32 	%r64, %r104, %r63;
-	ld.global.f32 	%f5, [%r64];
-	setp.neu.f32 	%p8, %f5, 0f3F800000;
-	ld.param.u32 	%r121, [RemoveLinearFit_param_8];
-	setp.gt.s32 	%p1, %r121, 0;
-	@%p8 bra 	BB38_8;
-
-	ld.param.u32 	%r120, [RemoveLinearFit_param_8];
-	setp.lt.s32 	%p9, %r120, 1;
-	@%p9 bra 	BB38_11;
-
-	ld.param.u32 	%r123, [RemoveLinearFit_param_9];
-	setp.gt.s32 	%p2, %r123, 0;
-	mov.u32 	%r124, 0;
-	ld.param.u32 	%r108, [RemoveLinearFit_param_5];
-	ld.param.u32 	%r112, [RemoveLinearFit_param_6];
-	mul.lo.s32 	%r66, %r112, %r108;
-	ld.param.u32 	%r116, [RemoveLinearFit_param_7];
-	mul.lo.s32 	%r27, %r66, %r116;
-	mad.lo.s32 	%r73, %r112, %r25, %r20;
-	mad.lo.s32 	%r74, %r108, %r73, %r15;
-	shl.b32 	%r75, %r74, 2;
-	ld.param.u32 	%r103, [RemoveLinearFit_param_2];
-	add.s32 	%r28, %r103, %r75;
-	mul.lo.s32 	%r76, %r116, %r112;
-	mul.lo.s32 	%r77, %r76, %r108;
-	shl.b32 	%r29, %r77, 2;
-	ld.param.u32 	%r119, [RemoveLinearFit_param_8];
-	shl.b32 	%r30, %r119, 2;
-	ld.param.u32 	%r127, [RemoveLinearFit_param_4];
-
-BB38_4:
-	mov.u32 	%r125, %r127;
-	mov.u32 	%r31, %r125;
-	ld.param.u32 	%r115, [RemoveLinearFit_param_7];
-	mad.lo.s32 	%r78, %r124, %r115, %r25;
-	ld.param.u32 	%r111, [RemoveLinearFit_param_6];
-	mad.lo.s32 	%r79, %r78, %r111, %r20;
-	ld.param.u32 	%r107, [RemoveLinearFit_param_5];
-	mad.lo.s32 	%r80, %r79, %r107, %r15;
-	shl.b32 	%r81, %r80, 2;
-	ld.param.u32 	%r102, [RemoveLinearFit_param_1];
-	add.s32 	%r82, %r102, %r81;
-	ld.global.f32 	%f9, [%r82];
-	@%p2 bra 	BB38_5;
-	bra.uni 	BB38_7;
-
-BB38_5:
-	mov.u32 	%r129, 0;
-	mov.u32 	%r126, %r31;
-	mov.u32 	%r128, %r28;
-
-BB38_6:
-	mov.u32 	%r34, %r128;
-	mov.u32 	%r33, %r126;
-	ld.const.f32 	%f6, [%r33];
-	ld.global.f32 	%f7, [%r34];
-	neg.f32 	%f8, %f7;
-	fma.rn.f32 	%f9, %f8, %f6, %f9;
-	add.s32 	%r36, %r34, %r29;
-	add.s32 	%r37, %r33, %r30;
-	add.s32 	%r129, %r129, 1;
-	ld.param.u32 	%r122, [RemoveLinearFit_param_9];
-	setp.lt.s32 	%p10, %r129, %r122;
-	mov.u32 	%r126, %r37;
-	mov.u32 	%r128, %r36;
-	@%p10 bra 	BB38_6;
-
-BB38_7:
-	mad.lo.s32 	%r84, %r27, %r124, %r26;
-	shl.b32 	%r85, %r84, 2;
-	ld.param.u32 	%r101, [RemoveLinearFit_param_0];
-	add.s32 	%r86, %r101, %r85;
-	st.global.f32 	[%r86], %f9;
-	add.s32 	%r124, %r124, 1;
-	ld.param.u32 	%r118, [RemoveLinearFit_param_8];
-	setp.lt.s32 	%p11, %r124, %r118;
-	add.s32 	%r40, %r31, 4;
-	mov.u32 	%r127, %r40;
-	@%p11 bra 	BB38_4;
-	bra.uni 	BB38_11;
-
-BB38_8:
-	@!%p1 bra 	BB38_11;
-
-	ld.param.u32 	%r110, [RemoveLinearFit_param_6];
-	mad.lo.s32 	%r94, %r110, %r25, %r20;
-	ld.param.u32 	%r106, [RemoveLinearFit_param_5];
-	mad.lo.s32 	%r95, %r106, %r94, %r15;
-	shl.b32 	%r96, %r95, 2;
-	ld.param.u32 	%r100, [RemoveLinearFit_param_0];
-	add.s32 	%r130, %r100, %r96;
-	ld.param.u32 	%r114, [RemoveLinearFit_param_7];
-	mul.lo.s32 	%r97, %r114, %r110;
-	mul.lo.s32 	%r98, %r97, %r106;
-	shl.b32 	%r42, %r98, 2;
-	mov.u32 	%r87, 0;
-	mov.u32 	%r131, %r87;
-
-BB38_10:
-	mov.u32 	%r44, %r131;
-	st.global.u32 	[%r130], %r87;
-	add.s32 	%r130, %r130, %r42;
-	add.s32 	%r46, %r44, 1;
-	ld.param.u32 	%r117, [RemoveLinearFit_param_8];
-	setp.lt.s32 	%p12, %r46, %r117;
-	mov.u32 	%r131, %r46;
-	@%p12 bra 	BB38_10;
-
-BB38_11:
-	ret;
-}
-
-.entry CalculateStatisticalMapsGLMPermutation(
-	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMPermutation_param_0,
-	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMPermutation_param_1,
-	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMPermutation_param_2,
-	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMPermutation_param_3,
-	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMPermutation_param_4,
-	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMPermutation_param_5,
-	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMPermutation_param_6,
-	.param .u32 CalculateStatisticalMapsGLMPermutation_param_7,
-	.param .u32 CalculateStatisticalMapsGLMPermutation_param_8,
-	.param .u32 CalculateStatisticalMapsGLMPermutation_param_9,
-	.param .u32 CalculateStatisticalMapsGLMPermutation_param_10,
-	.param .u32 CalculateStatisticalMapsGLMPermutation_param_11,
-	.param .u32 CalculateStatisticalMapsGLMPermutation_param_12
-)
-{
-	.reg .f32 	%f<48>;
-	.reg .pred 	%p<21>;
-	.reg .s32 	%r<243>;
-
-
-	ld.param.u32 	%r8, [CalculateStatisticalMapsGLMPermutation_param_7];
-	ld.param.u32 	%r9, [CalculateStatisticalMapsGLMPermutation_param_8];
-	ld.param.u32 	%r10, [CalculateStatisticalMapsGLMPermutation_param_9];
-	// inline asm
-	mov.u32 	%r71, %envreg3;
+	mov.u32 	%r62, %ctaid.z;
 	// inline asm
 	// inline asm
-	mov.u32 	%r72, %ntid.x;
+	mov.u32 	%r63, %tid.z;
 	// inline asm
-	// inline asm
-	mov.u32 	%r73, %ctaid.x;
-	// inline asm
-	// inline asm
-	mov.u32 	%r74, %tid.x;
-	// inline asm
-	add.s32 	%r83, %r74, %r71;
-	mad.lo.s32 	%r18, %r73, %r72, %r83;
-	// inline asm
-	mov.u32 	%r75, %envreg4;
-	// inline asm
-	// inline asm
-	mov.u32 	%r76, %ntid.y;
-	// inline asm
-	// inline asm
-	mov.u32 	%r77, %ctaid.y;
-	// inline asm
-	// inline asm
-	mov.u32 	%r78, %tid.y;
-	// inline asm
-	add.s32 	%r84, %r78, %r75;
-	mad.lo.s32 	%r23, %r77, %r76, %r84;
-	// inline asm
-	mov.u32 	%r79, %envreg5;
-	// inline asm
-	// inline asm
-	mov.u32 	%r80, %ntid.z;
-	// inline asm
-	// inline asm
-	mov.u32 	%r81, %ctaid.z;
-	// inline asm
-	// inline asm
-	mov.u32 	%r82, %tid.z;
-	// inline asm
-	add.s32 	%r85, %r82, %r79;
-	mad.lo.s32 	%r28, %r81, %r80, %r85;
-	setp.lt.s32 	%p2, %r18, %r8;
-	setp.lt.s32 	%p3, %r23, %r9;
+	add.s32 	%r66, %r63, %r60;
+	mad.lo.s32 	%r25, %r62, %r61, %r66;
+	setp.lt.s32 	%p2, %r15, %r6;
+	setp.lt.s32 	%p3, %r20, %r7;
 	and.pred  	%p4, %p2, %p3;
-	setp.lt.s32 	%p5, %r28, %r10;
+	setp.lt.s32 	%p5, %r25, %r8;
 	and.pred  	%p6, %p4, %p5;
-	@!%p6 bra 	BB39_26;
+	@!%p6 bra 	BB39_14;
 
-	ld.param.u32 	%r197, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r86, %r28, %r197, %r23;
-	ld.param.u32 	%r186, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r87, %r86, %r186, %r18;
-	shl.b32 	%r88, %r87, 2;
-	ld.param.u32 	%r171, [CalculateStatisticalMapsGLMPermutation_param_3];
-	add.s32 	%r89, %r171, %r88;
-	ld.global.f32 	%f21, [%r89];
-	setp.neu.f32 	%p7, %f21, 0f3F800000;
-	@%p7 bra 	BB39_23;
+	ld.param.u32 	%r119, [RemoveLinearFit_param_6];
+	mad.lo.s32 	%r67, %r25, %r119, %r20;
+	ld.param.u32 	%r115, [RemoveLinearFit_param_5];
+	mad.lo.s32 	%r68, %r67, %r115, %r15;
+	shl.b32 	%r69, %r68, 2;
+	ld.param.u32 	%r110, [RemoveLinearFit_param_3];
+	add.s32 	%r70, %r110, %r69;
+	ld.global.f32 	%f5, [%r70];
+	setp.neu.f32 	%p7, %f5, 0f3F800000;
+	@%p7 bra 	BB39_11;
 
-	ld.param.u32 	%r211, [CalculateStatisticalMapsGLMPermutation_param_10];
-	setp.gt.s32 	%p8, %r211, 0;
-	@%p8 bra 	BB39_4;
+	ld.param.u32 	%r131, [RemoveLinearFit_param_9];
+	setp.lt.s32 	%p8, %r131, 1;
+	@%p8 bra 	BB39_5;
 
-	mov.f32 	%f44, 0f00000000;
-	bra.uni 	BB39_9;
+	ld.param.u32 	%r118, [RemoveLinearFit_param_6];
+	mad.lo.s32 	%r79, %r118, %r25, %r20;
+	ld.param.u32 	%r114, [RemoveLinearFit_param_5];
+	mad.lo.s32 	%r80, %r114, %r79, %r15;
+	shl.b32 	%r81, %r80, 2;
+	ld.param.u32 	%r109, [RemoveLinearFit_param_2];
+	add.s32 	%r133, %r109, %r81;
+	ld.param.u32 	%r122, [RemoveLinearFit_param_7];
+	mul.lo.s32 	%r82, %r122, %r118;
+	mul.lo.s32 	%r83, %r82, %r114;
+	shl.b32 	%r27, %r83, 2;
+	mov.u32 	%r134, 0;
+	add.u32 	%r132, %SP, 0;
 
 BB39_4:
-	mov.f32 	%f44, 0f00000000;
-	mov.u32 	%r223, 0;
-	ld.param.u32 	%r226, [CalculateStatisticalMapsGLMPermutation_param_4];
+	ld.global.f32 	%f6, [%r133];
+	st.local.f32 	[%r132], %f6;
+	add.s32 	%r133, %r133, %r27;
+	add.s32 	%r132, %r132, 4;
+	add.s32 	%r134, %r134, 1;
+	ld.param.u32 	%r130, [RemoveLinearFit_param_9];
+	setp.lt.s32 	%p9, %r134, %r130;
+	@%p9 bra 	BB39_4;
 
 BB39_5:
-	mov.u32 	%r224, %r226;
-	mov.u32 	%r30, %r224;
-	ld.param.u32 	%r204, [CalculateStatisticalMapsGLMPermutation_param_9];
-	mad.lo.s32 	%r92, %r223, %r204, %r28;
-	ld.param.u32 	%r195, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r93, %r92, %r195, %r23;
-	ld.param.u32 	%r184, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r94, %r93, %r184, %r18;
-	shl.b32 	%r95, %r94, 2;
-	ld.param.u32 	%r167, [CalculateStatisticalMapsGLMPermutation_param_1];
-	add.s32 	%r96, %r167, %r95;
-	ld.global.f32 	%f43, [%r96];
-	ld.param.u32 	%r218, [CalculateStatisticalMapsGLMPermutation_param_11];
-	setp.gt.s32 	%p9, %r218, 0;
-	@%p9 bra 	BB39_6;
-	bra.uni 	BB39_8;
+	ld.param.u32 	%r127, [RemoveLinearFit_param_8];
+	setp.lt.s32 	%p10, %r127, 1;
+	@%p10 bra 	BB39_14;
 
-BB39_6:
-	ld.param.u32 	%r194, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r104, %r194, %r28, %r23;
-	ld.param.u32 	%r183, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r105, %r183, %r104, %r18;
-	shl.b32 	%r106, %r105, 2;
-	ld.param.u32 	%r170, [CalculateStatisticalMapsGLMPermutation_param_2];
-	add.s32 	%r227, %r170, %r106;
-	mov.u32 	%r228, 0;
-	mov.u32 	%r225, %r30;
+	ld.param.u32 	%r126, [RemoveLinearFit_param_8];
+	shl.b32 	%r34, %r126, 2;
+	ld.param.u32 	%r129, [RemoveLinearFit_param_9];
+	setp.gt.s32 	%p1, %r129, 0;
+	mov.u32 	%r135, 0;
+	ld.param.u32 	%r138, [RemoveLinearFit_param_4];
 
 BB39_7:
-	mov.u32 	%r33, %r225;
-	ld.const.f32 	%f24, [%r33];
-	ld.global.f32 	%f25, [%r227];
-	neg.f32 	%f26, %f25;
-	fma.rn.f32 	%f43, %f26, %f24, %f43;
-	ld.param.u32 	%r193, [CalculateStatisticalMapsGLMPermutation_param_8];
-	ld.param.u32 	%r203, [CalculateStatisticalMapsGLMPermutation_param_9];
-	mul.lo.s32 	%r107, %r203, %r193;
-	ld.param.u32 	%r182, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mul.lo.s32 	%r108, %r107, %r182;
-	shl.b32 	%r109, %r108, 2;
-	add.s32 	%r227, %r227, %r109;
-	ld.param.u32 	%r210, [CalculateStatisticalMapsGLMPermutation_param_10];
-	shl.b32 	%r110, %r210, 2;
-	add.s32 	%r37, %r33, %r110;
-	add.s32 	%r228, %r228, 1;
-	ld.param.u32 	%r217, [CalculateStatisticalMapsGLMPermutation_param_11];
-	setp.lt.s32 	%p10, %r228, %r217;
-	mov.u32 	%r225, %r37;
-	@%p10 bra 	BB39_7;
+	mov.u32 	%r136, %r138;
+	mov.u32 	%r35, %r136;
+	ld.param.u32 	%r121, [RemoveLinearFit_param_7];
+	mad.lo.s32 	%r85, %r135, %r121, %r25;
+	ld.param.u32 	%r117, [RemoveLinearFit_param_6];
+	mad.lo.s32 	%r86, %r85, %r117, %r20;
+	ld.param.u32 	%r113, [RemoveLinearFit_param_5];
+	mad.lo.s32 	%r37, %r86, %r113, %r15;
+	shl.b32 	%r87, %r37, 2;
+	ld.param.u32 	%r108, [RemoveLinearFit_param_1];
+	add.s32 	%r88, %r108, %r87;
+	ld.global.f32 	%f10, [%r88];
+	@%p1 bra 	BB39_8;
+	bra.uni 	BB39_10;
 
 BB39_8:
-	add.f32 	%f44, %f44, %f43;
-	add.s32 	%r223, %r223, 1;
-	ld.param.u32 	%r209, [CalculateStatisticalMapsGLMPermutation_param_10];
-	setp.lt.s32 	%p11, %r223, %r209;
-	add.s32 	%r40, %r30, 4;
-	mov.u32 	%r226, %r40;
-	@%p11 bra 	BB39_5;
+	mov.u32 	%r140, 0;
+	add.u32 	%r139, %SP, 0;
+	mov.u32 	%r137, %r35;
 
 BB39_9:
-	ld.param.u32 	%r208, [CalculateStatisticalMapsGLMPermutation_param_10];
-	cvt.rn.f32.s32 	%f8, %r208;
-	div.full.f32 	%f9, %f44, %f8;
-	setp.gt.s32 	%p12, %r208, 0;
-	@%p12 bra 	BB39_11;
+	mov.u32 	%r38, %r137;
+	ld.const.f32 	%f7, [%r38];
+	ld.local.f32 	%f8, [%r139];
+	neg.f32 	%f9, %f8;
+	fma.rn.f32 	%f10, %f9, %f7, %f10;
+	add.s32 	%r139, %r139, 4;
+	add.s32 	%r42, %r38, %r34;
+	add.s32 	%r140, %r140, 1;
+	ld.param.u32 	%r128, [RemoveLinearFit_param_9];
+	setp.lt.s32 	%p11, %r140, %r128;
+	mov.u32 	%r137, %r42;
+	@%p11 bra 	BB39_9;
 
-	mov.f32 	%f46, 0f00000000;
-	bra.uni 	BB39_16;
+BB39_10:
+	ld.param.u32 	%r107, [RemoveLinearFit_param_0];
+	add.s32 	%r92, %r107, %r87;
+	st.global.f32 	[%r92], %f10;
+	add.s32 	%r135, %r135, 1;
+	ld.param.u32 	%r125, [RemoveLinearFit_param_8];
+	setp.lt.s32 	%p12, %r135, %r125;
+	add.s32 	%r45, %r35, 4;
+	mov.u32 	%r138, %r45;
+	@%p12 bra 	BB39_7;
+	bra.uni 	BB39_14;
 
 BB39_11:
-	mov.f32 	%f46, 0f00000000;
-	mov.u32 	%r229, 0;
-	ld.param.u32 	%r232, [CalculateStatisticalMapsGLMPermutation_param_4];
+	ld.param.u32 	%r124, [RemoveLinearFit_param_8];
+	setp.lt.s32 	%p13, %r124, 1;
+	@%p13 bra 	BB39_14;
 
-BB39_12:
-	mov.u32 	%r230, %r232;
-	mov.u32 	%r41, %r230;
-	ld.param.u32 	%r202, [CalculateStatisticalMapsGLMPermutation_param_9];
-	mad.lo.s32 	%r112, %r229, %r202, %r28;
-	ld.param.u32 	%r192, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r113, %r112, %r192, %r23;
-	ld.param.u32 	%r181, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r114, %r113, %r181, %r18;
-	shl.b32 	%r115, %r114, 2;
-	ld.param.u32 	%r166, [CalculateStatisticalMapsGLMPermutation_param_1];
-	add.s32 	%r116, %r166, %r115;
-	ld.global.f32 	%f45, [%r116];
-	ld.param.u32 	%r216, [CalculateStatisticalMapsGLMPermutation_param_11];
-	setp.gt.s32 	%p13, %r216, 0;
-	@%p13 bra 	BB39_13;
-	bra.uni 	BB39_15;
+	ld.param.u32 	%r116, [RemoveLinearFit_param_6];
+	mad.lo.s32 	%r100, %r116, %r25, %r20;
+	ld.param.u32 	%r112, [RemoveLinearFit_param_5];
+	mad.lo.s32 	%r101, %r112, %r100, %r15;
+	shl.b32 	%r102, %r101, 2;
+	ld.param.u32 	%r106, [RemoveLinearFit_param_0];
+	add.s32 	%r141, %r106, %r102;
+	ld.param.u32 	%r120, [RemoveLinearFit_param_7];
+	mul.lo.s32 	%r103, %r120, %r116;
+	mul.lo.s32 	%r104, %r103, %r112;
+	shl.b32 	%r47, %r104, 2;
+	mov.u32 	%r93, 0;
+	mov.u32 	%r142, %r93;
 
 BB39_13:
-	ld.param.u32 	%r191, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r124, %r191, %r28, %r23;
-	ld.param.u32 	%r180, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r125, %r180, %r124, %r18;
-	shl.b32 	%r126, %r125, 2;
-	ld.param.u32 	%r169, [CalculateStatisticalMapsGLMPermutation_param_2];
-	add.s32 	%r233, %r169, %r126;
-	mov.u32 	%r234, 0;
-	mov.u32 	%r231, %r41;
+	mov.u32 	%r49, %r142;
+	st.global.u32 	[%r141], %r93;
+	add.s32 	%r141, %r141, %r47;
+	add.s32 	%r51, %r49, 1;
+	ld.param.u32 	%r123, [RemoveLinearFit_param_8];
+	setp.lt.s32 	%p14, %r51, %r123;
+	mov.u32 	%r142, %r51;
+	@%p14 bra 	BB39_13;
 
 BB39_14:
-	mov.u32 	%r44, %r231;
-	ld.const.f32 	%f29, [%r44];
-	ld.global.f32 	%f30, [%r233];
-	neg.f32 	%f31, %f30;
-	fma.rn.f32 	%f45, %f31, %f29, %f45;
-	ld.param.u32 	%r190, [CalculateStatisticalMapsGLMPermutation_param_8];
-	ld.param.u32 	%r201, [CalculateStatisticalMapsGLMPermutation_param_9];
-	mul.lo.s32 	%r127, %r201, %r190;
-	ld.param.u32 	%r179, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mul.lo.s32 	%r128, %r127, %r179;
-	shl.b32 	%r129, %r128, 2;
-	add.s32 	%r233, %r233, %r129;
-	ld.param.u32 	%r207, [CalculateStatisticalMapsGLMPermutation_param_10];
-	shl.b32 	%r130, %r207, 2;
-	add.s32 	%r48, %r44, %r130;
-	add.s32 	%r234, %r234, 1;
-	ld.param.u32 	%r215, [CalculateStatisticalMapsGLMPermutation_param_11];
-	setp.lt.s32 	%p14, %r234, %r215;
-	mov.u32 	%r231, %r48;
-	@%p14 bra 	BB39_14;
-
-BB39_15:
-	sub.f32 	%f32, %f45, %f9;
-	fma.rn.f32 	%f46, %f32, %f32, %f46;
-	add.s32 	%r229, %r229, 1;
-	ld.param.u32 	%r206, [CalculateStatisticalMapsGLMPermutation_param_10];
-	setp.lt.s32 	%p15, %r229, %r206;
-	add.s32 	%r51, %r41, 4;
-	mov.u32 	%r232, %r51;
-	@%p15 bra 	BB39_12;
-
-BB39_16:
-	ld.param.u32 	%r214, [CalculateStatisticalMapsGLMPermutation_param_11];
-	cvt.rn.f32.s32 	%f33, %r214;
-	sub.f32 	%f34, %f8, %f33;
-	div.full.f32 	%f17, %f46, %f34;
-	ld.param.u32 	%r222, [CalculateStatisticalMapsGLMPermutation_param_12];
-	setp.lt.s32 	%p16, %r222, 1;
-	@%p16 bra 	BB39_26;
-
-	ld.param.u32 	%r213, [CalculateStatisticalMapsGLMPermutation_param_11];
-	setp.gt.s32 	%p1, %r213, 0;
-	mov.u32 	%r235, 0;
-	ld.param.u32 	%r189, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r138, %r189, %r28, %r23;
-	ld.param.u32 	%r178, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r139, %r178, %r138, %r18;
-	shl.b32 	%r140, %r139, 2;
-	ld.param.u32 	%r168, [CalculateStatisticalMapsGLMPermutation_param_2];
-	add.s32 	%r52, %r168, %r140;
-	ld.param.u32 	%r200, [CalculateStatisticalMapsGLMPermutation_param_9];
-	mul.lo.s32 	%r141, %r200, %r189;
-	mul.lo.s32 	%r142, %r141, %r178;
-	shl.b32 	%r53, %r142, 2;
-	shl.b32 	%r54, %r213, 2;
-	ld.param.u32 	%r238, [CalculateStatisticalMapsGLMPermutation_param_5];
-
-BB39_18:
-	mov.u32 	%r236, %r238;
-	mov.u32 	%r55, %r236;
-	@%p1 bra 	BB39_20;
-
-	mov.f32 	%f47, 0f00000000;
-	bra.uni 	BB39_22;
-
-BB39_20:
-	mov.f32 	%f47, 0f00000000;
-	mov.u32 	%r240, 0;
-	mov.u32 	%r237, %r55;
-	mov.u32 	%r239, %r52;
-
-BB39_21:
-	mov.u32 	%r58, %r239;
-	mov.u32 	%r57, %r237;
-	ld.global.f32 	%f37, [%r58];
-	ld.const.f32 	%f38, [%r57];
-	fma.rn.f32 	%f47, %f38, %f37, %f47;
-	add.s32 	%r60, %r58, %r53;
-	add.s32 	%r61, %r57, 4;
-	add.s32 	%r240, %r240, 1;
-	ld.param.u32 	%r212, [CalculateStatisticalMapsGLMPermutation_param_11];
-	setp.lt.s32 	%p17, %r240, %r212;
-	mov.u32 	%r237, %r61;
-	mov.u32 	%r239, %r60;
-	@%p17 bra 	BB39_21;
-
-BB39_22:
-	shl.b32 	%r144, %r235, 2;
-	ld.param.u32 	%r175, [CalculateStatisticalMapsGLMPermutation_param_6];
-	add.s32 	%r145, %r175, %r144;
-	ld.const.f32 	%f41, [%r145];
-	mul.f32 	%f40, %f17, %f41;
-	// inline asm
-	rsqrt.approx.f32 	%f39, %f40;
-	// inline asm
-	mul.f32 	%f42, %f47, %f39;
-	ld.param.u32 	%r199, [CalculateStatisticalMapsGLMPermutation_param_9];
-	mad.lo.s32 	%r146, %r235, %r199, %r28;
-	ld.param.u32 	%r188, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r147, %r146, %r188, %r23;
-	ld.param.u32 	%r177, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r148, %r147, %r177, %r18;
-	shl.b32 	%r149, %r148, 2;
-	ld.param.u32 	%r165, [CalculateStatisticalMapsGLMPermutation_param_0];
-	add.s32 	%r150, %r165, %r149;
-	st.global.f32 	[%r150], %f42;
-	add.s32 	%r235, %r235, 1;
-	ld.param.u32 	%r221, [CalculateStatisticalMapsGLMPermutation_param_12];
-	setp.lt.s32 	%p18, %r235, %r221;
-	add.s32 	%r64, %r55, %r54;
-	mov.u32 	%r238, %r64;
-	@%p18 bra 	BB39_18;
-	bra.uni 	BB39_26;
-
-BB39_23:
-	ld.param.u32 	%r220, [CalculateStatisticalMapsGLMPermutation_param_12];
-	setp.lt.s32 	%p19, %r220, 1;
-	@%p19 bra 	BB39_26;
-
-	ld.param.u32 	%r187, [CalculateStatisticalMapsGLMPermutation_param_8];
-	mad.lo.s32 	%r158, %r187, %r28, %r23;
-	ld.param.u32 	%r176, [CalculateStatisticalMapsGLMPermutation_param_7];
-	mad.lo.s32 	%r159, %r176, %r158, %r18;
-	shl.b32 	%r160, %r159, 2;
-	ld.param.u32 	%r164, [CalculateStatisticalMapsGLMPermutation_param_0];
-	add.s32 	%r241, %r164, %r160;
-	ld.param.u32 	%r198, [CalculateStatisticalMapsGLMPermutation_param_9];
-	mul.lo.s32 	%r161, %r198, %r187;
-	mul.lo.s32 	%r162, %r161, %r176;
-	shl.b32 	%r66, %r162, 2;
-	mov.u32 	%r151, 0;
-	mov.u32 	%r242, %r151;
-
-BB39_25:
-	mov.u32 	%r68, %r242;
-	st.global.u32 	[%r241], %r151;
-	add.s32 	%r241, %r241, %r66;
-	add.s32 	%r70, %r68, 1;
-	ld.param.u32 	%r219, [CalculateStatisticalMapsGLMPermutation_param_12];
-	setp.lt.s32 	%p20, %r70, %r219;
-	mov.u32 	%r242, %r70;
-	@%p20 bra 	BB39_25;
-
-BB39_26:
 	ret;
 }
 
-.entry GeneratePermutedfMRIVolumesAR4(
-	.param .u32 .ptr .global .align 4 GeneratePermutedfMRIVolumesAR4_param_0,
-	.param .u32 .ptr .global .align 4 GeneratePermutedfMRIVolumesAR4_param_1,
-	.param .u32 .ptr .global .align 4 GeneratePermutedfMRIVolumesAR4_param_2,
-	.param .u32 .ptr .global .align 4 GeneratePermutedfMRIVolumesAR4_param_3,
-	.param .u32 .ptr .global .align 4 GeneratePermutedfMRIVolumesAR4_param_4,
-	.param .u32 .ptr .global .align 4 GeneratePermutedfMRIVolumesAR4_param_5,
-	.param .u32 .ptr .global .align 4 GeneratePermutedfMRIVolumesAR4_param_6,
-	.param .u32 .ptr .const .align 4 GeneratePermutedfMRIVolumesAR4_param_7,
-	.param .u32 GeneratePermutedfMRIVolumesAR4_param_8,
-	.param .u32 GeneratePermutedfMRIVolumesAR4_param_9,
-	.param .u32 GeneratePermutedfMRIVolumesAR4_param_10,
-	.param .u32 GeneratePermutedfMRIVolumesAR4_param_11
+.entry GeneratePermutedVolumesFirstLevel(
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesFirstLevel_param_0,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesFirstLevel_param_1,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesFirstLevel_param_2,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesFirstLevel_param_3,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesFirstLevel_param_4,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesFirstLevel_param_5,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesFirstLevel_param_6,
+	.param .u32 .ptr .const .align 2 GeneratePermutedVolumesFirstLevel_param_7,
+	.param .u32 GeneratePermutedVolumesFirstLevel_param_8,
+	.param .u32 GeneratePermutedVolumesFirstLevel_param_9,
+	.param .u32 GeneratePermutedVolumesFirstLevel_param_10,
+	.param .u32 GeneratePermutedVolumesFirstLevel_param_11
 )
 {
 	.reg .f32 	%f<35>;
@@ -25200,9 +25245,9 @@ BB39_26:
 	.reg .s32 	%r<138>;
 
 
-	ld.param.u32 	%r9, [GeneratePermutedfMRIVolumesAR4_param_8];
-	ld.param.u32 	%r10, [GeneratePermutedfMRIVolumesAR4_param_9];
-	ld.param.u32 	%r11, [GeneratePermutedfMRIVolumesAR4_param_10];
+	ld.param.u32 	%r9, [GeneratePermutedVolumesFirstLevel_param_8];
+	ld.param.u32 	%r10, [GeneratePermutedVolumesFirstLevel_param_9];
+	ld.param.u32 	%r11, [GeneratePermutedVolumesFirstLevel_param_10];
 	// inline asm
 	mov.u32 	%r37, %envreg3;
 	// inline asm
@@ -25252,36 +25297,36 @@ BB39_26:
 	and.pred  	%p5, %p3, %p4;
 	@!%p5 bra 	BB40_5;
 
-	ld.param.u32 	%r129, [GeneratePermutedfMRIVolumesAR4_param_9];
+	ld.param.u32 	%r129, [GeneratePermutedVolumesFirstLevel_param_9];
 	mad.lo.s32 	%r52, %r27, %r129, %r22;
-	ld.param.u32 	%r125, [GeneratePermutedfMRIVolumesAR4_param_8];
+	ld.param.u32 	%r125, [GeneratePermutedVolumesFirstLevel_param_8];
 	mad.lo.s32 	%r28, %r52, %r125, %r17;
 	shl.b32 	%r53, %r28, 2;
-	ld.param.u32 	%r119, [GeneratePermutedfMRIVolumesAR4_param_6];
+	ld.param.u32 	%r119, [GeneratePermutedVolumesFirstLevel_param_6];
 	add.s32 	%r54, %r119, %r53;
 	ld.global.f32 	%f14, [%r54];
 	setp.neu.f32 	%p6, %f14, 0f3F800000;
 	@%p6 bra 	BB40_5;
 
-	ld.param.u32 	%r115, [GeneratePermutedfMRIVolumesAR4_param_2];
+	ld.param.u32 	%r115, [GeneratePermutedVolumesFirstLevel_param_2];
 	add.s32 	%r56, %r115, %r53;
-	ld.param.u32 	%r118, [GeneratePermutedfMRIVolumesAR4_param_5];
+	ld.param.u32 	%r118, [GeneratePermutedVolumesFirstLevel_param_5];
 	add.s32 	%r57, %r118, %r53;
 	ld.global.f32 	%f1, [%r57];
-	ld.param.u32 	%r121, [GeneratePermutedfMRIVolumesAR4_param_7];
-	ld.const.u32 	%r58, [%r121];
-	ld.param.u32 	%r132, [GeneratePermutedfMRIVolumesAR4_param_10];
+	ld.param.u32 	%r121, [GeneratePermutedVolumesFirstLevel_param_7];
+	ld.const.u16 	%r58, [%r121];
+	ld.param.u32 	%r132, [GeneratePermutedVolumesFirstLevel_param_10];
 	mad.lo.s32 	%r59, %r58, %r132, %r27;
-	ld.param.u32 	%r128, [GeneratePermutedfMRIVolumesAR4_param_9];
+	ld.param.u32 	%r128, [GeneratePermutedVolumesFirstLevel_param_9];
 	mad.lo.s32 	%r60, %r59, %r128, %r22;
-	ld.param.u32 	%r124, [GeneratePermutedfMRIVolumesAR4_param_8];
+	ld.param.u32 	%r124, [GeneratePermutedVolumesFirstLevel_param_8];
 	mad.lo.s32 	%r61, %r60, %r124, %r17;
 	shl.b32 	%r62, %r61, 2;
-	ld.param.u32 	%r114, [GeneratePermutedfMRIVolumesAR4_param_1];
+	ld.param.u32 	%r114, [GeneratePermutedVolumesFirstLevel_param_1];
 	add.s32 	%r63, %r114, %r62;
 	ld.global.f32 	%f31, [%r63];
 	ld.global.f32 	%f3, [%r56];
-	ld.const.u32 	%r64, [%r121+4];
+	ld.const.u16 	%r64, [%r121+2];
 	mad.lo.s32 	%r65, %r64, %r132, %r27;
 	mad.lo.s32 	%r66, %r65, %r128, %r22;
 	mad.lo.s32 	%r67, %r66, %r124, %r17;
@@ -25289,12 +25334,12 @@ BB39_26:
 	add.s32 	%r69, %r114, %r68;
 	ld.global.f32 	%f15, [%r69];
 	fma.rn.f32 	%f32, %f3, %f31, %f15;
-	ld.param.u32 	%r116, [GeneratePermutedfMRIVolumesAR4_param_3];
+	ld.param.u32 	%r116, [GeneratePermutedVolumesFirstLevel_param_3];
 	add.s32 	%r70, %r116, %r53;
 	ld.global.f32 	%f5, [%r70];
 	mul.f32 	%f16, %f5, %f31;
 	fma.rn.f32 	%f17, %f3, %f32, %f16;
-	ld.const.u32 	%r71, [%r121+8];
+	ld.const.u16 	%r71, [%r121+4];
 	mad.lo.s32 	%r72, %r71, %r132, %r27;
 	mad.lo.s32 	%r73, %r72, %r128, %r22;
 	mad.lo.s32 	%r74, %r73, %r124, %r17;
@@ -25304,11 +25349,11 @@ BB39_26:
 	add.f32 	%f33, %f17, %f18;
 	mul.f32 	%f19, %f5, %f32;
 	fma.rn.f32 	%f20, %f3, %f33, %f19;
-	ld.param.u32 	%r117, [GeneratePermutedfMRIVolumesAR4_param_4];
+	ld.param.u32 	%r117, [GeneratePermutedVolumesFirstLevel_param_4];
 	add.s32 	%r77, %r117, %r53;
 	ld.global.f32 	%f7, [%r77];
 	fma.rn.f32 	%f21, %f7, %f31, %f20;
-	ld.const.u32 	%r78, [%r121+12];
+	ld.const.u16 	%r78, [%r121+6];
 	mad.lo.s32 	%r79, %r78, %r132, %r27;
 	mad.lo.s32 	%r80, %r79, %r128, %r22;
 	mad.lo.s32 	%r81, %r80, %r124, %r17;
@@ -25316,7 +25361,7 @@ BB39_26:
 	add.s32 	%r83, %r114, %r82;
 	ld.global.f32 	%f22, [%r83];
 	add.f32 	%f34, %f21, %f22;
-	ld.param.u32 	%r112, [GeneratePermutedfMRIVolumesAR4_param_0];
+	ld.param.u32 	%r112, [GeneratePermutedVolumesFirstLevel_param_0];
 	add.s32 	%r84, %r112, %r53;
 	st.global.f32 	[%r84], %f31;
 	mul.lo.s32 	%r85, %r132, %r128;
@@ -25328,25 +25373,25 @@ BB39_26:
 	st.global.f32 	[%r89], %f33;
 	add.s32 	%r90, %r89, %r87;
 	st.global.f32 	[%r90], %f34;
-	ld.param.u32 	%r134, [GeneratePermutedfMRIVolumesAR4_param_11];
+	ld.param.u32 	%r134, [GeneratePermutedVolumesFirstLevel_param_11];
 	setp.lt.s32 	%p7, %r134, 5;
 	@%p7 bra 	BB40_5;
 
-	ld.param.u32 	%r131, [GeneratePermutedfMRIVolumesAR4_param_10];
+	ld.param.u32 	%r131, [GeneratePermutedVolumesFirstLevel_param_10];
 	shl.b32 	%r98, %r131, 2;
 	mov.u32 	%r137, 4;
 	add.s32 	%r99, %r27, %r98;
-	ld.param.u32 	%r127, [GeneratePermutedfMRIVolumesAR4_param_9];
+	ld.param.u32 	%r127, [GeneratePermutedVolumesFirstLevel_param_9];
 	mad.lo.s32 	%r100, %r127, %r99, %r22;
-	ld.param.u32 	%r123, [GeneratePermutedfMRIVolumesAR4_param_8];
+	ld.param.u32 	%r123, [GeneratePermutedVolumesFirstLevel_param_8];
 	mad.lo.s32 	%r101, %r123, %r100, %r17;
 	shl.b32 	%r102, %r101, 2;
-	ld.param.u32 	%r111, [GeneratePermutedfMRIVolumesAR4_param_0];
+	ld.param.u32 	%r111, [GeneratePermutedVolumesFirstLevel_param_0];
 	add.s32 	%r136, %r111, %r102;
 	mul.lo.s32 	%r103, %r131, %r127;
 	mul.lo.s32 	%r104, %r103, %r123;
 	shl.b32 	%r30, %r104, 2;
-	ld.param.u32 	%r135, [GeneratePermutedfMRIVolumesAR4_param_7];
+	ld.param.u32 	%r135, [GeneratePermutedVolumesFirstLevel_param_7];
 
 BB40_4:
 	mov.f32 	%f29, %f33;
@@ -25359,23 +25404,23 @@ BB40_4:
 	fma.rn.f32 	%f24, %f3, %f12, %f23;
 	fma.rn.f32 	%f25, %f7, %f10, %f24;
 	fma.rn.f32 	%f26, %f1, %f9, %f25;
-	ld.const.u32 	%r105, [%r135+16];
-	ld.param.u32 	%r130, [GeneratePermutedfMRIVolumesAR4_param_10];
+	ld.const.u16 	%r105, [%r135+8];
+	ld.param.u32 	%r130, [GeneratePermutedVolumesFirstLevel_param_10];
 	mad.lo.s32 	%r106, %r105, %r130, %r27;
-	ld.param.u32 	%r126, [GeneratePermutedfMRIVolumesAR4_param_9];
+	ld.param.u32 	%r126, [GeneratePermutedVolumesFirstLevel_param_9];
 	mad.lo.s32 	%r107, %r106, %r126, %r22;
-	ld.param.u32 	%r122, [GeneratePermutedfMRIVolumesAR4_param_8];
+	ld.param.u32 	%r122, [GeneratePermutedVolumesFirstLevel_param_8];
 	mad.lo.s32 	%r108, %r107, %r122, %r17;
 	shl.b32 	%r109, %r108, 2;
-	ld.param.u32 	%r113, [GeneratePermutedfMRIVolumesAR4_param_1];
+	ld.param.u32 	%r113, [GeneratePermutedVolumesFirstLevel_param_1];
 	add.s32 	%r110, %r113, %r109;
 	ld.global.f32 	%f27, [%r110];
 	add.f32 	%f34, %f26, %f27;
 	st.global.f32 	[%r136], %f34;
 	add.s32 	%r136, %r136, %r30;
-	add.s32 	%r135, %r135, 4;
+	add.s32 	%r135, %r135, 2;
 	add.s32 	%r137, %r137, 1;
-	ld.param.u32 	%r133, [GeneratePermutedfMRIVolumesAR4_param_11];
+	ld.param.u32 	%r133, [GeneratePermutedVolumesFirstLevel_param_11];
 	setp.lt.s32 	%p8, %r137, %r133;
 	mov.f32 	%f31, %f11;
 	mov.f32 	%f32, %f10;
@@ -25383,6 +25428,126 @@ BB40_4:
 	@%p8 bra 	BB40_4;
 
 BB40_5:
+	ret;
+}
+
+.entry GeneratePermutedVolumesSecondLevel(
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesSecondLevel_param_0,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesSecondLevel_param_1,
+	.param .u32 .ptr .global .align 4 GeneratePermutedVolumesSecondLevel_param_2,
+	.param .u32 .ptr .const .align 2 GeneratePermutedVolumesSecondLevel_param_3,
+	.param .u32 GeneratePermutedVolumesSecondLevel_param_4,
+	.param .u32 GeneratePermutedVolumesSecondLevel_param_5,
+	.param .u32 GeneratePermutedVolumesSecondLevel_param_6,
+	.param .u32 GeneratePermutedVolumesSecondLevel_param_7
+)
+{
+	.reg .f32 	%f<3>;
+	.reg .pred 	%p<10>;
+	.reg .s32 	%r<86>;
+
+
+	ld.param.u32 	%r5, [GeneratePermutedVolumesSecondLevel_param_4];
+	ld.param.u32 	%r6, [GeneratePermutedVolumesSecondLevel_param_5];
+	ld.param.u32 	%r7, [GeneratePermutedVolumesSecondLevel_param_6];
+	// inline asm
+	mov.u32 	%r32, %envreg3;
+	// inline asm
+	// inline asm
+	mov.u32 	%r33, %ntid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r34, %ctaid.x;
+	// inline asm
+	// inline asm
+	mov.u32 	%r35, %tid.x;
+	// inline asm
+	add.s32 	%r44, %r35, %r32;
+	mad.lo.s32 	%r13, %r34, %r33, %r44;
+	// inline asm
+	mov.u32 	%r36, %envreg4;
+	// inline asm
+	// inline asm
+	mov.u32 	%r37, %ntid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r38, %ctaid.y;
+	// inline asm
+	// inline asm
+	mov.u32 	%r39, %tid.y;
+	// inline asm
+	add.s32 	%r45, %r39, %r36;
+	mad.lo.s32 	%r18, %r38, %r37, %r45;
+	// inline asm
+	mov.u32 	%r40, %envreg5;
+	// inline asm
+	// inline asm
+	mov.u32 	%r41, %ntid.z;
+	// inline asm
+	// inline asm
+	mov.u32 	%r42, %ctaid.z;
+	// inline asm
+	// inline asm
+	mov.u32 	%r43, %tid.z;
+	// inline asm
+	add.s32 	%r46, %r43, %r40;
+	mad.lo.s32 	%r23, %r42, %r41, %r46;
+	setp.lt.s32 	%p1, %r13, %r5;
+	setp.lt.s32 	%p2, %r18, %r6;
+	and.pred  	%p3, %p1, %p2;
+	setp.lt.s32 	%p4, %r23, %r7;
+	and.pred  	%p5, %p3, %p4;
+	@!%p5 bra 	BB41_4;
+
+	ld.param.u32 	%r78, [GeneratePermutedVolumesSecondLevel_param_5];
+	mad.lo.s32 	%r47, %r23, %r78, %r18;
+	ld.param.u32 	%r75, [GeneratePermutedVolumesSecondLevel_param_4];
+	mad.lo.s32 	%r48, %r47, %r75, %r13;
+	shl.b32 	%r49, %r48, 2;
+	ld.param.u32 	%r71, [GeneratePermutedVolumesSecondLevel_param_2];
+	add.s32 	%r50, %r71, %r49;
+	ld.global.f32 	%f1, [%r50];
+	setp.eq.f32 	%p6, %f1, 0f3F800000;
+	ld.param.u32 	%r82, [GeneratePermutedVolumesSecondLevel_param_7];
+	setp.gt.s32 	%p7, %r82, 0;
+	and.pred  	%p8, %p6, %p7;
+	@!%p8 bra 	BB41_4;
+
+	ld.param.u32 	%r77, [GeneratePermutedVolumesSecondLevel_param_5];
+	mad.lo.s32 	%r58, %r77, %r23, %r18;
+	ld.param.u32 	%r74, [GeneratePermutedVolumesSecondLevel_param_4];
+	mad.lo.s32 	%r59, %r74, %r58, %r13;
+	shl.b32 	%r60, %r59, 2;
+	ld.param.u32 	%r69, [GeneratePermutedVolumesSecondLevel_param_0];
+	add.s32 	%r84, %r69, %r60;
+	ld.param.u32 	%r80, [GeneratePermutedVolumesSecondLevel_param_6];
+	mul.lo.s32 	%r61, %r80, %r77;
+	mul.lo.s32 	%r62, %r61, %r74;
+	shl.b32 	%r25, %r62, 2;
+	mov.u32 	%r85, 0;
+	ld.param.u32 	%r83, [GeneratePermutedVolumesSecondLevel_param_3];
+
+BB41_3:
+	ld.const.u16 	%r63, [%r83];
+	ld.param.u32 	%r79, [GeneratePermutedVolumesSecondLevel_param_6];
+	mad.lo.s32 	%r64, %r63, %r79, %r23;
+	ld.param.u32 	%r76, [GeneratePermutedVolumesSecondLevel_param_5];
+	mad.lo.s32 	%r65, %r64, %r76, %r18;
+	ld.param.u32 	%r73, [GeneratePermutedVolumesSecondLevel_param_4];
+	mad.lo.s32 	%r66, %r65, %r73, %r13;
+	shl.b32 	%r67, %r66, 2;
+	ld.param.u32 	%r70, [GeneratePermutedVolumesSecondLevel_param_1];
+	add.s32 	%r68, %r70, %r67;
+	ld.global.f32 	%f2, [%r68];
+	st.global.f32 	[%r84], %f2;
+	add.s32 	%r84, %r84, %r25;
+	add.s32 	%r83, %r83, 2;
+	add.s32 	%r85, %r85, 1;
+	ld.param.u32 	%r81, [GeneratePermutedVolumesSecondLevel_param_7];
+	setp.lt.s32 	%p9, %r85, %r81;
+	@%p9 bra 	BB41_3;
+
+BB41_4:
 	ret;
 }
 
@@ -25455,7 +25620,7 @@ BB40_5:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r26, %r10;
 	and.pred  	%p5, %p3, %p4;
-	@!%p5 bra 	BB41_5;
+	@!%p5 bra 	BB42_5;
 
 	ld.param.u32 	%r106, [ApplyWhiteningAR4_param_8];
 	mad.lo.s32 	%r49, %r26, %r106, %r21;
@@ -25466,7 +25631,7 @@ BB40_5:
 	add.s32 	%r51, %r100, %r50;
 	ld.global.f32 	%f13, [%r51];
 	setp.neu.f32 	%p6, %f13, 0f3F800000;
-	@%p6 bra 	BB41_5;
+	@%p6 bra 	BB42_5;
 
 	ld.param.u32 	%r96, [ApplyWhiteningAR4_param_2];
 	add.s32 	%r53, %r96, %r50;
@@ -25519,7 +25684,7 @@ BB40_5:
 	st.global.f32 	[%r71], %f23;
 	ld.param.u32 	%r110, [ApplyWhiteningAR4_param_10];
 	setp.lt.s32 	%p7, %r110, 5;
-	@%p7 bra 	BB41_5;
+	@%p7 bra 	BB42_5;
 
 	mul.lo.s32 	%r73, %r36, %r35;
 	shl.b32 	%r74, %r73, 2;
@@ -25541,7 +25706,7 @@ BB40_5:
 	mul.lo.s32 	%r89, %r88, %r101;
 	shl.b32 	%r29, %r89, 2;
 
-BB41_4:
+BB42_4:
 	mov.f32 	%f34, %f38;
 	mov.f32 	%f33, %f37;
 	mov.f32 	%f11, %f36;
@@ -25566,9 +25731,9 @@ BB41_4:
 	mov.f32 	%f36, %f10;
 	mov.f32 	%f37, %f9;
 	mov.f32 	%f38, %f8;
-	@%p8 bra 	BB41_4;
+	@%p8 bra 	BB42_4;
 
-BB41_5:
+BB42_5:
 	ret;
 }
 
@@ -25640,11 +25805,11 @@ BB41_5:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r25, %r9;
 	and.pred  	%p5, %p3, %p4;
-	@%p5 bra 	BB42_2;
+	@%p5 bra 	BB43_2;
 
 	ret;
 
-BB42_2:
+BB43_2:
 	ld.param.u32 	%r91, [EstimateAR4Models_param_7];
 	mad.lo.s32 	%r52, %r25, %r91, %r20;
 	ld.param.u32 	%r88, [EstimateAR4Models_param_6];
@@ -25662,7 +25827,7 @@ BB42_2:
 	add.s32 	%r29, %r81, %r53;
 	ld.param.u32 	%r82, [EstimateAR4Models_param_3];
 	add.s32 	%r30, %r82, %r53;
-	@%p6 bra 	BB42_10;
+	@%p6 bra 	BB43_10;
 
 	ld.param.u32 	%r84, [EstimateAR4Models_param_4];
 	add.s32 	%r56, %r84, %r53;
@@ -25691,12 +25856,12 @@ BB42_2:
 	fma.rn.f32 	%f231, %f229, %f226, 0f00000000;
 	ld.param.u32 	%r96, [EstimateAR4Models_param_9];
 	setp.gt.s32 	%p7, %r96, 4;
-	@%p7 bra 	BB42_5;
+	@%p7 bra 	BB43_5;
 
 	mov.f32 	%f230, 0f00000000;
-	bra.uni 	BB42_7;
+	bra.uni 	BB43_7;
 
-BB42_5:
+BB43_5:
 	ld.param.u32 	%r92, [EstimateAR4Models_param_8];
 	shl.b32 	%r70, %r92, 2;
 	mov.u32 	%r98, 4;
@@ -25713,7 +25878,7 @@ BB42_5:
 	shl.b32 	%r32, %r76, 2;
 	mov.f32 	%f230, 0f00000000;
 
-BB42_6:
+BB43_6:
 	mov.f32 	%f224, %f228;
 	mov.f32 	%f223, %f227;
 	mov.f32 	%f17, %f226;
@@ -25733,9 +25898,9 @@ BB42_6:
 	mov.f32 	%f226, %f16;
 	mov.f32 	%f227, %f15;
 	mov.f32 	%f228, %f14;
-	@%p8 bra 	BB42_6;
+	@%p8 bra 	BB43_6;
 
-BB42_7:
+BB43_7:
 	ld.param.u32 	%r94, [EstimateAR4Models_param_9];
 	cvt.rn.f32.s32 	%f43, %r94;
 	add.f32 	%f44, %f43, 0fBF800000;
@@ -25749,7 +25914,7 @@ BB42_7:
 	add.f32 	%f48, %f43, 0fC0A00000;
 	div.full.f32 	%f33, %f230, %f48;
 	setp.neu.f32 	%p9, %f29, 0f00000000;
-	@%p9 bra 	BB42_9;
+	@%p9 bra 	BB43_9;
 
 	mov.u32 	%r77, 0;
 	st.global.u32 	[%r27], %r77;
@@ -25758,7 +25923,7 @@ BB42_7:
 	st.global.u32 	[%r30], %r77;
 	ret;
 
-BB42_9:
+BB43_9:
 	div.full.f32 	%f49, %f30, %f29;
 	add.f32 	%f50, %f49, 0f3A83126F;
 	div.full.f32 	%f51, %f31, %f29;
@@ -25939,7 +26104,7 @@ BB42_9:
 	st.global.f32 	[%r30], %f222;
 	ret;
 
-BB42_10:
+BB43_10:
 	mov.u32 	%r78, 0;
 	st.global.u32 	[%r27], %r78;
 	st.global.u32 	[%r28], %r78;
@@ -26012,11 +26177,11 @@ BB42_10:
 	and.pred  	%p3, %p1, %p2;
 	setp.lt.s32 	%p4, %r7, %r21;
 	and.pred  	%p5, %p3, %p4;
-	@%p5 bra 	BB43_2;
+	@%p5 bra 	BB44_2;
 
 	ret;
 
-BB43_2:
+BB44_2:
 	ld.param.u32 	%r34, [ThresholdVolume_param_4];
 	mad.lo.s32 	%r25, %r7, %r34, %r6;
 	ld.param.u32 	%r33, [ThresholdVolume_param_3];
@@ -26029,13 +26194,13 @@ BB43_2:
 	setp.ltu.f32 	%p6, %f2, %f3;
 	ld.param.u32 	%r31, [ThresholdVolume_param_0];
 	add.s32 	%r8, %r31, %r27;
-	@%p6 bra 	BB43_4;
+	@%p6 bra 	BB44_4;
 
 	mov.u32 	%r29, 1065353216;
 	st.global.u32 	[%r8], %r29;
 	ret;
 
-BB43_4:
+BB44_4:
 	mov.u32 	%r30, 981668463;
 	st.global.u32 	[%r8], %r30;
 	ret;

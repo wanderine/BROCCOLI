@@ -41,15 +41,15 @@ mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GP
 
 basepath = 'D:\BROCCOLI_test_data\';
 study = 'Cambridge';
-%study = 'Beijing';
+study = 'Beijing';
 %study = 'ICBM';
 %study = 'Oulu';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
 %substudy = 'Balloon';
-subject = 2;
+subject = 1;
 voxel_size = 2;
-opencl_platform = 0;
+opencl_platform = 2;
 opencl_device = 0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
@@ -114,7 +114,7 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 load filters.mat
 number_of_iterations_for_image_registration = 40;
 coarsest_scale = 8/voxel_size;
-MM_T1_Z_CUT = 50;
+MM_T1_Z_CUT = 60;
 
 
 tic

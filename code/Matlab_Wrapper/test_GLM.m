@@ -28,20 +28,47 @@ clear all
 clc
 close all
 
+addpath('D:\nifti_matlab')
+addpath('D:\BROCCOLI_test_data')
+
 %mex GLM.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
 mex -g GLM.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-opencl_platform = 1;
-opencl_device = 0;
-
 %sx = 63; sy = 65; sz = 31; st = 100;
 %fMRI_volumes = randn(sy,sx,sz,st);
 
-load ../../test_data/hand_movements_right.mat
-fMRI_volumes = vol_exp;
+%load ../../test_data/hand_movements_right.mat
+%fMRI_volumes = vol_exp;
+
+basepath = 'D:\BROCCOLI_test_data\';
+%study = 'Oulu';
+%study = 'ICBM';
+study = 'Cambridge';
+%study = 'Beijing';
+%study = 'OpenfMRI';
+substudy = 'Mixed';
+subject = 9;
+opencl_platform = 0;
+opencl_device = 0;
+
+EPI_smoothing_amount = 5.5;
+AR_smoothing_amount = 7.0;
+
+if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
+    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+elseif ( strcmp(study,'OpenfMRI'))
+    EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
+end
+
+EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
+EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
+EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+
+fMRI_volumes = double(EPI_nii.img);
 [sy sx sz st] = size(fMRI_volumes);
-[sy; sx; sz; st]'
+[sy sx sz st]
+
 
 % Create regressors
 [sy sx sz st] = size(fMRI_volumes)
@@ -79,7 +106,6 @@ for i = 1:size(contrasts,2)
 end
 ctxtxc_GLM
 
-mask = ones(sy,sx,sz,st);
 statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
 betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
 residuals_cpu = zeros(sy,sx,sz,st);
@@ -91,7 +117,7 @@ for x = 1:sx
         for z = 1:sz
             timeseries = squeeze(fMRI_volumes(y,x,z,:));
             timeseries = timeseries - mean(timeseries);
-            fMRI_volumes(y,x,z,:) = timeseries;
+            %fMRI_volumes(y,x,z,:) = timeseries;
             beta = xtxxt_GLM*timeseries;
             betas_cpu(y,x,z,:) = beta;
             eps = timeseries - X_GLM*beta;
@@ -106,18 +132,12 @@ for x = 1:sx
     end
 end
 
-% Create smoothing filters
-smoothing_filter_x = fspecial('gaussian',9,1);
-smoothing_filter_x = smoothing_filter_x(:,5);
-smoothing_filter_x = smoothing_filter_x / sum(abs(smoothing_filter_x));
-smoothing_filter_y = smoothing_filter_x;
-smoothing_filter_z = smoothing_filter_x;
 
 tic
-[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl] = GLM(fMRI_volumes,mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,smoothing_filter_x,smoothing_filter_y,smoothing_filter_z,opencl_platform,opencl_device);
+[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl] = GLM(fMRI_volumes,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,EPI_smoothing_amount,AR_smoothing_amount,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,opencl_platform,opencl_device);
 toc
 
-slice = 17;
+slice = 30;
 
 figure
 imagesc([betas_cpu(:,:,slice,1) betas_opencl(:,:,slice,1)]); colorbar

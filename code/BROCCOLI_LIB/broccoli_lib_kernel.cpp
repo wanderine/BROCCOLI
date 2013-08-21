@@ -4679,6 +4679,100 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	}
 }
 
+	
+
+__kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical_Maps, __global const float* Volumes, __global const float* Mask, __constant float* c_xtxxt_GLM, __constant float *c_X_GLM, __constant float* c_Contrasts, __constant float* c_ctxtxc_GLM, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS, __private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{		
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+			
+		return;
+	}
+
+	float eps, meaneps, vareps;
+	float beta[20];
+
+	// Reset all beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = 0.0f;		
+	}
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//if (c_Censor[v] == 0.0f)
+		//{
+			float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			// Loop over regressors
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];				
+			}
+		//}
+	}
+
+
+	// Calculate the mean of the error eps
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//if (c_Censor[v] == 0.0f)
+		//{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{ 
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];				
+			}
+			meaneps += eps;			
+		//}
+	}
+	meaneps /= (float)NUMBER_OF_VOLUMES;
+
+	// Now calculate the variance of eps
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//if (c_Censor[v] == 0.0f)
+		//{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];				
+			}
+			vareps += (eps - meaneps) * (eps - meaneps);
+		//}
+	}
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS); // correct for number of censor points?
+	vareps /= (float)(NUMBER_OF_VOLUMES-1); // correct for number of censor points?
+	
+	// Loop over contrasts and calculate t-values
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];			
+		}			
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
+	}
+}
+
+
 __kernel void RemoveLinearFit(__global float* Residual_Volumes, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_Detrend, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS)
 {
 	int x = get_global_id(0);
@@ -4697,17 +4791,23 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes, __global const f
 
 		return;
 	}
+	
+	float eps;
+	float beta[10];
 
-	int t = 0;
-	float eps, meaneps, vareps;
+	// Load beta values into regressors
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{ 
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
 
 	// Calculate the residual
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{ 
-			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
+		{ 			
+			eps -= beta[r] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
 		}
 		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
 	}
@@ -4716,72 +4816,10 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes, __global const f
 
 // Functions for permutation test
 
-__kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical_Maps, __global const float* Volumes, __global const float* Beta_Volumes, __global const float* Mask, __constant float *c_X_GLM, __constant float* c_Contrast_Vectors, __constant float* ctxtxc, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS, __private int NUMBER_OF_CONTRASTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-	
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-		{
-			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-		return;
-	}
-
-	int t = 0;
-	float eps, meaneps, vareps;
-
-	// Calculate the mean of the error eps
-	meaneps = 0.0f;
-	// Loop over volumes
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		// Loop over regressors
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
-		}
-		meaneps += eps;
-	}
-	meaneps /= (float)NUMBER_OF_VOLUMES;
-
-	// Now calculate the variance of eps
-	vareps = 0.0f;
-	// Loop over volumes
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		// Loop over regressors
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps);
-	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS);
-	
-	// Loop over contrasts and calculate t-values
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		float contrast_value = 0.0f;
-		// Loop over regressors
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			contrast_value += c_Contrast_Vectors[NUMBER_OF_REGRESSORS * c + r] * Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-		}	
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * ctxtxc[c]);
-	}
-}
 
 
-__kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* AR1_Estimates, __global const float* AR2_Estimates, __global const float* AR3_Estimates, __global const float* AR4_Estimates, __global const float* Mask, __constant unsigned int *c_Permutation_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+
+__kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Volumes, __global const float* Whitened_fMRI_Volumes, __global const float* AR1_Estimates, __global const float* AR2_Estimates, __global const float* AR3_Estimates, __global const float* AR4_Estimates, __global const float* Mask, __constant unsigned short int *c_Permutation_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4826,6 +4864,25 @@ __kernel void GeneratePermutedfMRIVolumesAR4(__global float* Permuted_fMRI_Volum
         old_value_4 = old_value_5;
     }
 }
+
+__kernel void GeneratePermutedVolumesSecondLevel(__global float* Permuted_Volumes, __global const float* Volumes, __global const float* Mask, __constant unsigned short int *c_Permutation_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_SUBJECTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
+        return;
+
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+		return;
+
+    for (int v = 0; v < NUMBER_OF_SUBJECTS; v++)
+	{        					
+        Permuted_Volumes[Calculate4DIndex(x, y, z, v, DATA_W, DATA_H, DATA_D)] = Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[v], DATA_W, DATA_H, DATA_D)];
+    }
+}
+
 
 __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, __global const float* fMRI_Volumes, __global const float* AR1_Estimates, __global const float* AR2_Estimates, __global const float* AR3_Estimates, __global const float* AR4_Estimates, __global const float* Mask, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
 {
