@@ -314,6 +314,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		void Copy3DFiltersToConstantMemory(int z, int FILTER_SIZE);
 		void NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);		
+		void NonseparableConvolution3D(cl_mem d_q1_Real, cl_mem d_q1_Imag, cl_mem d_q2_Real, cl_mem d_q2_Imag, cl_mem d_q3_Real, cl_mem d_q3_Imag, cl_mem d_q4_Real, cl_mem d_q4_Imag, cl_mem d_q5_Real, cl_mem d_q5_Imag, cl_mem d_q6_Real, cl_mem d_q6_Imag, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);		
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingNormalized(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothing(cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
@@ -322,20 +323,29 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		// Functions for image registration		
 		//------------------------------------------------
-		void AlignTwoVolumes(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
-		void AlignTwoVolumesDouble(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
-		void AlignTwoVolumesSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
-		void AlignTwoVolumesCleanup();
-		void AlignTwoVolumesCleanupDouble();
-		void AlignTwoVolumesSetup(int DATA_W, int DATA_H, int DATA_D);
-		void AlignTwoVolumesSetupDouble(int DATA_W, int DATA_H, int DATA_D);
+		void AlignTwoVolumesParametric(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesParametricDouble(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesParametricSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesParametricSetup(int DATA_W, int DATA_H, int DATA_D);
+		void AlignTwoVolumesParametricCleanup();
+		void AlignTwoVolumesParametricCleanupDouble();		
+		void AlignTwoVolumesParametricSetupDouble(int DATA_W, int DATA_H, int DATA_D);
+
+		void AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int INTERPOLATION_MODE);
+		void AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int OVERWRITE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int DATA_D);
+		void AlignTwoVolumesNonParametricCleanup();
+		
+		
 		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
 		void ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
 		void ChangeVolumeSize(cl_mem d_Current_Aligned_Volume, cl_mem d_Aligned_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);       
 		void ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int MM_Z_CUT, int INTERPOLATION_MODE);
 
-		void TransformVolume(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int INTERPOLATION_MODE);
-		void TransformVolumes(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
+		void TransformVolumeParametric(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int INTERPOLATION_MODE);
+		void TransformVolumesParametric(cl_mem d_Volume, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
+		void TransformVolumeNonParametric(cl_mem d_Volume, cl_mem d_Displacement_Field, int DATA_W, int DATA_H, int DATA_D, int INTERPOLATION_MODE);
+		void TransformVolumesNonParametric(cl_mem d_Volume, cl_mem d_Displacement_Field, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformFirstLevelResultsToMNI();
 
 		//------------------------------------------------
@@ -344,6 +354,7 @@ class BROCCOLI_LIB
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryDouble(cl_mem memory, double value, int N);
 		void CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut);		
+		void MultiplyVolume(cl_mem d_Volume_1, float value, int DATA_W, int DATA_H, int DATA_D);
 		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
 		void MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);	
 		float CalculateSum(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
@@ -486,7 +497,8 @@ class BROCCOLI_LIB
 		cl_kernel CalculateAMatrixAndHVector2DValuesXDoubleKernel, CalculateAMatrixAndHVector2DValuesYDoubleKernel,CalculateAMatrixAndHVector2DValuesZDoubleKernel; 
 		cl_kernel CalculateAMatrix1DValuesKernel, CalculateHVector1DValuesKernel, CalculateHVectorKernel, ResetAMatrixKernel, CalculateAMatrixKernel;
 		cl_kernel CalculateAMatrix1DValuesDoubleKernel, CalculateHVector1DValuesDoubleKernel, CalculateHVectorDoubleKernel, ResetAMatrixDoubleKernel, CalculateAMatrixDoubleKernel;
-		cl_kernel InterpolateVolumeNearestKernel, InterpolateVolumeLinearKernel, InterpolateVolumeCubicKernel; 
+		cl_kernel InterpolateVolumeNearestParametricKernel, InterpolateVolumeLinearParametricKernel, InterpolateVolumeCubicParametricKernel; 
+		cl_kernel InterpolateVolumeNearestNonParametricKernel, InterpolateVolumeLinearNonParametricKernel, InterpolateVolumeCubicNonParametricKernel; 
 		cl_kernel RescaleVolumeNearestKernel, RescaleVolumeLinearKernel, RescaleVolumeCubicKernel;
 		cl_kernel CopyT1VolumeToMNIKernel, CopyEPIVolumeToT1Kernel, CopyVolumeToNewKernel;
 		cl_kernel MultiplyVolumesKernel, MultiplyVolumesOverwriteKernel;
@@ -502,7 +514,8 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateAMatrixAndHVector2DValuesX, createKernelErrorCalculateAMatrixAndHVector2DValuesY, createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
 		cl_int createKernelErrorCalculateAMatrix1DValues, createKernelErrorCalculateHVector1DValues;
 		cl_int createKernelErrorCalculateAMatrix, createKernelErrorCalculateHVector;
-		cl_int createKernelErrorInterpolateVolumeNearest, createKernelErrorInterpolateVolumeLinear,  createKernelErrorInterpolateVolumeCubic;
+		cl_int createKernelErrorInterpolateVolumeNearestParametric, createKernelErrorInterpolateVolumeLinearParametric,  createKernelErrorInterpolateVolumeCubicParametric;
+		cl_int createKernelErrorInterpolateVolumeNearestNonParametric, createKernelErrorInterpolateVolumeLinearNonParametric,  createKernelErrorInterpolateVolumeCubicNonParametric;
 		cl_int createKernelErrorRescaleVolumeNearest, createKernelErrorRescaleVolumeLinear, createKernelErrorRescaleVolumeCubic;
 		cl_int createKernelErrorCopyT1VolumeToMNI, createKernelErrorCopyEPIVolumeToT1, createKernelErrorCopyVolumeToNew;
 		cl_int createKernelErrorMultiplyVolumes;
@@ -520,11 +533,11 @@ class BROCCOLI_LIB
 
 		// Create buffer errors
 		cl_int createBufferErrorAlignedVolume, createBufferErrorReferenceVolume;
-		cl_int createBufferErrorq11Real, createBufferErrorq11Imag, createBufferErrorq12Real, createBufferErrorq12Imag, createBufferErrorq13Real, createBufferErrorq13Imag;
-		cl_int createBufferErrorq21Real, createBufferErrorq21Imag, createBufferErrorq22Real, createBufferErrorq22Imag, createBufferErrorq23Real, createBufferErrorq23Imag;
+		cl_int createBufferErrorq11Real, createBufferErrorq11Imag, createBufferErrorq12Real, createBufferErrorq12Imag, createBufferErrorq13Real, createBufferErrorq13Imag, createBufferErrorq14Real, createBufferErrorq14Imag, createBufferErrorq15Real, createBufferErrorq15Imag, createBufferErrorq16Real, createBufferErrorq16Imag;
+		cl_int createBufferErrorq21Real, createBufferErrorq21Imag, createBufferErrorq22Real, createBufferErrorq22Imag, createBufferErrorq23Real, createBufferErrorq23Imag, createBufferErrorq24Real, createBufferErrorq24Imag, createBufferErrorq25Real, createBufferErrorq25Imag, createBufferErrorq26Real, createBufferErrorq26Imag;
 		cl_int createBufferErrorPhaseDifferences, createBufferErrorPhaseCertainties, createBufferErrorPhaseGradients;
 		cl_int createBufferErrorAMatrix, createBufferErrorHVector, createBufferErrorAMatrix2DValues, createBufferErrorAMatrix1DValues, createBufferErrorHVector2DValues, createBufferErrorHVector1DValues;
-		cl_int createBufferErrorQuadratureFilter1Real, createBufferErrorQuadratureFilter1Imag, createBufferErrorQuadratureFilter2Real, createBufferErrorQuadratureFilter2Imag, createBufferErrorQuadratureFilter3Real, createBufferErrorQuadratureFilter3Imag;    
+		cl_int createBufferErrorQuadratureFilter1Real, createBufferErrorQuadratureFilter1Imag, createBufferErrorQuadratureFilter2Real, createBufferErrorQuadratureFilter2Imag, createBufferErrorQuadratureFilter3Real, createBufferErrorQuadratureFilter3Imag, createBufferErrorQuadratureFilter4Real, createBufferErrorQuadratureFilter4Imag, createBufferErrorQuadratureFilter5Real, createBufferErrorQuadratureFilter5Imag, createBufferErrorQuadratureFilter6Real, createBufferErrorQuadratureFilter6Imag;    
 		cl_int createBufferErrorRegistrationParameters;
 		cl_int createBufferErrorBetaVolumesMNI;
 		cl_int createBufferErrorStatisticalMapsMNI;
@@ -826,14 +839,15 @@ class BROCCOLI_LIB
 		cl_mem		d_A_Matrix_double, d_h_Vector_double, d_A_Matrix_2D_Values_double, d_A_Matrix_1D_Values_double, d_h_Vector_2D_Values_double, d_h_Vector_1D_Values_double;
 		cl_mem 		d_Phase_Differences, d_Phase_Gradients, d_Phase_Certainties;
 		cl_mem      d_q11, d_q12, d_q13, d_q21, d_q22, d_q23;
-		cl_mem      d_q11_Real, d_q12_Real, d_q13_Real, d_q21_Real, d_q22_Real, d_q23_Real;
-		cl_mem      d_q11_Imag, d_q12_Imag, d_q13_Imag, d_q21_Imag, d_q22_Imag, d_q23_Imag;
-		cl_mem		c_Quadrature_Filter_1_Real, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_3_Real;
-		cl_mem		c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Imag;
-		cl_mem		c_Quadrature_Filter_1_Real_AMD, c_Quadrature_Filter_2_Real_AMD, c_Quadrature_Filter_3_Real_AMD;
-		cl_mem		c_Quadrature_Filter_1_Imag_AMD, c_Quadrature_Filter_2_Imag_AMD, c_Quadrature_Filter_3_Imag_AMD;
+		cl_mem      d_q11_Real, d_q12_Real, d_q13_Real, d_q14_Real, d_q15_Real, d_q16_Real, d_q21_Real, d_q22_Real, d_q23_Real, d_q24_Real, d_q25_Real, d_q26_Real;
+		cl_mem      d_q11_Imag, d_q12_Imag, d_q13_Imag, d_q14_Imag, d_q15_Imag, d_q16_Imag, d_q21_Imag, d_q22_Imag, d_q23_Imag, d_q24_Imag, d_q25_Imag, d_q26_Imag;
+		cl_mem		c_Quadrature_Filter_1_Real, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_4_Real, c_Quadrature_Filter_5_Real, c_Quadrature_Filter_6_Real;
+		cl_mem		c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Imag, c_Quadrature_Filter_4_Imag, c_Quadrature_Filter_5_Imag, c_Quadrature_Filter_6_Imag;
 		cl_mem		c_Registration_Parameters;
-	
+		cl_mem		d_Update_Displacement_Field_X, d_Update_Displacement_Field_Y, d_Update_Displacement_Field_Z;
+		cl_mem		d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z;
+		cl_mem		d_t11, d_t12, d_t13, d_22, d_23, d_33;
+
 		// Motion correction
 		cl_mem		d_Motion_Corrected_fMRI_Volumes;
 	

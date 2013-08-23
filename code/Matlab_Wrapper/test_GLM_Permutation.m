@@ -35,8 +35,8 @@ addpath('D:\BROCCOLI_test_data')
 
 mex -g GLM_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-load ../../test_data/hand_movements_right.mat
-fMRI_volumes = vol_exp;
+%load ../../test_data/hand_movements_right.mat
+%fMRI_volumes = vol_exp;
 
 basepath = 'D:\BROCCOLI_test_data\';
 %study = 'Oulu';
@@ -49,7 +49,7 @@ subject = 9;
 opencl_platform = 0;
 opencl_device = 0;
 
-NUMBER_OF_PERMUTATIONS = 10000;
+NUMBER_OF_PERMUTATIONS = 1000;
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
 
@@ -59,18 +59,22 @@ elseif ( strcmp(study,'OpenfMRI'))
     EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
 end
 
-%EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
-%EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
-%EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
+EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
+EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
-EPI_voxel_size_x = 3;
-EPI_voxel_size_y = 3;
-EPI_voxel_size_z = 3;
+fMRI_volumes = double(EPI_nii.img);
 
-%fMRI_volumes = double(EPI_nii.img);
+fMRI_volumes = randn(91,109,91,40);
 [sy sx sz st] = size(fMRI_volumes);
 [sy sx sz st]
 
+MNI_brain_mask_nii = load_nii(['../../test_data/MNI152_T1_' num2str(2) 'mm_brain_mask.nii']);
+MNI_brain_mask = double(MNI_brain_mask_nii.img);
+
+for t = 1:st
+    fMRI_volumes(:,:,:,t) = fMRI_volumes(:,:,:,t) .* MNI_brain_mask;
+end
 
 % Create regressors
 [sy sx sz st] = size(fMRI_volumes)
