@@ -47,7 +47,7 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
 %substudy = 'Balloon';
-subject = 10
+subject = 18
 voxel_size = 1;
 opencl_platform = 2;
 opencl_device = 1;
@@ -64,6 +64,11 @@ MNI_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
 %MNI = MNI/max(MNI(:));
 
+temp = zeros(256,256,256);
+temp(40:40+181,15:15+217,40:40+181) = MNI;
+MNI = temp;
+
+
 %T1 = zeros(size(MNI));
 %T1(2:end,2:end,2:end) = MNI(1:end-1,1:end-1,1:end-1);
 
@@ -71,24 +76,28 @@ MNI_brain_mask_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 
 MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 
+temp = zeros(256,256,256);
+temp(40:40+181,15:15+217,40:40+181) = MNI_brain_mask;
+MNI_brain_mask = temp;
+
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
-    EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
 end
 
-fMRI_volumes = double(EPI_nii.img);
+%fMRI_volumes = double(EPI_nii.img);
 %fMRI_volumes = fMRI_volumes(:,:,1:22,:);
 %fMRI_volumes = fMRI_volumes(:,:,:,5:end);
-[sy sx sz st] = size(fMRI_volumes)
+%[sy sx sz st] = size(fMRI_volumes)
 %fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
 
-EPI = fMRI_volumes(:,:,:,1);
-EPI = EPI/max(EPI(:));
+%EPI = fMRI_volumes(:,:,:,1);
+%EPI = EPI/max(EPI(:));
 
 [T1_sy T1_sx T1_sz] = size(T1)
 [MNI_sy MNI_sx MNI_sz] = size(MNI)
-[EPI_sy EPI_sx EPI_sz] = size(EPI)
+%[EPI_sy EPI_sx EPI_sz] = size(EPI)
 
 if (strcmp(study,'Beijing'))
     T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
@@ -109,9 +118,9 @@ MNI_voxel_size_x = MNI_nii.hdr.dime.pixdim(2);
 MNI_voxel_size_y = MNI_nii.hdr.dime.pixdim(3);
 MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
 
-EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
-EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
-EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+%EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
+%EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
+%EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 
 %%

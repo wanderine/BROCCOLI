@@ -41,16 +41,16 @@ mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GP
 
 basepath = 'D:\BROCCOLI_test_data\';
 study = 'Cambridge';
-%study = 'Beijing';
+study = 'Beijing';
 %study = 'ICBM';
 %study = 'Oulu';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
 %substudy = 'Balloon';
-subject = 1
-voxel_size = 2;
-opencl_platform = 0;
-opencl_device = 0;
+subject = 18
+voxel_size = 1;
+opencl_platform = 2;
+opencl_device = 1;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -59,10 +59,12 @@ elseif ( strcmp(study,'OpenfMRI'))
 end
 
 T1 = double(T1_nii.img);
-T1 = T1/max(T1(:));
+%T1 = T1/max(T1(:));
 MNI_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
-MNI = MNI/max(MNI(:));
+%MNI = MNI/max(MNI(:));
+temp = zeros(256,256,256);
+temp(20:20+182,20:20+218,
 
 %T1 = zeros(size(MNI));
 %T1(2:end,2:end,2:end) = MNI(1:end-1,1:end-1,1:end-1);
@@ -72,23 +74,23 @@ MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
-    EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
 end
 
-fMRI_volumes = double(EPI_nii.img);
+%fMRI_volumes = double(EPI_nii.img);
 %fMRI_volumes = fMRI_volumes(:,:,1:22,:);
 %fMRI_volumes = fMRI_volumes(:,:,:,5:end);
-[sy sx sz st] = size(fMRI_volumes)
+%[sy sx sz st] = size(fMRI_volumes)
 %fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
 
-EPI = fMRI_volumes(:,:,:,1);
-EPI = EPI/max(EPI(:));
+%EPI = fMRI_volumes(:,:,:,1);
+%EPI = EPI/max(EPI(:));
 
 [T1_sy T1_sx T1_sz] = size(T1)
 [MNI_sy MNI_sx MNI_sz] = size(MNI)
-[EPI_sy EPI_sx EPI_sz] = size(EPI)
+%[EPI_sy EPI_sx EPI_sz] = size(EPI)
 
 if (strcmp(study,'Beijing'))
     T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
@@ -109,17 +111,17 @@ MNI_voxel_size_x = MNI_nii.hdr.dime.pixdim(2);
 MNI_voxel_size_y = MNI_nii.hdr.dime.pixdim(3);
 MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
 
-EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
-EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
-EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+%EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
+%EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
+%EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 
 %%
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
 number_of_iterations_for_image_registration = 40;
-coarsest_scale = 418/voxel_size;
-MM_T1_Z_CUT = 30;
+coarsest_scale = 16/voxel_size;
+MM_T1_Z_CUT = 25;
 
 
 tic
@@ -155,7 +157,7 @@ figure; imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); c
 figure; imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
 %figure; imagesc( [ flipud(squeeze((MNI(slice,:,:) - aligned_T1_opencl(slice,:,:) ))') flipud(squeeze(abs(MNI(slice,:,:) - aligned_T1_nonparametric_opencl(slice,:,:) ))')]  ); colormap gray
 
-slice = round(0.6*MNI_sz);
+slice = round(0.5*MNI_sz);
 figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
 figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
 figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray

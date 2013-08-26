@@ -9093,7 +9093,7 @@ __kernel void InterpolateVolumeLinearNonParametric(__global float* Volume,
 	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
 	float4 Motion_Vector;
 	
-	if ( (myabs(d_Displacement_Field_X[idx]) < 50.0f) && (myabs(d_Displacement_Field_Y[idx]) < 50.0f) && (myabs(d_Displacement_Field_Z[idx]) < 50.0f) )
+	if ( (myabs(d_Displacement_Field_X[idx]) < 100.0f) && (myabs(d_Displacement_Field_Y[idx]) < 100.0f) && (myabs(d_Displacement_Field_Z[idx]) < 100.0f) )
 	{
 		Motion_Vector.x = (float)x - d_Displacement_Field_X[idx] + 0.5f;
 		Motion_Vector.y = (float)y - d_Displacement_Field_Y[idx] + 0.5f;
