@@ -55,7 +55,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Projection_Tensor_1_double, *h_Projection_Tensor_2_double, *h_Projection_Tensor_3_double, *h_Projection_Tensor_4_double, *h_Projection_Tensor_5_double, *h_Projection_Tensor_6_double;
     float           *h_Projection_Tensor_1, *h_Projection_Tensor_2, *h_Projection_Tensor_3, *h_Projection_Tensor_4, *h_Projection_Tensor_5, *h_Projection_Tensor_6;
     
-    
     double          *h_Filter_Directions_X_double, *h_Filter_Directions_Y_double, *h_Filter_Directions_Z_double;
     float           *h_Filter_Directions_X, *h_Filter_Directions_Y, *h_Filter_Directions_Z;
     
@@ -78,9 +77,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_t11_double, *h_t12_double, *h_t13_double, *h_t22_double, *h_t23_double, *h_t33_double;
     float           *h_t11, *h_t12, *h_t13, *h_t22, *h_t23, *h_t33;
     
-    double          *h_Displacement_Field_X_double, *h_Displacement_Field_Y_double, *h_Displacement_Field_Z_double;
-    float           *h_Displacement_Field_X, *h_Displacement_Field_Y, *h_Displacement_Field_Z;
-
     double          *h_Phase_Differences_double, *h_Phase_Certainties_double, *h_Phase_Gradients_double;
     double          *h_Downsampled_Volume_double;
     double          *h_Slice_Sums_double, *h_Top_Slice_double;
@@ -107,11 +103,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<26)
+    if(nlhs<23)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>26)
+    if(nlhs>23)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -311,38 +307,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ARRAY_DIMENSIONS_OUT_TENSOR[2] = MNI_DATA_D;  
     
     plhs[17] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_TENSOR,mxDOUBLE_CLASS, mxREAL);
-    h_t11_double = mxGetPr(plhs[17]);          
-    
-    plhs[18] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_TENSOR,mxDOUBLE_CLASS, mxREAL);
-    h_t12_double = mxGetPr(plhs[18]);          
-    
-    plhs[19] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_TENSOR,mxDOUBLE_CLASS, mxREAL);
-    h_t13_double = mxGetPr(plhs[19]);          
-    
-    plhs[20] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_TENSOR,mxDOUBLE_CLASS, mxREAL);
-    h_t22_double = mxGetPr(plhs[20]);          
-    
-    plhs[21] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_TENSOR,mxDOUBLE_CLASS, mxREAL);
-    h_t23_double = mxGetPr(plhs[21]);          
-    
-    plhs[22] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_TENSOR,mxDOUBLE_CLASS, mxREAL);
-    h_t33_double = mxGetPr(plhs[22]);          
-    
-    
-    NUMBER_OF_DIMENSIONS = 3;
-    int ARRAY_DIMENSIONS_OUT_DISPLACEMENT[3];
-    ARRAY_DIMENSIONS_OUT_DISPLACEMENT[0] = MNI_DATA_H;
-    ARRAY_DIMENSIONS_OUT_DISPLACEMENT[1] = MNI_DATA_W;    
-    ARRAY_DIMENSIONS_OUT_DISPLACEMENT[2] = MNI_DATA_D;  
-    
-    plhs[23] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DISPLACEMENT,mxDOUBLE_CLASS, mxREAL);
-    h_Displacement_Field_X_double = mxGetPr(plhs[23]);          
-    
-    plhs[24] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DISPLACEMENT,mxDOUBLE_CLASS, mxREAL);
-    h_Displacement_Field_Y_double = mxGetPr(plhs[24]);          
-    
-    plhs[25] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DISPLACEMENT,mxDOUBLE_CLASS, mxREAL);
-    h_Displacement_Field_Z_double = mxGetPr(plhs[25]);          
+    h_tQuadrature_Filter_Response_1_Real_double = mxGetPr(plhs[17]);          
     
     
     // ------------------------------------------------
@@ -393,17 +358,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Quadrature_Filter_Response_5                      = (cl_float2 *)mxMalloc(MNI2_VOLUME_SIZE);
     h_Quadrature_Filter_Response_6                      = (cl_float2 *)mxMalloc(MNI2_VOLUME_SIZE);
         
-    h_t11                                               = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    h_t12                                               = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    h_t13                                               = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    h_t22                                               = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    h_t23                                               = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    h_t33                                               = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    
-    h_Displacement_Field_X                              = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    h_Displacement_Field_Y                              = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    h_Displacement_Field_Z                              = (float*)mxMalloc(MNI_VOLUME_SIZE);
-    
     h_Projection_Tensor_1                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
     h_Projection_Tensor_2                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
     h_Projection_Tensor_3                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
@@ -517,8 +471,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
     //BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
     BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1, h_Quadrature_Filter_Response_2, h_Quadrature_Filter_Response_3, h_Quadrature_Filter_Response_4, h_Quadrature_Filter_Response_5, h_Quadrature_Filter_Response_6);
-    BROCCOLI.SetOutputTensorComponents(h_t11, h_t12, h_t13, h_t22, h_t23, h_t33);
-    BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
     BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
     BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
@@ -603,17 +555,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_c2c_volume_(h_Quadrature_Filter_Response_5_Real_double, h_Quadrature_Filter_Response_5_Imag_double, h_Quadrature_Filter_Response_5, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_c2c_volume_(h_Quadrature_Filter_Response_6_Real_double, h_Quadrature_Filter_Response_6_Imag_double, h_Quadrature_Filter_Response_6, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     
-    unpack_float2double_volume(h_t11_double, h_t11, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_t12_double, h_t12, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_t13_double, h_t13, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_t22_double, h_t22, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_t23_double, h_t23, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_t33_double, h_t33, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    
-    unpack_float2double_volume(h_Displacement_Field_X_double, h_Displacement_Field_X, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_Displacement_Field_Y_double, h_Displacement_Field_Y, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double_volume(h_Displacement_Field_Z_double, h_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    
     unpack_float2double_volume(h_Phase_Differences_double, h_Phase_Differences, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Phase_Certainties_double, h_Phase_Certainties, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Phase_Gradients_double, h_Phase_Gradients, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);    
@@ -669,17 +610,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Quadrature_Filter_Response_4);
     mxFree(h_Quadrature_Filter_Response_5);
     mxFree(h_Quadrature_Filter_Response_6);
-    
-    mxFree(h_t11);
-    mxFree(h_t12);
-    mxFree(h_t13);
-    mxFree(h_t22);
-    mxFree(h_t23);
-    mxFree(h_t33);
-    
-    mxFree(h_Displacement_Field_X);
-    mxFree(h_Displacement_Field_Y);
-    mxFree(h_Displacement_Field_Z);
     
     mxFree(h_Projection_Tensor_1);
     mxFree(h_Projection_Tensor_2);

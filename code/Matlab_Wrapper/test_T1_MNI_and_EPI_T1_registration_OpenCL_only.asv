@@ -47,10 +47,10 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
 %substudy = 'Balloon';
-subject = 10
-voxel_size = 1;
-opencl_platform = 2;
-opencl_device = 1;
+subject = 1
+voxel_size = 2;
+opencl_platform = 0;
+opencl_device = 0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
     T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
@@ -59,10 +59,10 @@ elseif ( strcmp(study,'OpenfMRI'))
 end
 
 T1 = double(T1_nii.img);
-%T1 = T1/max(T1(:));
+T1 = T1/max(T1(:));
 MNI_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
-%MNI = MNI/max(MNI(:));
+MNI = MNI/max(MNI(:));
 
 %T1 = zeros(size(MNI));
 %T1(2:end,2:end,2:end) = MNI(1:end-1,1:end-1,1:end-1);
@@ -118,8 +118,8 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
 number_of_iterations_for_image_registration = 40;
-coarsest_scale = 16/voxel_size;
-MM_T1_Z_CUT = 25;
+coarsest_scale = 418/voxel_size;
+MM_T1_Z_CUT = 30;
 
 
 tic
@@ -155,7 +155,7 @@ figure; imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); c
 figure; imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
 %figure; imagesc( [ flipud(squeeze((MNI(slice,:,:) - aligned_T1_opencl(slice,:,:) ))') flipud(squeeze(abs(MNI(slice,:,:) - aligned_T1_nonparametric_opencl(slice,:,:) ))')]  ); colormap gray
 
-slice = round(0.5*MNI_sz);
+slice = round(0.6*MNI_sz);
 figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
 figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
 figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray

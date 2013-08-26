@@ -36,10 +36,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //-----------------------
     // Input pointers
     
-    double		    *h_T1_Volume_double, *h_EPI_Volume_double, *h_Quadrature_Filter_1_Real_double, *h_Quadrature_Filter_2_Real_double, *h_Quadrature_Filter_3_Real_double, *h_Quadrature_Filter_1_Imag_double, *h_Quadrature_Filter_2_Imag_double, *h_Quadrature_Filter_3_Imag_double;
-    float           *h_T1_Volume, *h_EPI_Volume, *h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Imag;
+    double          *h_Quadrature_Filter_1_Parametric_Registration_Real_double, *h_Quadrature_Filter_2_Parametric_Registration_Real_double, *h_Quadrature_Filter_3_Parametric_Registration_Real_double, *h_Quadrature_Filter_1_Parametric_Registration_Imag_double, *h_Quadrature_Filter_2_Parametric_Registration_Imag_double, *h_Quadrature_Filter_3_Parametric_Registration_Imag_double;
+    float           *h_Quadrature_Filter_1_Parametric_Registration_Real, *h_Quadrature_Filter_2_Parametric_Registration_Real, *h_Quadrature_Filter_3_Parametric_Registration_Real, *h_Quadrature_Filter_1_Parametric_Registration_Imag, *h_Quadrature_Filter_2_Parametric_Registration_Imag, *h_Quadrature_Filter_3_Parametric_Registration_Imag;
+    
+    double		    *h_T1_Volume_double, *h_EPI_Volume_double;
+    float           *h_T1_Volume, *h_EPI_Volume;
     int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, COARSEST_SCALE, MM_EPI_Z_CUT;
     int             OPENCL_PLATFORM, OPENCL_DEVICE;
+    
+    float2          *h_Quadrature_Filter_1_Parametric_Registration, *h_Quadrature_Filter_2_Parametric_Registration, *h_Quadrature_Filter_3_Parametric_Registration;
+    float2          *h_Quadrature_Filter_Response_1, *h_Quadrature_Filter_Response_2, *h_Quadrature_Filter_Response_3;    
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -89,12 +95,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     T1_VOXEL_SIZE_X = (float)mxGetScalar(prhs[5]);
     T1_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[6]);
     T1_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[7]);    
-    h_Quadrature_Filter_1_Real_double =  (double*)mxGetPr(prhs[8]);
-    h_Quadrature_Filter_1_Imag_double =  (double*)mxGetPi(prhs[8]);
-    h_Quadrature_Filter_2_Real_double =  (double*)mxGetPr(prhs[9]);
-    h_Quadrature_Filter_2_Imag_double =  (double*)mxGetPi(prhs[9]);
-    h_Quadrature_Filter_3_Real_double =  (double*)mxGetPr(prhs[10]);
-    h_Quadrature_Filter_3_Imag_double =  (double*)mxGetPi(prhs[10]);
+    h_Quadrature_Filter_1_Parametric_Registration_Real_double =  (double*)mxGetPr(prhs[8]);
+    h_Quadrature_Filter_1_Parametric_Registration_Imag_double =  (double*)mxGetPi(prhs[8]);
+    h_Quadrature_Filter_2_Parametric_Registration_Real_double =  (double*)mxGetPr(prhs[9]);
+    h_Quadrature_Filter_2_Parametric_Registration_Imag_double =  (double*)mxGetPi(prhs[9]);
+    h_Quadrature_Filter_3_Parametric_Registration_Real_double =  (double*)mxGetPr(prhs[10]);
+    h_Quadrature_Filter_3_Parametric_Registration_Imag_double =  (double*)mxGetPi(prhs[10]);
     NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[11]);
     COARSEST_SCALE  = (int)mxGetScalar(prhs[12]);
     MM_EPI_Z_CUT  = (int)mxGetScalar(prhs[13]);
@@ -124,7 +130,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	int EPI_DATA_D_INTERPOLATED = (int)round_((float)EPI_DATA_D * EPI_VOXEL_SIZE_Z / T1_VOXEL_SIZE_Z);
 
     int IMAGE_REGISTRATION_PARAMETERS_SIZE = NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-    int FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
+    int FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float2);
     int T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
     int EPI_VOLUME_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
     int INTERPOLATED_EPI_VOLUME_SIZE = EPI_DATA_W_INTERPOLATED * EPI_DATA_H_INTERPOLATED * EPI_DATA_D_INTERPOLATED * sizeof(float);
@@ -196,38 +202,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // ------------------------------------------------
     
     // Allocate memory on the host
-    h_EPI_Volume                           = (float *)mxMalloc(EPI_VOLUME_SIZE);
-    h_T1_Volume                            = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Interpolated_EPI_Volume              = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Quadrature_Filter_1_Real             = (float *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_1_Imag             = (float *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_2_Real             = (float *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_2_Imag             = (float *)mxMalloc(FILTER_SIZE);    
-    h_Quadrature_Filter_3_Real             = (float *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_3_Imag             = (float *)mxMalloc(FILTER_SIZE);    
-    h_Quadrature_Filter_Response_1_Real    = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Quadrature_Filter_Response_1_Imag    = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Quadrature_Filter_Response_2_Real    = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Quadrature_Filter_Response_2_Imag    = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Quadrature_Filter_Response_3_Real    = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Quadrature_Filter_Response_3_Imag    = (float *)mxMalloc(T1_VOLUME_SIZE);    
-    h_Phase_Differences                    = (float *)mxMalloc(T1_VOLUME_SIZE);    
-    h_Phase_Certainties                    = (float *)mxMalloc(T1_VOLUME_SIZE);  
-    h_Phase_Gradients                      = (float *)mxMalloc(T1_VOLUME_SIZE);  
-    h_Aligned_EPI_Volume                   = (float *)mxMalloc(T1_VOLUME_SIZE);
-    h_Registration_Parameters              = (float *)mxMalloc(IMAGE_REGISTRATION_PARAMETERS_SIZE);
+    h_EPI_Volume                                        = (float *)mxMalloc(EPI_VOLUME_SIZE);
+    h_T1_Volume                                         = (float *)mxMalloc(T1_VOLUME_SIZE);
+    h_Interpolated_EPI_Volume                           = (float *)mxMalloc(T1_VOLUME_SIZE);
+    h_Quadrature_Filter_1_Parametric_Registration       = (float2 *)mxMalloc(FILTER_SIZE);
+    h_Quadrature_Filter_2_Parametric_Registration       = (float2 *)mxMalloc(FILTER_SIZE);
+    h_Quadrature_Filter_3_Parametric_Registration       = (float2 *)mxMalloc(FILTER_SIZE);    
+    h_Quadrature_Filter_Response_1                      = (float2 *)mxMalloc(T1_VOLUME_SIZE*2);
+    h_Quadrature_Filter_Response_2                      = (float2 *)mxMalloc(T1_VOLUME_SIZE*2);
+    h_Quadrature_Filter_Response_3                      = (float2 *)mxMalloc(T1_VOLUME_SIZE*2);
+    h_Phase_Differences                                 = (float *)mxMalloc(T1_VOLUME_SIZE);    
+    h_Phase_Certainties                                 = (float *)mxMalloc(T1_VOLUME_SIZE);  
+    h_Phase_Gradients                                   = (float *)mxMalloc(T1_VOLUME_SIZE);  
+    h_Aligned_EPI_Volume                                = (float *)mxMalloc(T1_VOLUME_SIZE);
+    h_Registration_Parameters                           = (float *)mxMalloc(IMAGE_REGISTRATION_PARAMETERS_SIZE);
 
     
     // Reorder and cast data
     pack_double2float_volume(h_EPI_Volume, h_EPI_Volume_double, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     pack_double2float_volume(h_T1_Volume, h_T1_Volume_double, T1_DATA_W, T1_DATA_H, T1_DATA_D);
-    pack_double2float_volume(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_1_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_2_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_3_Imag, h_Quadrature_Filter_3_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-
+    
+    pack_c2c_volume(h_Quadrature_Filter_1_Parametric_Registration, h_Quadrature_Filter_1_Parametric_Registration_Real_double, h_Quadrature_Filter_1_Parametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_c2c_volume(h_Quadrature_Filter_2_Parametric_Registration, h_Quadrature_Filter_2_Parametric_Registration_Real_double, h_Quadrature_Filter_2_Parametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_c2c_volume(h_Quadrature_Filter_3_Parametric_Registration, h_Quadrature_Filter_3_Parametric_Registration_Real_double, h_Quadrature_Filter_3_Parametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    
     //------------------------
     
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
@@ -248,14 +246,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetInputT1Volume(h_T1_Volume);
     BROCCOLI.SetInterpolationMode(LINEAR);
     BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);
-    BROCCOLI.SetImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
+    BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration, h_Quadrature_Filter_2_Parametric_Registration, h_Quadrature_Filter_3_Parametric_Registration);
     BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
     BROCCOLI.SetCoarsestScaleEPIT1(COARSEST_SCALE);
     BROCCOLI.SetMMEPIZCUT(MM_EPI_Z_CUT);   
     BROCCOLI.SetOutputAlignedEPIVolume(h_Aligned_EPI_Volume);
     BROCCOLI.SetOutputInterpolatedEPIVolume(h_Interpolated_EPI_Volume);
     BROCCOLI.SetOutputEPIT1RegistrationParameters(h_Registration_Parameters);
-    BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
+    BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1, h_Quadrature_Filter_Response_2, h_Quadrature_Filter_Response_3);
     BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
     BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
     BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);       
@@ -284,7 +282,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
     int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 34; i++)
+    for (int i = 0; i < 46; i++)
     {
         if (createKernelErrors[i] != 0)
         {
@@ -312,8 +310,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());                    		
     
-    BROCCOLI.PerformRegistrationEPIT1Wrapper();
-    
+    if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
+    {
+        BROCCOLI.PerformRegistrationEPIT1Wrapper();
+    }
+    else
+    {
+        mexPrintf("OPENCL error detected, aborting \n");
+    }   
     
     
     double convolution_time = BROCCOLI.GetProcessingTimeConvolution();
@@ -322,12 +326,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_Aligned_EPI_Volume_double, h_Aligned_EPI_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Interpolated_EPI_Volume_double, h_Interpolated_EPI_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double(h_Registration_Parameters_double, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+    
+    /*
     unpack_float2double_volume(h_Quadrature_Filter_Response_1_Real_double, h_Quadrature_Filter_Response_1_Real, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Quadrature_Filter_Response_1_Imag_double, h_Quadrature_Filter_Response_1_Imag, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Quadrature_Filter_Response_2_Real_double, h_Quadrature_Filter_Response_2_Real, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Quadrature_Filter_Response_2_Imag_double, h_Quadrature_Filter_Response_2_Imag, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Quadrature_Filter_Response_3_Real_double, h_Quadrature_Filter_Response_3_Real, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Quadrature_Filter_Response_3_Imag_double, h_Quadrature_Filter_Response_3_Imag, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+    */
+    
+    unpack_c2c_volume(h_Quadrature_Filter_Response_1_Real_double, h_Quadrature_Filter_Response_1_Imag_double, h_Quadrature_Filter_Response_1, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+    unpack_c2c_volume(h_Quadrature_Filter_Response_2_Real_double, h_Quadrature_Filter_Response_2_Imag_double, h_Quadrature_Filter_Response_2, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+    unpack_c2c_volume(h_Quadrature_Filter_Response_3_Real_double, h_Quadrature_Filter_Response_3_Imag_double, h_Quadrature_Filter_Response_3, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+    
     unpack_float2double_volume(h_Phase_Differences_double, h_Phase_Differences, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Phase_Certainties_double, h_Phase_Certainties, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     unpack_float2double_volume(h_Phase_Gradients_double, h_Phase_Gradients, T1_DATA_W, T1_DATA_H, T1_DATA_D);    
@@ -337,18 +349,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_EPI_Volume);    
     mxFree(h_T1_Volume);
     mxFree(h_Interpolated_EPI_Volume);
-    mxFree(h_Quadrature_Filter_1_Real);
-    mxFree(h_Quadrature_Filter_1_Imag);
-    mxFree(h_Quadrature_Filter_2_Real);
-    mxFree(h_Quadrature_Filter_2_Imag);
-    mxFree(h_Quadrature_Filter_3_Real);
-    mxFree(h_Quadrature_Filter_3_Imag);
-    mxFree(h_Quadrature_Filter_Response_1_Real);
-    mxFree(h_Quadrature_Filter_Response_1_Imag);
-    mxFree(h_Quadrature_Filter_Response_2_Real);
-    mxFree(h_Quadrature_Filter_Response_2_Imag);
-    mxFree(h_Quadrature_Filter_Response_3_Real);
-    mxFree(h_Quadrature_Filter_Response_3_Imag);
+    mxFree(h_Quadrature_Filter_1_Parametric_Registration);
+    mxFree(h_Quadrature_Filter_2_Parametric_Registration);
+    mxFree(h_Quadrature_Filter_3_Parametric_Registration);
+    mxFree(h_Quadrature_Filter_Response_1);
+    mxFree(h_Quadrature_Filter_Response_2);
+    mxFree(h_Quadrature_Filter_Response_3);
     mxFree(h_Phase_Differences);
     mxFree(h_Phase_Certainties);
     mxFree(h_Phase_Gradients);
