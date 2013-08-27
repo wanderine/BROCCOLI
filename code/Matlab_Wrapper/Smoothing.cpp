@@ -143,7 +143,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Filter_Response);
     BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
-    BROCCOLI.SetSmoothingAmount(Smoothing_FWHM);
+    BROCCOLI.SetEPISmoothingAmount(Smoothing_FWHM);
     
     /*
      * Error checking     

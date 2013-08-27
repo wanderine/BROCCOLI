@@ -28,12 +28,15 @@ clear all
 clc
 close all
 
-addpath('D:\nifti_matlab')
-addpath('D:\BROCCOLI_test_data')
-
-%mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
-
-mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+if ispc
+    addpath('D:\nifti_matlab')
+    addpath('D:\BROCCOLI_test_data')
+    %mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+    mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+elseif isunix
+    mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug 
+end
+    
 
 %filename = '../../test_data/msit_1.6mm_1.nii';
 
@@ -49,7 +52,7 @@ fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
 reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
 number_of_iterations_for_motion_correction = 5;
-load filters.mat
+load filters_for_parametric_registration.mat
 opencl_platform = 2;
 opencl_device = 0;
 
@@ -149,19 +152,19 @@ end
 
 fMRI_volumes = generated_fMRI_volumes;
 
-[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction);
+[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction);
 
 tic
-[motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = MotionCorrection(fMRI_volumes,f1,f2,f3,number_of_iterations_for_motion_correction,opencl_platform,opencl_device);
+[motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = MotionCorrection(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction,opencl_platform,opencl_device);
 toc
 
-quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1,'same');
-quadrature_filter_response_reference_2_cpu = convn(fMRI_volumes(:,:,:,1),f2,'same');
-quadrature_filter_response_reference_3_cpu = convn(fMRI_volumes(:,:,:,1),f3,'same');
+quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1_parametric_registration,'same');
+quadrature_filter_response_reference_2_cpu = convn(fMRI_volumes(:,:,:,1),f2_parametric_registration,'same');
+quadrature_filter_response_reference_3_cpu = convn(fMRI_volumes(:,:,:,1),f3_parametric_registration,'same');
 
-quadrature_filter_response_aligned_1_cpu = convn(fMRI_volumes(:,:,:,end),f1,'same');
-quadrature_filter_response_aligned_2_cpu = convn(fMRI_volumes(:,:,:,end),f2,'same');
-quadrature_filter_response_aligned_3_cpu = convn(fMRI_volumes(:,:,:,end),f3,'same');
+quadrature_filter_response_aligned_1_cpu = convn(fMRI_volumes(:,:,:,end),f1_parametric_registration,'same');
+quadrature_filter_response_aligned_2_cpu = convn(fMRI_volumes(:,:,:,end),f2_parametric_registration,'same');
+quadrature_filter_response_aligned_3_cpu = convn(fMRI_volumes(:,:,:,end),f3_parametric_registration,'same');
 
 phase_differences_x_cpu = angle(quadrature_filter_response_reference_1_cpu .* conj(quadrature_filter_response_aligned_1_cpu));
 

@@ -205,7 +205,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetEPIHeight(DATA_H);
     BROCCOLI.SetEPIDepth(DATA_D);
     BROCCOLI.SetEPITimepoints(DATA_T);   
-    BROCCOLI.SetNumberOfRegressors(NUMBER_OF_REGRESSORS);
+    BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);

@@ -28,8 +28,8 @@
 
 #include "broccoli_constants.h"
 
-#include "nifti1.h"
-#include "nifti1_io.h"
+//#include "nifti1.h"
+//#include "nifti1_io.h"
 
 #include <opencl.h>
 #include <string>
@@ -714,7 +714,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
-		nifti_image *nifti_data;
+		//nifti_image *nifti_data;
 
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		int T1_DATA_W, T1_DATA_H, T1_DATA_D;

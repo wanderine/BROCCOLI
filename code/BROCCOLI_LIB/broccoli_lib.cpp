@@ -403,6 +403,17 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 	// Loop over platforms
 	for (uint i = 0; i < platformIdCount; i++) 
     {
+		device_info.append("---------------------------------------------");
+		device_info.append("\n");
+		device_info.append("Platform number: ");
+		temp_stream.str("");
+		temp_stream.clear();
+		temp_stream << i;
+		device_info.append(temp_stream.str());
+		device_info.append("\n");
+		device_info.append("---------------------------------------------");
+		device_info.append("\n");
+
 	    // Get platform vendor
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, 0, NULL, &valueSize);
 		value = (char*) malloc(valueSize);
@@ -437,8 +448,11 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 		device_info.append("Platform profile: ");
 		device_info.append(value);
 		device_info.append("\n");
+		free(value);
+
+		device_info.append("---------------------------------------------");
 		device_info.append("\n");
-		free(value);		
+		device_info.append("\n");
 
 		// Get devices for each platform
 		cl_uint deviceIdCount = 0;
@@ -449,6 +463,17 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 		// Get information for for each device and save as a long string
 		for (uint j = 0; j < deviceIdCount; j++) 
 		{
+			device_info.append("---------------------------------------------");
+			device_info.append("\n");
+			device_info.append("Device number: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << j;
+			device_info.append(temp_stream.str());
+			device_info.append("\n");
+			device_info.append("---------------------------------------------");
+			device_info.append("\n");
+
 	        // Get vendor name
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
 			value = (char*) malloc(valueSize);
@@ -578,8 +603,8 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 			temp_stream << valueSizes[2];
 			device_info.append(temp_stream.str());
 			device_info.append("\n");                                  
-        				
-			device_info.append("\n");		
+
+			device_info.append("\n");
 		}
 	}
 }
