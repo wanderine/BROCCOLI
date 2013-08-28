@@ -28,8 +28,8 @@
 
 #include "broccoli_constants.h"
 
-//#include "nifti1.h"
-//#include "nifti1_io.h"
+#include "nifti1.h"
+#include "nifti1_io.h"
 
 #include <opencl.h>
 #include <string>
@@ -114,6 +114,7 @@ class BROCCOLI_LIB
 		void SetInputEPIVolume(float* input);
 		void SetInputT1Volume(float* input);
 		void SetInputMNIVolume(float* input);
+		void SetInputMNIBrainVolume(float* input);
 		void SetInputMNIBrainMask(float* input);
 
 		void SetOutputBetaVolumes(float* output);
@@ -714,7 +715,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
-		//nifti_image *nifti_data;
+		nifti_image *nifti_data;
 
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		int T1_DATA_W, T1_DATA_H, T1_DATA_D;
@@ -812,6 +813,7 @@ class BROCCOLI_LIB
 		float		*h_Mask;
 		float		*h_T1_Volume;
 		float		*h_MNI_Volume;
+		float		*h_MNI_Brain_Volume;
 		float	    *h_EPI_Volume;
 		float		*h_Aligned_T1_Volume;
 		float		*h_Aligned_T1_Volume_NonParametric;
@@ -935,7 +937,7 @@ class BROCCOLI_LIB
 		cl_mem		d_Motion_Corrected_fMRI_Volumes;
 	
 		// T1-MNI and EPI-T1 registration
-		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_MNI_T1_Volume, d_Interpolated_fMRI_Volume, d_Skullstripped_T1_Volume, d_MNI_Brain_Mask;
+		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_MNI_Brain_Volume, d_MNI_T1_Volume, d_Interpolated_fMRI_Volume, d_Skullstripped_T1_Volume, d_MNI_Brain_Mask;
 		cl_mem		d_EPI_Volume, d_T1_EPI_Volume;
 			
 		// Smoothing

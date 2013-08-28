@@ -1854,6 +1854,12 @@ void BROCCOLI_LIB::SetInputMNIVolume(float* data)
 	h_MNI_Volume = data;
 }
 
+void BROCCOLI_LIB::SetInputMNIBrainVolume(float* data)
+{
+	h_MNI_Brain_Volume = data;
+}
+
+
 void BROCCOLI_LIB::SetInputMNIBrainMask(float* data)
 {
 	h_MNI_Brain_Mask = data;
@@ -3848,6 +3854,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int
 	d_Phase_Differences = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float) * NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION, NULL, &createBufferErrorPhaseDifferences);
 	d_Phase_Certainties = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float) * NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION, NULL, &createBufferErrorPhaseCertainties);
 	
+	
 	d_Update_Displacement_Field_X = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorPhaseCertainties);
 	d_Update_Displacement_Field_Y = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorPhaseCertainties);
 	d_Update_Displacement_Field_Z = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorPhaseCertainties);
@@ -4018,9 +4025,9 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int
 void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int INTERPOLATION_MODE)
 {
 	// Calculate the filter responses for the reference volume (only needed once)	
-	NonseparableConvolution3D(d_q11, d_q12, d_q13, d_q14, d_q15, d_q16, d_Reference_Volume, DATA_W, DATA_H, DATA_D);
-	//NonseparableConvolution3D(d_q11, d_q12, d_q13, d_Reference_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
-	//NonseparableConvolution3D(d_q14, d_q15, d_q16, d_Reference_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
+	//NonseparableConvolution3D(d_q11, d_q12, d_q13, d_q14, d_q15, d_q16, d_Reference_Volume, DATA_W, DATA_H, DATA_D);
+	NonseparableConvolution3D(d_q11, d_q12, d_q13, d_Reference_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
+	NonseparableConvolution3D(d_q14, d_q15, d_q16, d_Reference_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
 
 	clEnqueueReadBuffer(commandQueue, d_q11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_q12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
@@ -4040,9 +4047,9 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 	// Run the registration algorithm for a number of iterations
 	for (int it = 0; it < NUMBER_OF_ITERATIONS; it++)
 	{
-		NonseparableConvolution3D(d_q21, d_q22, d_q23, d_q24, d_q25, d_q26, d_Aligned_Volume, DATA_W, DATA_H, DATA_D);
-		//NonseparableConvolution3D(d_q21, d_q22, d_q23, d_Aligned_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
-		//NonseparableConvolution3D(d_q24, d_q25, d_q26, d_Aligned_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
+		//NonseparableConvolution3D(d_q21, d_q22, d_q23, d_q24, d_q25, d_q26, d_Aligned_Volume, DATA_W, DATA_H, DATA_D);
+		NonseparableConvolution3D(d_q21, d_q22, d_q23, d_Aligned_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
+		NonseparableConvolution3D(d_q24, d_q25, d_q26, d_Aligned_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
 
 		SetMemory(d_t11, 0.0f, DATA_W * DATA_H * DATA_D);
 		SetMemory(d_t12, 0.0f, DATA_W * DATA_H * DATA_D);
@@ -4131,16 +4138,30 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 	
 		
 		// Smooth tensor components
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 3.5);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.5);
 		PerformSmoothing(d_Smoothed_Tensor_Norms, d_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
-		PerformSmoothingNormalized(d_t11, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
-		PerformSmoothingNormalized(d_t12, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
-		PerformSmoothingNormalized(d_t13, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
-		PerformSmoothingNormalized(d_t22, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
-		PerformSmoothingNormalized(d_t23, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
-		PerformSmoothingNormalized(d_t33, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothingNormalized(d_t11, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothingNormalized(d_t12, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothingNormalized(d_t13, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothingNormalized(d_t22, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothingNormalized(d_t23, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothingNormalized(d_t33, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 
+		PerformSmoothing(d_t11, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		PerformSmoothing(d_t12, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		PerformSmoothing(d_t13, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		PerformSmoothing(d_t22, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		PerformSmoothing(d_t23, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		PerformSmoothing(d_t33, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 
+		//clEnqueueReadBuffer(commandQueue, d_Tensor_Norms, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t11, 0, NULL, NULL);	
+
+		clEnqueueReadBuffer(commandQueue, d_t11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t11, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_t12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t12, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_t13, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t13, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_t22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t22, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_t23, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t23, 0, NULL, NULL);	
+		clEnqueueReadBuffer(commandQueue, d_t33, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t33, 0, NULL, NULL);	
 		
 		//clEnqueueReadBuffer(commandQueue, d_t11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);	
 		//clEnqueueReadBuffer(commandQueue, d_t22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);	
@@ -4148,26 +4169,30 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		
 		// Calculate tensor norms
 		runKernelErrorCalculateTensorNorms = clEnqueueNDRangeKernel(commandQueue, CalculateTensorNormsKernel, 3, NULL, globalWorkSizeCalculateTensorNorms, localWorkSizeCalculateTensorNorms, 0, NULL, NULL);		
-	
+
+		clEnqueueReadBuffer(commandQueue, d_Tensor_Norms, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t11, 0, NULL, NULL);	
+
 		//clEnqueueReadBuffer(commandQueue, d_Tensor_Norms, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);	
 
 
 		// Find max norm
-		float max_norm = CalculateMax(d_Smoothed_Tensor_Norms, DATA_W, DATA_H, DATA_D);
-		//float max_norm = 0.1f;
+		float max_norm = CalculateMax(d_Tensor_Norms, DATA_W, DATA_H, DATA_D);
+		//float max_norm = 4.1f;
 
 		// Normalize tensor components
 		
-		/*
+		
 		MultiplyVolume(d_t11, 1.0f/max_norm, DATA_W, DATA_H, DATA_D);
 		MultiplyVolume(d_t12, 1.0f/max_norm, DATA_W, DATA_H, DATA_D);
 		MultiplyVolume(d_t13, 1.0f/max_norm, DATA_W, DATA_H, DATA_D);
 		MultiplyVolume(d_t22, 1.0f/max_norm, DATA_W, DATA_H, DATA_D);
 		MultiplyVolume(d_t23, 1.0f/max_norm, DATA_W, DATA_H, DATA_D);
 		MultiplyVolume(d_t33, 1.0f/max_norm, DATA_W, DATA_H, DATA_D);
-		*/
 		
-		clEnqueueReadBuffer(commandQueue, d_t11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t11, 0, NULL, NULL);	
+		
+		
+
+		//clEnqueueReadBuffer(commandQueue, d_t11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t11, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_t12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t12, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_t13, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t13, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_t22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t22, 0, NULL, NULL);	
@@ -4186,7 +4211,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		*/
 		
 		// Smooth components of A-matrices and h-vectors
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 3.5);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.5);
 		PerformSmoothing(d_a11, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_a12, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_a13, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
@@ -4197,14 +4222,14 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		PerformSmoothing(d_h2, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_h3, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 
-		
+		/*
 		clEnqueueReadBuffer(commandQueue, d_a11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t11, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_a12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t12, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_a13, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t13, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_a22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t22, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_a23, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t23, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_a33, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t33, 0, NULL, NULL);	
-		
+		*/
 		
 		runKernelErrorCalculateDisplacementAndCertaintyUpdate = clEnqueueNDRangeKernel(commandQueue, CalculateDisplacementAndCertaintyUpdateKernel, 3, NULL, globalWorkSizeCalculateDisplacementAndCertaintyUpdate, localWorkSizeCalculateDisplacementAndCertaintyUpdate, 0, NULL, NULL);		
 
@@ -4213,11 +4238,11 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		//clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_Y, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);	
 		//clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_Z, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Gradients, 0, NULL, NULL);	
 
-		/*
-		MultiplyVolume(d_Update_Displacement_Field_X, 2.0f, DATA_W, DATA_H, DATA_D);
-		MultiplyVolume(d_Update_Displacement_Field_Y, 2.0f, DATA_W, DATA_H, DATA_D);
-		MultiplyVolume(d_Update_Displacement_Field_Z, 2.0f, DATA_W, DATA_H, DATA_D);
-		*/
+		
+		//MultiplyVolume(d_Update_Displacement_Field_X, 0.75f, DATA_W, DATA_H, DATA_D);
+		//MultiplyVolume(d_Update_Displacement_Field_Y, 0.75f, DATA_W, DATA_H, DATA_D);
+		//MultiplyVolume(d_Update_Displacement_Field_Z, 0.75f, DATA_W, DATA_H, DATA_D);
+		
 
 		/*
 		clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_X, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t11, 0, NULL, NULL);	
@@ -4233,6 +4258,10 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		AddVolumes(d_Update_Displacement_Field_X, d_Temp_Displacement_Field_X, DATA_W, DATA_H, DATA_D);
 		AddVolumes(d_Update_Displacement_Field_Y, d_Temp_Displacement_Field_Y, DATA_W, DATA_H, DATA_D);
 		AddVolumes(d_Update_Displacement_Field_Z, d_Temp_Displacement_Field_Z, DATA_W, DATA_H, DATA_D);
+		
+		//PerformSmoothing(d_Update_Displacement_Field_X, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothing(d_Update_Displacement_Field_Y, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
+		//PerformSmoothing(d_Update_Displacement_Field_Z, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		
 		clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_X, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);	
 		clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_Y, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);	
@@ -4611,9 +4640,9 @@ void BROCCOLI_LIB::AlignTwoVolumesParametricSeveralScales(float *h_Registration_
 	h_Rotations[2] = 0.0f;
 
 	// Calculate volume size for coarsest scale
-	CURRENT_DATA_W = (int)round((float)DATA_W/((float)COARSEST_SCALE/2.0f));
-	CURRENT_DATA_H = (int)round((float)DATA_H/((float)COARSEST_SCALE/2.0f));
-	CURRENT_DATA_D = (int)round((float)DATA_D/((float)COARSEST_SCALE/2.0f));
+	CURRENT_DATA_W = (int)round((float)DATA_W/((float)COARSEST_SCALE));
+	CURRENT_DATA_H = (int)round((float)DATA_H/((float)COARSEST_SCALE));
+	CURRENT_DATA_D = (int)round((float)DATA_D/((float)COARSEST_SCALE));
 
 	// Setup all parameters and allocate memory on host
 	AlignTwoVolumesParametricSetup(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);
@@ -4628,7 +4657,7 @@ void BROCCOLI_LIB::AlignTwoVolumesParametricSeveralScales(float *h_Registration_
 	clEnqueueCopyBufferToImage(commandQueue, d_Aligned_Volume, d_Original_Volume, 0, origin, region, 0, NULL, NULL);
 	
 	// Loop registration over scales	
-	for (int current_scale = COARSEST_SCALE/2; current_scale >= 1; current_scale = current_scale/2)
+	for (int current_scale = COARSEST_SCALE; current_scale >= 1; current_scale = current_scale/2)
 	{
 		if (current_scale == 1)
 		{
@@ -4726,23 +4755,19 @@ void BROCCOLI_LIB::AlignTwoVolumesParametricSeveralScales(float *h_Registration_
 void BROCCOLI_LIB::AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Original_Aligned_Volume, cl_mem d_Original_Reference_Volume, int DATA_W, int DATA_H, int DATA_D, int COARSEST_SCALE, int NUMBER_OF_ITERATIONS, int OVERWRITE, int INTERPOLATION_MODE)
 {
 	// Calculate volume size for coarsest scale
-	//CURRENT_DATA_W = (int)round((float)DATA_W/((float)COARSEST_SCALE/2.0f));
-	//CURRENT_DATA_H = (int)round((float)DATA_H/((float)COARSEST_SCALE/2.0f));
-	//CURRENT_DATA_D = (int)round((float)DATA_D/((float)COARSEST_SCALE/2.0f));
+	CURRENT_DATA_W = (int)round((float)DATA_W/((float)COARSEST_SCALE));
+	CURRENT_DATA_H = (int)round((float)DATA_H/((float)COARSEST_SCALE));
+	CURRENT_DATA_D = (int)round((float)DATA_D/((float)COARSEST_SCALE));
 
-	float scales[8];
-	scales[0] = 6.5f;
-	scales[1] = 6.0f;
-	scales[2] = 5.0f;
-	scales[3] = 4.0f;
-	scales[4] = 3.0f;
-	scales[5] = 2.0f;
-	scales[6] = 1.7f;
-	scales[7] = 1.4f;
+	/*
+	float scales[2];		
+	scales[0] = 2.0f;	
+	scales[1] = 1.0f;
 
-	CURRENT_DATA_W = (int)round((float)DATA_W/(scales[0]/1.4f));
-	CURRENT_DATA_H = (int)round((float)DATA_H/(scales[0]/1.4f));
-	CURRENT_DATA_D = (int)round((float)DATA_D/(scales[0]/1.4f));
+	CURRENT_DATA_W = (int)round((float)DATA_W/(scales[0]));
+	CURRENT_DATA_H = (int)round((float)DATA_H/(scales[0]));
+	CURRENT_DATA_D = (int)round((float)DATA_D/(scales[0]));
+	*/
 
 	int PREVIOUS_DATA_W = CURRENT_DATA_W;
 	int PREVIOUS_DATA_H = CURRENT_DATA_H;
@@ -4772,23 +4797,24 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Original_A
 
 
 	// Loop registration over scales	
-	for (int c = 0; c < 8; c++)
-	//for (int current_scale = COARSEST_SCALE; current_scale >= 1; current_scale--)
+	//for (int c = 0; c < 2; c++)
+	for (int current_scale = COARSEST_SCALE; current_scale >= 1; current_scale = current_scale/2)
 	{
 		
-		if (c == 7)
-		//if (current_scale == 0)
+		//if (c == 1)
+		if (current_scale == 1)
 		{
 			//AlignTwoVolumesNonParametric(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, (int)ceil((float)NUMBER_OF_ITERATIONS/10.0f), INTERPOLATION_MODE);
 			AlignTwoVolumesNonParametric(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, NUMBER_OF_ITERATIONS, INTERPOLATION_MODE);
+			//AlignTwoVolumesNonParametric(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, 4, INTERPOLATION_MODE);
 		}
 		else
 		{
 			AlignTwoVolumesNonParametric(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, NUMBER_OF_ITERATIONS, INTERPOLATION_MODE);
 		}	
 		
-		if (c < 7)
-		//if (current_scale != 1)
+		//if (c < 1)
+		if (current_scale != 1)
 		{
 			// Interpolate displacement field to next scale
 
@@ -4801,17 +4827,19 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Original_A
 			AlignTwoVolumesNonParametricCleanup();
 
 			// Prepare for the next scale (the previous scale was current scale, so the next scale is times 2)
-			//CURRENT_DATA_W = (int)round((float)DATA_W/((float)current_scale/2.0f));
-			//CURRENT_DATA_H = (int)round((float)DATA_H/((float)current_scale/2.0f));
-			//CURRENT_DATA_D = (int)round((float)DATA_D/((float)current_scale/2.0f));
+			CURRENT_DATA_W = (int)round((float)DATA_W/((float)current_scale/2.0f));
+			CURRENT_DATA_H = (int)round((float)DATA_H/((float)current_scale/2.0f));
+			CURRENT_DATA_D = (int)round((float)DATA_D/((float)current_scale/2.0f));
 
-			float factor = scales[c+1];
+			//float factor = scales[c+1];
+			
+			//CURRENT_DATA_W = (int)round((float)DATA_W/((float)factor));
+			//CURRENT_DATA_H = (int)round((float)DATA_H/((float)factor));
+			//CURRENT_DATA_D = (int)round((float)DATA_D/((float)factor));
 
-			CURRENT_DATA_W = (int)round((float)DATA_W/((float)factor/1.4f));
-			CURRENT_DATA_H = (int)round((float)DATA_H/((float)factor/1.4f));
-			CURRENT_DATA_D = (int)round((float)DATA_D/((float)factor/1.4f));
-
-			float scale_factor = (float)CURRENT_DATA_W/(float)PREVIOUS_DATA_W;
+			//float scale_factor = (float)CURRENT_DATA_W/(float)PREVIOUS_DATA_W;
+			//float scale_factor = scales[c+1]/scales[c];
+			float scale_factor = 2.0f;
 
 			// Setup all parameters and allocate memory on host
 			AlignTwoVolumesNonParametricSetup(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);
@@ -4829,9 +4857,9 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Original_A
 			ChangeVolumeSize(d_Total_Displacement_Field_Y, PREVIOUS_DATA_W, PREVIOUS_DATA_H, PREVIOUS_DATA_D, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, INTERPOLATION_MODE);       
 			ChangeVolumeSize(d_Total_Displacement_Field_Z, PREVIOUS_DATA_W, PREVIOUS_DATA_H, PREVIOUS_DATA_D, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, INTERPOLATION_MODE);       
 				
-			MultiplyVolume(d_Total_Displacement_Field_X,scale_factor,CURRENT_DATA_W,CURRENT_DATA_H,CURRENT_DATA_D);
-			MultiplyVolume(d_Total_Displacement_Field_Y,scale_factor,CURRENT_DATA_W,CURRENT_DATA_H,CURRENT_DATA_D);
-			MultiplyVolume(d_Total_Displacement_Field_Z,scale_factor,CURRENT_DATA_W,CURRENT_DATA_H,CURRENT_DATA_D);
+			MultiplyVolume(d_Total_Displacement_Field_X, scale_factor, CURRENT_DATA_W,CURRENT_DATA_H,CURRENT_DATA_D);
+			MultiplyVolume(d_Total_Displacement_Field_Y, scale_factor, CURRENT_DATA_W,CURRENT_DATA_H,CURRENT_DATA_D);
+			MultiplyVolume(d_Total_Displacement_Field_Z, scale_factor, CURRENT_DATA_W,CURRENT_DATA_H,CURRENT_DATA_D);
 
 			//CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.5);		
 			//PerformSmoothing(d_Total_Displacement_Field_X, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, 1);
@@ -5906,11 +5934,13 @@ void BROCCOLI_LIB::MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DAT
 {
 	SetGlobalAndLocalWorkSizesMultiplyVolumes(DATA_W, DATA_H, DATA_D);
 
+	int zero = 0;
 	clSetKernelArg(MultiplyVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Volume_1);
 	clSetKernelArg(MultiplyVolumesOverwriteKernel, 1, sizeof(cl_mem), &d_Volume_2);
 	clSetKernelArg(MultiplyVolumesOverwriteKernel, 2, sizeof(int), &DATA_W);
 	clSetKernelArg(MultiplyVolumesOverwriteKernel, 3, sizeof(int), &DATA_H);
 	clSetKernelArg(MultiplyVolumesOverwriteKernel, 4, sizeof(int), &DATA_D);
+	clSetKernelArg(MultiplyVolumesOverwriteKernel, 5, sizeof(int), &zero);
 
 	runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
 	clFinish(commandQueue);	
@@ -6037,11 +6067,59 @@ void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
 	
 	// Do the registration between T1 and MNI with several scales
-	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);		
+	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, NO_OVERWRITE, INTERPOLATION_MODE);		
 	
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
 	
+	// Allocate memory for skullstripped T1 volume and MNI brain mask
+	//d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+
+	// Copy MNI brain mask to device
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	// Calculate inverse transform between T1 and MNI
+	InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI_Out);
+
+	// Now apply the inverse transformation between MNI and T1, to transform MNI brain mask to T1 space
+	TransformVolumeParametric(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NEAREST);
+
+	// Interpolate T1 volume to MNI resolution and make sure it has the same size (again since we overwrote the volume previously, to be able to copy it to the host)
+	//ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE);       
+
+	// Create skullstripped volume, by multiplying original T1 volume with transformed MNI brain mask 
+	//MultiplyVolumes(d_Skullstripped_T1_Volume, d_MNI_T1_Volume, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	MultiplyVolumes(d_MNI_T1_Volume, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	
+	clReleaseMemObject(d_MNI_Volume);
+	
+	d_MNI_Brain_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
+
+	// Now align skullstripped volume with MNI brain
+	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, AFFINE, NO_OVERWRITE, INTERPOLATION_MODE);		
+	
+	// Copy MNI brain mask to device again
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	// Calculate inverse transform between T1 and MNI
+	InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI_Out);
+	
+	// Apply inverse transform to get better skullstrip
+	TransformVolumeParametric(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NEAREST);
+
+	MultiplyVolumes(d_MNI_T1_Volume, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	// Copy the skullstripped T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
+
+	// Finally apply forward transform to skullstripped volume
+	TransformVolumeParametric(d_MNI_T1_Volume, h_Registration_Parameters_T1_MNI_Out, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, LINEAR);
+
+	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
+	
+
 	/*
 	clEnqueueCopyBuffer(commandQueue, d_MNI_Volume, d_MNI_T1_Volume, 0, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), 0, NULL, NULL);
 
@@ -6061,38 +6139,18 @@ void BROCCOLI_LIB::PerformRegistrationT1MNIWrapper()
 	TransformVolumeParametric(d_MNI_T1_Volume, h_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, INTERPOLATION_MODE);
 	*/
 
-	AlignTwoVolumesNonParametricSeveralScales(d_MNI_T1_Volume, d_MNI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 4 , 2, DO_OVERWRITE, INTERPOLATION_MODE);		
+	AlignTwoVolumesNonParametricSeveralScales(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 2, 2, DO_OVERWRITE, INTERPOLATION_MODE);		
 
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonParametric, 0, NULL, NULL);
 				
-	// Allocate memory for skullstripped T1 volume and MNI brain mask
-	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);	
-
-	// Copy MNI brain mask to device
-	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
-
-	// Calculate inverse transform between T1 and MNI
-	InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI_Out);
-
-	// Now apply the inverse transformation between MNI and T1, to transform MNI brain mask to T1 space
-	TransformVolumeParametric(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NEAREST);
-
-	// Interpolate T1 volume to MNI resolution and make sure it has the same size (again since we overwrote the volume previously, to be able to copy it to the host)
-	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE);       
-
-	// Create skullstripped volume, by multiplying original T1 volume with transformed MNI brain mask 
-	MultiplyVolumes(d_Skullstripped_T1_Volume, d_MNI_T1_Volume, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-
-	// Copy the skullstripped T1 volume to host
-	clEnqueueReadBuffer(commandQueue, d_Skullstripped_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
-
+	
+	
 	// Cleanup	
 	clReleaseMemObject(d_T1_Volume);
-	clReleaseMemObject(d_MNI_Volume);
+	clReleaseMemObject(d_MNI_Brain_Volume);
 	clReleaseMemObject(d_MNI_T1_Volume);
-	clReleaseMemObject(d_Skullstripped_T1_Volume);
+	//clReleaseMemObject(d_Skullstripped_T1_Volume);
 	clReleaseMemObject(d_MNI_Brain_Mask);		
 }
 

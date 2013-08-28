@@ -33,6 +33,7 @@ if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
     basepath = 'D:\BROCCOLI_test_data\';
+    %basepath = '../../test_data/fcon1000/classic/';
     %mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
     mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 
@@ -48,29 +49,48 @@ end
 
 
 
-study = 'Cambridge';
-%study = 'Beijing';
+%study = 'Cambridge';
+%subject = '00156'
+%subject = '00294'
+%subject = '01361'
+%study = 'Beijing'; 
+%subject = '00440'
+%subject = '01018'
+%subject = '01244'
 %study = 'ICBM';
-%study = 'Oulu';
+%subject = '00448'
+%subject = '00623'
+%subject = '02382'
+study = 'Oulu';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
 %substudy = 'Balloon';
-subject = '00156'
-voxel_size = 1;
-opencl_platform = 1;
-opencl_device = 0;
+
+subject = 18;
+voxel_size = 2;
+opencl_platform = 2;
+opencl_device = 1;
+
+number_of_iterations_for_image_registration = 20;
+coarsest_scale = 8/voxel_size;
+MM_T1_Z_CUT = 110;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
-    T1_nii = load_nii([basepath study '/sub'  subject '/anat/mprage_anonymized.nii.gz']);
+    %T1_nii = load_nii([basepath study '/sub'  subject '/anat/mprage_anonymized.nii.gz']);
+    T1_nii = load_nii([basepath study '/mprage_anonymized' num2str(subject) '.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
     T1_nii = load_nii([basepath study '/' substudy '/highres' subject '.nii.gz']);
 end
-
 T1 = double(T1_nii.img);
 %T1 = T1/max(T1(:));
+
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
 %MNI = MNI/max(MNI(:));
+
+MNI_brain_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain.nii']);
+MNI_brain = double(MNI_brain_nii.img);
+%MNI_brain = MNI_brain/max(MNI_brain(:));
 
 %temp = zeros(256,256,256);
 %temp(40:40+181,15:15+217,40:40+181) = MNI;
@@ -134,9 +154,7 @@ MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
 %%
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
-number_of_iterations_for_image_registration = 40;
-coarsest_scale = 16/voxel_size;
-MM_T1_Z_CUT = 5;
+
 
 
 tic
@@ -147,7 +165,7 @@ tic
     slice_sums, top_slice, ...
     t11_opencl, t12_opencl, t13_opencl, t22_opencl, t23_opencl, t33_opencl, ...
     displacement_x_opencl, displacement_y_opencl, displacement_z_opencl] = ... 
-RegisterT1MNI(T1,MNI,MNI_brain_mask,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z, ...
+RegisterT1MNI(T1,MNI,MNI_brain,MNI_brain_mask,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z, ...
 f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ... 
 f1_nonparametric_registration,f2_nonparametric_registration,f3_nonparametric_registration,f4_nonparametric_registration,f5_nonparametric_registration,f6_nonparametric_registration, ...
 m1, m2, m3, m4, m5, m6, ...
@@ -160,7 +178,7 @@ toc
 
 registration_parameters_opencl
 
-slice = round(0.6*MNI_sy);
+slice = round(0.55*MNI_sy);
 	
 figure; imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray
 figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))')); colormap gray
@@ -169,10 +187,10 @@ figure; imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray
 %quiver(flipud(squeeze(displacement_x_opencl(slice,:,:))'),flipud(squeeze(displacement_z_opencl(slice,:,:))'))
 %hold off
 figure; imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray
-figure; imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
+figure; imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
 %figure; imagesc( [ flipud(squeeze((MNI(slice,:,:) - aligned_T1_opencl(slice,:,:) ))') flipud(squeeze(abs(MNI(slice,:,:) - aligned_T1_nonparametric_opencl(slice,:,:) ))')]  ); colormap gray
 
-slice = round(0.5*MNI_sz);
+slice = round(0.47*MNI_sz);
 figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
 figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
 figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray
@@ -180,9 +198,7 @@ figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray
 %quiver(displacement_x_opencl(:,:,slice),displacement_y_opencl(:,:,slice))
 %hold off
 figure; imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
-figure; imagesc(squeeze((MNI(:,:,slice)))); colormap gray
-%figure; imagesc(squeeze((MNI(:,:,slice) - aligned_T1_opencl(:,:,slice)))); colormap gray
-%figure; imagesc(squeeze((MNI(:,:,slice) - aligned_T1_nonparametric_opencl(:,:,slice)))); colormap gray
+figure; imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
 
 %%
 

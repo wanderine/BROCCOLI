@@ -8680,6 +8680,67 @@ __global__ void EstimateNormOfT(float *tNorm, float *t11, float *t12,float *t13,
 }
 */
 
+/*
+__kernel void CalculateAMatricesAndHVectors(__global float* a11, 
+	                                        __global float* a12, 
+											__global float* a13, 
+											__global float* a22, 
+											__global float* a23, 
+											__global float* a33, 
+											__global float* h1, 
+											__global float* h2, 
+											__global float* h3, 
+											__global const float* Phase_Differences, 
+											__global const float* Certainties, 
+											__global const float* t11, 
+											__global const float* t12, 
+											__global const float* t13, 
+											__global const float* t22, 
+											__global const float* t23, 
+											__global const float *t33, 
+											__constant float* c_Filter_Directions_X, 
+											__constant float* c_Filter_Directions_Y, 
+											__constant float* c_Filter_Directions_Z, 
+											__private int DATA_W, 
+											__private int DATA_H, 
+											__private int DATA_D,
+											__private int FILTER) 
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+	
+	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int idx = x + y * DATA_W + z * DATA_W * DATA_H;
+	
+	float c, pd;
+	float tt11, tt12, tt13, tt22, tt23, tt33;
+		
+	tt11 = t11[idx] * t11[idx] + t12[idx] * t12[idx] + t13[idx] * t13[idx];
+    tt12 = t11[idx] * t12[idx] + t12[idx] * t22[idx] + t13[idx] * t23[idx];
+    tt13 = t11[idx] * t13[idx] + t12[idx] * t23[idx] + t13[idx] * t33[idx];
+    tt22 = t12[idx] * t12[idx] + t22[idx] * t22[idx] + t23[idx] * t23[idx];
+    tt23 = t12[idx] * t13[idx] + t22[idx] * t23[idx] + t23[idx] * t33[idx];
+    tt33 = t13[idx] * t13[idx] + t23[idx] * t23[idx] + t33[idx] * t33[idx];
+        
+	// First quadrature filter
+	c = Certainties[idx];
+	a11[idx] += c * tt11;
+	a12[idx] += c * tt12;
+	a13[idx] += c * tt13;
+	a22[idx] += c * tt22;
+	a23[idx] += c * tt23;
+	a33[idx] += c * tt33;
+			
+	pd = Phase_Differences[idx];
+	h1Temp[idx] += c * pd * (c_Filter_Directions_X[FILTER] * tt11 + c_Filter_Directions_Y[FILTER] * tt12 + c_Filter_Directions_Z[FILTER] * tt13);
+	h2Temp[idx] += c * pd * (c_Filter_Directions_X[FILTER] * tt12 + c_Filter_Directions_Y[FILTER] * tt22 + c_Filter_Directions_Z[FILTER] * tt23);
+	h3Temp[idx] += c * pd * (c_Filter_Directions_X[FILTER] * tt13 + c_Filter_Directions_Y[FILTER] * tt23 + c_Filter_Directions_Z[FILTER] * tt33);
+}
+*/
+
 
 __kernel void CalculateAMatricesAndHVectors(__global float* a11, 
 	                                        __global float* a12, 
@@ -8828,7 +8889,6 @@ __kernel void CalculateAMatricesAndHVectors(__global float* a11,
 	h2[idx] = h2Temp;
 	h3[idx] = h3Temp;	
 }
-
 
 
 /*

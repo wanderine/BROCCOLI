@@ -23,6 +23,9 @@
     DEALINGS IN THE SOFTWARE.
 */
 
+//#include "broccoli_lib.h"
+//#include <opencl.h>
+
 
 // Help functions
 int Calculate2DIndex(int x, int y, int DATA_W)
