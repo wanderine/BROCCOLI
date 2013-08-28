@@ -28,8 +28,8 @@
 
 #include "broccoli_constants.h"
 
-#include "nifti1.h"
-#include "nifti1_io.h"
+//#include "nifti1.h"
+//#include "nifti1_io.h"
 
 #include <opencl.h>
 #include <string>
@@ -148,7 +148,8 @@ class BROCCOLI_LIB
 		void SetOutputSliceSums(float*);
 		void SetOutputTopSlice(float*);
 		void SetOutputPermutationDistribution(float*);
-
+		void SetOutputAMatrix(float*);
+		void SetOutputHVector(float*);
 		
 		void SetfMRIDataFilename(std::string filename);			
 		void SetfMRIParameters(float tr, float xs, float ys, float zs);		
@@ -170,6 +171,8 @@ class BROCCOLI_LIB
 
 		// Get functions for GUI / Wrappers
 		
+		int GetOpenCLInitiated();
+
 		int GetfMRIDataSliceLocationX();
 		int GetfMRIDataSliceLocationY();
 		int GetfMRIDataSliceLocationZ();
@@ -715,7 +718,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
-		nifti_image *nifti_data;
+		//nifti_image *nifti_data;
 
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		int T1_DATA_W, T1_DATA_H, T1_DATA_D;
@@ -840,6 +843,7 @@ class BROCCOLI_LIB
 		float       *h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag; 
 		cl_float2   *h_Quadrature_Filter_Response_1, *h_Quadrature_Filter_Response_2, *h_Quadrature_Filter_Response_3, *h_Quadrature_Filter_Response_4, *h_Quadrature_Filter_Response_5, *h_Quadrature_Filter_Response_6;
 		float		 h_A_Matrix[144], h_h_Vector[12];
+		float		 *h_A_Matrix_Out, *h_h_Vector_Out;
 		double		 h_A_Matrix_double[144], h_h_Vector_double[12];
 		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12], h_Registration_Parameters_EPI_T1_Affine[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], h_Registration_Parameters_EPI_MNI[12], *h_Registration_Parameters_T1_MNI_Out, h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out, *h_Registration_Parameters_EPI_MNI_Out;
 		double       h_Registration_Parameters_double[12];

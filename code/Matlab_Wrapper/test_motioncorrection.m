@@ -53,7 +53,7 @@ reference_volume = fMRI_volumes(:,:,:,1);
 [sy sx sz st] = size(fMRI_volumes)
 number_of_iterations_for_motion_correction = 5;
 load filters_for_parametric_registration.mat
-opencl_platform = 2;
+opencl_platform = 1;
 opencl_device = 0;
 
 
@@ -71,7 +71,7 @@ x_rotations = zeros(st,1);
 y_rotations = zeros(st,1);
 z_rotations = zeros(st,1);
 
-factor = 0.15;
+factor = 0.25;
 
 for t = 2:st
         

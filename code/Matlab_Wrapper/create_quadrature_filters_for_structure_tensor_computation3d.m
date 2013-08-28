@@ -132,8 +132,12 @@ dir{4} = c * [-a  b  0];
 dir{5} = c * [ b  0  a];
 dir{6} = c * [ b  0 -a];
 
-filter_directions_x = [dir{1}(1) dir{2}(1) dir{3}(1) dir{4}(1) dir{5}(1) dir{6}(1)];
-filter_directions_y = [dir{1}(2) dir{2}(2) dir{3}(2) dir{4}(2) dir{5}(2) dir{6}(2)];
+%filter_directions_x = [dir{1}(1) dir{2}(1) dir{3}(1) dir{4}(1) dir{5}(1) dir{6}(1)];
+%filter_directions_y = [dir{1}(2) dir{2}(2) dir{3}(2) dir{4}(2) dir{5}(2) dir{6}(2)];
+%filter_directions_z = [dir{1}(3) dir{2}(3) dir{3}(3) dir{4}(3) dir{5}(3) dir{6}(3)];
+
+filter_directions_x = [dir{1}(2) dir{2}(2) dir{3}(2) dir{4}(2) dir{5}(2) dir{6}(2)];
+filter_directions_y = [dir{1}(1) dir{2}(1) dir{3}(1) dir{4}(1) dir{5}(1) dir{6}(1)];
 filter_directions_z = [dir{1}(3) dir{2}(3) dir{3}(3) dir{4}(3) dir{5}(3) dir{6}(3)];
 
 %dir{1} = c * [ a  0  b];

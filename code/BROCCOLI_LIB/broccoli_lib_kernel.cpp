@@ -9093,7 +9093,11 @@ __constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_A
 
 __kernel void InterpolateVolumeLinearParametric(__global float* Volume, 
 	                                            read_only image3d_t Original_Volume, 
-												__constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+												__constant float* c_Parameter_Vector,
+												__private int DATA_W,
+												__private int DATA_H,
+												__private int DATA_D,
+												__private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);

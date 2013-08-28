@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Filter_Directions_X_double, *h_Filter_Directions_Y_double, *h_Filter_Directions_Z_double;
     float           *h_Filter_Directions_X, *h_Filter_Directions_Y, *h_Filter_Directions_Z;
     
-    int T1_DATA_H, T1_DATA_W, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
+    int T1_DATA_H, T1_DATA_W, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
@@ -84,6 +84,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Phase_Differences_double, *h_Phase_Certainties_double, *h_Phase_Gradients_double;
     double          *h_Downsampled_Volume_double;
     double          *h_Slice_Sums_double, *h_Top_Slice_double;
+    double          *h_A_Matrix_double, *h_h_Vector_double;
     float           *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_1_Imag;
     float           *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_2_Imag;
     float           *h_Quadrature_Filter_Response_3_Real, *h_Quadrature_Filter_Response_3_Imag;  
@@ -95,6 +96,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     float           *h_Downsampled_Volume;
     float           *h_Skullstripped_T1_Volume;
     float           *h_Slice_Sums, *h_Top_Slice;
+    float           *h_A_Matrix, *h_h_Vector;
     
     //---------------------
     
@@ -107,11 +109,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<26)
+    if(nlhs<28)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>26)
+    if(nlhs>28)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -168,7 +170,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const int *ARRAY_DIMENSIONS_FILTER = mxGetDimensions(prhs[10]);
     
     
-    NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS = 12;
+    NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12;
     
     T1_DATA_H = ARRAY_DIMENSIONS_T1[0];
     T1_DATA_W = ARRAY_DIMENSIONS_T1[1];
@@ -188,7 +190,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	int T1_DATA_H_INTERPOLATED = (int)round_((float)T1_DATA_H * T1_VOXEL_SIZE_Y / MNI_VOXEL_SIZE_Y);
 	int T1_DATA_D_INTERPOLATED = (int)round_((float)T1_DATA_D * T1_VOXEL_SIZE_Z / MNI_VOXEL_SIZE_Z);
 
-    int IMAGE_REGISTRATION_PARAMETERS_SIZE = NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+    int IMAGE_REGISTRATION_PARAMETERS_SIZE = NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
     int FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
     int FILTER_SIZE2 = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(cl_float2);
     int T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
@@ -202,7 +204,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("T1 size : %i x %i x %i \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
     mexPrintf("T1 interpolated size : %i x %i x %i \n",  T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
     mexPrintf("Filter size : %i x %i x %i \n",  IMAGE_REGISTRATION_FILTER_SIZE,IMAGE_REGISTRATION_FILTER_SIZE,IMAGE_REGISTRATION_FILTER_SIZE);
-    mexPrintf("Number of iterations : %i \n",  NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+    mexPrintf("Number of iterations : %i \n \n",  NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
     
     //-------------------------------------------------
     // Output to Matlab
@@ -236,7 +238,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     NUMBER_OF_DIMENSIONS = 2;
     int ARRAY_DIMENSIONS_OUT_IMAGE_REGISTRATION_PARAMETERS[2];
     ARRAY_DIMENSIONS_OUT_IMAGE_REGISTRATION_PARAMETERS[0] = 1;
-    ARRAY_DIMENSIONS_OUT_IMAGE_REGISTRATION_PARAMETERS[1] = NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;    
+    ARRAY_DIMENSIONS_OUT_IMAGE_REGISTRATION_PARAMETERS[1] = NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;    
     
     plhs[4] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_IMAGE_REGISTRATION_PARAMETERS,mxDOUBLE_CLASS, mxREAL);
     h_Registration_Parameters_double = mxGetPr(plhs[4]);          
@@ -345,6 +347,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[25] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DISPLACEMENT,mxDOUBLE_CLASS, mxREAL);
     h_Displacement_Field_Z_double = mxGetPr(plhs[25]);          
     
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_AMATRIX[2];
+    ARRAY_DIMENSIONS_OUT_AMATRIX[0] = NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;
+    ARRAY_DIMENSIONS_OUT_AMATRIX[1] = NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;    
+    
+    plhs[26] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AMATRIX,mxDOUBLE_CLASS, mxREAL);
+    h_A_Matrix_double = mxGetPr(plhs[26]);          
+    
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_HVECTOR[2];
+    ARRAY_DIMENSIONS_OUT_HVECTOR[0] = NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;
+    ARRAY_DIMENSIONS_OUT_HVECTOR[1] = 1;    
+    
+    plhs[27] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_HVECTOR,mxDOUBLE_CLASS, mxREAL);
+    h_h_Vector_double = mxGetPr(plhs[27]);          
+    
     
     // ------------------------------------------------
     
@@ -355,6 +373,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_MNI_Brain_Mask                                    = (float *)mxMalloc(MNI_VOLUME_SIZE);
     h_Interpolated_T1_Volume                            = (float *)mxMalloc(MNI_VOLUME_SIZE);
     h_Downsampled_Volume                                = (float *)mxMalloc(DOWNSAMPLED_VOLUME_SIZE);
+    
+    h_A_Matrix                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));
+    h_h_Vector                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));
     
     /*
     h_Quadrature_Filter_1_Parametric_Registration       = (cl_float2 *)mxMalloc(FILTER_SIZE);
@@ -427,7 +448,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Slice_Sums                                        = (float *)mxMalloc(MNI_DATA_D * sizeof(float));
     h_Top_Slice                                         = (float *)mxMalloc(1 * sizeof(float));
     
-    // Reorder and cast data
+    // Pack data (reorder from y,x,z to x,y,z and cast from double to float)
     pack_double2float_volume(h_T1_Volume, h_T1_Volume_double, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     pack_double2float_volume(h_MNI_Volume, h_MNI_Volume_double, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     pack_double2float_volume(h_MNI_Brain_Volume, h_MNI_Brain_Volume_double, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
@@ -480,116 +501,123 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //------------------------
     
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
-    
-    BROCCOLI.SetT1Width(T1_DATA_W);
-    BROCCOLI.SetT1Height(T1_DATA_H);
-    BROCCOLI.SetT1Depth(T1_DATA_D);
-    BROCCOLI.SetT1VoxelSizeX(T1_VOXEL_SIZE_X);
-    BROCCOLI.SetT1VoxelSizeY(T1_VOXEL_SIZE_Y);
-    BROCCOLI.SetT1VoxelSizeZ(T1_VOXEL_SIZE_Z);   
-    BROCCOLI.SetMNIWidth(MNI_DATA_W);
-    BROCCOLI.SetMNIHeight(MNI_DATA_H);
-    BROCCOLI.SetMNIDepth(MNI_DATA_D);    
-    BROCCOLI.SetMNIVoxelSizeX(MNI_VOXEL_SIZE_X);
-    BROCCOLI.SetMNIVoxelSizeY(MNI_VOXEL_SIZE_Y);
-    BROCCOLI.SetMNIVoxelSizeZ(MNI_VOXEL_SIZE_Z);                
-    BROCCOLI.SetInputT1Volume(h_T1_Volume);
-    BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
-    BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
-    BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
-    BROCCOLI.SetInterpolationMode(LINEAR);
-    BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);    
-    //BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration, h_Quadrature_Filter_2_Parametric_Registration, h_Quadrature_Filter_3_Parametric_Registration);
-    //BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration, h_Quadrature_Filter_2_NonParametric_Registration, h_Quadrature_Filter_3_NonParametric_Registration, h_Quadrature_Filter_4_NonParametric_Registration, h_Quadrature_Filter_5_NonParametric_Registration, h_Quadrature_Filter_6_NonParametric_Registration);
-    BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag);
-    BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag);    
-    BROCCOLI.SetProjectionTensorMatrixFirstFilter(h_Projection_Tensor_1[0],h_Projection_Tensor_1[1],h_Projection_Tensor_1[2],h_Projection_Tensor_1[3],h_Projection_Tensor_1[4],h_Projection_Tensor_1[5]);
-    BROCCOLI.SetProjectionTensorMatrixSecondFilter(h_Projection_Tensor_2[0],h_Projection_Tensor_2[1],h_Projection_Tensor_2[2],h_Projection_Tensor_2[3],h_Projection_Tensor_2[4],h_Projection_Tensor_2[5]);
-    BROCCOLI.SetProjectionTensorMatrixThirdFilter(h_Projection_Tensor_3[0],h_Projection_Tensor_3[1],h_Projection_Tensor_3[2],h_Projection_Tensor_3[3],h_Projection_Tensor_3[4],h_Projection_Tensor_3[5]);
-    BROCCOLI.SetProjectionTensorMatrixFourthFilter(h_Projection_Tensor_4[0],h_Projection_Tensor_4[1],h_Projection_Tensor_4[2],h_Projection_Tensor_4[3],h_Projection_Tensor_4[4],h_Projection_Tensor_4[5]);
-    BROCCOLI.SetProjectionTensorMatrixFifthFilter(h_Projection_Tensor_5[0],h_Projection_Tensor_5[1],h_Projection_Tensor_5[2],h_Projection_Tensor_5[3],h_Projection_Tensor_5[4],h_Projection_Tensor_5[5]);
-    BROCCOLI.SetProjectionTensorMatrixSixthFilter(h_Projection_Tensor_6[0],h_Projection_Tensor_6[1],h_Projection_Tensor_6[2],h_Projection_Tensor_6[3],h_Projection_Tensor_6[4],h_Projection_Tensor_6[5]);
-    BROCCOLI.SetFilterDirections(h_Filter_Directions_X, h_Filter_Directions_Y, h_Filter_Directions_Z);
-    BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
-    BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE);
-    BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
-    BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
-    BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric);
-    BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume);
-    BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
-    BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume);
-    BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
-    //BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
-    BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1, h_Quadrature_Filter_Response_2, h_Quadrature_Filter_Response_3, h_Quadrature_Filter_Response_4, h_Quadrature_Filter_Response_5, h_Quadrature_Filter_Response_6);
-    BROCCOLI.SetOutputTensorComponents(h_t11, h_t12, h_t13, h_t22, h_t23, h_t33);
-    BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
-    BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
-    BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
-    BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
-    BROCCOLI.SetOutputSliceSums(h_Slice_Sums);
-    BROCCOLI.SetOutputTopSlice(h_Top_Slice);
-        
-    int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
-	int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
-	int createContextError = BROCCOLI.GetOpenCLCreateContextError();
-	int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
-	int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
-	int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
-	int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
-	int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
+      
+    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    {    
+        int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
+        int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
+        int createContextError = BROCCOLI.GetOpenCLCreateContextError();
+        int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
+        int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
+        int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
+        int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
+        int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
           
-    mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
-    mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
-    mexPrintf("Create context error is %d \n",createContextError);
-    mexPrintf("Get create context info error is %d \n",getContextInfoError);
-    mexPrintf("Create command queue error is %d \n",createCommandQueueError);
-    mexPrintf("Create program error is %d \n",createProgramError);
-    mexPrintf("Build program error is %d \n",buildProgramError);
-    mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
+        mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
+        mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
+        mexPrintf("Create context error is %d \n",createContextError);
+        mexPrintf("Get create context info error is %d \n",getContextInfoError);
+        mexPrintf("Create command queue error is %d \n",createCommandQueueError);
+        mexPrintf("Create program error is %d \n",createProgramError);
+        mexPrintf("Build program error is %d \n",buildProgramError);
+        mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
-    int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 46; i++)
-    {
-        if (createKernelErrors[i] != 0)
+        int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
+        for (int i = 0; i < 46; i++)
         {
-            mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            if (createKernelErrors[i] != 0)
+            {
+                mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            }
         }
-    }
-    
-    int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
-    for (int i = 0; i < 30; i++)
-    {
-        if (createBufferErrors[i] != 0)
-        {
-            mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
-        }
-    }
         
-    int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 20; i++)
+        mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
+        
+        mexPrintf("OPENCL initialization failed, aborting \n");        
+    }
+    else if (BROCCOLI.GetOpenCLInitiated() == 1)
     {
-        if (runKernelErrors[i] != 0)
-        {
-            mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
-        }
-    } 
-    
-    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
-            
-    if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
-    {
+        BROCCOLI.SetT1Width(T1_DATA_W);
+        BROCCOLI.SetT1Height(T1_DATA_H);
+        BROCCOLI.SetT1Depth(T1_DATA_D);
+        BROCCOLI.SetT1VoxelSizeX(T1_VOXEL_SIZE_X);
+        BROCCOLI.SetT1VoxelSizeY(T1_VOXEL_SIZE_Y);
+        BROCCOLI.SetT1VoxelSizeZ(T1_VOXEL_SIZE_Z);   
+        BROCCOLI.SetMNIWidth(MNI_DATA_W);
+        BROCCOLI.SetMNIHeight(MNI_DATA_H);
+        BROCCOLI.SetMNIDepth(MNI_DATA_D);    
+        BROCCOLI.SetMNIVoxelSizeX(MNI_VOXEL_SIZE_X);
+        BROCCOLI.SetMNIVoxelSizeY(MNI_VOXEL_SIZE_Y);
+        BROCCOLI.SetMNIVoxelSizeZ(MNI_VOXEL_SIZE_Z);                
+        BROCCOLI.SetInputT1Volume(h_T1_Volume);
+        BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
+        BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
+        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
+        BROCCOLI.SetInterpolationMode(LINEAR);
+        BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);    
+        //BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration, h_Quadrature_Filter_2_Parametric_Registration, h_Quadrature_Filter_3_Parametric_Registration);
+        //BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration, h_Quadrature_Filter_2_NonParametric_Registration, h_Quadrature_Filter_3_NonParametric_Registration, h_Quadrature_Filter_4_NonParametric_Registration, h_Quadrature_Filter_5_NonParametric_Registration, h_Quadrature_Filter_6_NonParametric_Registration);
+        BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag);
+        BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag);    
+        BROCCOLI.SetProjectionTensorMatrixFirstFilter(h_Projection_Tensor_1[0],h_Projection_Tensor_1[1],h_Projection_Tensor_1[2],h_Projection_Tensor_1[3],h_Projection_Tensor_1[4],h_Projection_Tensor_1[5]);
+        BROCCOLI.SetProjectionTensorMatrixSecondFilter(h_Projection_Tensor_2[0],h_Projection_Tensor_2[1],h_Projection_Tensor_2[2],h_Projection_Tensor_2[3],h_Projection_Tensor_2[4],h_Projection_Tensor_2[5]);
+        BROCCOLI.SetProjectionTensorMatrixThirdFilter(h_Projection_Tensor_3[0],h_Projection_Tensor_3[1],h_Projection_Tensor_3[2],h_Projection_Tensor_3[3],h_Projection_Tensor_3[4],h_Projection_Tensor_3[5]);
+        BROCCOLI.SetProjectionTensorMatrixFourthFilter(h_Projection_Tensor_4[0],h_Projection_Tensor_4[1],h_Projection_Tensor_4[2],h_Projection_Tensor_4[3],h_Projection_Tensor_4[4],h_Projection_Tensor_4[5]);
+        BROCCOLI.SetProjectionTensorMatrixFifthFilter(h_Projection_Tensor_5[0],h_Projection_Tensor_5[1],h_Projection_Tensor_5[2],h_Projection_Tensor_5[3],h_Projection_Tensor_5[4],h_Projection_Tensor_5[5]);
+        BROCCOLI.SetProjectionTensorMatrixSixthFilter(h_Projection_Tensor_6[0],h_Projection_Tensor_6[1],h_Projection_Tensor_6[2],h_Projection_Tensor_6[3],h_Projection_Tensor_6[4],h_Projection_Tensor_6[5]);
+        BROCCOLI.SetFilterDirections(h_Filter_Directions_X, h_Filter_Directions_Y, h_Filter_Directions_Z);
+        BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
+        BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE);
+        BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
+        BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
+        BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric);
+        BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume);
+        BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
+        BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume);
+        BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
+        //BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
+        BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1, h_Quadrature_Filter_Response_2, h_Quadrature_Filter_Response_3, h_Quadrature_Filter_Response_4, h_Quadrature_Filter_Response_5, h_Quadrature_Filter_Response_6);
+        BROCCOLI.SetOutputTensorComponents(h_t11, h_t12, h_t13, h_t22, h_t23, h_t33);
+        BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
+        BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
+        BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
+        BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients);
+        BROCCOLI.SetOutputSliceSums(h_Slice_Sums);
+        BROCCOLI.SetOutputTopSlice(h_Top_Slice);
+        BROCCOLI.SetOutputAMatrix(h_A_Matrix);
+        BROCCOLI.SetOutputHVector(h_h_Vector);
+                            
         BROCCOLI.PerformRegistrationT1MNIWrapper();
-    }
-    else
-    {
-        mexPrintf("OPENCL error detected, aborting \n");
+        
+        int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
+        for (int i = 0; i < 30; i++)
+        {
+            if (createBufferErrors[i] != 0)
+            {
+                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+            }
+        }
+        
+        int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
+        for (int i = 0; i < 20; i++)
+        {
+            if (runKernelErrors[i] != 0)
+            {
+                mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+            }
+        } 
     }
         
+    // Unpack results to Matlab    
+    unpack_float2double_image(h_A_Matrix_double, h_A_Matrix, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS);
+    unpack_float2double(h_h_Vector_double, h_h_Vector, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS);
+    
+    
     unpack_float2double_volume(h_Aligned_T1_Volume_double, h_Aligned_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Aligned_T1_Volume_NonParametric_double, h_Aligned_T1_Volume_NonParametric, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Skullstripped_T1_Volume_double, h_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Interpolated_T1_Volume_double, h_Interpolated_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    unpack_float2double(h_Registration_Parameters_double, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+    unpack_float2double(h_Registration_Parameters_double, h_Registration_Parameters, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS);
     
     /*
     unpack_float2double_volume(h_Quadrature_Filter_Response_1_Real_double, h_Quadrature_Filter_Response_1_Real, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
@@ -632,6 +660,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_MNI_Brain_Mask);
     mxFree(h_Interpolated_T1_Volume);
     mxFree(h_Downsampled_Volume);
+    
+    mxFree(h_A_Matrix);
+    mxFree(h_h_Vector);
     
     mxFree(h_Quadrature_Filter_1_Parametric_Registration_Real);
     mxFree(h_Quadrature_Filter_2_Parametric_Registration_Real);
