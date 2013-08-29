@@ -8542,6 +8542,7 @@ __kernel void CalculateHVectorDouble(__global double* h_vector, __global const d
 */
 
 // Estimate Dk Ck and T
+/*
 __kernel void CalculatePhaseDifferencesCertaintiesAndTensorComponents(__global float* Phase_Differences, 
 	                                                                  __global float* Certainties, 
 																	  __global float* t11, 
@@ -8595,44 +8596,48 @@ __kernel void CalculatePhaseDifferencesCertaintiesAndTensorComponents(__global f
 	t23[idx] += magnitude * m23;
 	t33[idx] += magnitude * m33;	
 }
-
-/*
-// Estimate Dk Ck and T
-__global__ void EstimateDkCkAndT(float *dk, float *ck, 
-	float *t11, float *t12, float *t13, float *t22, float *t23, float *t33, 
-	float *q1Real, float *q1Imag, float *q2Real, float *q2Imag, 
-	DataSize dataSize, 
-	float m11, float m12, float m13, float m22, float m23, float m33, 
-	size_t offSet, size_t pitch, int blocksInY, float invBlocksInY) {
-
-	unsigned int blockIdxz = __float2uint_rd(blockIdx.y * invBlocksInY);
-	unsigned int blockIdxy = blockIdx.y - __umul24(blockIdxz,blocksInY);
-	volatile int x = __umul24(blockIdx.x,blockDim.x) + threadIdx.x;
-	volatile int y = __umul24(blockIdxy ,blockDim.y) + threadIdx.y;
-	volatile int z = __umul24(blockIdxz ,blockDim.z) + threadIdx.z;	
-	
-	if (x < dataSize.dataWidth && y < dataSize.dataHeight && z < dataSize.dataDepth) {
-		int idx = x + __umul24(y,pitch) + __umul24(z,pitch*dataSize.dataHeight);
-	
-		// Estimate dk and ck
-		float qqReal = __fadd_rn(__fmul_rn(q1Real[idx],q2Real[idx]),__fmul_rn(q1Imag[idx],q2Imag[idx]));
-		float qqImag = __fadd_rn(-__fmul_rn(q1Real[idx],q2Imag[idx]),__fmul_rn(q1Imag[idx],q2Real[idx]));
-		float phaseDiff = atan2f(qqImag,qqReal);
-		dk[idx + offSet] = phaseDiff;
-		float Aqq = sqrtf(__fadd_rn(__fmul_rn(qqReal,qqReal),__fmul_rn(qqImag,qqImag)));
-		ck[idx + offSet] = sqrtf(Aqq) * cosf(phaseDiff/2)*cosf(phaseDiff/2);
-		
-		// Estimate structure tensor for the deformed Volume
-		float Aqa = sqrtf(__fadd_rn(__fmul_rn(q2Real[idx],q2Real[idx]),__fmul_rn(q2Imag[idx],q2Imag[idx])));
-		t11[idx] += Aqa * m11;
-		t12[idx] += Aqa * m12;
-		t13[idx] += Aqa * m13;
-		t22[idx] += Aqa * m22;
-		t23[idx] += Aqa * m23;
-		t33[idx] += Aqa * m33;
-	}
-}
 */
+
+__kernel void CalculateTensorComponents(__global float* t11,
+										__global float* t12,
+										__global float* t13,
+										__global float* t22,
+										__global float* t23,
+										__global float* t33,
+										__global const float2* q1,
+										__global const float2* q2,
+										__private float m11,
+										__private float m12,
+										__private float m13,
+										__private float m22,
+										__private float m23,
+										__private float m33,
+										__private int DATA_W,
+										__private int DATA_H,
+									    __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int idx = x + y * DATA_W + z * DATA_W * DATA_H;
+
+	float2 q1_ = q1[idx];
+	float2 q2_ = q2[idx];
+
+	// Estimate structure tensor for the deformed volume
+	float magnitude = sqrt(q2_.x * q2_.x + q2_.y * q2_.y);
+
+	t11[idx] += magnitude * m11;
+	t12[idx] += magnitude * m12;
+	t13[idx] += magnitude * m13;
+	t22[idx] += magnitude * m22;
+	t23[idx] += magnitude * m23;
+	t33[idx] += magnitude * m33;
+}
 
 __kernel void CalculateTensorNorms(__global float* Tensor_Norm, 
 	                               __global const float* t11, 
@@ -8665,22 +8670,74 @@ __kernel void CalculateTensorNorms(__global float* Tensor_Norm,
 }
 
 
-/*
-__global__ void EstimateNormOfT(float *tNorm, float *t11, float *t12,float *t13, float *t22, float *t23,float *t33, DataSize dataSize, size_t pitch, int blocksInY, float invBlocksInY) {
-	unsigned int blockIdxz = __float2uint_rd(blockIdx.y * invBlocksInY);
-	unsigned int blockIdxy = blockIdx.y - __umul24(blockIdxz,blocksInY);
-	volatile int x = __umul24(blockIdx.x,blockDim.x) + threadIdx.x;
-	volatile int y = __umul24(blockIdxy ,blockDim.y) + threadIdx.y;
-	volatile int z = __umul24(blockIdxz ,blockDim.z) + threadIdx.z;	
-	
-	if (x < dataSize.dataWidth && y < dataSize.dataHeight && z < dataSize.dataDepth) {
-		int idx = x + __umul24(y,pitch) + __umul24(z,pitch*dataSize.dataHeight);
-		tNorm[idx] = sqrtf(t11[idx]*t11[idx] + 2*t12[idx]*t12[idx] + 2*t13[idx]*t13[idx] + t22[idx]*t22[idx] + 2*t23[idx]*t23[idx] + t33[idx]*t33[idx]);
-	}
+
+
+__kernel void CalculateAMatricesAndHVectors(__global float* a11,
+	                                        __global float* a12,
+											__global float* a13,
+											__global float* a22,
+											__global float* a23,
+											__global float* a33,
+											__global float* h1,
+											__global float* h2,
+											__global float* h3,
+											__global const float2* q1,
+											__global const float2* q2,
+											__global const float* t11,
+											__global const float* t12,
+											__global const float* t13,
+											__global const float* t22,
+											__global const float* t23,
+											__global const float *t33,
+											__constant float* c_Filter_Directions_X,
+											__constant float* c_Filter_Directions_Y,
+											__constant float* c_Filter_Directions_Z,
+											__private int DATA_W,
+											__private int DATA_H,
+											__private int DATA_D,
+											__private int FILTER)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int idx = x + y * DATA_W + z * DATA_W * DATA_H;
+
+	float2 q1_ = q1[idx];
+	float2 q2_ = q2[idx];
+
+	// q1 * conj(q2)
+	float qqReal = q1_.x * q2_.x + q1_.y * q2_.y;
+	float qqImag = -q1_.x * q2_.y + q1_.y * q2_.x;
+	float phase_difference = atan2(qqImag,qqReal);
+	float Aqq = sqrt(qqReal * qqReal + qqImag * qqImag);
+	float certainty = sqrt(Aqq) * cos(phase_difference/2.0f) * cos(phase_difference/2.0f);
+
+	float tt11, tt12, tt13, tt22, tt23, tt33;
+
+	tt11 = t11[idx] * t11[idx] + t12[idx] * t12[idx] + t13[idx] * t13[idx];
+    tt12 = t11[idx] * t12[idx] + t12[idx] * t22[idx] + t13[idx] * t23[idx];
+    tt13 = t11[idx] * t13[idx] + t12[idx] * t23[idx] + t13[idx] * t33[idx];
+    tt22 = t12[idx] * t12[idx] + t22[idx] * t22[idx] + t23[idx] * t23[idx];
+    tt23 = t12[idx] * t13[idx] + t22[idx] * t23[idx] + t23[idx] * t33[idx];
+    tt33 = t13[idx] * t13[idx] + t23[idx] * t23[idx] + t33[idx] * t33[idx];
+
+	a11[idx] += certainty * tt11;
+	a12[idx] += certainty * tt12;
+	a13[idx] += certainty * tt13;
+	a22[idx] += certainty * tt22;
+	a23[idx] += certainty * tt23;
+	a33[idx] += certainty * tt33;
+
+	h1[idx] += certainty * phase_difference * (c_Filter_Directions_X[FILTER] * tt11 + c_Filter_Directions_Y[FILTER] * tt12 + c_Filter_Directions_Z[FILTER] * tt13);
+	h2[idx] += certainty * phase_difference * (c_Filter_Directions_X[FILTER] * tt12 + c_Filter_Directions_Y[FILTER] * tt22 + c_Filter_Directions_Z[FILTER] * tt23);
+	h3[idx] += certainty * phase_difference * (c_Filter_Directions_X[FILTER] * tt13 + c_Filter_Directions_Y[FILTER] * tt23 + c_Filter_Directions_Z[FILTER] * tt33);
 }
-*/
 
-
+/*
 __kernel void CalculateAMatricesAndHVectors(__global float* a11, 
 	                                        __global float* a12, 
 											__global float* a13, 
@@ -8828,81 +8885,24 @@ __kernel void CalculateAMatricesAndHVectors(__global float* a11,
 	h2[idx] = h2Temp;
 	h3[idx] = h3Temp;	
 }
-
-
-
-/*
-__global__ void EstimateAAndB(float *a11, float *a12, float *a13, float *a22, float *a23, float *a33, float *b1, float *b2, float *b3, float *dk, float *ck, float *t11, float *t12, float *t13, float *t22, float *t23, float *t33, DataSize dataSize, size_t pitch, int blocksInY, float invBlocksInY) {
-	unsigned int blockIdxz = __float2uint_rd(blockIdx.y * invBlocksInY);
-	unsigned int blockIdxy = blockIdx.y - __umul24(blockIdxz,blocksInY);
-	volatile int x = __umul24(blockIdx.x,blockDim.x) + threadIdx.x;
-	volatile int y = __umul24(blockIdxy ,blockDim.y) + threadIdx.y;
-	volatile int z = __umul24(blockIdxz ,blockDim.z) + threadIdx.z;	
-	
-	size_t offSet = pitch * dataSize.dataHeight * dataSize.dataDepth;
-	
-	if (x < dataSize.dataWidth && y < dataSize.dataHeight && z < dataSize.dataDepth) {
-		int idx = x + __umul24(y,pitch) + __umul24(z,pitch*dataSize.dataHeight);
-		float a11Temp = 0;
-		float a12Temp = 0;
-		float a13Temp = 0;
-		float a22Temp = 0;
-		float a23Temp = 0;
-		float a33Temp = 0;
-		float b1Temp = 0;
-		float b2Temp = 0;
-		float b3Temp = 0;
-		float tt11, tt12, tt13, tt22, tt23, tt33;
-		
-		tt11 = t11[idx] * t11[idx] + t12[idx] * t12[idx] + t13[idx] * t13[idx];
-        tt12 = t11[idx] * t12[idx] + t12[idx] * t22[idx] + t13[idx] * t23[idx];
-        tt13 = t11[idx] * t13[idx] + t12[idx] * t23[idx] + t13[idx] * t33[idx];
-        tt22 = t12[idx] * t12[idx] + t22[idx] * t22[idx] + t23[idx] * t23[idx];
-        tt23 = t12[idx] * t13[idx] + t22[idx] * t23[idx] + t23[idx] * t33[idx];
-        tt33 = t13[idx] * t13[idx] + t23[idx] * t23[idx] + t33[idx] * t33[idx];
-        
-		for(int k = 0; k < NUMBER_OF_FILTER_ORIENTATIONS; k++) {
-			a11Temp += ck[idx + k*offSet] * tt11;
-			a12Temp += ck[idx + k*offSet] * tt12;
-			a13Temp += ck[idx + k*offSet] * tt13;
-			a22Temp += ck[idx + k*offSet] * tt22;
-			a23Temp += ck[idx + k*offSet] * tt23;
-			a33Temp += ck[idx + k*offSet] * tt33;
-			
-			b1Temp += ck[idx + k*offSet] * dk[idx + k*offSet] * (c_Filter_Direction_X[k] * tt11 + c_Filter_Direction_Y[k] * tt12 + c_Filter_Direction_Z[k] * tt13);
-			b2Temp += ck[idx + k*offSet] * dk[idx + k*offSet] * (c_Filter_Direction_X[k] * tt12 + c_Filter_Direction_Y[k] * tt22 + c_Filter_Direction_Z[k] * tt23);
-			b3Temp += ck[idx + k*offSet] * dk[idx + k*offSet] * (c_Filter_Direction_X[k] * tt13 + c_Filter_Direction_Y[k] * tt23 + c_Filter_Direction_Z[k] * tt33);
-		}
-		a11[idx] = a11Temp;
-		a12[idx] = a12Temp;
-		a13[idx] = a13Temp;
-		a22[idx] = a22Temp;
-		a23[idx] = a23Temp;
-		a33[idx] = a33Temp;
-		b1[idx] = b1Temp;
-		b2[idx] = b2Temp;
-		b3[idx] = b3Temp;
-	}
-}
 */
 
 
-__kernel void CalculateDisplacementAndCertaintyUpdate(__global float* updateDisplacementX, 
-	                                                  __global float* updateDisplacementY, 
-													  __global float* updateDisplacementZ, 
-													  __global float* updateCertainty, 
-													  __global const float* a11, 
-													  __global const float* a12, 
-													  __global const float* a13, 
-													  __global const float* a22, 
-													  __global const float* a23, 
-													  __global const float* a33, 
-													  __global const float* h1, 
-													  __global const float* h2, 
-													  __global const float* h3, 
-													  __private int DATA_W, 
-													  __private int DATA_H, 
-													  __private int DATA_D) 
+__kernel void CalculateDisplacementUpdate(__global float* DisplacementX,
+	                                      __global float* DisplacementY,
+	                                      __global float* DisplacementZ,
+										  __global const float* a11,
+										  __global const float* a12,
+										  __global const float* a13,
+										  __global const float* a22,
+										  __global const float* a23,
+										  __global const float* a33,
+										  __global const float* h1,
+										  __global const float* h2,
+										  __global const float* h3,
+										  __private int DATA_W,
+										  __private int DATA_H,
+										  __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -8922,48 +8922,15 @@ __kernel void CalculateDisplacementAndCertaintyUpdate(__global float* updateDisp
 	float h1Temp = h1[idx];
 	float h2Temp = h2[idx];
 	float h3Temp = h3[idx];
-				
-	updateCertainty[idx] = a11Temp + a22Temp + a33Temp; // trace of A
-		
+
 	float norm = 1.0f / (a11Temp * a22Temp * a33Temp - a11Temp * a23Temp * a23Temp - a12Temp * a12Temp * a33Temp + a12Temp * a23Temp * a13Temp + a13Temp * a12Temp * a23Temp - a13Temp * a22Temp * a13Temp + 1E-16f);
 		
-	updateDisplacementX[idx] = -norm * ((h3Temp * (a12Temp * a23Temp - a13Temp * a22Temp)) - (h2Temp * (a12Temp * a33Temp - a13Temp * a23Temp)) + (h1Temp * (a22Temp * a33Temp - a23Temp * a23Temp)));
-	updateDisplacementY[idx] = -norm * ((h2Temp * (a11Temp * a33Temp - a13Temp * a13Temp)) - (h3Temp * (a11Temp * a23Temp - a13Temp * a12Temp)) - (h1Temp * (a12Temp * a33Temp - a23Temp * a13Temp)));
-	updateDisplacementZ[idx] = -norm * ((h3Temp * (a11Temp * a22Temp - a12Temp * a12Temp)) - (h2Temp * (a11Temp * a23Temp - a12Temp * a13Temp)) + (h1Temp * (a12Temp * a23Temp - a22Temp * a13Temp)));	
+	DisplacementX[idx] = -norm * ((h3Temp * (a12Temp * a23Temp - a13Temp * a22Temp)) - (h2Temp * (a12Temp * a33Temp - a13Temp * a23Temp)) + (h1Temp * (a22Temp * a33Temp - a23Temp * a23Temp)));
+	DisplacementY[idx] = -norm * ((h2Temp * (a11Temp * a33Temp - a13Temp * a13Temp)) - (h3Temp * (a11Temp * a23Temp - a13Temp * a12Temp)) - (h1Temp * (a12Temp * a33Temp - a23Temp * a13Temp)));
+	DisplacementZ[idx] = -norm * ((h3Temp * (a11Temp * a22Temp - a12Temp * a12Temp)) - (h2Temp * (a11Temp * a23Temp - a12Temp * a13Temp)) + (h1Temp * (a12Temp * a23Temp - a22Temp * a13Temp)));
 }
 
 
-/*
-__global__ void EstimateDuAndCu(float *updateDisplacementX, float *updateDisplacementY, float *updateDisplacementZ, float *updateCertainty, float *a11, float *a12, float *a13, float *a22, float *a23, float *a33, float *b1, float *b2, float *b3, DataSize dataSize, size_t pitch, int blocksInY, float invBlocksInY) {
-	unsigned int blockIdxz = __float2uint_rd(blockIdx.y * invBlocksInY);
-	unsigned int blockIdxy = blockIdx.y - __umul24(blockIdxz,blocksInY);
-	volatile int x = __umul24(blockIdx.x,blockDim.x) + threadIdx.x;
-	volatile int y = __umul24(blockIdxy ,blockDim.y) + threadIdx.y;
-	volatile int z = __umul24(blockIdxz ,blockDim.z) + threadIdx.z;	
-	
-	if (x < dataSize.dataWidth && y < dataSize.dataHeight && z < dataSize.dataDepth) {
-		int idx = x + __umul24(y,pitch) + __umul24(z,pitch*dataSize.dataHeight);
-		
-		float a11Temp = a11[idx];
-		float a12Temp = a12[idx];
-		float a13Temp = a13[idx];
-		float a22Temp = a22[idx];
-		float a23Temp = a23[idx];
-		float a33Temp = a33[idx];
-		float b1Temp = b1[idx];
-		float b2Temp = b2[idx];
-		float b3Temp = b3[idx];
-				
-		updateCertainty[idx] = a11Temp + a22Temp + a33Temp;
-		
-		float norm = 1.0f / (a11Temp * a22Temp * a33Temp - a11Temp * a23Temp * a23Temp - a12Temp * a12Temp * a33Temp + a12Temp * a23Temp * a13Temp + a13Temp * a12Temp * a23Temp - a13Temp * a22Temp * a13Temp + 1E-16f);
-		
-		updateDisplacementX[idx] = -norm * ((b3Temp * (a12Temp * a23Temp - a13Temp * a22Temp)) - (b2Temp * (a12Temp * a33Temp - a13Temp * a23Temp)) + (b1Temp * (a22Temp * a33Temp - a23Temp * a23Temp)));
-		updateDisplacementY[idx] = -norm * ((b2Temp * (a11Temp * a33Temp - a13Temp * a13Temp)) - (b3Temp * (a11Temp * a23Temp - a13Temp * a12Temp)) - (b1Temp * (a12Temp * a33Temp - a23Temp * a13Temp)));
-		updateDisplacementZ[idx] = -norm * ((b3Temp * (a11Temp * a22Temp - a12Temp * a12Temp)) - (b2Temp * (a11Temp * a23Temp - a12Temp * a13Temp)) + (b1Temp * (a12Temp * a23Temp - a22Temp * a13Temp)));
-	}
-}
-*/
 
 __constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
 	
@@ -9033,7 +9000,11 @@ __constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_A
 
 __kernel void InterpolateVolumeLinearParametric(__global float* Volume, 
 	                                            read_only image3d_t Original_Volume, 
-												__constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+												__constant float* c_Parameter_Vector,
+												__private int DATA_W,
+												__private int DATA_H,
+												__private int DATA_D,
+												__private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);

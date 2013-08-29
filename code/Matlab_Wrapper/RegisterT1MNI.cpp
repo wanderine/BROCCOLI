@@ -45,7 +45,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     float           *h_Quadrature_Filter_1_Parametric_Registration_Real, *h_Quadrature_Filter_2_Parametric_Registration_Real, *h_Quadrature_Filter_3_Parametric_Registration_Real, *h_Quadrature_Filter_1_Parametric_Registration_Imag, *h_Quadrature_Filter_2_Parametric_Registration_Imag, *h_Quadrature_Filter_3_Parametric_Registration_Imag;
     float           *h_Quadrature_Filter_1_NonParametric_Registration_Real, *h_Quadrature_Filter_2_NonParametric_Registration_Real, *h_Quadrature_Filter_3_NonParametric_Registration_Real, *h_Quadrature_Filter_1_NonParametric_Registration_Imag, *h_Quadrature_Filter_2_NonParametric_Registration_Imag, *h_Quadrature_Filter_3_NonParametric_Registration_Imag;
     float           *h_Quadrature_Filter_4_NonParametric_Registration_Real, *h_Quadrature_Filter_5_NonParametric_Registration_Real, *h_Quadrature_Filter_6_NonParametric_Registration_Real, *h_Quadrature_Filter_4_NonParametric_Registration_Imag, *h_Quadrature_Filter_5_NonParametric_Registration_Imag, *h_Quadrature_Filter_6_NonParametric_Registration_Imag;
-    int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, COARSEST_SCALE, MM_T1_Z_CUT;
+    int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION, COARSEST_SCALE, MM_T1_Z_CUT;
     int             OPENCL_PLATFORM, OPENCL_DEVICE;
     
     cl_float2          *h_Quadrature_Filter_1_Parametric_Registration, *h_Quadrature_Filter_2_Parametric_Registration, *h_Quadrature_Filter_3_Parametric_Registration;
@@ -59,7 +59,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Filter_Directions_X_double, *h_Filter_Directions_Y_double, *h_Filter_Directions_Z_double;
     float           *h_Filter_Directions_X, *h_Filter_Directions_Y, *h_Filter_Directions_Z;
     
-    int T1_DATA_H, T1_DATA_W, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;
+    int             T1_DATA_H, T1_DATA_W, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
@@ -101,11 +101,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<33)
+    if(nrhs<34)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>33)
+    if(nrhs>34)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -158,11 +158,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Filter_Directions_X_double = (double*)mxGetPr(prhs[25]);
     h_Filter_Directions_Y_double = (double*)mxGetPr(prhs[26]);
     h_Filter_Directions_Z_double = (double*)mxGetPr(prhs[27]);
-    NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[28]);
-    COARSEST_SCALE  = (int)mxGetScalar(prhs[29]);
-    MM_T1_Z_CUT  = (int)mxGetScalar(prhs[30]);
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[31]);
-    OPENCL_DEVICE  = (int)mxGetScalar(prhs[32]);
+    NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[28]);
+    NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[29]);
+    COARSEST_SCALE  = (int)mxGetScalar(prhs[30]);
+    MM_T1_Z_CUT  = (int)mxGetScalar(prhs[31]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[32]);
+    OPENCL_DEVICE  = (int)mxGetScalar(prhs[33]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_T1 = mxGetDimensions(prhs[0]);
@@ -204,7 +205,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("T1 size : %i x %i x %i \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
     mexPrintf("T1 interpolated size : %i x %i x %i \n",  T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
     mexPrintf("Filter size : %i x %i x %i \n",  IMAGE_REGISTRATION_FILTER_SIZE,IMAGE_REGISTRATION_FILTER_SIZE,IMAGE_REGISTRATION_FILTER_SIZE);
-    mexPrintf("Number of iterations : %i \n \n",  NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
     
     //-------------------------------------------------
     // Output to Matlab
@@ -554,6 +554,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
         BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
         BROCCOLI.SetInterpolationMode(LINEAR);
+        BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION);
+        BROCCOLI.SetNumberOfIterationsForNonParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION);
         BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);    
         //BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration, h_Quadrature_Filter_2_Parametric_Registration, h_Quadrature_Filter_3_Parametric_Registration);
         //BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration, h_Quadrature_Filter_2_NonParametric_Registration, h_Quadrature_Filter_3_NonParametric_Registration, h_Quadrature_Filter_4_NonParametric_Registration, h_Quadrature_Filter_5_NonParametric_Registration, h_Quadrature_Filter_6_NonParametric_Registration);
@@ -566,7 +568,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetProjectionTensorMatrixFifthFilter(h_Projection_Tensor_5[0],h_Projection_Tensor_5[1],h_Projection_Tensor_5[2],h_Projection_Tensor_5[3],h_Projection_Tensor_5[4],h_Projection_Tensor_5[5]);
         BROCCOLI.SetProjectionTensorMatrixSixthFilter(h_Projection_Tensor_6[0],h_Projection_Tensor_6[1],h_Projection_Tensor_6[2],h_Projection_Tensor_6[3],h_Projection_Tensor_6[4],h_Projection_Tensor_6[5]);
         BROCCOLI.SetFilterDirections(h_Filter_Directions_X, h_Filter_Directions_Y, h_Filter_Directions_Z);
-        BROCCOLI.SetNumberOfIterationsForImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);
         BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE);
         BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
         BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
@@ -608,6 +609,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         } 
     }
         
+    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
+    
     // Unpack results to Matlab    
     unpack_float2double_image(h_A_Matrix_double, h_A_Matrix, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS);
     unpack_float2double(h_h_Vector_double, h_h_Vector, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS);

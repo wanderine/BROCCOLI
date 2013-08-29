@@ -43,8 +43,8 @@ elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/BROCCOLI_test_data/';
     %basepath = '../../test_data/fcon1000/classic/';
-    mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
-    
+    %mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
+    mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release
 end
 
 
@@ -54,17 +54,17 @@ end
 %subject = 'sub00156'
 %subject = 'sub00294'
 %subject = 'sub01361'
-study = 'Beijing';
+%study = 'Beijing';
 %subject = 'sub00440'
 %subject = 'sub01018'
 %subject = 'sub01244'
-%study = 'ICBM';
+study = 'ICBM';
 %subject = 'sub00448'
 %subject = 'sub00623'
 %subject = 'sub02382'
 %study = 'Oulu';
 %study = 'OpenfMRI';
-substudy = 'Mixed';
+substudy = 'Mixed'; 
 %substudy = 'Balloon';
 
 %subject = 18;
@@ -73,13 +73,34 @@ voxel_size = 1;
 opencl_platform = 2;
 opencl_device = 0;
 
-number_of_iterations_for_image_registration = 10;
+number_of_iterations_for_parametric_image_registration = 5;
+number_of_iterations_for_nonparametric_image_registration = 5;
 coarsest_scale = 8/voxel_size;
-MM_T1_Z_CUT = 100;
+%coarsest_scale = 1;
+MM_T1_Z_CUT = 130;
 
+MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
+MNI = double(MNI_nii.img);
+MNI = MNI/max(MNI(:));
+[MNI_sy MNI_sx MNI_sz] = size(MNI);
+[MNI_sy MNI_sx MNI_sz]
+    
+MNI_brain_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain.nii']);
+MNI_brain = double(MNI_brain_nii.img);
+MNI_brain = MNI_brain/max(MNI_brain(:));
+        
+MNI_brain_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
+MNI_brain_mask = double(MNI_brain_mask_nii.img);
+MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
+    
+load filters_for_parametric_registration.mat
+load filters_for_nonparametric_registration.mat
+    
 dirs = dir([basepath study]);
 
+%for s = 3:length(dirs)
 for s = 3:length(dirs)
+%for s = 13:length(dirs)
     subject = dirs(s).name
     
     close all
@@ -93,30 +114,7 @@ for s = 3:length(dirs)
     T1 = double(T1_nii.img);
     T1 = T1/max(T1(:)); 
     
-    MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
-    MNI = double(MNI_nii.img);
-    MNI = MNI/max(MNI(:));
-    
-    MNI_brain_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain.nii']);
-    MNI_brain = double(MNI_brain_nii.img);
-    MNI_brain = MNI_brain/max(MNI_brain(:));
-    
-    %temp = zeros(256,256,256);
-    %temp(40:40+181,15:15+217,40:40+181) = MNI;
-    %MNI = temp;
-    
-    
-    %T1 = zeros(size(MNI));
-    %T1(2:end,2:end,2:end) = MNI(1:end-1,1:end-1,1:end-1);
-    
-    MNI_brain_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
-    MNI_brain_mask = double(MNI_brain_mask_nii.img);
-    MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
-    
-    %temp = zeros(256,256,256);
-    %temp(40:40+181,15:15+217,40:40+181) = MNI_brain_mask;
-    %MNI_brain_mask = temp;
-    
+        
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
         %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
     elseif ( strcmp(study,'OpenfMRI'))
@@ -132,8 +130,9 @@ for s = 3:length(dirs)
     %EPI = fMRI_volumes(:,:,:,1);
     %EPI = EPI/max(EPI(:));
     
-    [T1_sy T1_sx T1_sz] = size(T1)
-    [MNI_sy MNI_sx MNI_sz] = size(MNI)
+    [T1_sy T1_sx T1_sz] = size(T1);
+    [T1_sy T1_sx T1_sz]
+    
     %[EPI_sy EPI_sx EPI_sz] = size(EPI)
     
     if (strcmp(study,'Beijing'))
@@ -161,8 +160,7 @@ for s = 3:length(dirs)
     
     
     %%
-    load filters_for_parametric_registration.mat
-    load filters_for_nonparametric_registration.mat
+
     
     
     
@@ -179,7 +177,7 @@ for s = 3:length(dirs)
         f1_nonparametric_registration,f2_nonparametric_registration,f3_nonparametric_registration,f4_nonparametric_registration,f5_nonparametric_registration,f6_nonparametric_registration, ...
         m1, m2, m3, m4, m5, m6, ...
         filter_directions_x, filter_directions_y, filter_directions_z, ...
-        number_of_iterations_for_image_registration,coarsest_scale,MM_T1_Z_CUT,opencl_platform, opencl_device);
+        number_of_iterations_for_parametric_image_registration,number_of_iterations_for_nonparametric_image_registration,coarsest_scale,MM_T1_Z_CUT,opencl_platform, opencl_device);
     toc
     
     %fr = convn(interpolated_T1_opencl,f3,'same');
