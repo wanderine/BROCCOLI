@@ -31,30 +31,38 @@ close all
 if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
+    basepath = 'D:\BROCCOLI_test_data\';
     %mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
     mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
 elseif isunix
     mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug 
 end
     
-
-%filename = '../../test_data/msit_1.6mm_1.nii';
-
-load ../../test_data/hand_movements_right.mat
-fMRI_volumes = vol_exp;
-
-%subject = 21;
-%EPI_nii = load_nii(['rest' num2str(subject) '.nii.gz']);
-%fMRI_volumes = double(EPI_nii.img);
-fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
-%fMRI_volumes = fMRI_volumes(:,:,1:22,:);
-
-reference_volume = fMRI_volumes(:,:,:,1);
-[sy sx sz st] = size(fMRI_volumes)
-number_of_iterations_for_motion_correction = 5;
-load filters_for_parametric_registration.mat
-opencl_platform = 1;
+opencl_platform = 0;
 opencl_device = 0;
+
+%study = 'Oulu';
+%study = 'ICBM';
+study = 'Cambridge';
+%study = 'Beijing';
+%study = 'OpenfMRI';
+substudy = 'Mixed';
+subject = 8;
+
+if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
+    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+elseif ( strcmp(study,'OpenfMRI'))
+    EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
+end
+
+fMRI_volumes = double(EPI_nii.img);
+fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
+
+
+[sy sx sz st] = size(fMRI_volumes)
+number_of_iterations_for_motion_correction = 10;
+load filters_for_parametric_registration.mat
+
 
 
 %%
@@ -62,6 +70,7 @@ opencl_device = 0;
 
 generated_fMRI_volumes = zeros(size(fMRI_volumes));
 generated_fMRI_volumes(:,:,:,1) = fMRI_volumes(:,:,:,1);
+reference_volume = fMRI_volumes(:,:,:,1);
 
 x_translations = zeros(st,1);
 y_translations = zeros(st,1);
@@ -71,7 +80,7 @@ x_rotations = zeros(st,1);
 y_rotations = zeros(st,1);
 z_rotations = zeros(st,1);
 
-factor = 0.25;
+factor = 0.5;
 
 for t = 2:st
         
@@ -151,8 +160,11 @@ end
 %%
 
 fMRI_volumes = generated_fMRI_volumes;
+%load fMRI_volumes.mat
 
-[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction);
+%[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction);
+motion_parameters_cpu = zeros(st,12);
+rotations_cpu = zeros(st,3);
 
 tic
 [motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = MotionCorrection(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction,opencl_platform,opencl_device);
@@ -292,9 +304,17 @@ legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations 
 
 slice = 18;
 
-figure
-imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar
-title('MC cpu - gpu')
+x_rotations_opencl = squeeze(motion_parameters_opencl(:,4));
+y_rotations_opencl = squeeze(motion_parameters_opencl(:,5));
+z_rotations_opencl = squeeze(motion_parameters_opencl(:,6));
+
+max(x_rotations(:) - x_rotations_opencl(:))
+max(y_rotations(:) - y_rotations_opencl(:))
+max(z_rotations(:) - z_rotations_opencl(:))
+
+%figure
+%imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar
+%title('MC cpu - gpu')
 
 % for t = 1:st    
 %    figure(5)

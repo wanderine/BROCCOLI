@@ -24,7 +24,7 @@
 */
 
 
-
+#include <Dense>
 #include <stdio.h>
 #include <math.h>
 #include <stdlib.h>
@@ -3527,9 +3527,9 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 	NonseparableConvolution3D(d_q11, d_q12, d_q13, d_Reference_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
 
 
-	clEnqueueReadBuffer(commandQueue, d_q11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_q12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_q13, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_q11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_q12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_q13, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
 
 
 
@@ -3545,9 +3545,9 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 	{
 		NonseparableConvolution3D(d_q21, d_q22, d_q23, d_Aligned_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
 
-		clEnqueueReadBuffer(commandQueue, d_q21, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_q22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_q23, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
+		//clEnqueueReadBuffer(commandQueue, d_q21, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
+		//clEnqueueReadBuffer(commandQueue, d_q22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
+		//clEnqueueReadBuffer(commandQueue, d_q23, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
 			
 		// Calculate phase differences, certainties and phase gradients in the X direction
 		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 2, sizeof(cl_mem), &d_q11);
@@ -3620,18 +3620,19 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 		// Mirror the matrix values
 		for (int j = 0; j < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; j++)
 		{
-			h_h_Vector_Out[j] = h_h_Vector[j];
+			//h_h_Vector_Out[j] = h_h_Vector[j];
 			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
 			{
 				h_A_Matrix[j + i*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS] = h_A_Matrix[i + j*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS];
-				h_A_Matrix_Out[j + i*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS] = h_A_Matrix[i + j*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS];
+				//h_A_Matrix_Out[j + i*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS] = h_A_Matrix[i + j*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS];
 			}
 		}
 
 
 		// Solve the equation system A * p = h to obtain the parameter vector
 		//SolveEquationSystem(h_A_Matrix, h_h_Vector, h_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
-		SolveSystemLUDouble(h_Registration_Parameters, h_A_Matrix, h_h_Vector, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+		//SolveSystemLUDouble(h_Registration_Parameters, h_A_Matrix, h_h_Vector, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
+		SolveEquationSystemEigen(h_Registration_Parameters, h_A_Matrix, h_h_Vector, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
 
 		// Remove everything but translation
 		if (ALIGNMENT_TYPE == TRANSLATION)
@@ -9295,6 +9296,7 @@ void BROCCOLI_LIB::InvertMatrixDouble(double* inverse_matrix, double* matrix, in
 	free(X);
 }
 
+
 void BROCCOLI_LIB::SolveSystemLUDouble(float* solution, float* matrix, float* b_vector, int N)
 {
     int i = 0;
@@ -9652,6 +9654,36 @@ void BROCCOLI_LIB::SolveEquationSystemDouble(double* h_A_Matrix, double* h_h_Vec
 		}			
 	}
 }
+
+void BROCCOLI_LIB::SolveEquationSystemEigen(float* h_Parameter_Vector, float* h_A_Matrix, float* h_h_Vector, int N)
+{
+	Eigen::MatrixXd A(12,12);
+	Eigen::VectorXd h(12,1);
+
+	// Make a double version
+	for (int i = 0; i < N; i++)
+	{
+		h(i) = (double)h_h_Vector[i];
+		
+		for (int j = 0; j < N; j++)
+		{
+			A(i,j) = (double)h_A_Matrix[i + j*N];	
+
+			if (i == j)
+			{
+				A(i,j) += 0.001;
+			}
+		}
+	}
+
+	Eigen::VectorXd x = A.fullPivHouseholderQr().solve(h);
+		
+    for (int i = 0; i < N; i++)
+	{
+		h_Parameter_Vector[i] = (float)x(i);
+	}
+}
+
 
 void BROCCOLI_LIB::SetupDetrendingRegressors(int N)
 {

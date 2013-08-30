@@ -41,7 +41,7 @@ substudy = 'Mixed'
 subject = 9;
 voxel_size = 2;
 beta_space = 1; % 0 = EPI, 1 = MNI
-opencl_platform = 2;
+opencl_platform = 0;
 opencl_device = 0;
 
 

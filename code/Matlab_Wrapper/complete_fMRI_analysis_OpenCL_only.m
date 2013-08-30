@@ -58,10 +58,10 @@ end
 
 T1 = double(T1_nii.img);
 T1 = T1/max(T1(:));
-MNI_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
+MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
 MNI = MNI/max(MNI(:));
-MNI_brain_mask_nii = load_nii(['../../test_data/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
+MNI_brain_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
 MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 
@@ -82,7 +82,7 @@ mean_volume = mean(fMRI_volumes,4);
 for t = 1:st
     means(:,:,:,t) = mean_volume;
 end
-fMRI_volumes = fMRI_volumes - means/1.25;
+%fMRI_volumes = fMRI_volumes - means/1.25;
 
 EPI = fMRI_volumes(:,:,:,1);
 EPI = EPI/max(EPI(:));
@@ -124,7 +124,7 @@ coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 4/voxel_size;
 MM_T1_Z_CUT = 60;
 MM_EPI_Z_CUT = 20;
-load filters.mat
+load filters_for_parametric_registration.mat
 
 %%
 % Create regressors
@@ -171,7 +171,7 @@ tic
  EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl ...
  ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
-T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
+T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
 coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,EPI_smoothing_amount,AR_smoothing_amount, ...
 X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform,opencl_device);
 toc
