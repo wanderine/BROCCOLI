@@ -58,7 +58,7 @@ voxel_size = 1;
 
 % Select OpenCL platform and OpenCL device
 % (use GetOpenCLInfo to see your platforms and devices)
-opencl_platform = 2;
+opencl_platform = 0;
 opencl_device = 0;
 
 % Set parameters for registration
