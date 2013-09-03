@@ -588,7 +588,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetOutputAMatrix(h_A_Matrix);
         BROCCOLI.SetOutputHVector(h_h_Vector);
                             
-        BROCCOLI.PerformRegistrationT1MNIWrapper();
+        //BROCCOLI.PerformRegistrationT1MNIWrapper();
+        BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper();
         
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
         for (int i = 0; i < 30; i++)

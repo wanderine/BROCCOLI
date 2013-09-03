@@ -74,14 +74,14 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib;C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include\CL;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include;C:\ProgramData\NVIDIA Corporation\CUDA Samples\v5.0\common\inc;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\wande\Documents\Visual Studio 2010\Projects\BROCCOLI_LIB\Eigen;C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib;C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include\CL;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include;C:\ProgramData\NVIDIA Corporation\CUDA Samples\v5.0\common\inc;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib;C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include\CL;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include;C:\ProgramData\NVIDIA Corporation\CUDA Samples\v5.0\common\inc;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\wande\Documents\Visual Studio 2010\Projects\BROCCOLI_LIB\Eigen;C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib;C:\Users\wande\Documents\Visual Studio 2012\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include\CL;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v5.0\include;C:\ProgramData\NVIDIA Corporation\CUDA Samples\v5.0\common\inc;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

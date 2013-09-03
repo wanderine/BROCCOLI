@@ -32,8 +32,8 @@ close all
 if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
-    %basepath = 'D:\BROCCOLI_test_data\';
-    basepath = '../../test_data/fcon1000/classic/';
+    basepath = 'D:\BROCCOLI_test_data\';
+    %basepath = '../../test_data/fcon1000/classic/';
     mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
     %mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
     
@@ -47,9 +47,6 @@ elseif isunix
     mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release
 end
 
-
-
-
 %study = 'Cambridge';
 %subject = 'sub00156'
 %subject = 'sub00294'
@@ -58,26 +55,26 @@ end
 %subject = 'sub00440'
 %subject = 'sub01018'
 %subject = 'sub01244'
-study = 'ICBM';
-subject = 'sub00448'
+%study = 'ICBM';
+%subject = 'sub00448'
 %subject = 'sub00623'
 %subject = 'sub02382'
-%study = 'Oulu';
+study = 'Oulu';
 %study = 'OpenfMRI';
-substudy = 'Mixed'; 
+%substudy = 'Mixed'; 
 %substudy = 'Balloon';
 
-%subject = 18;
+subject = 20;
 
+skullstripped = 1;
 voxel_size = 1;
 opencl_platform = 0;
 opencl_device = 0;
 
-number_of_iterations_for_parametric_image_registration = 5;
+number_of_iterations_for_parametric_image_registration = 20;
 number_of_iterations_for_nonparametric_image_registration = 5;
 coarsest_scale = 8/voxel_size;
-%coarsest_scale = 1;
-MM_T1_Z_CUT = 130;
+MM_T1_Z_CUT = 50;
 
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
@@ -106,8 +103,9 @@ dirs = dir([basepath study]);
     close all
     
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
-        T1_nii = load_nii([basepath study '/'  subject '/anat/mprage_anonymized.nii.gz']);
+        %T1_nii = load_nii([basepath study '/'  subject '/anat/mprage_anonymized.nii.gz']);
         %T1_nii = load_nii([basepath study '/mprage_anonymized' num2str(subject) '.nii.gz']);
+        T1_nii = load_nii([basepath study '/mprage_skullstripped' num2str(subject) '.nii.gz']);
     elseif ( strcmp(study,'OpenfMRI'))
         T1_nii = load_nii([basepath study '/' substudy '/highres' subject '.nii.gz']);
     end

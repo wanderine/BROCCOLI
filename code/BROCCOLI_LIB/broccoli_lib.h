@@ -275,6 +275,7 @@ class BROCCOLI_LIB
 		// Preprocessing
 		void ChangeT1VolumeResolutionAndSizeWrapper();
 		void PerformRegistrationT1MNIWrapper();
+		void PerformRegistrationT1MNINoSkullstripWrapper();
 		void PerformRegistrationEPIT1Wrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
