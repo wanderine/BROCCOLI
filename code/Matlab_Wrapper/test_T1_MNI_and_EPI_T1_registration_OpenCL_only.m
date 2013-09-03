@@ -44,10 +44,14 @@ elseif isunix
     basepath = '/data/andek/BROCCOLI_test_data/';
     %basepath = '../../test_data/fcon1000/classic/';
     %mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
-    mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release
+    mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
+    %mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
+    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
 end
 
-%study = 'Cambridge';
+study = 'Baltimore';
+
+study = 'Cambridge';
 %subject = 'sub00156'
 %subject = 'sub00294'
 %subject = 'sub01361'
@@ -59,22 +63,22 @@ end
 %subject = 'sub00448'
 %subject = 'sub00623'
 %subject = 'sub02382'
-study = 'Oulu';
+%study = 'Oulu';
 %study = 'OpenfMRI';
 %substudy = 'Mixed'; 
 %substudy = 'Balloon';
 
-subject = 20;
+subject = 4;
 
 skullstripped = 1;
 voxel_size = 1;
-opencl_platform = 0;
-opencl_device = 0;
+opencl_platform = 2;
+opencl_device = 1;
 
-number_of_iterations_for_parametric_image_registration = 20;
+number_of_iterations_for_parametric_image_registration = 5;
 number_of_iterations_for_nonparametric_image_registration = 5;
 coarsest_scale = 8/voxel_size;
-MM_T1_Z_CUT = 50;
+MM_T1_Z_CUT = 120;
 
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
@@ -94,6 +98,7 @@ load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
     
 dirs = dir([basepath study]);
+subject = dirs(subject+2).name
 
 %for s = 3:length(dirs)
 %for s = 3:length(dirs)
@@ -102,10 +107,11 @@ dirs = dir([basepath study]);
     
     close all
     
-    if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
+    if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  || (strcmp(study,'Baltimore')) ) 
         %T1_nii = load_nii([basepath study '/'  subject '/anat/mprage_anonymized.nii.gz']);
         %T1_nii = load_nii([basepath study '/mprage_anonymized' num2str(subject) '.nii.gz']);
-        T1_nii = load_nii([basepath study '/mprage_skullstripped' num2str(subject) '.nii.gz']);
+        %T1_nii = load_nii([basepath study '/mprage_skullstripped' num2str(subject) '.nii.gz']);
+        T1_nii = load_nii([basepath study '/' subject '/anat/mprage_skullstripped.nii.gz']);
     elseif ( strcmp(study,'OpenfMRI'))
         T1_nii = load_nii([basepath study '/' substudy '/highres' subject '.nii.gz']);
     end
@@ -113,25 +119,26 @@ dirs = dir([basepath study]);
     T1 = T1/max(T1(:)); 
     
         
-    if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
+    if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) || (strcmp(study,'Baltimore')) )
         %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);
     elseif ( strcmp(study,'OpenfMRI'))
         %EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
     end
     
-    %fMRI_volumes = double(EPI_nii.img);
+    fMRI_volumes = double(EPI_nii.img);
     %fMRI_volumes = fMRI_volumes(:,:,1:22,:);
     %fMRI_volumes = fMRI_volumes(:,:,:,5:end);
-    %[sy sx sz st] = size(fMRI_volumes)
+    [sy sx sz st] = size(fMRI_volumes)
     %fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
     
-    %EPI = fMRI_volumes(:,:,:,1);
-    %EPI = EPI/max(EPI(:));
+    EPI = fMRI_volumes(:,:,:,1);
+    EPI = EPI/max(EPI(:));
     
     [T1_sy T1_sx T1_sz] = size(T1);
     [T1_sy T1_sx T1_sz]
     
-    %[EPI_sy EPI_sx EPI_sz] = size(EPI)
+    [EPI_sy EPI_sx EPI_sz] = size(EPI)
     
     if (strcmp(study,'Beijing'))
         T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
@@ -152,9 +159,9 @@ dirs = dir([basepath study]);
     MNI_voxel_size_y = MNI_nii.hdr.dime.pixdim(3);
     MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
     
-    %EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
-    %EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
-    %EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+    EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
+    EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
+    EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
     
     
     %%
@@ -210,63 +217,69 @@ dirs = dir([basepath study]);
 %end
 %%
 
-% number_of_iterations_for_image_registration = 40;
-% coarsest_scale = 4/voxel_size;
-% MM_EPI_Z_CUT = 20;
-%
-%
-% filter_x = fspecial('gaussian',9,2);
-% filter_x = filter_x(:,5);
-% filter_x = filter_x / sum(abs(filter_x));
-% filter_y = filter_x;
-% filter_z = filter_x;
-%
-% temp = zeros(1,9,1);
-% temp(1,:,1) = filter_x;
-% filter_xx = temp;
-%
-% temp = zeros(9,1,1);
-% temp(:,1,1) = filter_y;
-% filter_yy = temp;
-%
-% temp = zeros(1,1,9);
-% temp(1,1,:) = filter_z;
-% filter_zz = temp;
-%
-% smoothed_volume = convn(skullstripped_T1_opencl,filter_xx,'same');
-% smoothed_volume = convn(smoothed_volume,filter_yy,'same');
-% smoothed_skullstripped_T1_opencl = convn(smoothed_volume,filter_zz,'same');
-%
-%
-%
-% tic
-% [aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
-% RegisterEPIT1(EPI,skullstripped_T1_opencl,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1,f2,f3,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform, opencl_device);
-% %[aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
-% %RegisterEPIT1(smoothed_skullstripped_T1_opencl,EPI,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform);
-% toc
-%
-%
-% %close all
-% slice = round(0.6*MNI_sy);
-% figure; imagesc(flipud(squeeze(interpolated_EPI_opencl(slice,:,:))')); colormap gray
-% figure; imagesc(flipud(squeeze(aligned_EPI_opencl(slice,:,:))')); colormap gray
-% figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))')); colormap gray
-% %figure; imagesc(flipud(squeeze(EPI(slice,:,:))')); colormap gray
-% %figure; imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
-%
-% slice = round(0.6*MNI_sz);
-% figure; imagesc(squeeze(interpolated_EPI_opencl(:,:,slice))); colormap gray
-% figure; imagesc(squeeze(aligned_EPI_opencl(:,:,slice))); colormap gray
-% figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
-% %figure; imagesc(squeeze(EPI(:,:,slice))); colormap gray
-% %figure; imagesc(squeeze(MNI(:,:,slice))); colormap gray
-%
-% %figure; imagesc(flipud(squeeze(interpolated_EPI_opencl(:,slice,:))')); colormap gray
-% %figure; imagesc(flipud(squeeze(aligned_EPI_opencl(:,slice,:))')); colormap gray
-% %figure; imagesc(flipud(squeeze(smoothed_skullstripped_T1_opencl(:,slice,:))')); colormap gray
-% %figure; imagesc(flipud(squeeze(MNI(:,slice,:))')); colormap gray
-%
-%
-% registration_parameters_opencl
-%
+number_of_iterations_for_image_registration = 15;
+coarsest_scale = 8/voxel_size;
+MM_EPI_Z_CUT = 20;
+
+
+filter_x = fspecial('gaussian',9,2);
+filter_x = filter_x(:,5);
+filter_x = filter_x / sum(abs(filter_x));
+filter_y = filter_x;
+filter_z = filter_x;
+
+temp = zeros(1,9,1);
+temp(1,:,1) = filter_x;
+filter_xx = temp;
+
+temp = zeros(9,1,1);
+temp(:,1,1) = filter_y;
+filter_yy = temp;
+
+temp = zeros(1,1,9);
+temp(1,1,:) = filter_z;
+filter_zz = temp;
+
+smoothed_volume = convn(skullstripped_T1_opencl,filter_xx,'same');
+smoothed_volume = convn(smoothed_volume,filter_yy,'same');
+smoothed_skullstripped_T1_opencl = convn(smoothed_volume,filter_zz,'same');
+
+
+
+tic
+[aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, ... 
+ quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl,  ...
+ phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
+RegisterEPIT1(EPI,interpolated_T1_opencl,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ...
+number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform, opencl_device);
+%[aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
+%RegisterEPIT1(smoothed_skullstripped_T1_opencl,EPI,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform);
+toc
+
+
+%close all
+slice = round(0.55*MNI_sy);
+figure; imagesc(flipud(squeeze(interpolated_EPI_opencl(slice,:,:))')); colormap gray
+figure; imagesc(flipud(squeeze(aligned_EPI_opencl(slice,:,:))')); colormap gray
+figure; imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray
+%figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))')); colormap gray
+%figure; imagesc(flipud(squeeze(EPI(slice,:,:))')); colormap gray
+%figure; imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
+
+slice = round(0.52*MNI_sz);
+figure; imagesc(squeeze(interpolated_EPI_opencl(:,:,slice))); colormap gray
+figure; imagesc(squeeze(aligned_EPI_opencl(:,:,slice))); colormap gray
+slice = round(0.52*MNI_sz);
+figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
+%figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
+%figure; imagesc(squeeze(EPI(:,:,slice))); colormap gray
+%figure; imagesc(squeeze(MNI(:,:,slice))); colormap gray
+
+%figure; imagesc(flipud(squeeze(interpolated_EPI_opencl(:,slice,:))')); colormap gray
+%figure; imagesc(flipud(squeeze(aligned_EPI_opencl(:,slice,:))')); colormap gray
+%figure; imagesc(flipud(squeeze(smoothed_skullstripped_T1_opencl(:,slice,:))')); colormap gray
+%figure; imagesc(flipud(squeeze(MNI(:,slice,:))')); colormap gray
+
+
+registration_parameters_opencl
+

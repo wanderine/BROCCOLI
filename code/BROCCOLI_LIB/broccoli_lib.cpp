@@ -3587,8 +3587,9 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 		clFinish(commandQueue);
 
 		//clEnqueueReadBuffer(commandQueue, d_Phase_Differences, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);
-		//clEnqueueReadBuffer(commandQueue, d_Phase_Certainties, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
+
 		//clEnqueueReadBuffer(commandQueue, d_Phase_Gradients, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Gradients, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Phase_Certainties, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
 
 		// Calculate values for the A-matrix and h-vector in the Z direction
 		runKernelErrorCalculateAMatrixAndHVector2DValuesZ = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesZKernel, 3, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesZ, localWorkSizeCalculateAMatrixAndHVector2DValuesZ, 0, NULL, NULL);
@@ -4125,6 +4126,95 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int
 	clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 5, sizeof(int), &DATA_D);
 	clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 6, sizeof(int), &volume);
 	*/
+}
+
+void BROCCOLI_LIB::CalculateTensorMagnitude(cl_mem d_Tensor_Magnitudes, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D)
+{
+	AlignTwoVolumesNonParametricSetup(DATA_W,DATA_H,DATA_D);
+
+	NonseparableConvolution3D(d_q11, d_q12, d_q13, d_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
+	NonseparableConvolution3D(d_q14, d_q15, d_q16, d_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
+
+	SetMemory(d_t11, 0.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_t12, 0.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_t13, 0.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_t22, 0.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_t23, 0.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_t33, 0.0f, DATA_W * DATA_H * DATA_D);
+
+	clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q11);
+	clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q21);
+	clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_1);
+	clSetKernelArg(CalculateTensorComponentsKernel, 9, sizeof(float), &M12_1);
+	clSetKernelArg(CalculateTensorComponentsKernel, 10, sizeof(float), &M13_1);
+	clSetKernelArg(CalculateTensorComponentsKernel, 11, sizeof(float), &M22_1);
+	clSetKernelArg(CalculateTensorComponentsKernel, 12, sizeof(float), &M23_1);
+	clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_1);
+	runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
+
+	clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q12);
+	clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q22);
+	clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_2);
+	clSetKernelArg(CalculateTensorComponentsKernel, 9, sizeof(float), &M12_2);
+	clSetKernelArg(CalculateTensorComponentsKernel, 10, sizeof(float), &M13_2);
+	clSetKernelArg(CalculateTensorComponentsKernel, 11, sizeof(float), &M22_2);
+	clSetKernelArg(CalculateTensorComponentsKernel, 12, sizeof(float), &M23_2);
+	clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_2);
+	runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
+
+	clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q13);
+	clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q23);
+	clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_3);
+	clSetKernelArg(CalculateTensorComponentsKernel, 9, sizeof(float), &M12_3);
+	clSetKernelArg(CalculateTensorComponentsKernel, 10, sizeof(float), &M13_3);
+	clSetKernelArg(CalculateTensorComponentsKernel, 11, sizeof(float), &M22_3);
+	clSetKernelArg(CalculateTensorComponentsKernel, 12, sizeof(float), &M23_3);
+	clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_3);
+	runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
+
+	clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q14);
+	clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q24);
+	clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_4);
+	clSetKernelArg(CalculateTensorComponentsKernel, 9, sizeof(float), &M12_4);
+	clSetKernelArg(CalculateTensorComponentsKernel, 10, sizeof(float), &M13_4);
+	clSetKernelArg(CalculateTensorComponentsKernel, 11, sizeof(float), &M22_4);
+	clSetKernelArg(CalculateTensorComponentsKernel, 12, sizeof(float), &M23_4);
+	clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_4);
+	runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
+
+	clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q15);
+	clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q25);
+	clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_5);
+	clSetKernelArg(CalculateTensorComponentsKernel, 9, sizeof(float), &M12_5);
+	clSetKernelArg(CalculateTensorComponentsKernel, 10, sizeof(float), &M13_5);
+	clSetKernelArg(CalculateTensorComponentsKernel, 11, sizeof(float), &M22_5);
+	clSetKernelArg(CalculateTensorComponentsKernel, 12, sizeof(float), &M23_5);
+	clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_5);
+	runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
+
+	clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q16);
+	clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q26);
+	clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_6);
+	clSetKernelArg(CalculateTensorComponentsKernel, 9, sizeof(float), &M12_6);
+	clSetKernelArg(CalculateTensorComponentsKernel, 10, sizeof(float), &M13_6);
+	clSetKernelArg(CalculateTensorComponentsKernel, 11, sizeof(float), &M22_6);
+	clSetKernelArg(CalculateTensorComponentsKernel, 12, sizeof(float), &M23_6);
+	clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_6);
+	runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
+
+	clSetKernelArg(CalculateTensorNormsKernel, 0, sizeof(cl_mem), &d_Tensor_Magnitudes);
+	clSetKernelArg(CalculateTensorNormsKernel, 1, sizeof(cl_mem), &d_t11);
+	clSetKernelArg(CalculateTensorNormsKernel, 2, sizeof(cl_mem), &d_t12);
+	clSetKernelArg(CalculateTensorNormsKernel, 3, sizeof(cl_mem), &d_t13);
+	clSetKernelArg(CalculateTensorNormsKernel, 4, sizeof(cl_mem), &d_t22);
+	clSetKernelArg(CalculateTensorNormsKernel, 5, sizeof(cl_mem), &d_t23);
+	clSetKernelArg(CalculateTensorNormsKernel, 6, sizeof(cl_mem), &d_t33);
+	clSetKernelArg(CalculateTensorNormsKernel, 7, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateTensorNormsKernel, 8, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateTensorNormsKernel, 9, sizeof(int), &DATA_D);
+	runKernelErrorCalculateTensorNorms = clEnqueueNDRangeKernel(commandQueue, CalculateTensorNormsKernel, 3, NULL, globalWorkSizeCalculateTensorNorms, localWorkSizeCalculateTensorNorms, 0, NULL, NULL);
+
+	AlignTwoVolumesNonParametricCleanup();
 }
 
 // This function is the foundation for all the non-parametric image registration functions
@@ -6144,6 +6234,46 @@ void BROCCOLI_LIB::AddVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, 
 	clFinish(commandQueue);	
 }
 
+/*
+void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
+{
+	// Allocate memory for EPI volume, T1 volume and EPI volume of T1 size
+	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy data to EPI volume and T1 volume
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Volume , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+
+	// Interpolate EPI volume to T1 resolution and make sure it has the same size
+	ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, INTERPOLATION_MODE);
+
+	// Copy the EPI T1 volume to host
+	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Interpolated_EPI_Volume, 0, NULL, NULL);
+
+	// Do the registration between EPI and T1 with several scales, rigid
+	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_EPI_T1_Affine, h_Rotations, d_T1_EPI_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE, INTERPOLATION_MODE);
+
+	// Copy the aligned EPI volume to host
+	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Aligned_EPI_Volume, 0, NULL, NULL);
+
+	// Get translations
+	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1_Affine[0];
+	h_Registration_Parameters_EPI_T1_Out[1] = h_Registration_Parameters_EPI_T1_Affine[1];
+	h_Registration_Parameters_EPI_T1_Out[2] = h_Registration_Parameters_EPI_T1_Affine[2];
+
+	// Get rotations
+	h_Registration_Parameters_EPI_T1_Out[3] = h_Rotations[0];
+	h_Registration_Parameters_EPI_T1_Out[4] = h_Rotations[1];
+	h_Registration_Parameters_EPI_T1_Out[5] = h_Rotations[2];
+
+	// Cleanup
+	clReleaseMemObject(d_EPI_Volume);
+	clReleaseMemObject(d_T1_Volume);
+	clReleaseMemObject(d_T1_EPI_Volume);
+}
+*/
 
 void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
 {
@@ -6162,8 +6292,17 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
 	// Copy the EPI T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Interpolated_EPI_Volume, 0, NULL, NULL);
 
+	d_Tensor_Magnitude_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	d_Tensor_Magnitude_T1_EPI = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+
+	// Apply filters for non-parametric registration and estimate tensor magnitude for T1 volume
+	CalculateTensorMagnitude(d_Tensor_Magnitude_T1, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+
+	// Apply filters for non-parametric registration and estimate tensor magnitude for T1 EPI volume
+	CalculateTensorMagnitude(d_Tensor_Magnitude_T1_EPI, d_T1_EPI_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+
 	// Do the registration between EPI and T1 with several scales, rigid
-	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_EPI_T1_Affine, h_Rotations, d_T1_EPI_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE, INTERPOLATION_MODE);
+	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_EPI_T1_Affine, h_Rotations, d_Tensor_Magnitude_T1_EPI, d_Tensor_Magnitude_T1, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE, INTERPOLATION_MODE);
 	
 	// Copy the aligned EPI volume to host
 	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Aligned_EPI_Volume, 0, NULL, NULL);
@@ -6182,7 +6321,11 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
 	clReleaseMemObject(d_EPI_Volume);
 	clReleaseMemObject(d_T1_Volume);
 	clReleaseMemObject(d_T1_EPI_Volume);	
+	clReleaseMemObject(d_Tensor_Magnitude_T1);
+	clReleaseMemObject(d_Tensor_Magnitude_T1_EPI);
 }
+
+
 
 void BROCCOLI_LIB::PerformRegistrationEPIT1()
 {
@@ -6311,17 +6454,17 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstripWrapper()
 
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
-	
+
 	// Perform non-parametric registration between tramsformed skullstripped volume and MNI brain volume
 	AlignTwoVolumesNonParametricSeveralScales(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE);
 
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonParametric, 0, NULL, NULL);
-				
+
 	// Cleanup
 
 	clReleaseMemObject(d_MNI_Brain_Volume);
-	clReleaseMemObject(d_MNI_T1_Volume);	
+	clReleaseMemObject(d_MNI_T1_Volume);
 }
 
 // Performs registration between one high resolution T1 volume and a high resolution MNI volume (brain template)
@@ -9701,10 +9844,10 @@ void BROCCOLI_LIB::SolveEquationSystemEigen(float* h_Parameter_Vector, float* h_
 	for (int i = 0; i < N; i++)
 	{
 		h(i) = (double)h_h_Vector[i];
-		
+
 		for (int j = 0; j < N; j++)
 		{
-			A(i,j) = (double)h_A_Matrix[i + j*N];	
+			A(i,j) = (double)h_A_Matrix[i + j*N];
 
 			if (i == j)
 			{
@@ -9714,7 +9857,7 @@ void BROCCOLI_LIB::SolveEquationSystemEigen(float* h_Parameter_Vector, float* h_
 	}
 
 	Eigen::VectorXd x = A.fullPivHouseholderQr().solve(h);
-		
+
     for (int i = 0; i < N; i++)
 	{
 		h_Parameter_Vector[i] = (float)x(i);
