@@ -346,13 +346,10 @@ class BROCCOLI_LIB
 		// Functions for image registration
 		//------------------------------------------------
 		void AlignTwoVolumesParametric(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
-		void AlignTwoVolumesParametricDouble(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
 		void AlignTwoVolumesParametricSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
 		void AlignTwoVolumesParametricSetup(int DATA_W, int DATA_H, int DATA_D);
 		void AlignTwoVolumesParametricCleanup();
-		void AlignTwoVolumesParametricCleanupDouble();
-		void AlignTwoVolumesParametricSetupDouble(int DATA_W, int DATA_H, int DATA_D);
-
+		
 		void AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int INTERPOLATION_MODE);
 		void AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int OVERWRITE, int INTERPOLATION_MODE);
 		void AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int DATA_D);
@@ -416,20 +413,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		double cbrt(double x);
 		void RemoveTransformationScaling(float* h_Registration_Parameters);
-		void RemoveTransformationScalingDouble(float* h_Registration_Parameters, double* h_Registration_Parameters_double);
-		void Cross(double* z, const double* x, const double* y);
-		void Sort3(double* x);
-		void Unit3(double* x);
-		void LDUBSolve3(double *x, const double *y, const double *LDU, const int *P);
-		void MatMul3x3(double* C, const double* A, const double* B);
 		void MatMul4x4(double* C, const double* A, const double* B);
-		void MatVec3(double* y, const double* A, const double* x);
-		void A_Transpose_A3x3(double* AA, const double* A);
-		void A_A_Transpose3x3(double* AA, const double* A);
-		void Transpose3x3(double* A);
-		void SolveCubic(double* c);
-		void LDU3(double* A, int* P);
-		void SVD3x3(double* U, double* S, double* V, const double* A);
 
 		void SetupDetrendingRegressors(int N);
 		void SetupStatisticalAnalysisRegressors();
@@ -526,10 +510,8 @@ class BROCCOLI_LIB
 		cl_kernel CalculateBetaValuesGLMKernel, CalculateStatisticalMapsGLMKernel, CalculateStatisticalMapsGLMPermutationKernel, RemoveLinearFitKernel;
 		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedVolumesFirstLevelKernel, GeneratePermutedVolumesSecondLevelKernel;
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
-		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel;
-		cl_kernel CalculateAMatrixAndHVector2DValuesXDoubleKernel, CalculateAMatrixAndHVector2DValuesYDoubleKernel,CalculateAMatrixAndHVector2DValuesZDoubleKernel;
+		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel;		
 		cl_kernel CalculateAMatrix1DValuesKernel, CalculateHVector1DValuesKernel, CalculateHVectorKernel, ResetAMatrixKernel, CalculateAMatrixKernel;
-		cl_kernel CalculateAMatrix1DValuesDoubleKernel, CalculateHVector1DValuesDoubleKernel, CalculateHVectorDoubleKernel, ResetAMatrixDoubleKernel, CalculateAMatrixDoubleKernel;
 		cl_kernel InterpolateVolumeNearestParametricKernel, InterpolateVolumeLinearParametricKernel, InterpolateVolumeCubicParametricKernel;
 		cl_kernel InterpolateVolumeNearestNonParametricKernel, InterpolateVolumeLinearNonParametricKernel, InterpolateVolumeCubicNonParametricKernel;
 		cl_kernel RescaleVolumeNearestKernel, RescaleVolumeLinearKernel, RescaleVolumeCubicKernel;
@@ -787,6 +769,7 @@ class BROCCOLI_LIB
 		double* motion_parameters_z;
 
 		double* motion_corrected_curve;
+		double relativeErrorEquationSystemSolution;
 
 		// Smoothing variables
 		int	SMOOTHING_FILTER_SIZE;

@@ -50,9 +50,9 @@ study = 'Cambridge';
 %study = 'Beijing';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
-subject = 20;
+subject = 2;
 
-number_of_iterations_for_motion_correction = 3;
+number_of_iterations_for_motion_correction = 10;
 
 if ispc
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
@@ -155,7 +155,7 @@ for t = 2:st
     %altered_volume = interp3(xi,yi,zi,original_volume,rx_r,ry_r,rz_r,'cubic');
     altered_volume = interp3(xi,yi,zi,reference_volume,rx_r-rx_t,ry_r-ry_t,rz_r-rz_t,'cubic');
     altered_volume(isnan(altered_volume)) = 0;
-    %altered_volume = altered_volume + 0.05*randn(size(altered_volume));
+    altered_volume = altered_volume + 0.05*randn(size(altered_volume));
     
     % Then add translation
     
@@ -254,7 +254,7 @@ slice = 4;
 % phase_gradients_x_tot_error = sum(sum(sum(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
 % phase_gradients_x_max_error = max(max(max(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
 
-
+motion_parameters_opencl(1,3) = 0;
 
 % figure
 % plot(x_translations,'g')
@@ -315,29 +315,13 @@ legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations 
 
 slice = 18;
 
-x_translations_opencl = squeeze(motion_parameters_opencl(:,1));
-y_translations_opencl = squeeze(motion_parameters_opencl(:,2));
-z_translations_opencl = squeeze(motion_parameters_opencl(:,3));
-
 x_rotations_opencl = squeeze(motion_parameters_opencl(:,4));
 y_rotations_opencl = squeeze(motion_parameters_opencl(:,5));
 z_rotations_opencl = squeeze(motion_parameters_opencl(:,6));
 
-max(abs(x_translations(:) - x_translations_opencl(:)))
-max(abs(y_translations(:) - y_translations_opencl(:)))
-max(abs(z_translations(:) - z_translations_opencl(:)))
-
-mean(abs(x_translations(:) - x_translations_opencl(:)))
-mean(abs(y_translations(:) - y_translations_opencl(:)))
-mean(abs(z_translations(:) - z_translations_opencl(:)))
-
-max(abs(x_rotations(:) - x_rotations_opencl(:)))
-max(abs(y_rotations(:) - y_rotations_opencl(:)))
-max(abs(z_rotations(:) - z_rotations_opencl(:)))
-
-mean(abs(x_rotations(:) - x_rotations_opencl(:)))
-mean(abs(y_rotations(:) - y_rotations_opencl(:)))
-mean(abs(z_rotations(:) - z_rotations_opencl(:)))
+max(x_rotations(:) - x_rotations_opencl(:))
+max(y_rotations(:) - y_rotations_opencl(:))
+max(z_rotations(:) - z_rotations_opencl(:))
 
 %figure
 %imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar

@@ -72,8 +72,8 @@ subject = 4;
 
 skullstripped = 1;
 voxel_size = 1;
-opencl_platform = 2;
-opencl_device = 1;
+opencl_platform = 0;
+opencl_device = 0;
 
 number_of_iterations_for_parametric_image_registration = 5;
 number_of_iterations_for_nonparametric_image_registration = 5;

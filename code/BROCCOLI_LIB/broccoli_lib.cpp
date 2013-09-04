@@ -3346,178 +3346,6 @@ void BROCCOLI_LIB::AlignTwoVolumesParametricSetup(int DATA_W, int DATA_H, int DA
 
 
 
-void BROCCOLI_LIB::AlignTwoVolumesParametricSetupDouble(int DATA_W, int DATA_H, int DATA_D)
-{	
-	// Set global and local work sizes
-	SetGlobalAndLocalWorkSizesImageRegistration(DATA_W, DATA_H, DATA_D);
-
-	// Create a 3D image (texture) for fast interpolation
-	cl_image_format format;
-	format.image_channel_data_type = CL_FLOAT;
-	format.image_channel_order = CL_INTENSITY;
-	d_Original_Volume = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
-	
-	// Allocate global memory on the device
-	d_Aligned_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorAlignedVolume);
-	d_Reference_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorReferenceVolume);
-
-	d_q11_Real = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq11Real);
-	d_q11_Imag = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq11Imag);
-	d_q12_Real = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq12Real);
-	d_q12_Imag = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq12Imag);
-	d_q13_Real = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq13Real);
-	d_q13_Imag = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq13Imag);
-	
-	d_q21_Real = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq21Real);
-	d_q21_Imag = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq21Imag);
-	d_q22_Real = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq22Real);
-	d_q22_Imag = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq22Imag);
-	d_q23_Real = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq23Real);
-	d_q23_Imag = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorq23Imag);
-	
-	d_Phase_Differences = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorPhaseDifferences);
-	d_Phase_Certainties = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorPhaseCertainties);
-	d_Phase_Gradients = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorPhaseGradients);
-	
-	d_A_Matrix_double = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(double), NULL, &createBufferErrorAMatrix);
-	d_h_Vector_double = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(double), NULL, &createBufferErrorHVector);
-
-	d_A_Matrix_2D_Values_double = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_H * DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(double), NULL, &createBufferErrorAMatrix2DValues);
-	d_A_Matrix_1D_Values_double = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(double), NULL, &createBufferErrorAMatrix1DValues);
-	
-	d_h_Vector_2D_Values_double = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_H * DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(double), NULL, &createBufferErrorHVector2DValues);
-	d_h_Vector_1D_Values_double = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(double), NULL, &createBufferErrorHVector1DValues);
-
-	// Allocate constant memory
-	c_Quadrature_Filter_1_Real = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter1Real);
-	c_Quadrature_Filter_1_Imag = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter1Imag);
-	c_Quadrature_Filter_2_Real = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter2Real);
-	c_Quadrature_Filter_2_Imag = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter2Imag);
-	c_Quadrature_Filter_3_Real = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter3Real);
-	c_Quadrature_Filter_3_Imag = clCreateBuffer(context, CL_MEM_READ_ONLY, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float), NULL, &createBufferErrorQuadratureFilter3Imag);	
-	c_Registration_Parameters = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), NULL, &createBufferErrorRegistrationParameters);
-
-	// Set all kernel arguments
-
-	
-	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 0, sizeof(cl_mem), &d_Phase_Differences);
-	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 1, sizeof(cl_mem), &d_Phase_Certainties);
-	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 6, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 7, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 8, sizeof(int), &DATA_D);
-		
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 0, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 1, sizeof(cl_mem), &d_q11_Real);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 2, sizeof(cl_mem), &d_q11_Imag);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 3, sizeof(cl_mem), &d_q21_Real);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 4, sizeof(cl_mem), &d_q21_Imag);	
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 5, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 6, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseGradientsXKernel, 7, sizeof(int), &DATA_D);
-		
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 0, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 1, sizeof(cl_mem), &d_q12_Real);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 2, sizeof(cl_mem), &d_q12_Imag);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 3, sizeof(cl_mem), &d_q22_Real);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 4, sizeof(cl_mem), &d_q22_Imag);	
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 5, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 6, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseGradientsYKernel, 7, sizeof(int), &DATA_D);
-	
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 0, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 1, sizeof(cl_mem), &d_q13_Real);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 2, sizeof(cl_mem), &d_q13_Imag);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 3, sizeof(cl_mem), &d_q23_Real);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 4, sizeof(cl_mem), &d_q23_Imag);	
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 5, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 6, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseGradientsZKernel, 7, sizeof(int), &DATA_D);
-		
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 0, sizeof(cl_mem), &d_A_Matrix_2D_Values_double);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 1, sizeof(cl_mem), &d_h_Vector_2D_Values_double);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 2, sizeof(cl_mem), &d_Phase_Differences);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 3, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 4, sizeof(cl_mem), &d_Phase_Certainties);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 5, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 6, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 7, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesXDoubleKernel, 8, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 0, sizeof(cl_mem), &d_A_Matrix_2D_Values_double);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 1, sizeof(cl_mem), &d_h_Vector_2D_Values_double);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 2, sizeof(cl_mem), &d_Phase_Differences);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 3, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 4, sizeof(cl_mem), &d_Phase_Certainties);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 5, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 6, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 7, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesYDoubleKernel, 8, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 0, sizeof(cl_mem), &d_A_Matrix_2D_Values_double);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 1, sizeof(cl_mem), &d_h_Vector_2D_Values_double);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 2, sizeof(cl_mem), &d_Phase_Differences);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 3, sizeof(cl_mem), &d_Phase_Gradients);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 4, sizeof(cl_mem), &d_Phase_Certainties);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 5, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 6, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 7, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculateAMatrixAndHVector2DValuesZDoubleKernel, 8, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-
-	clSetKernelArg(CalculateAMatrix1DValuesDoubleKernel, 0, sizeof(cl_mem), &d_A_Matrix_1D_Values_double);
-	clSetKernelArg(CalculateAMatrix1DValuesDoubleKernel, 1, sizeof(cl_mem), &d_A_Matrix_2D_Values_double);
-	clSetKernelArg(CalculateAMatrix1DValuesDoubleKernel, 2, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateAMatrix1DValuesDoubleKernel, 3, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateAMatrix1DValuesDoubleKernel, 4, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculateAMatrix1DValuesDoubleKernel, 5, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-
-	clSetKernelArg(CalculateHVector1DValuesDoubleKernel, 0, sizeof(cl_mem), &d_h_Vector_1D_Values_double);
-	clSetKernelArg(CalculateHVector1DValuesDoubleKernel, 1, sizeof(cl_mem), &d_h_Vector_2D_Values_double);
-	clSetKernelArg(CalculateHVector1DValuesDoubleKernel, 2, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateHVector1DValuesDoubleKernel, 3, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateHVector1DValuesDoubleKernel, 4, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculateHVector1DValuesDoubleKernel, 5, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-	
-	clSetKernelArg(CalculateAMatrixDoubleKernel, 0, sizeof(cl_mem), &d_A_Matrix_double);
-	clSetKernelArg(CalculateAMatrixDoubleKernel, 1, sizeof(cl_mem), &d_A_Matrix_1D_Values_double);
-	clSetKernelArg(CalculateAMatrixDoubleKernel, 2, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateAMatrixDoubleKernel, 3, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateAMatrixDoubleKernel, 4, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculateAMatrixDoubleKernel, 5, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-		
-	clSetKernelArg(CalculateHVectorDoubleKernel, 0, sizeof(cl_mem), &d_h_Vector_double);
-	clSetKernelArg(CalculateHVectorDoubleKernel, 1, sizeof(cl_mem), &d_h_Vector_1D_Values_double);
-	clSetKernelArg(CalculateHVectorDoubleKernel, 2, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateHVectorDoubleKernel, 3, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateHVectorDoubleKernel, 4, sizeof(int), &DATA_D);
-	clSetKernelArg(CalculateHVectorDoubleKernel, 5, sizeof(int), &IMAGE_REGISTRATION_FILTER_SIZE);
-
-	int volume = 0;
-
-	clSetKernelArg(InterpolateVolumeNearestParametricKernel, 0, sizeof(cl_mem), &d_Aligned_Volume);
-	clSetKernelArg(InterpolateVolumeNearestParametricKernel, 1, sizeof(cl_mem), &d_Original_Volume);
-	clSetKernelArg(InterpolateVolumeNearestParametricKernel, 2, sizeof(cl_mem), &c_Registration_Parameters);
-	clSetKernelArg(InterpolateVolumeNearestParametricKernel, 3, sizeof(int), &DATA_W);
-	clSetKernelArg(InterpolateVolumeNearestParametricKernel, 4, sizeof(int), &DATA_H);
-	clSetKernelArg(InterpolateVolumeNearestParametricKernel, 5, sizeof(int), &DATA_D);	
-	clSetKernelArg(InterpolateVolumeNearestParametricKernel, 6, sizeof(int), &volume);	
-
-	clSetKernelArg(InterpolateVolumeLinearParametricKernel, 0, sizeof(cl_mem), &d_Aligned_Volume);
-	clSetKernelArg(InterpolateVolumeLinearParametricKernel, 1, sizeof(cl_mem), &d_Original_Volume);
-	clSetKernelArg(InterpolateVolumeLinearParametricKernel, 2, sizeof(cl_mem), &c_Registration_Parameters);
-	clSetKernelArg(InterpolateVolumeLinearParametricKernel, 3, sizeof(int), &DATA_W);
-	clSetKernelArg(InterpolateVolumeLinearParametricKernel, 4, sizeof(int), &DATA_H);
-	clSetKernelArg(InterpolateVolumeLinearParametricKernel, 5, sizeof(int), &DATA_D);	
-	clSetKernelArg(InterpolateVolumeLinearParametricKernel, 6, sizeof(int), &volume);	
-
-	
-	clSetKernelArg(InterpolateVolumeCubicParametricKernel, 0, sizeof(cl_mem), &d_Aligned_Volume);
-	clSetKernelArg(InterpolateVolumeCubicParametricKernel, 1, sizeof(cl_mem), &d_Original_Volume);
-	clSetKernelArg(InterpolateVolumeCubicParametricKernel, 2, sizeof(cl_mem), &c_Registration_Parameters);
-	clSetKernelArg(InterpolateVolumeCubicParametricKernel, 3, sizeof(int), &DATA_W);
-	clSetKernelArg(InterpolateVolumeCubicParametricKernel, 4, sizeof(int), &DATA_H);
-	clSetKernelArg(InterpolateVolumeCubicParametricKernel, 5, sizeof(int), &DATA_D);	
-	clSetKernelArg(InterpolateVolumeCubicParametricKernel, 6, sizeof(int), &volume);		
-}
 
 
 // This function is the foundation for all the parametric image registration functions
@@ -3587,9 +3415,8 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 		clFinish(commandQueue);
 
 		//clEnqueueReadBuffer(commandQueue, d_Phase_Differences, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);
-
 		//clEnqueueReadBuffer(commandQueue, d_Phase_Gradients, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Gradients, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_Phase_Certainties, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
+		//clEnqueueReadBuffer(commandQueue, d_Phase_Certainties, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
 
 		// Calculate values for the A-matrix and h-vector in the Z direction
 		runKernelErrorCalculateAMatrixAndHVector2DValuesZ = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesZKernel, 3, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesZ, localWorkSizeCalculateAMatrixAndHVector2DValuesZ, 0, NULL, NULL);
@@ -3694,8 +3521,6 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 		// Interpolate to get the new volume
 		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
 
-		clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);
-
 		clFinish(commandQueue);				
 	}
 
@@ -3707,155 +3532,7 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 
 
 
-void BROCCOLI_LIB::AlignTwoVolumesParametricDouble(float *h_Registration_Parameters_Align_Two_Volumes, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE)
-{
-	/*
-	// Calculate the filter responses for the reference volume (only needed once)
-	NonseparableConvolution3D(d_q11_Real, d_q11_Imag, d_q12_Real, d_q12_Imag, d_q13_Real, d_q13_Imag, d_Reference_Volume, DATA_W, DATA_H, DATA_D);
 
-	// Reset the parameter vector
-	for (int p = 0; p < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; p++)
-	{
-		h_Registration_Parameters_Align_Two_Volumes[p] = 0.0f;
-		h_Registration_Parameters[p] = 0.0f;
-	}
-	
-	// Run the registration algorithm for a number of iterations
-	for (int it = 0; it < NUMBER_OF_ITERATIONS; it++)
-	{
-		NonseparableConvolution3D(d_q21_Real, d_q21_Imag, d_q22_Real, d_q22_Imag, d_q23_Real, d_q23_Imag, d_Aligned_Volume, DATA_W, DATA_H, DATA_D);
-
-		// Calculate phase differences, certainties and phase gradients in the X direction
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 2, sizeof(cl_mem), &d_q11_Real);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 3, sizeof(cl_mem), &d_q11_Imag);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 4, sizeof(cl_mem), &d_q21_Real);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 5, sizeof(cl_mem), &d_q21_Imag);
-		runKernelErrorCalculatePhaseDifferencesAndCertainties = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesAndCertaintiesKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
-		clFinish(commandQueue);
-	
-
-		runKernelErrorCalculatePhaseGradientsX = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsXKernel, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-
-		// Calculate values for the A-matrix and h-vector in the X direction
-		runKernelErrorCalculateAMatrixAndHVector2DValuesX = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesXDoubleKernel, 3, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesX, localWorkSizeCalculateAMatrixAndHVector2DValuesX, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-
-		// Calculate phase differences, certainties and phase gradients in the Y direction
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 2, sizeof(cl_mem), &d_q12_Real);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 3, sizeof(cl_mem), &d_q12_Imag);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 4, sizeof(cl_mem), &d_q22_Real);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 5, sizeof(cl_mem), &d_q22_Imag);
-		runKernelErrorCalculatePhaseDifferencesAndCertainties = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesAndCertaintiesKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-
-		runKernelErrorCalculatePhaseGradientsY = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsYKernel, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-
-		// Calculate values for the A-matrix and h-vector in the Y direction
-		runKernelErrorCalculateAMatrixAndHVector2DValuesY = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesYDoubleKernel, 3, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesY, localWorkSizeCalculateAMatrixAndHVector2DValuesY, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		// Calculate phase differences, certainties and phase gradients in the Z direction
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 2, sizeof(cl_mem), &d_q13_Real);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 3, sizeof(cl_mem), &d_q13_Imag);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 4, sizeof(cl_mem), &d_q23_Real);
-		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 5, sizeof(cl_mem), &d_q23_Imag);
-		runKernelErrorCalculatePhaseDifferencesAndCertainties = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesAndCertaintiesKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-
-		runKernelErrorCalculatePhaseGradientsZ = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsZKernel, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		// Calculate values for the A-matrix and h-vector in the Z direction
-		runKernelErrorCalculateAMatrixAndHVector2DValuesZ = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesZDoubleKernel, 3, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesZ, localWorkSizeCalculateAMatrixAndHVector2DValuesZ, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-   		// Setup final equation system
-
-		// Sum in one direction to get 1D values
-		runKernelErrorCalculateAMatrix1DValues = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrix1DValuesDoubleKernel, 3, NULL, globalWorkSizeCalculateAMatrix1DValues, localWorkSizeCalculateAMatrix1DValues, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		runKernelErrorCalculateHVector1DValues = clEnqueueNDRangeKernel(commandQueue, CalculateHVector1DValuesDoubleKernel, 3, NULL, globalWorkSizeCalculateHVector1DValues, localWorkSizeCalculateHVector1DValues, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		SetMemoryDouble(d_A_Matrix_double,0.0,NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
-
-		// Calculate final A-matrix
-		runKernelErrorCalculateAMatrix = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixDoubleKernel, 1, NULL, globalWorkSizeCalculateAMatrix, localWorkSizeCalculateAMatrix, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		// Calculate final h-vector
-		runKernelErrorCalculateHVector = clEnqueueNDRangeKernel(commandQueue, CalculateHVectorDoubleKernel, 1, NULL, globalWorkSizeCalculateHVector, localWorkSizeCalculateHVector, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		// Copy A-matrix and h-vector from device to host
-		clEnqueueReadBuffer(commandQueue, d_A_Matrix_double, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(double), h_A_Matrix_double, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_h_Vector_double, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(double), h_h_Vector_double, 0, NULL, NULL);
-
-		// Mirror the matrix values
-		for (int j = 0; j < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; j++)
-		{
-			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
-			{
-				h_A_Matrix_double[j + i*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS] = h_A_Matrix_double[i + j*NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS];
-			}
-		}
-
-		// Solve the equation system A * p = h to obtain the parameter vector
-		//SolveEquationSystemDouble(h_A_Matrix_double, h_h_Vector_double, h_Registration_Parameters_double, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
-		SolveSystemLUDoubleDouble(h_Registration_Parameters_double, h_A_Matrix_double, h_h_Vector_double, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS);
-
-		// Remove everything but translation
-		if (ALIGNMENT_TYPE == TRANSLATION)
-		{
-			// Increment translation
-			h_Registration_Parameters_Align_Two_Volumes[0] += (float)h_Registration_Parameters_double[0];
-			h_Registration_Parameters_Align_Two_Volumes[1] += (float)h_Registration_Parameters_double[1];
-			h_Registration_Parameters_Align_Two_Volumes[2] += (float)h_Registration_Parameters_double[2];
-
-			// Set transformation matrix to zeros
-			for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
-			{
-				h_Registration_Parameters_Align_Two_Volumes[i] = 0.0f;
-			}
-		}
-		// Remove scaling by doing a SVD and forcing all singular values to be 1
-		else if (ALIGNMENT_TYPE == RIGID)
-		{
-			RemoveTransformationScalingDouble(h_Registration_Parameters,h_Registration_Parameters_double);
-
-			AddAffineRegistrationParameters(h_Registration_Parameters_Align_Two_Volumes,h_Registration_Parameters);
-		}
-		// Keep all parameters
-		else if (ALIGNMENT_TYPE == AFFINE)
-		{
-			for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
-			{
-				h_Registration_Parameters_Align_Two_Volumes[i] += (float)h_Registration_Parameters_double[i];
-			}
-		}
-
-		// Copy parameter vector to constant memory
-		clEnqueueWriteBuffer(commandQueue, c_Registration_Parameters, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), h_Registration_Parameters_Align_Two_Volumes, 0, NULL, NULL);
-
-		// Interpolate to get the new volume
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
-		clFinish(commandQueue);
-	}
-
-	if (ALIGNMENT_TYPE == RIGID)
-	{
-		CalculateRotationAnglesFromRotationMatrix(h_Rotations, h_Registration_Parameters_Align_Two_Volumes);
-	}
-	*/
-}
 
 // This function is used by all parametric registration functions, to setup necessary parameters
 void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int DATA_D)
@@ -4673,82 +4350,51 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricCleanup()
 }
 
 
-// Remove scaling from transformation matrix, to get a rotation matrix
+
+
 void BROCCOLI_LIB::RemoveTransformationScaling(float* h_Registration_Parameters)
-{
-	double h_Transformation_Parameters_double[9];
+{	
+	Eigen::MatrixXd TransformationMatrix(3,3);
 
 	// Make a copy of transformation matrix parameters
-	for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
-	{
-		h_Transformation_Parameters_double[i-3] = (double)h_Registration_Parameters[i];
-	}		
+	TransformationMatrix(0,0) = (double)h_Registration_Parameters[3];
+	TransformationMatrix(0,1) = (double)h_Registration_Parameters[4];
+	TransformationMatrix(0,2) = (double)h_Registration_Parameters[5];
+	TransformationMatrix(1,0) = (double)h_Registration_Parameters[6];
+	TransformationMatrix(1,1) = (double)h_Registration_Parameters[7];
+	TransformationMatrix(1,2) = (double)h_Registration_Parameters[8];
+	TransformationMatrix(2,0) = (double)h_Registration_Parameters[9];
+	TransformationMatrix(2,1) = (double)h_Registration_Parameters[10];
+	TransformationMatrix(2,2) = (double)h_Registration_Parameters[11];
 
 	// Add one to diagonal
-	h_Transformation_Parameters_double[0] += 1.0;
-	h_Transformation_Parameters_double[4] += 1.0;
-	h_Transformation_Parameters_double[8] += 1.0;
+	TransformationMatrix(0,0) += 1.0;
+	TransformationMatrix(1,1) += 1.0;
+	TransformationMatrix(2,2) += 1.0;
 
-	double U[9], S[3], V[9], Rotation_Matrix[9];
+	// Calculate SVD
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(TransformationMatrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
-	// Calculate singular value decomposition of transformation matrix
-	SVD3x3(U, S, V, h_Transformation_Parameters_double);
-
-	// Ignore singular values (scaling)
-	// Rotation matrix = U * V'
-	Transpose3x3(V);
-	MatMul3x3(Rotation_Matrix, U, V);
+	// Calculate transformation matrix without scaling (i.e. singular values = ones)
+	Eigen::MatrixXd TransformationMatrixWithoutScaling = svd.matrixU() * svd.matrixV().transpose();
 	
 	// Remove one from diagonal
-	Rotation_Matrix[0] -= 1.0;
-	Rotation_Matrix[4] -= 1.0;
-	Rotation_Matrix[8] -= 1.0;
+	TransformationMatrixWithoutScaling(0,0) -= 1.0;
+	TransformationMatrixWithoutScaling(1,1) -= 1.0;
+	TransformationMatrixWithoutScaling(2,2) -= 1.0;
 
-	for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS - 3; i++)
-	{
-		h_Registration_Parameters[i+3] = (float)Rotation_Matrix[i];
-	}
+	h_Registration_Parameters[3] = (float)TransformationMatrixWithoutScaling(0,0);
+	h_Registration_Parameters[4] = (float)TransformationMatrixWithoutScaling(0,1);
+	h_Registration_Parameters[5] = (float)TransformationMatrixWithoutScaling(0,2);
+	h_Registration_Parameters[6] = (float)TransformationMatrixWithoutScaling(1,0);
+	h_Registration_Parameters[7] = (float)TransformationMatrixWithoutScaling(1,1);
+	h_Registration_Parameters[8] = (float)TransformationMatrixWithoutScaling(1,2);
+	h_Registration_Parameters[9] = (float)TransformationMatrixWithoutScaling(2,0);
+	h_Registration_Parameters[10] = (float)TransformationMatrixWithoutScaling(2,1);
+	h_Registration_Parameters[11] = (float)TransformationMatrixWithoutScaling(2,2);
 }
 
-void BROCCOLI_LIB::RemoveTransformationScalingDouble(float* h_Registration_Parameters, double* h_Registration_Parameters_double)
-{
-	double h_Transformation_Parameters_temp[9];
 
-	// Make a copy of transformation matrix parameters
-	for (int i = 3; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; i++)
-	{
-		h_Transformation_Parameters_temp[i-3] = h_Registration_Parameters_double[i];
-	}
-
-	// Add one to diagonal
-	h_Transformation_Parameters_temp[0] += 1.0;
-	h_Transformation_Parameters_temp[4] += 1.0;
-	h_Transformation_Parameters_temp[8] += 1.0;
-
-	double U[9], S[3], V[9], Rotation_Matrix[9];
-
-	// Calculate singular value decomposition of transformation matrix
-	SVD3x3(U, S, V, h_Transformation_Parameters_temp);
-
-	// Ignore singular values (scaling)
-	// Rotation matrix = U * V'
-	Transpose3x3(V);
-	MatMul3x3(Rotation_Matrix, U, V);
-	
-	// Remove one from diagonal
-	Rotation_Matrix[0] -= 1.0;
-	Rotation_Matrix[4] -= 1.0;
-	Rotation_Matrix[8] -= 1.0;
-
-	h_Registration_Parameters[0] = (float)h_Registration_Parameters_double[0];
-	h_Registration_Parameters[1] = (float)h_Registration_Parameters_double[1];
-	h_Registration_Parameters[2] = (float)h_Registration_Parameters_double[2];
-
-	for (int i = 0; i < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS - 3; i++)
-	{
-		h_Registration_Parameters[i+3] = (float)Rotation_Matrix[i];
-	}
-}
 
 // Calculate Euler rotation angles from a rotation matrix
 void BROCCOLI_LIB::CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters)
@@ -5219,52 +4865,6 @@ void BROCCOLI_LIB::AlignTwoVolumesParametricCleanup()
 	
 	clReleaseMemObject(c_Registration_Parameters);	
 }
-
-void BROCCOLI_LIB::AlignTwoVolumesParametricCleanupDouble()
-{
-	// Free all the allocated memory on the device
-
-	clReleaseMemObject(d_Original_Volume);
-	clReleaseMemObject(d_Reference_Volume);
-	clReleaseMemObject(d_Aligned_Volume);
-	
-	clReleaseMemObject(d_q11_Real);
-	clReleaseMemObject(d_q11_Imag);
-	clReleaseMemObject(d_q12_Real);
-	clReleaseMemObject(d_q12_Imag);
-	clReleaseMemObject(d_q13_Real);
-	clReleaseMemObject(d_q13_Imag);
-
-	clReleaseMemObject(d_q21_Real);
-	clReleaseMemObject(d_q21_Imag);
-	clReleaseMemObject(d_q22_Real);
-	clReleaseMemObject(d_q22_Imag);
-	clReleaseMemObject(d_q23_Real);
-	clReleaseMemObject(d_q23_Imag);
-
-	clReleaseMemObject(d_Phase_Differences);
-	clReleaseMemObject(d_Phase_Gradients);
-	clReleaseMemObject(d_Phase_Certainties);
-
-	clReleaseMemObject(d_A_Matrix_double);
-	clReleaseMemObject(d_h_Vector_double);
-
-	clReleaseMemObject(d_A_Matrix_2D_Values_double);
-	clReleaseMemObject(d_A_Matrix_1D_Values_double);
-
-	clReleaseMemObject(d_h_Vector_2D_Values_double);
-	clReleaseMemObject(d_h_Vector_1D_Values_double);
-
-	clReleaseMemObject(c_Quadrature_Filter_1_Real);
-	clReleaseMemObject(c_Quadrature_Filter_1_Imag);
-	clReleaseMemObject(c_Quadrature_Filter_2_Real);
-	clReleaseMemObject(c_Quadrature_Filter_2_Imag);
-	clReleaseMemObject(c_Quadrature_Filter_3_Real);
-	clReleaseMemObject(c_Quadrature_Filter_3_Imag);
-	clReleaseMemObject(c_Registration_Parameters);	
-}
-
-
 
 int mymax(int a, int b)
 {
@@ -7017,8 +6617,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 
 	// Setup all parameters and allocate memory on device
 	AlignTwoVolumesParametricSetup(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-	//AlignTwoVolumesParametricSetupDouble(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-
+	
 	// Set the first volume as the reference volume
 	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Reference_Volume, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 
@@ -7070,8 +6669,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 
 	// Cleanup allocated memory
 	AlignTwoVolumesParametricCleanup();
-	//AlignTwoVolumesParametricCleanupDouble();
-
+	
 	clReleaseMemObject(d_fMRI_Volumes);
 	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
 }
@@ -9857,6 +9455,7 @@ void BROCCOLI_LIB::SolveEquationSystemEigen(float* h_Parameter_Vector, float* h_
 	}
 
 	Eigen::VectorXd x = A.fullPivHouseholderQr().solve(h);
+	relativeErrorEquationSystemSolution = (A*x - h).norm() / h.norm(); // norm() is L2 norm
 
     for (int i = 0; i < N; i++)
 	{
@@ -10130,70 +9729,6 @@ float BROCCOLI_LIB::Gpdf(double value, double shape, double scale)
 }
 
 
-void BROCCOLI_LIB::Cross(double *z, const double *x, const double *y) 
-{
-	z[0] = x[1]*y[2]-x[2]*y[1];
-	z[1] = -(x[0]*y[2]-x[2]*y[0]);
-	z[2] = x[0]*y[1]-x[1]*y[0];
-}
-
-void BROCCOLI_LIB::Sort3(double *x) 
-{
-	double tmp;
-
-	if (x[0] < x[1]) 
-	{
-		tmp = x[0];
-		x[0] = x[1];
-		x[1] = tmp;
-	}
-	if (x[1] < x[2]) 
-	{
-		if (x[0] < x[2]) 
-		{
-			tmp = x[2];
-			x[2] = x[1];
-			x[1] = x[0];
-			x[0] = tmp;
-		}
-		else 
-		{
-			tmp = x[1];
-			x[1] = x[2];
-			x[2] = tmp;
-		}
-	}
-}
-
-void BROCCOLI_LIB::Unit3(double *x) 
-{
-	double tmp = sqrt(x[0]*x[0] + x[1]*x[1] + x[2]*x[2]);
-	x[0] /= tmp;
-	x[1] /= tmp;
-	x[2] /= tmp;
-}
-
-void BROCCOLI_LIB::LDUBSolve3(double *x, const double *y, const double *LDU, const int *P) 
-{
-	x[P[2]] = y[2];
-	x[P[1]] = y[1] - LDU[3*P[2]+1]*x[P[2]];
-	x[P[0]] = y[0] - LDU[3*P[2]+0]*x[P[2]] - LDU[3*P[1]+0]*x[P[1]];
-}
-
-void BROCCOLI_LIB::MatMul3x3(double *C, const double *A, const double *B) 
-{
-	C[3*0+0] = A[3*0+0]*B[3*0+0] + A[3*1+0]*B[3*0+1] + A[3*2+0]*B[3*0+2];
-	C[3*1+0] = A[3*0+0]*B[3*1+0] + A[3*1+0]*B[3*1+1] + A[3*2+0]*B[3*1+2];
-	C[3*2+0] = A[3*0+0]*B[3*2+0] + A[3*1+0]*B[3*2+1] + A[3*2+0]*B[3*2+2];
-
-	C[3*0+1] = A[3*0+1]*B[3*0+0] + A[3*1+1]*B[3*0+1] + A[3*2+1]*B[3*0+2];
-	C[3*1+1] = A[3*0+1]*B[3*1+0] + A[3*1+1]*B[3*1+1] + A[3*2+1]*B[3*1+2];
-	C[3*2+1] = A[3*0+1]*B[3*2+0] + A[3*1+1]*B[3*2+1] + A[3*2+1]*B[3*2+2];
-
-	C[3*0+2] = A[3*0+2]*B[3*0+0] + A[3*1+2]*B[3*0+1] + A[3*2+2]*B[3*0+2];
-	C[3*1+2] = A[3*0+2]*B[3*1+0] + A[3*1+2]*B[3*1+1] + A[3*2+2]*B[3*1+2];
-	C[3*2+2] = A[3*0+2]*B[3*2+0] + A[3*1+2]*B[3*2+1] + A[3*2+2]*B[3*2+2];
-}
 
 void BROCCOLI_LIB::MatMul4x4(double *C, const double *A, const double *B) 
 {
@@ -10218,59 +9753,6 @@ void BROCCOLI_LIB::MatMul4x4(double *C, const double *A, const double *B)
 	C[4*3+3] = A[4*0+3]*B[4*3+0] + A[4*1+3]*B[4*3+1] + A[4*2+3]*B[4*3+2] + A[4*3+3]*B[4*3+3];
 }
 
-void BROCCOLI_LIB::MatVec3(double *y, const double *A, const double *x) 
-{
-	y[0] = A[3*0+0]*x[0] + A[3*1+0]*x[1] + A[3*2+0]*x[2];
-	y[1] = A[3*0+1]*x[0] + A[3*1+1]*x[1] + A[3*2+1]*x[2];
-	y[2] = A[3*0+2]*x[0] + A[3*1+2]*x[1] + A[3*2+2]*x[2];
-}
-
-void BROCCOLI_LIB::A_Transpose_A3x3(double *AA, const double *A) 
-{
-	AA[3*0+0] = A[3*0+0]*A[3*0+0] + A[3*0+1]*A[3*0+1] + A[3*0+2]*A[3*0+2];
-	AA[3*1+0] = A[3*0+0]*A[3*1+0] + A[3*0+1]*A[3*1+1] + A[3*0+2]*A[3*1+2];
-	AA[3*2+0] = A[3*0+0]*A[3*2+0] + A[3*0+1]*A[3*2+1] + A[3*0+2]*A[3*2+2];
-
-	AA[3*0+1] = AA[3*1+0];
-	AA[3*1+1] = A[3*1+0]*A[3*1+0] + A[3*1+1]*A[3*1+1] + A[3*1+2]*A[3*1+2];
-	AA[3*2+1] = A[3*1+0]*A[3*2+0] + A[3*1+1]*A[3*2+1] + A[3*1+2]*A[3*2+2];
-
-	AA[3*0+2] = AA[3*2+0];
-	AA[3*1+2] = AA[3*2+1];
-	AA[3*2+2] = A[3*2+0]*A[3*2+0] + A[3*2+1]*A[3*2+1] + A[3*2+2]*A[3*2+2];
-}
-
-void BROCCOLI_LIB::A_A_Transpose3x3(double *AA, const double *A) 
-{
-	AA[3*0+0] = A[3*0+0]*A[3*0+0] + A[3*1+0]*A[3*1+0] + A[3*2+0]*A[3*2+0];
-	AA[3*1+0] = A[3*0+0]*A[3*0+1] + A[3*1+0]*A[3*1+1] + A[3*2+0]*A[3*2+1];
-	AA[3*2+0] = A[3*0+0]*A[3*0+2] + A[3*1+0]*A[3*1+2] + A[3*2+0]*A[3*2+2];
-
-	AA[3*0+1] = AA[3*1+0];
-	AA[3*1+1] = A[3*0+1]*A[3*0+1] + A[3*1+1]*A[3*1+1] + A[3*2+1]*A[3*2+1];
-	AA[3*2+1] = A[3*0+1]*A[3*0+2] + A[3*1+1]*A[3*1+2] + A[3*2+1]*A[3*2+2];
-
-	AA[3*0+2] = AA[3*2+0];
-	AA[3*1+2] = AA[3*2+1];
-	AA[3*2+2] = A[3*0+2]*A[3*0+2] + A[3*1+2]*A[3*1+2] + A[3*2+2]*A[3*2+2];
-}
-
-void BROCCOLI_LIB::Transpose3x3(double *A) 
-{
-	double tmp;
-
-	tmp = A[3*1+0];
-	A[3*1+0] = A[3*0+1];
-	A[3*0+1] = tmp;
-
-	tmp = A[3*2+0];
-	A[3*2+0] = A[3*0+2];
-	A[3*0+2] = tmp;
-
-	tmp = A[3*2+1];
-	A[3*2+1] = A[3*1+2];
-	A[3*1+2] = tmp;
-}
 
 double BROCCOLI_LIB::cbrt(double x) 
 {
@@ -10280,258 +9762,4 @@ double BROCCOLI_LIB::cbrt(double x)
 
   return -pow(-x, 1.0/3.0);
 
-}
-
-void BROCCOLI_LIB::SolveCubic(double *c) 
-{
-	const double sq3d2 = 0.86602540378443864676, c2d3 = c[2]/3, c2sq = c[2]*c[2], Q = (3*c[1]-c2sq)/9, R = (c[2]*(9*c[1]-2*c2sq)-27*c[0])/54;
-	double tmp, t, sint, cost;
-
-	if (Q < 0) 
-	{
-		/* 
-		 * Instead of computing
-		 * c_0 = A cos(t) - B
-		 * c_1 = A cos(t + 2 pi/3) - B
-		 * c_2 = A cos(t + 4 pi/3) - B
-		 * Use cos(a+b) = cos(a) cos(b) - sin(a) sin(b)
-		 * Keeps t small and eliminates 1 function call.
-		 * cos(2 pi/3) = cos(4 pi/3) = -0.5
-		 * sin(2 pi/3) = sqrt(3)/2
-		 * sin(4 pi/3) = -sqrt(3)/2
-		 */
-
-		tmp = 2*sqrt(-Q);
-		t = acos(R/sqrt(-Q*Q*Q))/3;
-		cost = tmp*cos(t);
-		sint = tmp*sin(t);
-
-		c[0] = cost - c2d3;
-
-		cost = -0.5*cost - c2d3;
-		sint = sq3d2*sint;
-
-		c[1] = cost - sint;
-		c[2] = cost + sint;
-	}
-	else 
-	{
-		tmp = cbrt(R);
-		c[0] = -c2d3 + 2*tmp;
-		c[1] = c[2] = -c2d3 - tmp;
-	}
-}
-
-void BROCCOLI_LIB::LDU3(double *A, int *P) 
-{
-	int tmp;
-
-	P[1] = 1;
-	P[2] = 2;
-
-	P[0] = fabs(A[3*1+0]) > fabs(A[3*0+0]) ? 
-		(fabs(A[3*2+0]) > fabs(A[3*1+0]) ? 2 : 1) : 
-		(fabs(A[3*2+0]) > fabs(A[3*0+0]) ? 2 : 0);
-	P[P[0]] = 0;
-
-	if (fabs(A[3*P[2]+1]) > fabs(A[3*P[1]+1])) 
-	{
-		tmp = P[1];
-		P[1] = P[2];
-		P[2] = tmp;
-	}
-
-	if (A[3*P[0]+0] != 0) 
-	{
-		A[3*P[1]+0] = A[3*P[1]+0]/A[3*P[0]+0];
-		A[3*P[2]+0] = A[3*P[2]+0]/A[3*P[0]+0];
-		A[3*P[0]+1] = A[3*P[0]+1]/A[3*P[0]+0];
-		A[3*P[0]+2] = A[3*P[0]+2]/A[3*P[0]+0];
-	}
-
-	A[3*P[1]+1] = A[3*P[1]+1] - A[3*P[0]+1]*A[3*P[1]+0]*A[3*P[0]+0];
-
-	if (A[3*P[1]+1] != 0) 
-	{
-		A[3*P[2]+1] = (A[3*P[2]+1] - A[3*P[0]+1]*A[3*P[2]+0]*A[3*P[0]+0])/A[3*P[1]+1];
-		A[3*P[1]+2] = (A[3*P[1]+2] - A[3*P[0]+2]*A[3*P[1]+0]*A[3*P[0]+0])/A[3*P[1]+1];
-	}
-
-	A[3*P[2]+2] = A[3*P[2]+2] - A[3*P[0]+2]*A[3*P[2]+0]*A[3*P[0]+0] - A[3*P[1]+2]*A[3*P[2]+1]*A[3*P[1]+1];
-
-}
-
-void BROCCOLI_LIB::SVD3x3(double *U, double *S, double *V, const double *A) 
-{
-	const double thr = 1e-10;
-	int P[3], k;
-	double y[3], AA[3][3], LDU[3][3];
-
-	/*
-	 * Steps:
-	 * 1) Use eigendecomposition on A^T A to compute V.
-	 * Since A = U S V^T then A^T A = V S^T S V^T with D = S^T S and V the 
-	 * eigenvalues and eigenvectors respectively (V is orthogonal).
-	 * 2) Compute U from A and V.
-	 * 3) Normalize columns of U and V and root the eigenvalues to obtain 
-	 * the singular values.
-	 */
-
-	/* Compute AA = A^T A */
-	A_Transpose_A3x3((double *)AA, A);
-
-	/* Form the monic characteristic polynomial */
-	S[2] = -AA[0][0] - AA[1][1] - AA[2][2];
-	S[1] = AA[0][0]*AA[1][1] + AA[2][2]*AA[0][0] + AA[2][2]*AA[1][1] - 
-		AA[2][1]*AA[1][2] - AA[2][0]*AA[0][2] - AA[1][0]*AA[0][1];
-	S[0] = AA[2][1]*AA[1][2]*AA[0][0] + AA[2][0]*AA[0][2]*AA[1][1] + AA[1][0]*AA[0][1]*AA[2][2] -
-		AA[0][0]*AA[1][1]*AA[2][2] - AA[1][0]*AA[2][1]*AA[0][2] - AA[2][0]*AA[0][1]*AA[1][2];
-
-	/* Solve the cubic equation. */
-	SolveCubic(S);
-
-	/* All roots should be positive */
-	if (S[0] < 0)
-		S[0] = 0;
-	if (S[1] < 0)
-		S[1] = 0;
-	if (S[2] < 0)
-		S[2] = 0;
-
-	/* Sort from greatest to least */
-	Sort3(S);
-
-	/* Form the eigenvector system for the first (largest) eigenvalue */
-	memcpy(LDU,AA,sizeof(LDU));
-	LDU[0][0] -= S[0];
-	LDU[1][1] -= S[0];
-	LDU[2][2] -= S[0];
-
-	/* Perform LDUP decomposition */
-	LDU3((double *)LDU, P);
-
-	/* 
-	 * Write LDU = AA-I*lambda.  Then an eigenvector can be
-	 * found by solving LDU x = LD y = L z = 0
-	 * L is invertible, so L z = 0 implies z = 0
-	 * D is singular since det(AA-I*lambda) = 0 and so 
-	 * D y = z = 0 has a non-unique solution.
-	 * Pick k so that D_kk = 0 and set y = e_k, the k'th column
-	 * of the identity matrix.
-	 * U is invertible so U x = y has a unique solution for a given y.
-	 * The solution for U x = y is an eigenvector.
-	 */
-
-	/* Pick the component of D nearest to 0 */
-	y[0] = y[1] = y[2] = 0;
-	k = fabs(LDU[P[1]][1]) < fabs(LDU[P[0]][0]) ?
-		(fabs(LDU[P[2]][2]) < fabs(LDU[P[1]][1]) ? 2 : 1) :
-		(fabs(LDU[P[2]][2]) < fabs(LDU[P[0]][0]) ? 2 : 0);
-	y[k] = 1;
-
-	/* Do a backward solve for the eigenvector */
-	LDUBSolve3(V+(3*0+0), y, (double *)LDU, P);
-
-	/* Form the eigenvector system for the last (smallest) eigenvalue */
-	memcpy(LDU,AA,sizeof(LDU));
-	LDU[0][0] -= S[2];
-	LDU[1][1] -= S[2];
-	LDU[2][2] -= S[2];
-
-	/* Perform LDUP decomposition */
-	LDU3((double *)LDU, P);
-
-	/* 
-	 * NOTE: The arrangement of the ternary operator output is IMPORTANT!
-	 * It ensures a different system is solved if there are 3 repeat eigenvalues.
-	 */
-
-	/* Pick the component of D nearest to 0 */
-	y[0] = y[1] = y[2] = 0;
-	k = fabs(LDU[P[0]][0]) < fabs(LDU[P[2]][2]) ?
-		(fabs(LDU[P[0]][0]) < fabs(LDU[P[1]][1]) ? 0 : 1) :
-		(fabs(LDU[P[1]][1]) < fabs(LDU[P[2]][2]) ? 1 : 2);
-	y[k] = 1;
-
-	/* Do a backward solve for the eigenvector */
-	LDUBSolve3(V+(3*2+0), y, (double *)LDU, P);
-
-	 /* The remaining column must be orthogonal (AA is symmetric) */
-	Cross(V+(3*1+0), V+(3*2+0), V+(3*0+0));
-
-	/* Count the rank */
-	k = (S[0] > thr) + (S[1] > thr) + (S[2] > thr);
-
-	switch (k) 
-	{
-		case 0:
-			/*
-			 * Zero matrix. 
-			 * Since V is already orthogonal, just copy it into U.
-			 */
-			memcpy(U,V,9*sizeof(double));
-			break;
-		case 1:
-			/* 
-			 * The first singular value is non-zero.
-			 * Since A = U S V^T, then A V = U S.
-			 * A V_1 = S_11 U_1 is non-zero. Here V_1 and U_1 are
-			 * column vectors. Since V_1 is known, we may compute
-			 * U_1 = A V_1.  The S_11 factor is not important as
-			 * U_1 will be normalized later.
-			 */
-			MatVec3(U+(3*0+0), A, V+(3*0+0));
-
-			/* 
-			 * The other columns of U do not contribute to the expansion
-			 * and we may arbitrarily choose them (but they do need to be
-			 * orthogonal). To ensure the first cross product does not fail,
-			 * pick k so that U_k1 is nearest 0 and then cross with e_k to
-			 * obtain an orthogonal vector to U_1.
-			 */
-			y[0] = y[1] = y[2] = 0;
-			k = fabs(U[3*0+0]) < fabs(U[3*0+2]) ?
-				(fabs(U[3*0+0]) < fabs(U[3*0+1]) ? 0 : 1) :
-				(fabs(U[3*0+1]) < fabs(U[3*0+2]) ? 1 : 2);
-			y[k] = 1;
-
-			Cross(U+(3*1+0), y, U+(3*0+0));
-
-			/* Cross the first two to obtain the remaining column */
-			Cross(U+(3*2+0), U+(3*0+0), U+(3*1+0));
-			break;
-		case 2:
-			/*
-			 * The first two singular values are non-zero.
-			 * Compute U_1 = A V_1 and U_2 = A V_2. See case 1
-			 * for more information.
-			 */
-			MatVec3(U+(3*0+0), A, V+(3*0+0));
-			MatVec3(U+(3*1+0), A, V+(3*1+0));
-
-			/* Cross the first two to obtain the remaining column */
-			Cross(U+(3*2+0), U+(3*0+0), U+(3*1+0));
-			break;
-		case 3:
-			/*
-			 * All singular values are non-zero.
-			 * We may compute U = A V. See case 1 for more information.
-			 */
-			MatMul3x3(U, A, V);
-			break;
-	}
-
-	/* Normalize the columns of U and V */
-	Unit3(V+(3*0+0));
-	Unit3(V+(3*1+0));
-	Unit3(V+(3*2+0));
-
-	Unit3(U+(3*0+0));
-	Unit3(U+(3*1+0));
-	Unit3(U+(3*2+0));
-
-	/* S was initially the eigenvalues of A^T A = V S^T S V^T which are squared. */
-	S[0] = sqrt(S[0]);
-	S[1] = sqrt(S[1]);
-	S[2] = sqrt(S[2]);
 }
