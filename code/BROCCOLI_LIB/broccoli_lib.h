@@ -396,11 +396,7 @@ class BROCCOLI_LIB
 		void InvertMatrix(float* inverse_matrix, float* matrix, int N);
 		void InvertMatrixDouble(double* inverse_matrix, double* matrix, int N);
 		void CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, int N);
-		void SolveEquationSystem(float* h_A_matrix, float* h_h_vector, float* h_Parameter_Vector, int N);
-		void SolveSystemLUDouble(float* solution, float* matrix, float* b_vector, int N);
-		void SolveSystemLUDoubleDouble(double* solution, double* matrix, double* b_vector, int N);
-		void SolveEquationSystemDouble(double* h_A_matrix, double* h_h_vector, double* h_Parameter_Vector, int N);
-		void SolveEquationSystemEigen(float* h_Parameter_Vector, float* h_A_matrix, float* h_h_vector, int N);
+		void SolveEquationSystem(float* h_Parameter_Vector, float* h_A_matrix, float* h_h_vector, int N);
 
 		void InvertAffineRegistrationParameters(float* h_Inverse_Parameters, float* h_Parameters);
 		void AddAffineRegistrationParameters(float* h_Old_Parameters, float* h_New_Parameters);
