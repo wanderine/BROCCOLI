@@ -30,18 +30,30 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //-----------------------
     // Input
     
-    double		    *h_fMRI_Volumes_double, *h_T1_Volume_double, *h_MNI_Volume_double, *h_MNI_Brain_Mask_double;
-    float           *h_fMRI_Volumes, *h_T1_Volume, *h_MNI_Volume, *h_MNI_Brain_Mask; 
+    double		    *h_fMRI_Volumes_double, *h_T1_Volume_double, *h_MNI_Volume_double, *h_MNI_Brain_Volume_double, *h_MNI_Brain_Mask_double;
+    float           *h_fMRI_Volumes, *h_T1_Volume, *h_MNI_Volume, *h_MNI_Brain_Volume, *h_MNI_Brain_Mask; 
 
-    double          *h_Quadrature_Filter_1_Real_double, *h_Quadrature_Filter_2_Real_double, *h_Quadrature_Filter_3_Real_double, *h_Quadrature_Filter_1_Imag_double, *h_Quadrature_Filter_2_Imag_double, *h_Quadrature_Filter_3_Imag_double;
-    float           *h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Imag;
+    double          *h_Quadrature_Filter_1_Parametric_Registration_Real_double, *h_Quadrature_Filter_2_Parametric_Registration_Real_double, *h_Quadrature_Filter_3_Parametric_Registration_Real_double, *h_Quadrature_Filter_1_Parametric_Registration_Imag_double, *h_Quadrature_Filter_2_Parametric_Registration_Imag_double, *h_Quadrature_Filter_3_Parametric_Registration_Imag_double;
+    double          *h_Quadrature_Filter_1_NonParametric_Registration_Real_double, *h_Quadrature_Filter_2_NonParametric_Registration_Real_double, *h_Quadrature_Filter_3_NonParametric_Registration_Real_double, *h_Quadrature_Filter_1_NonParametric_Registration_Imag_double, *h_Quadrature_Filter_2_NonParametric_Registration_Imag_double, *h_Quadrature_Filter_3_NonParametric_Registration_Imag_double;
+    double          *h_Quadrature_Filter_4_NonParametric_Registration_Real_double, *h_Quadrature_Filter_5_NonParametric_Registration_Real_double, *h_Quadrature_Filter_6_NonParametric_Registration_Real_double, *h_Quadrature_Filter_4_NonParametric_Registration_Imag_double, *h_Quadrature_Filter_5_NonParametric_Registration_Imag_double, *h_Quadrature_Filter_6_NonParametric_Registration_Imag_double;
     
-    int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION, COARSEST_SCALE_T1_MNI, COARSEST_SCALE_EPI_T1, MM_T1_Z_CUT, MM_EPI_Z_CUT, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
+    float           *h_Quadrature_Filter_1_Parametric_Registration_Real, *h_Quadrature_Filter_2_Parametric_Registration_Real, *h_Quadrature_Filter_3_Parametric_Registration_Real, *h_Quadrature_Filter_1_Parametric_Registration_Imag, *h_Quadrature_Filter_2_Parametric_Registration_Imag, *h_Quadrature_Filter_3_Parametric_Registration_Imag;
+    float           *h_Quadrature_Filter_1_NonParametric_Registration_Real, *h_Quadrature_Filter_2_NonParametric_Registration_Real, *h_Quadrature_Filter_3_NonParametric_Registration_Real, *h_Quadrature_Filter_1_NonParametric_Registration_Imag, *h_Quadrature_Filter_2_NonParametric_Registration_Imag, *h_Quadrature_Filter_3_NonParametric_Registration_Imag;
+    float           *h_Quadrature_Filter_4_NonParametric_Registration_Real, *h_Quadrature_Filter_5_NonParametric_Registration_Real, *h_Quadrature_Filter_6_NonParametric_Registration_Real, *h_Quadrature_Filter_4_NonParametric_Registration_Imag, *h_Quadrature_Filter_5_NonParametric_Registration_Imag, *h_Quadrature_Filter_6_NonParametric_Registration_Imag;
+  
+    
+    int             IMAGE_REGISTRATION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION, COARSEST_SCALE_T1_MNI, COARSEST_SCALE_EPI_T1, MM_T1_Z_CUT, MM_EPI_Z_CUT, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
     int             NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID = 6;
     int             NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE = 12;
     
     double          *h_T1_MNI_Registration_Parameters_double, *h_EPI_T1_Registration_Parameters_double, *h_Motion_Parameters_double, *h_EPI_MNI_Registration_Parameters_double;
     float           *h_T1_MNI_Registration_Parameters, *h_EPI_T1_Registration_Parameters, *h_Motion_Parameters, *h_EPI_MNI_Registration_Parameters;
+    
+    double          *h_Projection_Tensor_1_double, *h_Projection_Tensor_2_double, *h_Projection_Tensor_3_double, *h_Projection_Tensor_4_double, *h_Projection_Tensor_5_double, *h_Projection_Tensor_6_double;
+    float           *h_Projection_Tensor_1, *h_Projection_Tensor_2, *h_Projection_Tensor_3, *h_Projection_Tensor_4, *h_Projection_Tensor_5, *h_Projection_Tensor_6;    
+    
+    double          *h_Filter_Directions_X_double, *h_Filter_Directions_Y_double, *h_Filter_Directions_Z_double;
+    float           *h_Filter_Directions_X, *h_Filter_Directions_Y, *h_Filter_Directions_Z;
     
     double          *h_Motion_Corrected_fMRI_Volumes_double;
     float           *h_Motion_Corrected_fMRI_Volumes;
@@ -79,11 +91,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<31)
+    if(nrhs<48)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>31)
+    if(nrhs>48)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -102,53 +114,81 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_fMRI_Volumes_double =  (double*)mxGetData(prhs[0]);
     h_T1_Volume_double =  (double*)mxGetData(prhs[1]);
     h_MNI_Volume_double =  (double*)mxGetData(prhs[2]);
-    h_MNI_Brain_Mask_double = (double*)mxGetData(prhs[3]);
-    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[4]);
-    EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[5]);
-    EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[6]);    
-    T1_VOXEL_SIZE_X = (float)mxGetScalar(prhs[7]);
-    T1_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[8]);
-    T1_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[9]);
-    MNI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[10]);
-    MNI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[11]);
-    MNI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[12]);    
+    h_MNI_Brain_Volume_double =  (double*)mxGetData(prhs[3]);
+    h_MNI_Brain_Mask_double = (double*)mxGetData(prhs[4]);
+    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[5]);
+    EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[6]);
+    EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[7]);    
+    T1_VOXEL_SIZE_X = (float)mxGetScalar(prhs[8]);
+    T1_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[9]);
+    T1_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[10]);
+    MNI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[11]);
+    MNI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[12]);
+    MNI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[13]);    
+        
+    h_Quadrature_Filter_1_Parametric_Registration_Real_double =  (double*)mxGetPr(prhs[14]);
+    h_Quadrature_Filter_1_Parametric_Registration_Imag_double =  (double*)mxGetPi(prhs[14]);
+    h_Quadrature_Filter_2_Parametric_Registration_Real_double =  (double*)mxGetPr(prhs[15]);
+    h_Quadrature_Filter_2_Parametric_Registration_Imag_double =  (double*)mxGetPi(prhs[15]);
+    h_Quadrature_Filter_3_Parametric_Registration_Real_double =  (double*)mxGetPr(prhs[16]);
+    h_Quadrature_Filter_3_Parametric_Registration_Imag_double =  (double*)mxGetPi(prhs[16]);
     
-    h_Quadrature_Filter_1_Real_double =  (double*)mxGetPr(prhs[13]);
-    h_Quadrature_Filter_1_Imag_double =  (double*)mxGetPi(prhs[13]);
-    h_Quadrature_Filter_2_Real_double =  (double*)mxGetPr(prhs[14]);
-    h_Quadrature_Filter_2_Imag_double =  (double*)mxGetPi(prhs[14]);
-    h_Quadrature_Filter_3_Real_double =  (double*)mxGetPr(prhs[15]);
-    h_Quadrature_Filter_3_Imag_double =  (double*)mxGetPi(prhs[15]);
-    NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[16]);    
-    COARSEST_SCALE_T1_MNI  = (int)mxGetScalar(prhs[17]);
-    COARSEST_SCALE_EPI_T1  = (int)mxGetScalar(prhs[18]);
-    MM_T1_Z_CUT  = (int)mxGetScalar(prhs[19]);
-    MM_EPI_Z_CUT  = (int)mxGetScalar(prhs[20]);
+    h_Quadrature_Filter_1_NonParametric_Registration_Real_double =  (double*)mxGetPr(prhs[17]);
+    h_Quadrature_Filter_1_NonParametric_Registration_Imag_double =  (double*)mxGetPi(prhs[17]);
+    h_Quadrature_Filter_2_NonParametric_Registration_Real_double =  (double*)mxGetPr(prhs[18]);
+    h_Quadrature_Filter_2_NonParametric_Registration_Imag_double =  (double*)mxGetPi(prhs[18]);
+    h_Quadrature_Filter_3_NonParametric_Registration_Real_double =  (double*)mxGetPr(prhs[19]);
+    h_Quadrature_Filter_3_NonParametric_Registration_Imag_double =  (double*)mxGetPi(prhs[19]);
+    h_Quadrature_Filter_4_NonParametric_Registration_Real_double =  (double*)mxGetPr(prhs[20]);
+    h_Quadrature_Filter_4_NonParametric_Registration_Imag_double =  (double*)mxGetPi(prhs[20]);
+    h_Quadrature_Filter_5_NonParametric_Registration_Real_double =  (double*)mxGetPr(prhs[21]);
+    h_Quadrature_Filter_5_NonParametric_Registration_Imag_double =  (double*)mxGetPi(prhs[21]);
+    h_Quadrature_Filter_6_NonParametric_Registration_Real_double =  (double*)mxGetPr(prhs[22]);
+    h_Quadrature_Filter_6_NonParametric_Registration_Imag_double =  (double*)mxGetPi(prhs[22]);  
     
-    NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION  = (int)mxGetScalar(prhs[21]);
+    h_Projection_Tensor_1_double = (double*)mxGetPr(prhs[23]);
+    h_Projection_Tensor_2_double = (double*)mxGetPr(prhs[24]);
+    h_Projection_Tensor_3_double = (double*)mxGetPr(prhs[25]);
+    h_Projection_Tensor_4_double = (double*)mxGetPr(prhs[26]);
+    h_Projection_Tensor_5_double = (double*)mxGetPr(prhs[27]);
+    h_Projection_Tensor_6_double = (double*)mxGetPr(prhs[28]);
+    
+    h_Filter_Directions_X_double = (double*)mxGetPr(prhs[29]);
+    h_Filter_Directions_Y_double = (double*)mxGetPr(prhs[30]);
+    h_Filter_Directions_Z_double = (double*)mxGetPr(prhs[31]);
+    
+    NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[32]);
+    NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[33]);
+
+    COARSEST_SCALE_T1_MNI  = (int)mxGetScalar(prhs[34]);
+    COARSEST_SCALE_EPI_T1  = (int)mxGetScalar(prhs[35]);
+    MM_T1_Z_CUT  = (int)mxGetScalar(prhs[36]);
+    MM_EPI_Z_CUT  = (int)mxGetScalar(prhs[37]);
+    
+    NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION  = (int)mxGetScalar(prhs[38]);
     
     //h_Smoothing_Filter_X_double = (double*)mxGetData(prhs[22]);
     //h_Smoothing_Filter_Y_double = (double*)mxGetData(prhs[23]);
     //h_Smoothing_Filter_Z_double = (double*)mxGetData(prhs[24]);
-    EPI_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[22]);
-    AR_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[23]);
+    EPI_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[39]);
+    AR_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[40]);
     
-    h_X_GLM_double =  (double*)mxGetData(prhs[24]);
-    h_xtxxt_GLM_double =  (double*)mxGetData(prhs[25]);
-    h_Contrasts_double = (double*)mxGetData(prhs[26]);
-    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[27]);
-    BETA_SPACE = (int)mxGetScalar(prhs[28]);
+    h_X_GLM_double =  (double*)mxGetData(prhs[41]);
+    h_xtxxt_GLM_double =  (double*)mxGetData(prhs[42]);
+    h_Contrasts_double = (double*)mxGetData(prhs[43]);
+    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[44]);
+    BETA_SPACE = (int)mxGetScalar(prhs[45]);
     
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[29]);
-    OPENCL_DEVICE = (int)mxGetScalar(prhs[30]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[46]);
+    OPENCL_DEVICE = (int)mxGetScalar(prhs[47]);
     
     const int *ARRAY_DIMENSIONS_EPI = mxGetDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_T1 = mxGetDimensions(prhs[1]);
     const int *ARRAY_DIMENSIONS_MNI = mxGetDimensions(prhs[2]);
-    const int *ARRAY_DIMENSIONS_QUADRATURE_FILTER = mxGetDimensions(prhs[13]);        
+    const int *ARRAY_DIMENSIONS_QUADRATURE_FILTER = mxGetDimensions(prhs[14]);        
     //const int *ARRAY_DIMENSIONS_SMOOTHING_FILTER = mxGetDimensions(prhs[22]);        
-    const int *ARRAY_DIMENSIONS_GLM = mxGetDimensions(prhs[25]);
-    const int *ARRAY_DIMENSIONS_CONTRAST = mxGetDimensions(prhs[28]);        
+    const int *ARRAY_DIMENSIONS_GLM = mxGetDimensions(prhs[41]);
+    const int *ARRAY_DIMENSIONS_CONTRAST = mxGetDimensions(prhs[44]);        
     
     EPI_DATA_H = ARRAY_DIMENSIONS_EPI[0];
     EPI_DATA_W = ARRAY_DIMENSIONS_EPI[1];
@@ -189,6 +229,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
     
     int BETA_DATA_SIZE, STATISTICAL_MAPS_DATA_SIZE, RESIDUAL_VARIANCES_DATA_SIZE;
+    
+    int PROJECTION_TENSOR_SIZE = NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION * sizeof(float);
+    int FILTER_DIRECTIONS_SIZE = NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION * sizeof(float);
     
     if (BETA_SPACE == MNI)
     {
@@ -360,14 +403,39 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_fMRI_Volumes                      = (float *)mxMalloc(EPI_DATA_SIZE);
     h_T1_Volume                         = (float *)mxMalloc(T1_DATA_SIZE);
     h_MNI_Volume                        = (float *)mxMalloc(MNI_DATA_SIZE);
+    h_MNI_Brain_Volume                  = (float *)mxMalloc(MNI_DATA_SIZE);
     h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
     
-    h_Quadrature_Filter_1_Real          = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
-    h_Quadrature_Filter_1_Imag          = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
-    h_Quadrature_Filter_2_Real          = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
-    h_Quadrature_Filter_2_Imag          = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
-    h_Quadrature_Filter_3_Real          = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
-    h_Quadrature_Filter_3_Imag          = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
+    h_Quadrature_Filter_1_Parametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_2_Parametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_3_Parametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
+    h_Quadrature_Filter_1_Parametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_2_Parametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_3_Parametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
+    
+    h_Quadrature_Filter_1_NonParametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_2_NonParametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_3_NonParametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
+    h_Quadrature_Filter_4_NonParametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_5_NonParametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_6_NonParametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);        
+    h_Quadrature_Filter_1_NonParametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_2_NonParametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_3_NonParametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
+    h_Quadrature_Filter_4_NonParametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_5_NonParametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
+    h_Quadrature_Filter_6_NonParametric_Registration_Imag  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
+    
+    h_Projection_Tensor_1                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
+    h_Projection_Tensor_2                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
+    h_Projection_Tensor_3                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
+    h_Projection_Tensor_4                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
+    h_Projection_Tensor_5                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
+    h_Projection_Tensor_6                               = (float*)mxMalloc(PROJECTION_TENSOR_SIZE);
+    
+    h_Filter_Directions_X                               = (float*)mxMalloc(FILTER_DIRECTIONS_SIZE);
+    h_Filter_Directions_Y                               = (float*)mxMalloc(FILTER_DIRECTIONS_SIZE);
+    h_Filter_Directions_Z                               = (float*)mxMalloc(FILTER_DIRECTIONS_SIZE);
     
     h_Motion_Corrected_fMRI_Volumes     = (float *)mxMalloc(EPI_DATA_SIZE);
     
@@ -401,15 +469,41 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     pack_double2float_volume(h_T1_Volume, h_T1_Volume_double, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     pack_double2float_volume(h_MNI_Volume, h_MNI_Volume_double, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    pack_double2float_volume(h_MNI_Brain_Volume, h_MNI_Brain_Volume_double, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     pack_double2float_volume(h_MNI_Brain_Mask, h_MNI_Brain_Mask_double, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     
-    pack_double2float_volume(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_1_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_2_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
-    pack_double2float_volume(h_Quadrature_Filter_3_Imag, h_Quadrature_Filter_3_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_1_Parametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_3_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    
+    pack_double2float_volume(h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_1_NonParametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_3_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Real_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    pack_double2float_volume(h_Quadrature_Filter_6_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Imag_double, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE, IMAGE_REGISTRATION_FILTER_SIZE);
+    
+    pack_double2float(h_Projection_Tensor_1, h_Projection_Tensor_1_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    pack_double2float(h_Projection_Tensor_2, h_Projection_Tensor_2_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    pack_double2float(h_Projection_Tensor_3, h_Projection_Tensor_3_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    pack_double2float(h_Projection_Tensor_4, h_Projection_Tensor_4_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    pack_double2float(h_Projection_Tensor_5, h_Projection_Tensor_5_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    pack_double2float(h_Projection_Tensor_6, h_Projection_Tensor_6_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    
+    pack_double2float(h_Filter_Directions_X, h_Filter_Directions_X_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    pack_double2float(h_Filter_Directions_Y, h_Filter_Directions_Y_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
+    pack_double2float(h_Filter_Directions_Z, h_Filter_Directions_Z_double, NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION);
 
+    
     //pack_double2float(h_Smoothing_Filter_X, h_Smoothing_Filter_X_double, SMOOTHING_FILTER_LENGTH);
     //pack_double2float(h_Smoothing_Filter_Y, h_Smoothing_Filter_Y_double, SMOOTHING_FILTER_LENGTH);
     //pack_double2float(h_Smoothing_Filter_Z, h_Smoothing_Filter_Z_double, SMOOTHING_FILTER_LENGTH);
@@ -426,6 +520,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
     BROCCOLI.SetInputT1Volume(h_T1_Volume);
     BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
+    BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
     BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
     BROCCOLI.SetEPIWidth(EPI_DATA_W);
     BROCCOLI.SetEPIHeight(EPI_DATA_H);
@@ -447,9 +542,20 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetMNIVoxelSizeY(MNI_VOXEL_SIZE_Y);
     BROCCOLI.SetMNIVoxelSizeZ(MNI_VOXEL_SIZE_Z); 
     BROCCOLI.SetInterpolationMode(LINEAR);
-    BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);
-    BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
-    BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_IMAGE_REGISTRATION);    
+    
+    BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION);
+    BROCCOLI.SetNumberOfIterationsForNonParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION);
+    BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);    
+    BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag);
+    BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag);    
+    BROCCOLI.SetProjectionTensorMatrixFirstFilter(h_Projection_Tensor_1[0],h_Projection_Tensor_1[1],h_Projection_Tensor_1[2],h_Projection_Tensor_1[3],h_Projection_Tensor_1[4],h_Projection_Tensor_1[5]);
+    BROCCOLI.SetProjectionTensorMatrixSecondFilter(h_Projection_Tensor_2[0],h_Projection_Tensor_2[1],h_Projection_Tensor_2[2],h_Projection_Tensor_2[3],h_Projection_Tensor_2[4],h_Projection_Tensor_2[5]);
+    BROCCOLI.SetProjectionTensorMatrixThirdFilter(h_Projection_Tensor_3[0],h_Projection_Tensor_3[1],h_Projection_Tensor_3[2],h_Projection_Tensor_3[3],h_Projection_Tensor_3[4],h_Projection_Tensor_3[5]);
+    BROCCOLI.SetProjectionTensorMatrixFourthFilter(h_Projection_Tensor_4[0],h_Projection_Tensor_4[1],h_Projection_Tensor_4[2],h_Projection_Tensor_4[3],h_Projection_Tensor_4[4],h_Projection_Tensor_4[5]);
+    BROCCOLI.SetProjectionTensorMatrixFifthFilter(h_Projection_Tensor_5[0],h_Projection_Tensor_5[1],h_Projection_Tensor_5[2],h_Projection_Tensor_5[3],h_Projection_Tensor_5[4],h_Projection_Tensor_5[5]);
+    BROCCOLI.SetProjectionTensorMatrixSixthFilter(h_Projection_Tensor_6[0],h_Projection_Tensor_6[1],h_Projection_Tensor_6[2],h_Projection_Tensor_6[3],h_Projection_Tensor_6[4],h_Projection_Tensor_6[5]);
+    BROCCOLI.SetFilterDirections(h_Filter_Directions_X, h_Filter_Directions_Y, h_Filter_Directions_Z);
+    
     BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);    
     BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE_T1_MNI);
     BROCCOLI.SetCoarsestScaleEPIT1(COARSEST_SCALE_EPI_T1);
@@ -569,14 +675,40 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_fMRI_Volumes);
     mxFree(h_T1_Volume);
     mxFree(h_MNI_Volume);
+    mxFree(h_MNI_Brain_Volume);
     mxFree(h_MNI_Brain_Mask);
     
-    mxFree(h_Quadrature_Filter_1_Real);
-    mxFree(h_Quadrature_Filter_1_Imag);
-    mxFree(h_Quadrature_Filter_2_Real);
-    mxFree(h_Quadrature_Filter_2_Imag);    
-    mxFree(h_Quadrature_Filter_3_Real);
-    mxFree(h_Quadrature_Filter_3_Imag);    
+    mxFree(h_Quadrature_Filter_1_Parametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_2_Parametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_3_Parametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_1_Parametric_Registration_Imag);
+    mxFree(h_Quadrature_Filter_2_Parametric_Registration_Imag);
+    mxFree(h_Quadrature_Filter_3_Parametric_Registration_Imag);
+    
+    mxFree(h_Quadrature_Filter_1_NonParametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_2_NonParametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_3_NonParametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_4_NonParametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_5_NonParametric_Registration_Real);
+    mxFree(h_Quadrature_Filter_6_NonParametric_Registration_Real);
+    
+    mxFree(h_Quadrature_Filter_1_NonParametric_Registration_Imag);
+    mxFree(h_Quadrature_Filter_2_NonParametric_Registration_Imag);
+    mxFree(h_Quadrature_Filter_3_NonParametric_Registration_Imag);
+    mxFree(h_Quadrature_Filter_4_NonParametric_Registration_Imag);
+    mxFree(h_Quadrature_Filter_5_NonParametric_Registration_Imag);
+    mxFree(h_Quadrature_Filter_6_NonParametric_Registration_Imag);
+       
+    mxFree(h_Projection_Tensor_1);
+    mxFree(h_Projection_Tensor_2);
+    mxFree(h_Projection_Tensor_3);
+    mxFree(h_Projection_Tensor_4);
+    mxFree(h_Projection_Tensor_5);
+    mxFree(h_Projection_Tensor_6);
+    
+    mxFree(h_Filter_Directions_X);
+    mxFree(h_Filter_Directions_Y);
+    mxFree(h_Filter_Directions_Z);
     
     mxFree(h_Motion_Corrected_fMRI_Volumes);
     

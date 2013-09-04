@@ -8998,7 +8998,19 @@ __kernel void CalculateRowMaxs(__global float* Maxs, __global const float* Image
 }
 
 
-__kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* Interpolated_T1_Volume, __private int MNI_DATA_W, __private int MNI_DATA_H, __private int MNI_DATA_D, __private int T1_DATA_W_INTERPOLATED, __private int T1_DATA_H_INTERPOLATED, __private int T1_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_T1_Z_CUT, __private float MNI_VOXEL_SIZE_Z)
+__kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,
+		                        __global float* Interpolated_T1_Volume,
+		                        __private int MNI_DATA_W,
+		                        __private int MNI_DATA_H,
+		                        __private int MNI_DATA_D,
+		                        __private int T1_DATA_W_INTERPOLATED,
+		                        __private int T1_DATA_H_INTERPOLATED,
+		                        __private int T1_DATA_D_INTERPOLATED,
+		                        __private int x_diff,
+		                        __private int y_diff,
+		                        __private int z_diff,
+		                        __private int MM_T1_Z_CUT,
+		                        __private float MNI_VOXEL_SIZE_Z)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -9070,7 +9082,19 @@ __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,__global float* In
 }
 
 
-__kernel void CopyEPIVolumeToT1(__global float* T1_EPI_Volume,__global float* Interpolated_EPI_Volume, __private int T1_DATA_W, __private int T1_DATA_H, __private int T1_DATA_D, __private int EPI_DATA_W_INTERPOLATED, __private int EPI_DATA_H_INTERPOLATED, __private int EPI_DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_EPI_Z_CUT, __private float T1_VOXEL_SIZE_Z)
+__kernel void CopyEPIVolumeToT1(__global float* T1_EPI_Volume,
+		                        __global float* Interpolated_EPI_Volume,
+		                        __private int T1_DATA_W,
+		                        __private int T1_DATA_H,
+		                        __private int T1_DATA_D,
+		                        __private int EPI_DATA_W_INTERPOLATED,
+		                        __private int EPI_DATA_H_INTERPOLATED,
+		                        __private int EPI_DATA_D_INTERPOLATED,
+		                        __private int x_diff,
+		                        __private int y_diff,
+		                        __private int z_diff,
+		                        __private int MM_EPI_Z_CUT,
+		                        __private float T1_VOXEL_SIZE_Z)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -9142,7 +9166,20 @@ __kernel void CopyEPIVolumeToT1(__global float* T1_EPI_Volume,__global float* In
 }
 
 
-__kernel void CopyVolumeToNew(__global float* New_Volume,__global float* Interpolated_Volume, __private int NEW_DATA_W, __private int NEW_DATA_H, __private int NEW_DATA_D, __private int DATA_W_INTERPOLATED, __private int DATA_H_INTERPOLATED, __private int DATA_D_INTERPOLATED, __private int x_diff, __private int y_diff, __private int z_diff, __private int MM_Z_CUT, __private float NEW_VOXEL_SIZE_Z, __private int VOLUME)
+__kernel void CopyVolumeToNew(__global float* New_Volume,
+		                      __global float* Interpolated_Volume,
+		                      __private int NEW_DATA_W,
+		                      __private int NEW_DATA_H,
+		                      __private int NEW_DATA_D,
+		                      __private int DATA_W_INTERPOLATED,
+		                      __private int DATA_H_INTERPOLATED,
+		                      __private int DATA_D_INTERPOLATED,
+		                      __private int x_diff,
+		                      __private int y_diff,
+		                      __private int z_diff,
+		                      __private int MM_Z_CUT,
+		                      __private float NEW_VOXEL_SIZE_Z,
+		                      __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);

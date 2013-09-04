@@ -28,61 +28,83 @@ clear all
 clc
 close all
 
-addpath('D:\nifti_matlab')
-addpath('D:\BROCCOLI_test_data')
+if ispc
+    addpath('D:\nifti_matlab')
+    addpath('D:\BROCCOLI_test_data')
+    basepath = 'D:\BROCCOLI_test_data\';
+    %mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+    mex FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    
+    
+    opencl_platform = 0;
+    opencl_device = 0;
+elseif isunix
+    addpath('/home/andek/Research_projects/nifti_matlab')
+    basepath = '/data/andek/BROCCOLI_test_data/';    
+    %mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug 
+    mex FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release
+    
+    opencl_platform = 2;
+    opencl_device = 0;
+end
 
-%mex FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
-mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
-
-basepath = 'D:\BROCCOLI_test_data\';
 %study = 'Oulu';
 %study = 'ICBM';
-study = 'Cambridge';
-%study = 'Beijing';
+%study = 'Cambridge';
+study = 'Beijing';
 %study = 'OpenfMRI';
-substudy = 'Mixed';
-subject = 9;
-voxel_size = 2;
+%substudy = 'Mixed';
+
+subject = 2;
+dirs = dir([basepath study]);
+subject = dirs(subject+2).name
+voxel_size = 1;
 beta_space = 1; % 0 = EPI, 1 = MNI
-opencl_platform = 2;
-opencl_device = 0;
+
+% Settings for image registration
+number_of_iterations_for_parametric_image_registration = 5;
+number_of_iterations_for_nonparametric_image_registration = 5;
+number_of_iterations_for_motion_correction = 3;
+coarsest_scale_T1_MNI = 8/voxel_size;
+coarsest_scale_EPI_T1 = 8/voxel_size;
+MM_T1_Z_CUT = 100;
+MM_EPI_Z_CUT = 20;
 
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
-    T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
+    %T1_nii = load_nii([basepath study '\mprage_anonymized' num2str(subject) '.nii.gz']);
+    T1_nii = load_nii([basepath study '/' subject '/anat/mprage_skullstripped.nii.gz']);
+    %T1_nii = load_nii([basepath study '/' subject '/anat/mprage_anonymized.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
     T1_nii = load_nii([basepath study '\' substudy '\highres' num2str(subject) '.nii.gz']);
 end
 
 T1 = double(T1_nii.img);
 T1 = T1/max(T1(:));
+
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
 MNI = MNI/max(MNI(:));
+
+MNI_brain_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain.nii']);
+MNI_brain = double(MNI_brain_nii.img);
+MNI_brain = MNI_brain/max(MNI_brain(:));
+
 MNI_brain_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
 MNI_brain_mask = double(MNI_brain_mask_nii.img);
 MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
     EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
 end
 
 fMRI_volumes = double(EPI_nii.img);
-%fMRI_volumes = fMRI_volumes(:,:,1:22,:);
-%fMRI_volumes = fMRI_volumes(:,:,:,5:end);
+fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
 [sy sx sz st] = size(fMRI_volumes);
-[sy sx sz st]
-%fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
-means = zeros(size(fMRI_volumes));
-mean_volume = mean(fMRI_volumes,4);
-for t = 1:st
-    means(:,:,:,t) = mean_volume;
-end
-%fMRI_volumes = fMRI_volumes - means/1.25;
 
 EPI = fMRI_volumes(:,:,:,1);
 EPI = EPI/max(EPI(:));
@@ -117,14 +139,9 @@ EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
 EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 %%
-% Settings for image registration
-number_of_iterations_for_image_registration = 40;
-number_of_iterations_for_motion_correction = 3;
-coarsest_scale_T1_MNI = 8/voxel_size;
-coarsest_scale_EPI_T1 = 4/voxel_size;
-MM_T1_Z_CUT = 60;
-MM_EPI_Z_CUT = 20;
+
 load filters_for_parametric_registration.mat
+load filters_for_nonparametric_registration.mat
 
 %%
 % Create regressors
@@ -170,9 +187,13 @@ tic
 [beta_volumes, residuals, residual_variances, statistical_maps, T1_MNI_registration_parameters, EPI_T1_registration_parameters, ...
  EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl ...
  ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
-FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y, ... 
-T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_image_registration,coarsest_scale_T1_MNI, ...
-coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,EPI_smoothing_amount,AR_smoothing_amount, ...
+FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z, ...
+f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ...
+f1_nonparametric_registration, f2_nonparametric_registration, f3_nonparametric_registration, f4_nonparametric_registration, f5_nonparametric_registration, f6_nonparametric_registration, ...
+m1, m2, m3, m4, m5, m6, ...
+filter_directions_x, filter_directions_y, filter_directions_z, ...
+number_of_iterations_for_parametric_image_registration, number_of_iterations_for_nonparametric_image_registration, ...
+coarsest_scale_T1_MNI, coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,EPI_smoothing_amount,AR_smoothing_amount, ...
 X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform,opencl_device);
 toc
 
@@ -250,9 +271,9 @@ title('t-values')
 %imagesc(beta_volumes(:,:,slice,3)); colorbar
 %title('Beta 3')
 
-%figure
-%imagesc(residual_variances(:,:,slice)); colorbar
-%title('Residual variances')
+figure
+imagesc(residual_variances(:,:,slice)); colorbar
+title('Residual variances')
 
 
  

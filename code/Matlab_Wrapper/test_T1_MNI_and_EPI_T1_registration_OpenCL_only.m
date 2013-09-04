@@ -39,6 +39,9 @@ if ispc
     
     %mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
     %mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+    
+    opencl_platform = 0;
+    opencl_device = 0;
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/BROCCOLI_test_data/';
@@ -47,11 +50,14 @@ elseif isunix
     mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
     %mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
     mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
+    
+    opencl_platform = 2;
+    opencl_device = 0;
 end
 
 study = 'Baltimore';
 
-study = 'Cambridge';
+%study = 'Cambridge';
 %subject = 'sub00156'
 %subject = 'sub00294'
 %subject = 'sub01361'
@@ -68,17 +74,16 @@ study = 'Cambridge';
 %substudy = 'Mixed'; 
 %substudy = 'Balloon';
 
-subject = 4;
+subject = 1;
 
 skullstripped = 1;
 voxel_size = 1;
-opencl_platform = 0;
-opencl_device = 0;
+
 
 number_of_iterations_for_parametric_image_registration = 5;
 number_of_iterations_for_nonparametric_image_registration = 5;
 coarsest_scale = 8/voxel_size;
-MM_T1_Z_CUT = 120;
+MM_T1_Z_CUT = 100;
 
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
@@ -138,7 +143,8 @@ subject = dirs(subject+2).name
     [T1_sy T1_sx T1_sz] = size(T1);
     [T1_sy T1_sx T1_sz]
     
-    [EPI_sy EPI_sx EPI_sz] = size(EPI)
+    [EPI_sy EPI_sx EPI_sz] = size(EPI);
+    [EPI_sy EPI_sx EPI_sz]
     
     if (strcmp(study,'Beijing'))
         T1_voxel_size_x = T1_nii.hdr.dime.pixdim(1);
@@ -162,7 +168,7 @@ subject = dirs(subject+2).name
     EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
     EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
     EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
-    
+    %EPI_voxel_size_z = 2.85;
     
     %%
 
@@ -217,7 +223,7 @@ subject = dirs(subject+2).name
 %end
 %%
 
-number_of_iterations_for_image_registration = 15;
+number_of_iterations_for_image_registration = 5;
 coarsest_scale = 8/voxel_size;
 MM_EPI_Z_CUT = 20;
 
@@ -246,15 +252,18 @@ smoothed_skullstripped_T1_opencl = convn(smoothed_volume,filter_zz,'same');
 
 
 
-% tic
-% [aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, ... 
-%  quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl,  ...
-%  phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
-% RegisterEPIT1(EPI,interpolated_T1_opencl,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ...
-% number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform, opencl_device);
-% %[aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
-% %RegisterEPIT1(smoothed_skullstripped_T1_opencl,EPI,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform);
-% toc
+tic
+[aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, ... 
+ quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl,  ...
+ phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
+RegisterEPIT1(EPI,interpolated_T1_opencl,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z, ...
+f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ...
+f1_nonparametric_registration,f2_nonparametric_registration,f3_nonparametric_registration,f4_nonparametric_registration,f5_nonparametric_registration,f6_nonparametric_registration, ...
+m1, m2, m3, m4, m5, m6, ...
+number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform, opencl_device);
+%[aligned_EPI_opencl, interpolated_EPI_opencl, registration_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
+%RegisterEPIT1(smoothed_skullstripped_T1_opencl,EPI,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform);
+ toc
 
 
 %close all
@@ -266,10 +275,10 @@ figure; imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap g
 %figure; imagesc(flipud(squeeze(EPI(slice,:,:))')); colormap gray
 %figure; imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
 
-slice = round(0.52*MNI_sz);
+slice = round(0.40*MNI_sz);
 figure; imagesc(squeeze(interpolated_EPI_opencl(:,:,slice))); colormap gray
 figure; imagesc(squeeze(aligned_EPI_opencl(:,:,slice))); colormap gray
-slice = round(0.52*MNI_sz);
+slice = round(0.45*MNI_sz);
 figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
 %figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
 %figure; imagesc(squeeze(EPI(:,:,slice))); colormap gray

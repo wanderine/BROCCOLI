@@ -13,6 +13,9 @@
 #define RAW 0
 #define NIFTI 1
 
+#define DISCARD_DISPLACEMENT_FIELD 0
+#define KEEP_DISPLACEMENT_FIELD 1
+
 #define FLOAT 0
 #define INT32 1
 #define INT16 2
