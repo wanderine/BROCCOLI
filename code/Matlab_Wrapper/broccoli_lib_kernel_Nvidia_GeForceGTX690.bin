@@ -10,16 +10,16 @@
 
 .const .align 1 .b8 $str[31] = {99, 97, 110, 110, 111, 116, 32, 114, 101, 97, 100, 32, 95, 95, 119, 114, 105, 116, 101, 95, 111, 110, 108, 121, 32, 105, 109, 97, 103, 101, 0};
 .const .align 4 .b8 __GPU_i2opi_f[24] = {65, 144, 67, 60, 153, 149, 98, 219, 192, 221, 52, 245, 209, 87, 39, 252, 41, 21, 68, 78, 110, 131, 249, 162};
-.extern .shared .align 4 .b8 shr_1_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_2_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_3_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_4_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_5_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_6_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_7_l_Image[24576];
-.extern .shared .align 4 .b8 shr_8_l_Image[24576];
-.extern .shared .align 4 .b8 shr_9_l_Image[32768];
-.extern .shared .align 4 .b8 shr_10_l_Image[32768];
+.extern .shared .align 4 .b8 shr_11_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_12_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_13_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_14_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_15_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_16_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_17_l_Image[24576];
+.extern .shared .align 4 .b8 shr_18_l_Image[24576];
+.extern .shared .align 4 .b8 shr_19_l_Image[32768];
+.extern .shared .align 4 .b8 shr_20_l_Image[32768];
 .visible .global .samplerref volume_sampler_nearest = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = nearest, force_unnormalized_coords = 1 };
 .visible .global .samplerref volume_sampler_linear = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = linear, force_unnormalized_coords = 1 };
 
@@ -91,7 +91,7 @@
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 11;
-	mov.u32 	%r49, shr_1_l_Volume;
+	mov.u32 	%r49, shr_11_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -637,7 +637,7 @@ BB0_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 11;
-	mov.u32 	%r69, shr_2_l_Volume;
+	mov.u32 	%r69, shr_12_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -1647,7 +1647,7 @@ BB1_85:
 	mov.u32 	%r44, %tid.z;
 	// inline asm
 	shl.b32 	%r50, %r44, 11;
-	mov.u32 	%r51, shr_3_l_Volume;
+	mov.u32 	%r51, shr_13_l_Volume;
 	add.s32 	%r52, %r51, %r50;
 	shl.b32 	%r53, %r43, 7;
 	add.s32 	%r54, %r52, %r53;
@@ -2273,7 +2273,7 @@ BB2_53:
 	mov.u32 	%r68, %tid.z;
 	// inline asm
 	shl.b32 	%r74, %r68, 11;
-	mov.u32 	%r75, shr_4_l_Volume;
+	mov.u32 	%r75, shr_14_l_Volume;
 	add.s32 	%r76, %r75, %r74;
 	shl.b32 	%r77, %r67, 7;
 	add.s32 	%r78, %r76, %r77;
@@ -3456,7 +3456,7 @@ BB3_109:
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 10;
-	mov.u32 	%r49, shr_5_l_Volume;
+	mov.u32 	%r49, shr_15_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -3952,7 +3952,7 @@ BB4_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 10;
-	mov.u32 	%r69, shr_6_l_Volume;
+	mov.u32 	%r69, shr_16_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -6911,7 +6911,7 @@ BB9_2:
 	// inline asm
 	mov.u32 	%r45, %tid.y;
 	// inline asm
-	mov.u32 	%r52, shr_7_l_Image;
+	mov.u32 	%r52, shr_17_l_Image;
 	mad.lo.s32 	%r53, %r45, 384, %r52;
 	shl.b32 	%r54, %r44, 2;
 	add.s32 	%r18, %r53, %r54;
@@ -11148,7 +11148,7 @@ BB10_36:
 	// inline asm
 	mov.u32 	%r60, %tid.y;
 	// inline asm
-	mov.u32 	%r67, shr_8_l_Image;
+	mov.u32 	%r67, shr_18_l_Image;
 	mad.lo.s32 	%r68, %r60, 384, %r67;
 	shl.b32 	%r69, %r59, 2;
 	add.s32 	%r27, %r68, %r69;
@@ -19079,7 +19079,7 @@ BB11_36:
 	mov.u32 	%r59, %tid.y;
 	// inline asm
 	shl.b32 	%r66, %r59, 9;
-	mov.u32 	%r67, shr_9_l_Image;
+	mov.u32 	%r67, shr_19_l_Image;
 	add.s32 	%r68, %r67, %r66;
 	shl.b32 	%r69, %r58, 2;
 	add.s32 	%r18, %r68, %r69;
@@ -28520,7 +28520,7 @@ BB12_190:
 	mov.u32 	%r80, %tid.y;
 	// inline asm
 	shl.b32 	%r87, %r80, 9;
-	mov.u32 	%r88, shr_10_l_Image;
+	mov.u32 	%r88, shr_20_l_Image;
 	add.s32 	%r89, %r88, %r87;
 	shl.b32 	%r90, %r79, 2;
 	add.s32 	%r27, %r89, %r90;
@@ -42377,92 +42377,98 @@ BB31_2:
 {
 	.reg .f32 	%f<35>;
 	.reg .pred 	%p<12>;
-	.reg .s32 	%r<43>;
+	.reg .s32 	%r<50>;
 
 
 	ld.param.u32 	%r5, [InterpolateVolumeLinearNonParametric_param_5];
 	ld.param.u32 	%r6, [InterpolateVolumeLinearNonParametric_param_6];
-	ld.param.u32 	%r24, [InterpolateVolumeLinearNonParametric_param_7];
+	ld.param.u32 	%r7, [InterpolateVolumeLinearNonParametric_param_7];
 	// inline asm
-	mov.u32 	%r12, %envreg3;
-	// inline asm
-	// inline asm
-	mov.u32 	%r13, %ntid.x;
+	mov.u32 	%r14, %envreg3;
 	// inline asm
 	// inline asm
-	mov.u32 	%r14, %ctaid.x;
+	mov.u32 	%r15, %ntid.x;
 	// inline asm
 	// inline asm
-	mov.u32 	%r15, %tid.x;
-	// inline asm
-	add.s32 	%r25, %r15, %r12;
-	mad.lo.s32 	%r7, %r14, %r13, %r25;
-	// inline asm
-	mov.u32 	%r16, %envreg4;
+	mov.u32 	%r16, %ctaid.x;
 	// inline asm
 	// inline asm
-	mov.u32 	%r17, %ntid.y;
+	mov.u32 	%r17, %tid.x;
+	// inline asm
+	add.s32 	%r26, %r17, %r14;
+	mad.lo.s32 	%r9, %r16, %r15, %r26;
+	// inline asm
+	mov.u32 	%r18, %envreg4;
 	// inline asm
 	// inline asm
-	mov.u32 	%r18, %ctaid.y;
+	mov.u32 	%r19, %ntid.y;
 	// inline asm
 	// inline asm
-	mov.u32 	%r19, %tid.y;
-	// inline asm
-	add.s32 	%r26, %r19, %r16;
-	mad.lo.s32 	%r8, %r18, %r17, %r26;
-	// inline asm
-	mov.u32 	%r20, %envreg5;
+	mov.u32 	%r20, %ctaid.y;
 	// inline asm
 	// inline asm
-	mov.u32 	%r21, %ntid.z;
+	mov.u32 	%r21, %tid.y;
+	// inline asm
+	add.s32 	%r27, %r21, %r18;
+	mad.lo.s32 	%r10, %r20, %r19, %r27;
+	// inline asm
+	mov.u32 	%r22, %envreg5;
 	// inline asm
 	// inline asm
-	mov.u32 	%r22, %ctaid.z;
+	mov.u32 	%r23, %ntid.z;
 	// inline asm
 	// inline asm
-	mov.u32 	%r23, %tid.z;
+	mov.u32 	%r24, %ctaid.z;
 	// inline asm
-	add.s32 	%r27, %r23, %r20;
-	mad.lo.s32 	%r9, %r22, %r21, %r27;
-	setp.lt.s32 	%p1, %r7, %r5;
-	setp.lt.s32 	%p2, %r8, %r6;
+	// inline asm
+	mov.u32 	%r25, %tid.z;
+	// inline asm
+	add.s32 	%r28, %r25, %r22;
+	mad.lo.s32 	%r11, %r24, %r23, %r28;
+	setp.lt.s32 	%p1, %r9, %r5;
+	setp.lt.s32 	%p2, %r10, %r6;
 	and.pred  	%p3, %p1, %p2;
-	setp.lt.s32 	%p4, %r9, %r24;
+	setp.lt.s32 	%p4, %r11, %r7;
 	and.pred  	%p5, %p3, %p4;
 	@%p5 bra 	BB32_2;
 
 	ret;
 
 BB32_2:
-	ld.param.u32 	%r42, [InterpolateVolumeLinearNonParametric_param_6];
-	mad.lo.s32 	%r28, %r9, %r42, %r8;
-	ld.param.u32 	%r41, [InterpolateVolumeLinearNonParametric_param_5];
-	mad.lo.s32 	%r10, %r28, %r41, %r7;
-	shl.b32 	%r29, %r10, 2;
-	ld.param.u32 	%r38, [InterpolateVolumeLinearNonParametric_param_2];
-	add.s32 	%r30, %r38, %r29;
-	ld.global.f32 	%f1, [%r30];
+	ld.param.u32 	%r48, [InterpolateVolumeLinearNonParametric_param_7];
+	ld.param.u32 	%r49, [InterpolateVolumeLinearNonParametric_param_8];
+	mad.lo.s32 	%r29, %r48, %r49, %r11;
+	ld.param.u32 	%r47, [InterpolateVolumeLinearNonParametric_param_6];
+	mad.lo.s32 	%r30, %r29, %r47, %r10;
+	ld.param.u32 	%r46, [InterpolateVolumeLinearNonParametric_param_5];
+	mad.lo.s32 	%r31, %r30, %r46, %r9;
+	mad.lo.s32 	%r32, %r11, %r47, %r10;
+	mad.lo.s32 	%r12, %r32, %r46, %r9;
+	shl.b32 	%r33, %r12, 2;
+	ld.param.u32 	%r43, [InterpolateVolumeLinearNonParametric_param_2];
+	add.s32 	%r34, %r43, %r33;
+	ld.global.f32 	%f1, [%r34];
 	setp.lt.f32 	%p6, %f1, 0f00000000;
 	neg.f32 	%f4, %f1;
 	selp.f32 	%f5, %f4, %f1, %p6;
-	ld.param.u32 	%r37, [InterpolateVolumeLinearNonParametric_param_0];
-	add.s32 	%r11, %r37, %r29;
+	shl.b32 	%r35, %r31, 2;
+	ld.param.u32 	%r42, [InterpolateVolumeLinearNonParametric_param_0];
+	add.s32 	%r13, %r42, %r35;
 	setp.geu.f32 	%p7, %f5, 0f42C80000;
 	@%p7 bra 	BB32_5;
 
-	ld.param.u32 	%r39, [InterpolateVolumeLinearNonParametric_param_3];
-	add.s32 	%r32, %r39, %r29;
-	ld.global.f32 	%f2, [%r32];
+	ld.param.u32 	%r44, [InterpolateVolumeLinearNonParametric_param_3];
+	add.s32 	%r37, %r44, %r33;
+	ld.global.f32 	%f2, [%r37];
 	setp.lt.f32 	%p8, %f2, 0f00000000;
 	neg.f32 	%f6, %f2;
 	selp.f32 	%f7, %f6, %f2, %p8;
 	setp.geu.f32 	%p9, %f7, 0f42C80000;
 	@%p9 bra 	BB32_5;
 
-	ld.param.u32 	%r40, [InterpolateVolumeLinearNonParametric_param_4];
-	add.s32 	%r34, %r40, %r29;
-	ld.global.f32 	%f3, [%r34];
+	ld.param.u32 	%r45, [InterpolateVolumeLinearNonParametric_param_4];
+	add.s32 	%r39, %r45, %r33;
+	ld.global.f32 	%f3, [%r39];
 	setp.lt.f32 	%p10, %f3, 0f00000000;
 	neg.f32 	%f8, %f3;
 	selp.f32 	%f9, %f8, %f3, %p10;
@@ -42470,36 +42476,36 @@ BB32_2:
 	@%p11 bra 	BB32_6;
 
 BB32_5:
-	cvt.rn.f32.s32 	%f18, %r7;
+	cvt.rn.f32.s32 	%f18, %r9;
 	add.f32 	%f14, %f18, 0f3F000000;
-	cvt.rn.f32.s32 	%f19, %r8;
+	cvt.rn.f32.s32 	%f19, %r10;
 	add.f32 	%f15, %f19, 0f3F000000;
-	cvt.rn.f32.s32 	%f20, %r9;
+	cvt.rn.f32.s32 	%f20, %r11;
 	add.f32 	%f16, %f20, 0f3F000000;
 	mov.f32 	%f17, 0f00000000;
-	mov.u32 	%r35, 0;
+	mov.u32 	%r40, 0;
 	// inline asm
 	tex.3d.v4.f32.f32 {%f10, %f11, %f12, %f13}, [InterpolateVolumeLinearNonParametric_param_1, volume_sampler_linear, {%f14, %f15, %f16, %f17}];
 	// inline asm
-	st.global.f32 	[%r11], %f10;
+	st.global.f32 	[%r13], %f10;
 	ret;
 
 BB32_6:
-	cvt.rn.f32.s32 	%f29, %r7;
+	cvt.rn.f32.s32 	%f29, %r9;
 	sub.f32 	%f30, %f29, %f1;
 	add.f32 	%f25, %f30, 0f3F000000;
-	cvt.rn.f32.s32 	%f31, %r8;
+	cvt.rn.f32.s32 	%f31, %r10;
 	sub.f32 	%f32, %f31, %f2;
 	add.f32 	%f26, %f32, 0f3F000000;
-	cvt.rn.f32.s32 	%f33, %r9;
+	cvt.rn.f32.s32 	%f33, %r11;
 	sub.f32 	%f34, %f33, %f3;
 	add.f32 	%f27, %f34, 0f3F000000;
 	mov.f32 	%f28, 0f00000000;
-	mov.u32 	%r36, 0;
+	mov.u32 	%r41, 0;
 	// inline asm
 	tex.3d.v4.f32.f32 {%f21, %f22, %f23, %f24}, [InterpolateVolumeLinearNonParametric_param_1, volume_sampler_linear, {%f25, %f26, %f27, %f28}];
 	// inline asm
-	st.global.f32 	[%r11], %f21;
+	st.global.f32 	[%r13], %f21;
 	ret;
 }
 

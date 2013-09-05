@@ -8693,19 +8693,20 @@ __kernel void InterpolateVolumeLinearNonParametric(__global float* Volume,
 	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
 		return;
 
-	//int idx = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
-	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+	int idx4D = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
+	int idx3D = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+
 	float4 Motion_Vector;
 	
-	if ( (myabs(d_Displacement_Field_X[idx]) < 100.0f) && (myabs(d_Displacement_Field_Y[idx]) < 100.0f) && (myabs(d_Displacement_Field_Z[idx]) < 100.0f) )
+	if ( (myabs(d_Displacement_Field_X[idx3D]) < 100.0f) && (myabs(d_Displacement_Field_Y[idx3D]) < 100.0f) && (myabs(d_Displacement_Field_Z[idx3D]) < 100.0f) )
 	{
-		Motion_Vector.x = (float)x - d_Displacement_Field_X[idx] + 0.5f;
-		Motion_Vector.y = (float)y - d_Displacement_Field_Y[idx] + 0.5f;
-		Motion_Vector.z = (float)z - d_Displacement_Field_Z[idx] + 0.5f;
+		Motion_Vector.x = (float)x - d_Displacement_Field_X[idx3D] + 0.5f;
+		Motion_Vector.y = (float)y - d_Displacement_Field_Y[idx3D] + 0.5f;
+		Motion_Vector.z = (float)z - d_Displacement_Field_Z[idx3D] + 0.5f;
 		Motion_Vector.w = 0.0f;
 
 		float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-		Volume[idx] = Interpolated_Value.x;
+		Volume[idx4D] = Interpolated_Value.x;
 	}
 	else
 	{
@@ -8715,7 +8716,7 @@ __kernel void InterpolateVolumeLinearNonParametric(__global float* Volume,
 		Motion_Vector.w = 0.0f;
 
 		float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-		Volume[idx] = Interpolated_Value.x;
+		Volume[idx4D] = Interpolated_Value.x;
 	}
 }
 

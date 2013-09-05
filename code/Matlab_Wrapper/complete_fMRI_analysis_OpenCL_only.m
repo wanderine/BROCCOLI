@@ -31,7 +31,8 @@ close all
 if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
-    basepath = 'D:\BROCCOLI_test_data\';
+    %basepath = 'D:\BROCCOLI_test_data\';
+    basepath = 'D:\';
     %mex -g FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
     mex FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    
     
@@ -49,12 +50,12 @@ end
 
 %study = 'Oulu';
 %study = 'ICBM';
-%study = 'Cambridge';
-study = 'Beijing';
+study = 'Cambridge';
+%study = 'Beijing';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-subject = 2;
+subject = 19;
 dirs = dir([basepath study]);
 subject = dirs(subject+2).name
 voxel_size = 1;
@@ -66,10 +67,10 @@ number_of_iterations_for_nonparametric_image_registration = 5;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 8/voxel_size;
-MM_T1_Z_CUT = 100;
+MM_T1_Z_CUT = 30;
 MM_EPI_Z_CUT = 20;
 
-EPI_smoothing_amount = 5.5;
+EPI_smoothing_amount = 0.5;
 AR_smoothing_amount = 7.0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  )
@@ -103,7 +104,7 @@ elseif ( strcmp(study,'OpenfMRI'))
 end
 
 fMRI_volumes = double(EPI_nii.img);
-fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
+%fMRI_volumes = fMRI_volumes/max(fMRI_volumes(:));
 [sy sx sz st] = size(fMRI_volumes);
 
 EPI = fMRI_volumes(:,:,:,1);
@@ -224,7 +225,7 @@ title('Rotation (degrees)')
 legend('X','Y','Z')
 
 if beta_space == 1
-    slice = 100/voxel_size;
+    slice = round(0.5*MNI_sz);
 else
    slice = round(EPI_sz/2); 
 end
@@ -247,8 +248,14 @@ title('Beta 2')
 
 figure
 %imagesc(statistical_maps(20:end-19,20:end-19,slice,1)); colorbar
-imagesc(statistical_maps(:,:,slice,1)); colorbar
+imagesc(statistical_maps(10:end-10,10:end-10,slice,1)); colorbar
 title('t-values')
+
+if beta_space == 1
+    slice = round(0.45*MNI_sz);
+else
+   slice = round(EPI_sz/2); 
+end
 
 figure
 imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray
