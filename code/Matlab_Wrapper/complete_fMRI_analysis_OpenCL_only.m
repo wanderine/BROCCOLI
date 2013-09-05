@@ -55,7 +55,7 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-subject = 19;
+subject = 1;
 dirs = dir([basepath study]);
 subject = dirs(subject+2).name
 voxel_size = 1;

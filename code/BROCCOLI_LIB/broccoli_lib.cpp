@@ -316,7 +316,8 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorCalculateColumnMaxs = 0;
 	createKernelErrorCalculateRowMaxs = 0;
 	createKernelErrorCalculateBetaValuesGLM = 0;
-	createKernelErrorCalculateStatisticalMapsGLM = 0;
+	createKernelErrorCalculateStatisticalMapsGLMTTest = 0;
+	createKernelErrorCalculateStatisticalMapsGLMFTest = 0;
 	createKernelErrorEstimateAR4Models = 0;
 	createKernelErrorApplyWhiteningAR4 = 0;
 	createKernelErrorRemoveLinearFit = 0;
@@ -986,7 +987,8 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 														AddVolumesOverwriteKernel = clCreateKernel(program,"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
 												
 														CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
-														CalculateStatisticalMapsGLMKernel = clCreateKernel(program,"CalculateStatisticalMapsGLM",&createKernelErrorCalculateStatisticalMapsGLM);
+														CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
+														CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
 														CalculateStatisticalMapsGLMPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMPermutation",&createKernelErrorCalculateStatisticalMapsGLMPermutation);
 														EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
 														ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
@@ -1166,9 +1168,13 @@ void BROCCOLI_LIB::OpenCLCleanup()
 		{
 			clReleaseKernel(CalculateBetaValuesGLMKernel);
 		}
-		if (CalculateStatisticalMapsGLMKernel != NULL)
+		if (CalculateStatisticalMapsGLMTTestKernel != NULL)
 		{
-			clReleaseKernel(CalculateStatisticalMapsGLMKernel);
+			clReleaseKernel(CalculateStatisticalMapsGLMTTestKernel);
+		}
+		if (CalculateStatisticalMapsGLMFTestKernel != NULL)
+		{
+			clReleaseKernel(CalculateStatisticalMapsGLMFTestKernel);
 		}
 		if (EstimateAR4ModelsKernel != NULL)
 		{
@@ -2571,12 +2577,13 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 	OpenCLCreateKernelErrors[38] = createKernelErrorCalculateColumnMaxs;
 	OpenCLCreateKernelErrors[39] = createKernelErrorCalculateRowMaxs;
 	OpenCLCreateKernelErrors[40] = createKernelErrorCalculateBetaValuesGLM;
-	OpenCLCreateKernelErrors[41] = createKernelErrorCalculateStatisticalMapsGLM;
-	OpenCLCreateKernelErrors[42] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[43] = createKernelErrorApplyWhiteningAR4;	
-	OpenCLCreateKernelErrors[44] = createKernelErrorGeneratePermutedVolumesFirstLevel;	
-	OpenCLCreateKernelErrors[45] = createKernelErrorGeneratePermutedVolumesSecondLevel;	
-	OpenCLCreateKernelErrors[46] = createKernelErrorRemoveLinearFit;	
+	OpenCLCreateKernelErrors[41] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[42] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[43] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[44] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[45] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLCreateKernelErrors[46] = createKernelErrorGeneratePermutedVolumesSecondLevel;
+	OpenCLCreateKernelErrors[47] = createKernelErrorRemoveLinearFit;
 
 
 
@@ -4093,7 +4100,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 
 
 		// Smooth tensor components
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.5);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
 		//PerformSmoothing(d_Smoothed_Tensor_Norms, d_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		//PerformSmoothingNormalized(d_t11, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		//PerformSmoothingNormalized(d_t12, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
@@ -4191,7 +4198,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		*/
 
 		// Smooth components of A-matrices and h-vectors
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.5);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
 		PerformSmoothing(d_a11, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_a12, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_a13, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
@@ -4230,7 +4237,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_Z, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t13, 0, NULL, NULL);
 		*/
 
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 3.5);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
 		PerformSmoothing(d_Temp_Displacement_Field_X, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_Temp_Displacement_Field_Y, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_Temp_Displacement_Field_Z, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
@@ -4578,7 +4585,7 @@ void BROCCOLI_LIB::AlignTwoVolumesParametricSeveralScales(float *h_Registration_
 	// Loop registration over scales
 	for (int current_scale = COARSEST_SCALE; current_scale >= 1; current_scale = current_scale/2)
 	//for (int current_scale = COARSEST_SCALE; current_scale >= COARSEST_SCALE; current_scale = current_scale/2)
-	{	
+	{
 		if (current_scale == 1)
 		{
 			AlignTwoVolumesParametric(h_Registration_Parameters_Temp, h_Rotations_Temp, CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, (int)ceil((float)NUMBER_OF_ITERATIONS/10.0f), ALIGNMENT_TYPE, INTERPOLATION_MODE);
@@ -5952,7 +5959,7 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
 	clReleaseMemObject(d_EPI_Volume);
 	clReleaseMemObject(d_T1_Volume);
 	clReleaseMemObject(d_T1_EPI_Volume);
-	
+
 	//clReleaseMemObject(d_Tensor_Magnitude_T1);
 	//clReleaseMemObject(d_Tensor_Magnitude_T1_EPI);
 }
@@ -6438,7 +6445,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_MNI_Brain_Volume);
 	//clReleaseMemObject(d_MNI_Brain_Mask);
 
-	
+
 
 	//------------------------
 
@@ -6620,7 +6627,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 {
 	ChangeVolumesResolutionAndSize(d_Beta_Volumes_MNI, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_GLM_REGRESSORS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
-	TransformVolumesParametric(d_Beta_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_GLM_REGRESSORS, INTERPOLATION_MODE);	
+	TransformVolumesParametric(d_Beta_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_GLM_REGRESSORS, INTERPOLATION_MODE);
 	TransformVolumesNonParametric(d_Beta_Volumes_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_GLM_REGRESSORS, INTERPOLATION_MODE);
 
 	ChangeVolumesResolutionAndSize(d_Statistical_Maps_MNI, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
@@ -7477,24 +7484,24 @@ void BROCCOLI_LIB::PerformGLMWrapper()
 		clFinish(commandQueue);
 
 		// Calculate t-values and residuals
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residuals);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_fMRI_Volumes);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 6, sizeof(cl_mem), &d_EPI_Mask);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 7, sizeof(cl_mem), &c_X_GLM);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrasts);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(int),   &EPI_DATA_W);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 11, sizeof(int),   &EPI_DATA_H);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 12, sizeof(int),   &EPI_DATA_D);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 13, sizeof(int),   &EPI_DATA_T);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 14, sizeof(int),   &NUMBER_OF_GLM_REGRESSORS);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 2, sizeof(cl_mem), &d_Residuals);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 4, sizeof(cl_mem), &d_fMRI_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 6, sizeof(cl_mem), &d_EPI_Mask);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 7, sizeof(cl_mem), &c_X_GLM);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 8, sizeof(cl_mem), &c_Contrasts);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 10, sizeof(int),   &EPI_DATA_W);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 11, sizeof(int),   &EPI_DATA_H);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 12, sizeof(int),   &EPI_DATA_D);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 13, sizeof(int),   &EPI_DATA_T);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 14, sizeof(int),   &NUMBER_OF_GLM_REGRESSORS);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
 		//clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
-		runKernelErrorCalculateStatisticalMapsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+		runKernelErrorCalculateStatisticalMapsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 		clFinish(commandQueue);
 
 		PerformWhitening(d_Whitened_fMRI_Volumes, d_Residuals);
@@ -7594,24 +7601,24 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFirstLevel(cl_mem d_Volumes)
 		clFinish(commandQueue);
 	
 		// Calculate t-values and residuals
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residuals);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_Volumes);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 6, sizeof(cl_mem), &d_EPI_Mask);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 7, sizeof(cl_mem), &c_X_GLM);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrasts);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(int),   &EPI_DATA_W);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 11, sizeof(int),   &EPI_DATA_H);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 12, sizeof(int),   &EPI_DATA_D);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 13, sizeof(int),   &EPI_DATA_T);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 14, sizeof(int),   &NUMBER_OF_GLM_REGRESSORS);
-		clSetKernelArg(CalculateStatisticalMapsGLMKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 2, sizeof(cl_mem), &d_Residuals);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 4, sizeof(cl_mem), &d_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 6, sizeof(cl_mem), &d_EPI_Mask);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 7, sizeof(cl_mem), &c_X_GLM);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 8, sizeof(cl_mem), &c_Contrasts);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 10, sizeof(int),   &EPI_DATA_W);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 11, sizeof(int),   &EPI_DATA_H);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 12, sizeof(int),   &EPI_DATA_D);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 13, sizeof(int),   &EPI_DATA_T);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 14, sizeof(int),   &NUMBER_OF_GLM_REGRESSORS);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
 		//clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
-		runKernelErrorCalculateStatisticalMapsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+		runKernelErrorCalculateStatisticalMapsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 		clFinish(commandQueue);
 
 		/*
@@ -7733,24 +7740,24 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMSecondLevel(cl_mem d_Volumes)
 	clFinish(commandQueue);
 
 	// Calculate t-values and residuals
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 2, sizeof(cl_mem), &d_Residuals);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 4, sizeof(cl_mem), &d_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 6, sizeof(cl_mem), &d_EPI_Mask);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 7, sizeof(cl_mem), &c_X_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 8, sizeof(cl_mem), &c_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(int),   &MNI_DATA_W);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 11, sizeof(int),   &MNI_DATA_H);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 12, sizeof(int),   &MNI_DATA_D);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 13, sizeof(int),   &NUMBER_OF_SUBJECTS);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 14, sizeof(int),   &NUMBER_OF_GLM_REGRESSORS);
-	clSetKernelArg(CalculateStatisticalMapsGLMKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 1, sizeof(cl_mem), &d_Beta_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 2, sizeof(cl_mem), &d_Residuals);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 3, sizeof(cl_mem), &d_Residual_Variances);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 4, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 5, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 6, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 7, sizeof(cl_mem), &c_X_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 8, sizeof(cl_mem), &c_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 9, sizeof(cl_mem), &c_ctxtxc_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 10, sizeof(int),   &MNI_DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 11, sizeof(int),   &MNI_DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 12, sizeof(int),   &MNI_DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 13, sizeof(int),   &NUMBER_OF_SUBJECTS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 14, sizeof(int),   &NUMBER_OF_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 15, sizeof(int),   &NUMBER_OF_CONTRASTS);
 	//clSetKernelArg(CalculateStatisticalMapsGLMKernel, 10, sizeof(cl_mem), &c_Censor);
-	runKernelErrorCalculateStatisticalMapsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	runKernelErrorCalculateStatisticalMapsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 }
 

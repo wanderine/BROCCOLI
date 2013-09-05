@@ -9396,7 +9396,22 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, __global cons
 	}
 }
 
-__kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __global float* Beta_Contrasts, __global float* Residuals, __global float* Residual_Variances, __global const float* Volumes, __global float* Beta_Volumes, __global const float* Mask, __constant float *c_X_GLM, __constant float* c_Contrasts, __constant float* c_ctxtxc_GLM, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS, __private int NUMBER_OF_CONTRASTS)
+__kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
+		                                       __global float* Beta_Contrasts,
+		                                       __global float* Residuals,
+		                                       __global float* Residual_Variances,
+		                                       __global const float* Volumes,
+		                                       __global const float* Beta_Volumes,
+		                                       __global const float* Mask,
+		                                       __constant float *c_X_GLM,
+		                                       __constant float* c_Contrasts,
+		                                       __constant float* c_ctxtxc_GLM,
+		                                       __private int DATA_W,
+		                                       __private int DATA_H,
+		                                       __private int DATA_D,
+		                                       __private int NUMBER_OF_VOLUMES,
+		                                       __private int NUMBER_OF_REGRESSORS,
+		                                       __private int NUMBER_OF_CONTRASTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -9415,11 +9430,6 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 		{
 			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 			Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-		
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
 	
 		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
@@ -9493,6 +9503,135 @@ __kernel void CalculateStatisticalMapsGLM(__global float* Statistical_Maps, __gl
 	}
 }
 
+__kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
+		                                       __global float* Beta_Contrasts,
+		                                       __global float* Residuals,
+		                                       __global float* Residual_Variances,
+		                                       __global const float* Volumes,
+		                                       __global const float* Beta_Volumes,
+		                                       __global const float* Mask,
+		                                       __constant float* c_X_GLM,
+		                                       __constant float* c_Contrasts,
+		                                       __constant float* c_ctxtxc_GLM,
+		                                       __private int DATA_W,
+		                                       __private int DATA_H,
+		                                       __private int DATA_D,
+		                                       __private int NUMBER_OF_VOLUMES,
+		                                       __private int NUMBER_OF_REGRESSORS,
+		                                       __private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+			Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[20];
+	//__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
+
+	// Load beta values into shared memory
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+		//beta[tIdx.y][tIdx.x][r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+	// Calculate the mean of the error eps
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//if (c_Censor[v] == 0.0f)
+		//{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
+			}
+			meaneps += eps;
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+		//}
+	}
+	meaneps /= (float)NUMBER_OF_VOLUMES;
+
+	// Now calculate the variance of eps
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//if (c_Censor[v] == 0.0f)
+		//{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
+			}
+			vareps += (eps - meaneps) * (eps - meaneps);
+		//}
+	}
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS); // correct for number of censor points?
+	vareps /= (float)(NUMBER_OF_VOLUMES-1); // correct for number of censor points?
+	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
+
+	//-------------------------
+
+	// Calculate matrix vector product C*beta (minus u)
+	float cbeta[NUMBER_OF_CONTRASTS];
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		cbeta[c] = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+	}
+
+	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+	float temp[NUMBER_OF_CONTRASTS];
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		temp[c] = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[c + r * NUMBER_OF_CONTRASTS] * cbeta[c];
+		}
+	}
+
+	// Finally calculate (C*beta)^T * temp
+	float scalar = 0.0f;
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		scalar += cbeta[c] * temp[c];
+	}
+
+	// Save F-value
+	Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = scalar/(float)NUMBER_OF_CONTRASTS;
+}
 	
 
 __kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical_Maps, __global const float* Volumes, __global const float* Mask, __constant float* c_xtxxt_GLM, __constant float *c_X_GLM, __constant float* c_Contrasts, __constant float* c_ctxtxc_GLM, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_VOLUMES, __private int NUMBER_OF_REGRESSORS, __private int NUMBER_OF_CONTRASTS)
