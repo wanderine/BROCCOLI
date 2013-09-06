@@ -3,7 +3,6 @@
 clear
 
 
-FSLDIR=/home/andek/fsl
 MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/
@@ -22,6 +21,8 @@ do
 	rm anat_affine.nii
 	rm anat_affine.1D
 	rm AFNI_nonlinear.nii
+
+	# The pipeline and parameters were obtained from the help text for 3dQwarp
 
 	3dUnifize -prefix anat_unifized.nii -input ${dir}/anat/mprage_skullstripped.nii.gz
 	3dAllineate -prefix anat_affine.nii -base ${MNI_TEMPLATE} -source anat_unifized.nii -twopass -cost lpa -1Dmatrix_save anat_affine.1D -autoweight -fineblur 3 -cmass

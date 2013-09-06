@@ -15,7 +15,7 @@ elseif isunix
 end
 
 mean_T1_volume_AFNI = zeros(182,218,182);
-for s = 1:19
+for s = 1:118
     T1 = load_nii([basepath '/AFNI_warped_subject'  num2str(s) '.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
@@ -32,4 +32,10 @@ imagesc(mean_T1_volume_AFNI(:,:,85)); colormap gray
 figure
 imagesc(MNI(:,:,85)); colormap gray
 
+
+figure
+imagesc(flipud(squeeze(mean_T1_volume_AFNI(85,:,:))')); colormap gray
+
+figure
+imagesc(flipud(squeeze(MNI(85,:,:))')); colormap gray
 

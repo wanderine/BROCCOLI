@@ -110,7 +110,8 @@ dirs = dir([basepath study]);
 
 s = 4;
 
-for s = 84:length(dirs)
+%for s = 179:length(dirs)
+for s = 3:3
 %for s = 3:length(dirs)
 %for s = 13:length(dirs)
     subject = dirs(s).name
@@ -219,9 +220,9 @@ for s = 84:length(dirs)
     figure; imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
     figure; imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
     
-    pause
+    %pause
     
-    load mean_T1_volume.mat; mean_T1_volume = mean_T1_volume + aligned_T1_nonparametric_opencl/192; save mean_T1_volume.mat mean_T1_volume
+    %load mean_T1_volume.mat; mean_T1_volume = mean_T1_volume + aligned_T1_nonparametric_opencl/192; save mean_T1_volume.mat mean_T1_volume
     
 end
 
