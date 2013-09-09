@@ -55,7 +55,7 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-subject = 1;
+subject = 2;
 dirs = dir([basepath study]);
 subject = dirs(subject+2).name
 voxel_size = 1;
@@ -149,7 +149,7 @@ load filters_for_nonparametric_registration.mat
 [sy sx sz st] = size(fMRI_volumes);
 mask = randn(sy,sx,sz);
 
-X_GLM_ = zeros(st,5);
+X_GLM_ = zeros(st,1);
 X_GLM_ = zeros(st,1);
 NN = 0;
 while NN < st
@@ -159,20 +159,13 @@ while NN < st
 end
 a = X_GLM_(1:st) - mean(X_GLM_(1:st));
 X_GLM(:,1) = a/norm(a(:));
-my_ones = ones(st,1);
-X_GLM(:,2) = my_ones/norm(my_ones);
-a = -(st-1)/2:(st-1)/2;
-b = a.*a;
-c = a.*a.*a;
-X_GLM(:,3) = a/norm(a(:));
-X_GLM(:,4) = b/norm(b(:));
-X_GLM(:,5) = c/norm(c(:));
 
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 % Create contrasts
 %contrasts = zeros(size(X_GLM,2),3);
-contrasts = [1 0 0 0 0]';
+contrasts = [1]';
+%contrasts = [1 0 0 0 0]';
 %contrasts(:,1) = [1 0 0 0 0 0 0 0]';
 %contrasts(:,2) = [0 1 0 0 0 0 0 0]';
 %contrasts(:,3) = [0 0 0 0 1 0 0 0]';
@@ -187,7 +180,7 @@ ctxtxc_GLM
 tic
 [beta_volumes, residuals, residual_variances, statistical_maps, T1_MNI_registration_parameters, EPI_T1_registration_parameters, ...
  EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl ...
- ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates] = ... 
+ ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates, design_matrix1, design_matrix2] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z, ...
 f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ...
 f1_nonparametric_registration, f2_nonparametric_registration, f3_nonparametric_registration, f4_nonparametric_registration, f5_nonparametric_registration, f6_nonparametric_registration, ...

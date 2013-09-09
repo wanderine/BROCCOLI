@@ -31,9 +31,9 @@ close all
 addpath('D:\nifti_matlab')
 addpath('D:\BROCCOLI_test_data')
 
-%mex GLM_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
+mex GLM_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
-mex -g GLM_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
+%mex -g GLM_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
 
 %load ../../test_data/hand_movements_right.mat
 %fMRI_volumes = vol_exp;
@@ -45,7 +45,7 @@ study = 'Cambridge';
 %study = 'Beijing';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
-subject = 9;
+subject = 1;
 opencl_platform = 0;
 opencl_device = 0;
 
@@ -65,16 +65,16 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 
 fMRI_volumes = double(EPI_nii.img);
 
-fMRI_volumes = randn(91,109,91,40);
+%fMRI_volumes = randn(91,109,91,40);
 [sy sx sz st] = size(fMRI_volumes);
 [sy sx sz st]
 
-MNI_brain_mask_nii = load_nii(['../../test_data/MNI152_T1_' num2str(2) 'mm_brain_mask.nii']);
-MNI_brain_mask = double(MNI_brain_mask_nii.img);
+%MNI_brain_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(2) 'mm_brain_mask.nii']);
+%MNI_brain_mask = double(MNI_brain_mask_nii.img);
 
-for t = 1:st
-    fMRI_volumes(:,:,:,t) = fMRI_volumes(:,:,:,t) .* MNI_brain_mask;
-end
+%for t = 1:st
+%    fMRI_volumes(:,:,:,t) = fMRI_volumes(:,:,:,t) .* MNI_brain_mask;
+%end
 
 % Create regressors
 [sy sx sz st] = size(fMRI_volumes)

@@ -57,6 +57,7 @@ class BROCCOLI_LIB
 		void SetNumberOfDetrendingRegressors(int NR);
 		void SetNumberOfContrasts(int NC);
 		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);
+		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetNumberOfPermutations(int);
@@ -317,7 +318,7 @@ class BROCCOLI_LIB
 		void GeneratePermutationMatrixFirstLevel();
 		void PerformDetrendingPriorPermutation();
 		void CreateBOLDRegressedVolumes();
-		void PerformWhitening(cl_mem whitened_volumes, cl_mem volumes);
+		void PerformWhiteningPriorPermutations(cl_mem whitened_volumes, cl_mem volumes);
 		void WhitenfMRIVolumes();
 		void GeneratePermutedVolumesFirstLevel(cl_mem permuted_volumes, cl_mem whitened_volumes, int permutation);
 		void GeneratePermutedVolumesSecondLevel(cl_mem permuted_volumes, cl_mem volumes, int permutation);
@@ -335,9 +336,7 @@ class BROCCOLI_LIB
 		// Convolution functions
 		//------------------------------------------------
 		void CopyThreeQuadratureFiltersToConstantMemory(cl_mem c_Quadrature_Filter_1_Real, cl_mem c_Quadrature_Filter_1_Imag, cl_mem c_Quadrature_Filter_2_Real, cl_mem c_Quadrature_Filter_2_Imag, cl_mem c_Quadrature_Filter_3_Real, cl_mem c_Quadrature_Filter_3_Imag, float* h_Quadrature_Filter_1_Real, float* h_Quadrature_Filter_1_Imag, float* h_Quadrature_Filter_2_Real, float* h_Quadrature_Filter_2_Imag, float* h_Quadrature_Filter_3_Real, float* Quadrature_h_Filter_3_Imag, int z, int FILTER_SIZE);
-		void CopySixQuadratureFiltersToConstantMemory(int z, int FILTER_SIZE);
 		void NonseparableConvolution3D(cl_mem d_q1, cl_mem d_q2, cl_mem d_q3, cl_mem d_Volume, cl_mem c_Filter_1_Real, cl_mem c_Filter_1_Imag, cl_mem c_Filter_2_Real, cl_mem c_Filter_2_Imag, cl_mem c_Filter_3_Real, cl_mem c_Filter_3_Imag, float* h_Filter_1_Real, float* h_Filter_1_Imag, float* h_Filter_2_Real, float* h_Filter_2_Imag, float* h_Filter_3_Real, float* h_Filter_3_Imag, int DATA_W, int DATA_H, int DATA_D);
-		void NonseparableConvolution3D(cl_mem d_q1, cl_mem d_q2, cl_mem d_q3, cl_mem d_q4, cl_mem d_q5, cl_mem d_q6, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingNormalized(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothing(cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
@@ -395,9 +394,6 @@ class BROCCOLI_LIB
 		//void ExtractRealData(float* real_data, Complex* complex_data, int N);
 		//void Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N);
 		//void Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N);
-		void InvertMatrix(float* inverse_matrix, float* matrix, int N);
-		void InvertMatrixDouble(double* inverse_matrix, double* matrix, int N);
-		void CalculateMatrixSquareRoot(float* sqrt_matrix, float* matrix, int N);
 		void SolveEquationSystem(float* h_Parameter_Vector, float* h_A_matrix, float* h_h_vector, int N);
 
 		void InvertAffineRegistrationParameters(float* h_Inverse_Parameters, float* h_Parameters);
@@ -414,7 +410,7 @@ class BROCCOLI_LIB
 		void MatMul4x4(double* C, const double* A, const double* B);
 
 		void SetupDetrendingRegressors(int N);
-		void SetupStatisticalAnalysisRegressors();
+		void SetupStatisticalAnalysisRegressors(int N);
 		float CalculateMax(float *data, int N);
 		float CalculateMin(float *data, int N);
 		float Gpdf(double value, double shape, double scale);
@@ -504,7 +500,7 @@ class BROCCOLI_LIB
 		cl_kernel MemsetFloat2Kernel;
 		cl_kernel MemsetDoubleKernel;
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel;
-		cl_kernel NonseparableConvolution3DComplexThreeFiltersKernel, NonseparableConvolution3DComplexSixFiltersKernel;
+		cl_kernel NonseparableConvolution3DComplexThreeFiltersKernel;
 		cl_kernel CalculateBetaValuesGLMKernel, CalculateStatisticalMapsGLMTTestKernel, CalculateStatisticalMapsGLMFTestKernel, CalculateStatisticalMapsGLMPermutationKernel, RemoveLinearFitKernel;
 		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedVolumesFirstLevelKernel, GeneratePermutedVolumesSecondLevelKernel;
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
@@ -526,12 +522,13 @@ class BROCCOLI_LIB
 		cl_kernel CalculateAMatricesAndHVectorsKernel;
 		//cl_kernel CalculateDisplacementAndCertaintyUpdateKernel;
 		cl_kernel CalculateDisplacementUpdateKernel;
+		cl_kernel RemoveMeanKernel;
 
 
 		// Create kernel errors
 		cl_int createKernelErrorMemset, createKernelErrorMemsetFloat2;
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods;
-		cl_int createKernelErrorNonseparableConvolution3DComplexThreeFilters, createKernelErrorNonseparableConvolution3DComplexSixFilters;
+		cl_int createKernelErrorNonseparableConvolution3DComplexThreeFilters;
 		cl_int createKernelErrorCalculatePhaseDifferencesAndCertainties, createKernelErrorCalculatePhaseGradientsX, createKernelErrorCalculatePhaseGradientsY, createKernelErrorCalculatePhaseGradientsZ;
 		cl_int createKernelErrorCalculateAMatrixAndHVector2DValuesX, createKernelErrorCalculateAMatrixAndHVector2DValuesY, createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
 		cl_int createKernelErrorCalculateAMatrix1DValues, createKernelErrorCalculateHVector1DValues;
@@ -581,7 +578,7 @@ class BROCCOLI_LIB
 
 		// Run kernel errors
 		cl_int runKernelErrorSeparableConvolutionRows, runKernelErrorSeparableConvolutionColumns, runKernelErrorSeparableConvolutionRods;
-		cl_int runKernelErrorNonseparableConvolution3DComplexThreeFilters, runKernelErrorNonseparableConvolution3DComplexSixFilters;
+		cl_int runKernelErrorNonseparableConvolution3DComplexThreeFilters;
 		cl_int runKernelErrorMemset;
 		cl_int runKernelErrorCalculatePhaseDifferencesAndCertainties, runKernelErrorCalculatePhaseGradientsX, runKernelErrorCalculatePhaseGradientsY, runKernelErrorCalculatePhaseGradientsZ;
 		cl_int runKernelErrorCalculateAMatrixAndHVector2DValuesX, runKernelErrorCalculateAMatrixAndHVector2DValuesY, runKernelErrorCalculateAMatrixAndHVector2DValuesZ;
@@ -718,6 +715,8 @@ class BROCCOLI_LIB
 		int NUMBER_OF_SUBJECTS;
 		int NUMBER_OF_CONTRASTS;
 		int NUMBER_OF_GLM_REGRESSORS;
+		int NUMBER_OF_MOTION_REGRESSORS;
+		int NUMBER_OF_TOTAL_GLM_REGRESSORS;
 		int NUMBER_OF_DETRENDING_REGRESSORS;
 		float SEGMENTATION_THRESHOLD;
 
@@ -850,10 +849,10 @@ class BROCCOLI_LIB
 		float *h_Registration_Parameters_Out;
 		// Motion correction variables
 		float		*h_Motion_Corrected_fMRI_Volumes;
-		float		*h_Motion_Parameters_Out, h_Motion_Parameters[2000];
+		float		*h_Motion_Parameters_Out, h_Motion_Parameters[10000];
 
 		// fMRI - T1
-		float		*h_Aligned_fMRI_Volume;
+		float		*h_Aligned_fMRI_Volum;
 
 		// Smoothing pointers
 		float		*h_Smoothing_Filter_X_In, *h_Smoothing_Filter_Y_In, *h_Smoothing_Filter_Z_In;
@@ -869,8 +868,10 @@ class BROCCOLI_LIB
 		// Statistical analysis pointers
 		float		*hrf;
 		int			 hrf_length;
-		float       *h_Contrasts;
-		float		*h_X_GLM, *h_xtxxt_GLM, *h_ctxtxc_GLM;
+		float       *h_Contrasts, *h_Contrasts_In;
+		float		*h_X_GLM_Out, *h_X_GLM_In, *h_xtxxt_GLM_In, *h_ctxtxc_GLM_In;
+		float		*h_X_GLM, *h_xtxxt_GLM, *h_xtxxt_GLM_Out, *h_ctxtxc_GLM;
+		float		*h_Censored_Timepoints;
 		float		*h_Statistical_Maps;
 		float       *h_Beta_Volumes;
 		float       *h_Residuals;
@@ -958,6 +959,7 @@ class BROCCOLI_LIB
 		cl_mem		d_Beta_Contrasts;
 		cl_mem		d_Residuals;
 		cl_mem		d_Residual_Variances, d_Residual_Variances_MNI;
+		cl_mem		c_Censored_Timepoints;
 
 		// Paraneters for single subject permutations
 		cl_mem		d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates;

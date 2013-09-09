@@ -76,7 +76,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;                
     
-    int             NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS, BETA_SPACE;
+    int             NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONTRASTS, BETA_SPACE;
     
     int             OPENCL_PLATFORM, OPENCL_DEVICE;
     
@@ -87,6 +87,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;
+    double          *h_Design_Matrix_double, *h_Design_Matrix2_double;;
+    float           *h_Design_Matrix, *h_Design_Matrix2;
     
     //---------------------
     
@@ -99,11 +101,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<14)
+    if(nlhs<16)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>14)
+    if(nlhs>16)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -206,7 +208,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     IMAGE_REGISTRATION_FILTER_SIZE = ARRAY_DIMENSIONS_QUADRATURE_FILTER[0];                   
     SMOOTHING_FILTER_LENGTH = 9;
     
-    NUMBER_OF_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
+    NUMBER_OF_GLM_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
+    NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + 4 + 6;
     NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[1];
     
     int EPI_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
@@ -224,9 +227,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         
     int SMOOTHING_FILTER_SIZE = SMOOTHING_FILTER_LENGTH * sizeof(float);    
     
-    int GLM_SIZE = EPI_DATA_T * NUMBER_OF_REGRESSORS * sizeof(float);
-    int CONTRAST_SIZE = NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
+    int GLM_SIZE = EPI_DATA_T * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
+    int CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     int CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
+    int DESIGN_MATRIX_SIZE = NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
     
     int BETA_DATA_SIZE, STATISTICAL_MAPS_DATA_SIZE, RESIDUAL_VARIANCES_DATA_SIZE;
     
@@ -235,13 +239,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if (BETA_SPACE == MNI)
     {
-        BETA_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float);        
+        BETA_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);        
         STATISTICAL_MAPS_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);    
         RESIDUAL_VARIANCES_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);    
     }
     else if (BETA_SPACE == EPI)
     {
-        BETA_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_REGRESSORS * sizeof(float);
+        BETA_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
         STATISTICAL_MAPS_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);           
         RESIDUAL_VARIANCES_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);    
     }        
@@ -251,7 +255,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("fMRI data size : %i x %i x %i x %i \n", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     mexPrintf("T1 data size : %i x %i x %i \n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
     mexPrintf("MNI data size : %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-    mexPrintf("Number of regressors : %i \n",  NUMBER_OF_REGRESSORS);
+    mexPrintf("Number of regressors : %i \n",  NUMBER_OF_GLM_REGRESSORS);
     mexPrintf("Number of contrasts : %i \n",  NUMBER_OF_CONTRASTS);
     
     //-------------------------------------------------
@@ -273,7 +277,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         ARRAY_DIMENSIONS_OUT_BETA[2] = EPI_DATA_D;    
     }
     
-    ARRAY_DIMENSIONS_OUT_BETA[3] = NUMBER_OF_REGRESSORS;
+    ARRAY_DIMENSIONS_OUT_BETA[3] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
     
     plhs[0] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_BETA,mxDOUBLE_CLASS, mxREAL);
     h_Beta_Volumes_double = mxGetPr(plhs[0]);          
@@ -397,6 +401,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[13] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
     h_AR4_Estimates_double = mxGetPr(plhs[13]);  
     
+    
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX[2];
+    ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX[0] = EPI_DATA_T;
+    ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX[1] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+    
+    plhs[14] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX,mxDOUBLE_CLASS, mxREAL);
+    h_Design_Matrix_double = mxGetPr(plhs[14]);  
+    
+    plhs[15] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX,mxDOUBLE_CLASS, mxREAL);
+    h_Design_Matrix2_double = mxGetPr(plhs[15]);  
+    
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
@@ -465,6 +482,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_AR3_Estimates                     = (float *)mxMalloc(EPI_VOLUME_SIZE);
     h_AR4_Estimates                     = (float *)mxMalloc(EPI_VOLUME_SIZE);
     
+    h_Design_Matrix                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
+    h_Design_Matrix2                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
+    
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     pack_double2float_volume(h_T1_Volume, h_T1_Volume_double, T1_DATA_W, T1_DATA_H, T1_DATA_D);
@@ -508,9 +528,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //pack_double2float(h_Smoothing_Filter_Y, h_Smoothing_Filter_Y_double, SMOOTHING_FILTER_LENGTH);
     //pack_double2float(h_Smoothing_Filter_Z, h_Smoothing_Filter_Z_double, SMOOTHING_FILTER_LENGTH);
     
-    pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_REGRESSORS * EPI_DATA_T);
-    pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_REGRESSORS * EPI_DATA_T);    
-    pack_double2float(h_Contrasts, h_Contrasts_double, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS);
+    pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_GLM_REGRESSORS * EPI_DATA_T);
+    pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_GLM_REGRESSORS * EPI_DATA_T);    
+    pack_double2float(h_Contrasts, h_Contrasts_double, NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS);
     pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_CONTRASTS);
        
     //------------------------
@@ -570,9 +590,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
     BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
     BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
-    BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_REGRESSORS);
+    BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
     BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
+    BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
     BROCCOLI.SetContrasts(h_Contrasts);
     BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
     BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
@@ -643,6 +664,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexPrintf("OPENCL error detected, aborting \n");
     }    
     
+    unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T);
+    unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T);
+    
     unpack_float2double(h_T1_MNI_Registration_Parameters_double, h_T1_MNI_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE);
     unpack_float2double(h_EPI_T1_Registration_Parameters_double, h_EPI_T1_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID);
     unpack_float2double(h_EPI_MNI_Registration_Parameters_double, h_EPI_MNI_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE);
@@ -652,13 +676,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if (BETA_SPACE == MNI)
     {
-        unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_REGRESSORS);  
+        unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS);  
         unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);                
         unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     }
     else if (BETA_SPACE == EPI)
     {
-        unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_REGRESSORS);
+        unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS);
         unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS);        
         unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     }        
@@ -671,6 +695,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_AR4_Estimates_double, h_AR4_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     
     // Free all the allocated memory on the host
+    
+    mxFree(h_Design_Matrix);
+    mxFree(h_Design_Matrix2);
     
     mxFree(h_fMRI_Volumes);
     mxFree(h_T1_Volume);
