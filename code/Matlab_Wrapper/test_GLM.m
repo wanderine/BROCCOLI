@@ -31,24 +31,26 @@ close all
 if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
+    basepath = 'D:\BROCCOLI_test_data\';
 elseif isunix
-    
+    addpath('/home/andek/Research_projects/nifti_matlab/')
+    basepath = '/data/andek/BROCCOLI_test_data/';
 end
 
 if ispc
-    mex GLM.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
     %mex -g GLM.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib  
+    mex GLM.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib      
+    opencl_platform = 0;
+    opencl_device = 0;
 elseif isunix
-    mex -g GLM.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug 
+    %mex -g GLM.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug 
+    mex GLM.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
+    opencl_platform = 2;
+    opencl_device = 0;
 end
 
-%sx = 63; sy = 65; sz = 31; st = 100;
-%fMRI_volumes = randn(sy,sx,sz,st);
 
-%load ../../test_data/hand_movements_right.mat
-%fMRI_volumes = vol_exp;
 
-basepath = 'D:\BROCCOLI_test_data\';
 %study = 'Oulu';
 %study = 'ICBM';
 study = 'Cambridge';
@@ -56,14 +58,19 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 substudy = 'Mixed';
 subject = 1;
-opencl_platform = 0;
-opencl_device = 0;
+
+
+dirs = dir([basepath study]);
+s = subject + 2;
+subject = dirs(s).name
+    
 
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    EPI_nii = load_nii([basepath study '/' subject '/func/rest'  '.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
     EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
 end
@@ -81,7 +88,7 @@ fMRI_volumes = double(EPI_nii.img);
 [sy sx sz st] = size(fMRI_volumes)
 mask = randn(sy,sx,sz);
 
-X_GLM_ = zeros(st,5);
+X_GLM = zeros(st,2);
 X_GLM_ = zeros(st,1);
 NN = 0;
 while NN < st
@@ -90,20 +97,15 @@ while NN < st
     NN = NN + 20;
 end
 X_GLM(:,1) = X_GLM_(1:st) - mean(X_GLM_(1:st));
-a = ones(st,1)/st;
-X_GLM(:,2) = a/norm(a(:));
-a = -(st-1)/2:(st-1)/2;
-b = a.*a;
-c = a.*a.*a;
-X_GLM(:,3) = a/norm(a(:));
-X_GLM(:,4) = b/norm(b(:));
-X_GLM(:,5) = c/norm(c(:));
+X_GLM(:,2) = ones(st,1);
 
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 % Create contrasts
 %contrasts = zeros(size(X_GLM,2),3);
-contrasts = [1 0 0 0 0]';
+%contrasts = [1 0 0 0 0]';
+%contrasts = [1 0]';
+contrasts = [1 0; 0 1];
 %contrasts(:,1) = [1 0 0 0 0 0 0 0]';
 %contrasts(:,2) = [0 1 0 0 0 0 0 0]';
 %contrasts(:,3) = [0 0 0 0 1 0 0 0]';
@@ -113,7 +115,11 @@ for i = 1:size(contrasts,2)
 end
 ctxtxc_GLM
 
-statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
+ctxtxc_GLM = inv(contrasts*inv(X_GLM'*X_GLM)*contrasts')
+
+
+%statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
+statistical_maps_cpu = zeros(sy,sx,sz);
 betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
 residuals_cpu = zeros(sy,sx,sz,st);
 residual_variances_cpu = zeros(sy,sx,sz);
@@ -123,7 +129,7 @@ for x = 1:sx
     for y = 1:sy
         for z = 1:sz
             timeseries = squeeze(fMRI_volumes(y,x,z,:));
-            timeseries = timeseries - mean(timeseries);
+            %timeseries = timeseries - mean(timeseries);
             %fMRI_volumes(y,x,z,:) = timeseries;
             beta = xtxxt_GLM*timeseries;
             betas_cpu(y,x,z,:) = beta;
@@ -131,41 +137,57 @@ for x = 1:sx
             residuals_cpu(y,x,z,:) = eps;
             %residual_variances_cpu(y,x,z) = sum((eps-mean(eps)).^2)/(st-size(X_GLM,2));
             residual_variances_cpu(y,x,z) = var(eps);
+            
+            %t-test
             for i = 1:size(contrasts,2)
-                contrast = contrasts(:,i);
-                statistical_maps_cpu(y,x,z,i) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM(i));
+                %contrast = contrasts(:,i);
+                %statistical_maps_cpu(y,x,z,i) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM(i));
             end
+           
+            %F-test
+            %statistical_maps_cpu(y,x,z) = (contrasts*beta)' * inv( residual_variances_cpu(y,x,z) * contrasts* inv(X_GLM'*X_GLM)*contrasts' ) * (contrasts*beta) / 2;
+            statistical_maps_cpu(y,x,z) = (contrasts*beta)' * 1/residual_variances_cpu(y,x,z) * ctxtxc_GLM * (contrasts*beta) / 2;
+            
         end
     end
 end
 
 
 tic
-[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl] = GLM(fMRI_volumes,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,EPI_smoothing_amount,AR_smoothing_amount,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,opencl_platform,opencl_device);
+[betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ...
+ ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl, ...
+ design_matrix, design_matrix2] = ...
+GLM(fMRI_volumes,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,EPI_smoothing_amount,AR_smoothing_amount,... 
+    EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,opencl_platform,opencl_device);
 toc
 
 slice = 30;
 
 figure
 imagesc([betas_cpu(:,:,slice,1) betas_opencl(:,:,slice,1)]); colorbar
+title('Beta')
 
 figure
 imagesc([residual_variances_cpu(:,:,slice) residual_variances_opencl(:,:,slice)]); colorbar
+title('Residual variances')
 
 figure
+%imagesc([statistical_maps_cpu(:,:,slice,1) statistical_maps_opencl(:,:,slice,1)]); colorbar
+%imagesc([statistical_maps_cpu(:,:,slice,1)/119/2 statistical_maps_opencl(:,:,slice,1)*1000]); colorbar
 imagesc([statistical_maps_cpu(:,:,slice,1) statistical_maps_opencl(:,:,slice,1)]); colorbar
+title('Statistical map')
 
-figure
-imagesc([ar1_estimates_opencl(:,:,slice) ]); colorbar
+%figure
+%imagesc([ar1_estimates_opencl(:,:,slice) ]); colorbar
 
-figure
-imagesc([ar2_estimates_opencl(:,:,slice) ]); colorbar
+%figure
+%imagesc([ar2_estimates_opencl(:,:,slice) ]); colorbar
 
-figure
-imagesc([ar3_estimates_opencl(:,:,slice) ]); colorbar
+%figure
+%imagesc([ar3_estimates_opencl(:,:,slice) ]); colorbar
 
-figure
-imagesc([ar4_estimates_opencl(:,:,slice) ]); colorbar
+%figure
+%imagesc([ar4_estimates_opencl(:,:,slice) ]); colorbar
 
 beta_tot_error = sum(abs(betas_cpu(:) - betas_opencl(:)))
 beta_max_error = max(abs(betas_cpu(:) - betas_opencl(:)))

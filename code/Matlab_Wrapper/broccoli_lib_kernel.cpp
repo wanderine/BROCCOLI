@@ -186,7 +186,15 @@ void GetParameterIndices(int* i, int* j, int parameter)
 
 
 
-__kernel void SeparableConvolutionRows(__global float *Filter_Response, __global const float* Volume, __global const float* Certainty, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRows(__global float *Filter_Response, 
+	                                   __global const float* Volume, 
+									   __global const float* Certainty, 
+									   __constant float *c_Smoothing_Filter_Y, 
+									   __private int t, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -335,7 +343,15 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response, __global
 	
 }
 
-__kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response, __global const float* Volume, __global const float* Certainty, __constant float *c_Smoothing_Filter_Y, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response, 
+	                                      __global const float* Volume, 
+										  __global const float* Certainty, 
+										  __constant float *c_Smoothing_Filter_Y, 
+										  __private int t, 
+										  __private int DATA_W, 
+										  __private int DATA_H, 
+										  __private int DATA_D, 
+										  __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -609,7 +625,14 @@ __kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response, __glo
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS 8
 
 
-__kernel void SeparableConvolutionColumns(__global float *Filter_Response, __global float* Volume, __constant float *c_Smoothing_Filter_X, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionColumns(__global float *Filter_Response, 
+	                                      __global float* Volume, 
+										  __constant float *c_Smoothing_Filter_X, 
+										  __private int t, 
+										  __private int DATA_W, 
+										  __private int DATA_H, 
+										  __private int DATA_D, 
+										  __private int DATA_T)
 {
 	//int x = get_local_size(0) * get_group_id(0) / 32 * 24 + get_local_id(0);;
 	//int y = get_local_size(1) * get_group_id(1) * 2 + get_local_id(1);
@@ -825,7 +848,14 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response, __glo
 	}
 }
 
-__kernel void SeparableConvolutionColumnsAMD(__global float *Filter_Response, __global float* Volume, __constant float *c_Smoothing_Filter_X, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionColumnsAMD(__global float *Filter_Response, 
+	                                         __global float* Volume, 
+											 __constant float *c_Smoothing_Filter_X, 
+											 __private int t, 
+											 __private int DATA_W, 
+											 __private int DATA_H, 
+											 __private int DATA_D, 
+											 __private int DATA_T)
 {
 	//int x = get_local_size(0) * get_group_id(0) / 32 * 24 + get_local_id(0);;
 	//int y = get_local_size(1) * get_group_id(1) * 2 + get_local_id(1);
@@ -1228,7 +1258,15 @@ __kernel void SeparableConvolutionColumnsAMD(__global float *Filter_Response, __
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS 8
 
 
-__kernel void SeparableConvolutionRods(__global float *Filter_Response, __global float* Volume, __global const float* Smoothed_Certainty, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRods(__global float *Filter_Response, 
+	                                   __global float* Volume, 
+									   __global const float* Smoothed_Certainty, 
+									   __constant float *c_Smoothing_Filter_Z, 
+									   __private int t, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int DATA_T)
 {
 	//int x = get_global_id(0);
 	//int y = get_local_size(1) * get_group_id(1) * 4 + get_local_id(1); 
@@ -1376,7 +1414,15 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response, __global
 }
 
 
-__kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response, __global float* Volume, __global const float* Smoothed_Certainty, __constant float *c_Smoothing_Filter_Z, __private int t, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int DATA_T)
+__kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response,
+	                                      __global float* Volume, 
+										  __global const float* Smoothed_Certainty, 
+										  __constant float *c_Smoothing_Filter_Z, 
+										  __private int t, 
+										  __private int DATA_W, 
+										  __private int DATA_H, 
+										  __private int DATA_D, 
+										  __private int DATA_T)
 {
 	int x = get_global_id(0);
 	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS + get_local_id(1); 
@@ -3140,7 +3186,9 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 }
 
 
-__kernel void Memset(__global float *Data, __private float value, __private int N)
+__kernel void Memset(__global float *Data, 
+	                 __private float value, 
+					 __private int N)
 {
 	int i = get_global_id(0);
 
@@ -3150,7 +3198,9 @@ __kernel void Memset(__global float *Data, __private float value, __private int 
 	Data[i] = value;
 }
 
-__kernel void MemsetFloat2(__global float2 *Data, __private float value, __private int N)
+__kernel void MemsetFloat2(__global float2 *Data, 
+	                       __private float value, 
+						   __private int N)
 {
 	int i = get_global_id(0);
 
@@ -3165,19 +3215,6 @@ __kernel void MemsetFloat2(__global float2 *Data, __private float value, __priva
 }
 
 
-/*
-#pragma OPENCL EXTENSION cl_khr_fp64: enable
-
-__kernel void MemsetDouble(__global double *Data, __private double value, __private int N)
-{
-	int i = get_global_id(0);
-
-	if (i >= N)
-		return;
-
-	Data[i] = value;
-}
-*/
 
 
 __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
@@ -3313,142 +3350,6 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
      }
 }
 
-/*
-__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(__global float2 *Filter_Response_1,
-	                                                                 __global float2 *Filter_Response_2,
-																	 __global float2 *Filter_Response_3,
-																	 __global const float* Volume, 
-																	 __constant float2* c_Quadrature_Filter_1, 
-																	 __constant float2* c_Quadrature_Filter_2, 
-																	 __constant float2* c_Quadrature_Filter_3, 
-																	 __private int z_offset, 
-																	 __private int DATA_W, 
-																	 __private int DATA_H, 
-																	 __private int DATA_D)
-{   
-    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D + get_local_id(0);
-	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D + get_local_id(1);
-	int z = get_global_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-    
-    __local float l_Image[64][96]; // y, x
-
-    // Reset shared memory
-    l_Image[tIdx.y][tIdx.x]           = 0.0f;
-    l_Image[tIdx.y][tIdx.x + 32]      = 0.0f;
-    l_Image[tIdx.y][tIdx.x + 64]      = 0.0f;
-    l_Image[tIdx.y + 32][tIdx.x]      = 0.0f;
-    l_Image[tIdx.y + 32][tIdx.x + 32] = 0.0f;
-    l_Image[tIdx.y + 32][tIdx.x + 64] = 0.0f;
-
-    // Read data into shared memory
-
-    if ( ((z + z_offset) >= 0) && ((z + z_offset) < DATA_D) )
-    {
-        if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )   
-            l_Image[tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
-
-        if ( ((x+32-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )
-            l_Image[tIdx.y][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
-
-        if ( ((x+64-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  ) 
-            l_Image[tIdx.y][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
-
-        if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
-            l_Image[tIdx.y + 32][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
-
-        if ( ((x+32-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
-            l_Image[tIdx.y + 32][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
-
-        if ( ((x+64-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
-            l_Image[tIdx.y + 32][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
-    }
-	
-   	// Make sure all threads have written to local memory
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-    // Only threads inside the image do the convolution
-
-    if ( (x < DATA_W) && (y < DATA_H) )
-    {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
-        Filter_Response_1_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.a;
-	    Filter_Response_1_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.b;
-	    Filter_Response_2_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.c;
-	    Filter_Response_2_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.d;
-	    Filter_Response_3_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.e;
-	    Filter_Response_3_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.f;
-    }
-
-    if ( ((x + 32) < DATA_W) && (y < DATA_H) )
-    {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
-        Filter_Response_1_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.a;
-		Filter_Response_1_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.b;
-		Filter_Response_2_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.c;
-		Filter_Response_2_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.d;
-		Filter_Response_3_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.e;
-		Filter_Response_3_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.f;
-    }
-
-    if (tIdx.x < (32 - HALO*2))
-    {
-        if ( ((x + 64) < DATA_W) && (y < DATA_H) )
-	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
-            Filter_Response_1_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.a;
-		    Filter_Response_1_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.b;
-		    Filter_Response_2_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.c;
-		    Filter_Response_2_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.d;
-		    Filter_Response_3_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.e;
-		    Filter_Response_3_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.f;
-	    }
-    }
-
-    if (tIdx.y < (32 - HALO*2))
-    {
-        if ( (x < DATA_W) && ((y + 32) < DATA_H) )
-	    {
- 		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
-            Filter_Response_1_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.a;
-		    Filter_Response_1_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.b;
-		    Filter_Response_2_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.c;
-		    Filter_Response_2_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.d;
-		    Filter_Response_3_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.e;
-		    Filter_Response_3_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.f;
-	    }
-    }
-
-    if (tIdx.y < (32 - HALO*2))
-    {
-        if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
-	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
-            Filter_Response_1_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.a;
-		    Filter_Response_1_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.b;
-		    Filter_Response_2_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.c;
-		    Filter_Response_2_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.d;
-		    Filter_Response_3_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.e;
-		    Filter_Response_3_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.f;
-	    }
-     } 
-
-    if ( (tIdx.x < (32 - HALO*2)) && (tIdx.y < (32 - HALO*2)) )
-    {
-        if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
-	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
-            Filter_Response_1_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.a;
-		    Filter_Response_1_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.b;
-		    Filter_Response_2_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.c;
-		    Filter_Response_2_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.d;
-		    Filter_Response_3_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.e;
-		    Filter_Response_3_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.f;
-	    }
-     }
-}
-*/
 
 
 
@@ -4113,10 +4014,16 @@ __kernel void CalculatePhaseGradientsZ(__global float* Phase_Gradients,
 
 
 
-// dimBlock.x = DATA_H; dimBlock.y = 1; dimBlock.z = 1;
-// dimGrid.x = DATA_D; dimGrid.y = 1;
 
-__kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Phase_Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
+__kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_values, 
+	                                              __global float* h_vector_2D_values, 
+												  __global const float* Phase_Differences, 
+												  __global const float* Phase_Gradients, 
+												  __global const float* Phase_Certainties, 
+												  __private int DATA_W, 
+												  __private int DATA_H, 
+												  __private int DATA_D, 
+												  __private int FILTER_SIZE)
 {
 	int y = get_local_id(0);
 	int z = get_group_id(1); 
@@ -4210,7 +4117,15 @@ __kernel void CalculateAMatrixAndHVector2DValuesX(__global float* A_matrix_2D_va
 
 
 
-__kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Phase_Certainties, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
+__kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_values, 
+	                                              __global float* h_vector_2D_values, 
+												  __global const float* Phase_Differences, 
+												  __global const float* Phase_Gradients, 
+												  __global const float* Phase_Certainties, 
+												  __private int DATA_W, 
+												  __private int DATA_H, 
+												  __private int DATA_D, 
+												  __private int FILTER_SIZE)
 {
 	int y = get_local_id(0);
 	int z = get_group_id(1);
@@ -4304,7 +4219,15 @@ __kernel void CalculateAMatrixAndHVector2DValuesY(__global float* A_matrix_2D_va
 
 
 
-__kernel void CalculateAMatrixAndHVector2DValuesZ(__global float* A_matrix_2D_values, __global float* h_vector_2D_values, __global const float* Phase_Differences, __global const float* Phase_Gradients, __global const float* Phase_Certainties, int DATA_W, int DATA_H, int DATA_D, int FILTER_SIZE)
+__kernel void CalculateAMatrixAndHVector2DValuesZ(__global float* A_matrix_2D_values, 
+	                                              __global float* h_vector_2D_values, 
+												  __global const float* Phase_Differences, 
+												  __global const float* Phase_Gradients, 
+												  __global const float* Phase_Certainties, 
+												  __private int DATA_W, 
+												  __private int DATA_H, 
+												  __private int DATA_D, 
+												  __private int FILTER_SIZE)
 {
 	int y = get_local_id(0);
 	int z = get_group_id(1);
@@ -4399,10 +4322,13 @@ __kernel void CalculateAMatrixAndHVector2DValuesZ(__global float* A_matrix_2D_va
 
 
 
-// dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
-// dimGrid.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimGrid.y = 1;
 
-__kernel void CalculateAMatrix1DValues(__global float* A_matrix_1D_values, __global const float* A_matrix_2D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
+__kernel void CalculateAMatrix1DValues(__global float* A_matrix_1D_values, 
+	                                   __global const float* A_matrix_2D_values, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int FILTER_SIZE)
 {
 	int z = get_local_id(0);
 	int A_matrix_element   = get_group_id(1); // blockIdx.x; // 144 element (12 x 12 matrix) (30 that are != 0)
@@ -4424,10 +4350,13 @@ __kernel void CalculateAMatrix1DValues(__global float* A_matrix_1D_values, __glo
 	}
 }
 
-// dimBlock.x = NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS; dimBlock.y = 1; dimBlock.z = 1;
-// dimGrid.x = 1; dimGrid.y = 1;
 
-__kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A_matrix_1D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
+__kernel void CalculateAMatrix(__global float* A_matrix, 
+	                           __global const float* A_matrix_1D_values, 
+							   __private int DATA_W, 
+							   __private int DATA_H, 
+							   __private int DATA_D, 
+							   __private int FILTER_SIZE)
 {
 	int A_matrix_element = get_local_id(0);
 	int idx, i, j;
@@ -4448,10 +4377,13 @@ __kernel void CalculateAMatrix(__global float* A_matrix, __global const float* A
 	A_matrix[A_matrix_element] = matrix_value;
 }
 
-// dimBlock.x = DATA_D; dimBlock.y = 1; dimBlock.z = 1;
-// dimGrid.x = NUMBER_OF_PARAMETERS; dimGrid.y = 1;
 
-__kernel void CalculateHVector1DValues(__global float* h_vector_1D_values, __global const float* h_vector_2D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
+__kernel void CalculateHVector1DValues(__global float* h_vector_1D_values, 
+	                                   __global const float* h_vector_2D_values, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int FILTER_SIZE)
 {
 	int z = get_local_id(0);
 	int h_vector_element   = get_global_id(1); //blockIdx.x; // 12 parameters
@@ -4476,10 +4408,12 @@ __kernel void CalculateHVector1DValues(__global float* h_vector_1D_values, __glo
 
 
 
-// dimBlock.x = NUMBER_OF_PARAMETERS; dimBlock.y = 1; dimBlock.z = 1;
-// dimGrid.x = 1; dimGrid.y = 1;
-
-__kernel void CalculateHVector(__global float* h_vector, __global const float* h_vector_1D_values, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int FILTER_SIZE)
+__kernel void CalculateHVector(__global float* h_vector, 
+	                           __global const float* h_vector_1D_values, 
+							   __private int DATA_W, 
+							   __private int DATA_H, 
+							   __private int DATA_D, 
+							   __private int FILTER_SIZE)
 {
 	int h_vector_element = get_local_id(0);
 	int idx;
@@ -4498,62 +4432,7 @@ __kernel void CalculateHVector(__global float* h_vector, __global const float* h
 
 
 
-// Estimate Dk Ck and T
-/*
-__kernel void CalculatePhaseDifferencesCertaintiesAndTensorComponents(__global float* Phase_Differences, 
-	                                                                  __global float* Certainties, 
-																	  __global float* t11, 
-																	  __global float* t12, 
-																	  __global float* t13, 
-																	  __global float* t22, 
-																	  __global float* t23, 
-																	  __global float* t33, 
-																	  __global const float2* q1, 
-																	  __global const float2* q2, 
-																	  __private float m11,
-																	  __private float m12,
-																	  __private float m13,
-																	  __private float m22,
-																	  __private float m23, 
-																	  __private float m33, 
-																	  __private int DATA_W, 
-																	  __private int DATA_H, 
-																	  __private int DATA_D,
-																	  __private int filter) 
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
 
-	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
-		return;
-
-	int idx = x + y * DATA_W + z * DATA_W * DATA_H;
-
-	int offset = filter * DATA_W * DATA_H * DATA_D;
-
-	float2 q1_ = q1[idx];
-	float2 q2_ = q2[idx];
-
-	// q1 * conj(q2)
-	float qqReal = q1_.x * q2_.x + q1_.y * q2_.y;
-	float qqImag = -q1_.x * q2_.y + q1_.y * q2_.x;
-	float phaseDifference = atan2(qqImag,qqReal);
-	Phase_Differences[idx + offset] = phaseDifference;
-	float Aqq = sqrt(qqReal * qqReal + qqImag * qqImag);
-	Certainties[idx + offset] = sqrt(Aqq) * cos(phaseDifference/2.0f) * cos(phaseDifference/2.0f);
-		
-	// Estimate structure tensor for the deformed volume
-	float magnitude = sqrt(q2_.x * q2_.x + q2_.y * q2_.y);
-
-	t11[idx] += magnitude * m11;
-	t12[idx] += magnitude * m12;
-	t13[idx] += magnitude * m13;
-	t22[idx] += magnitude * m22;
-	t23[idx] += magnitude * m23;
-	t33[idx] += magnitude * m33;	
-}
-*/
 
 __kernel void CalculateTensorComponents(__global float* t11,
 										__global float* t12,
@@ -4694,155 +4573,7 @@ __kernel void CalculateAMatricesAndHVectors(__global float* a11,
 	h3[idx] += certainty * phase_difference * (c_Filter_Directions_X[FILTER] * tt13 + c_Filter_Directions_Y[FILTER] * tt23 + c_Filter_Directions_Z[FILTER] * tt33);
 }
 
-/*
-__kernel void CalculateAMatricesAndHVectors(__global float* a11, 
-	                                        __global float* a12, 
-											__global float* a13, 
-											__global float* a22, 
-											__global float* a23, 
-											__global float* a33, 
-											__global float* h1, 
-											__global float* h2, 
-											__global float* h3, 
-											__global const float* Phase_Differences, 
-											__global const float* Certainties, 
-											__global const float* t11, 
-											__global const float* t12, 
-											__global const float* t13, 
-											__global const float* t22, 
-											__global const float* t23, 
-											__global const float *t33, 
-											__constant float* c_Filter_Directions_X, 
-											__constant float* c_Filter_Directions_Y, 
-											__constant float* c_Filter_Directions_Z, 
-											__private int DATA_W, 
-											__private int DATA_H, 
-											__private int DATA_D) 
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-	
-	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
-		return;
 
-	int idx = x + y * DATA_W + z * DATA_W * DATA_H;
-	int offset = DATA_W * DATA_H * DATA_D;
-
-	float c, pd;
-	float a11Temp = 0.0f;
-	float a12Temp = 0.0f;
-	float a13Temp = 0.0f;
-	float a22Temp = 0.0f;
-	float a23Temp = 0.0f;
-	float a33Temp = 0.0f;
-	float h1Temp = 0.0f;
-	float h2Temp = 0.0f;
-	float h3Temp = 0.0f;
-	float tt11, tt12, tt13, tt22, tt23, tt33;
-		
-	tt11 = t11[idx] * t11[idx] + t12[idx] * t12[idx] + t13[idx] * t13[idx];
-    tt12 = t11[idx] * t12[idx] + t12[idx] * t22[idx] + t13[idx] * t23[idx];
-    tt13 = t11[idx] * t13[idx] + t12[idx] * t23[idx] + t13[idx] * t33[idx];
-    tt22 = t12[idx] * t12[idx] + t22[idx] * t22[idx] + t23[idx] * t23[idx];
-    tt23 = t12[idx] * t13[idx] + t22[idx] * t23[idx] + t23[idx] * t33[idx];
-    tt33 = t13[idx] * t13[idx] + t23[idx] * t23[idx] + t33[idx] * t33[idx];
-        
-	// First quadrature filter
-	c = Certainties[idx + 0*offset];
-	a11Temp += c * tt11;
-	a12Temp += c * tt12;
-	a13Temp += c * tt13;
-	a22Temp += c * tt22;
-	a23Temp += c * tt23;
-	a33Temp += c * tt33;
-			
-	pd = Phase_Differences[idx + 0*offset];
-	h1Temp += c * pd * (c_Filter_Directions_X[0] * tt11 + c_Filter_Directions_Y[0] * tt12 + c_Filter_Directions_Z[0] * tt13);
-	h2Temp += c * pd * (c_Filter_Directions_X[0] * tt12 + c_Filter_Directions_Y[0] * tt22 + c_Filter_Directions_Z[0] * tt23);
-	h3Temp += c * pd * (c_Filter_Directions_X[0] * tt13 + c_Filter_Directions_Y[0] * tt23 + c_Filter_Directions_Z[0] * tt33);
-		
-	// Second quadrature filter
-	c = Certainties[idx + 1*offset];
-	a11Temp += c * tt11;
-	a12Temp += c * tt12;
-	a13Temp += c * tt13;
-	a22Temp += c * tt22;
-	a23Temp += c * tt23;
-	a33Temp += c * tt33;
-			
-	pd = Phase_Differences[idx + 1*offset];
-	h1Temp += c * pd * (c_Filter_Directions_X[1] * tt11 + c_Filter_Directions_Y[1] * tt12 + c_Filter_Directions_Z[1] * tt13);
-	h2Temp += c * pd * (c_Filter_Directions_X[1] * tt12 + c_Filter_Directions_Y[1] * tt22 + c_Filter_Directions_Z[1] * tt23);
-	h3Temp += c * pd * (c_Filter_Directions_X[1] * tt13 + c_Filter_Directions_Y[1] * tt23 + c_Filter_Directions_Z[1] * tt33);
-	
-	// Third quadrature filter
-	c = Certainties[idx + 2*offset];
-	a11Temp += c * tt11;
-	a12Temp += c * tt12;
-	a13Temp += c * tt13;
-	a22Temp += c * tt22;
-	a23Temp += c * tt23;
-	a33Temp += c * tt33;
-			
-	pd = Phase_Differences[idx + 2*offset];
-	h1Temp += c * pd * (c_Filter_Directions_X[2] * tt11 + c_Filter_Directions_Y[2] * tt12 + c_Filter_Directions_Z[2] * tt13);
-	h2Temp += c * pd * (c_Filter_Directions_X[2] * tt12 + c_Filter_Directions_Y[2] * tt22 + c_Filter_Directions_Z[2] * tt23);
-	h3Temp += c * pd * (c_Filter_Directions_X[2] * tt13 + c_Filter_Directions_Y[2] * tt23 + c_Filter_Directions_Z[2] * tt33);
-	
-	// Fourth quadrature filter
-	c = Certainties[idx + 3*offset];
-	a11Temp += c * tt11;
-	a12Temp += c * tt12;
-	a13Temp += c * tt13;
-	a22Temp += c * tt22;
-	a23Temp += c * tt23;
-	a33Temp += c * tt33;
-			
-	pd = Phase_Differences[idx + 3*offset];
-	h1Temp += c * pd * (c_Filter_Directions_X[3] * tt11 + c_Filter_Directions_Y[3] * tt12 + c_Filter_Directions_Z[3] * tt13);
-	h2Temp += c * pd * (c_Filter_Directions_X[3] * tt12 + c_Filter_Directions_Y[3] * tt22 + c_Filter_Directions_Z[3] * tt23);
-	h3Temp += c * pd * (c_Filter_Directions_X[3] * tt13 + c_Filter_Directions_Y[3] * tt23 + c_Filter_Directions_Z[3] * tt33);
-	
-	// Fifth quadrature filter
-	c = Certainties[idx + 4*offset];
-	a11Temp += c * tt11;
-	a12Temp += c * tt12;
-	a13Temp += c * tt13;
-	a22Temp += c * tt22;
-	a23Temp += c * tt23;
-	a33Temp += c * tt33;
-			
-	pd = Phase_Differences[idx + 4*offset];
-	h1Temp += c * pd * (c_Filter_Directions_X[4] * tt11 + c_Filter_Directions_Y[4] * tt12 + c_Filter_Directions_Z[4] * tt13);
-	h2Temp += c * pd * (c_Filter_Directions_X[4] * tt12 + c_Filter_Directions_Y[4] * tt22 + c_Filter_Directions_Z[4] * tt23);
-	h3Temp += c * pd * (c_Filter_Directions_X[4] * tt13 + c_Filter_Directions_Y[4] * tt23 + c_Filter_Directions_Z[4] * tt33);
-	
-	// Sixth quadrature filter
-	c = Certainties[idx + 5*offset];
-	a11Temp += c * tt11;
-	a12Temp += c * tt12;
-	a13Temp += c * tt13;
-	a22Temp += c * tt22;
-	a23Temp += c * tt23;
-	a33Temp += c * tt33;
-			
-	pd = Phase_Differences[idx + 5*offset];
-	h1Temp += c * pd * (c_Filter_Directions_X[5] * tt11 + c_Filter_Directions_Y[5] * tt12 + c_Filter_Directions_Z[5] * tt13);
-	h2Temp += c * pd * (c_Filter_Directions_X[5] * tt12 + c_Filter_Directions_Y[5] * tt22 + c_Filter_Directions_Z[5] * tt23);
-	h3Temp += c * pd * (c_Filter_Directions_X[5] * tt13 + c_Filter_Directions_Y[5] * tt23 + c_Filter_Directions_Z[5] * tt33);
-	
-	a11[idx] = a11Temp;
-	a12[idx] = a12Temp;
-	a13[idx] = a13Temp;
-	a22[idx] = a22Temp;
-	a23[idx] = a23Temp;
-	a33[idx] = a33Temp;
-	h1[idx] = h1Temp;
-	h2[idx] = h2Temp;
-	h3[idx] = h3Temp;	
-}
-*/
 
 
 __kernel void CalculateDisplacementUpdate(__global float* DisplacementX,
@@ -4892,7 +4623,13 @@ __kernel void CalculateDisplacementUpdate(__global float* DisplacementX,
 __constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
 	
 
-__kernel void InterpolateVolumeNearestParametric(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+__kernel void InterpolateVolumeNearestParametric(__global float* Volume, 
+	                                             read_only image3d_t Original_Volume, 
+												 __constant float* c_Parameter_Vector, 
+												 __private int DATA_W, 
+												 __private int DATA_H, 
+												 __private int DATA_D, 
+												 __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5056,7 +4793,13 @@ float bspline(float t)
 
 
 
-__kernel void InterpolateVolumeCubicParametric(__global float* Volume, read_only image3d_t Original_Volume, __constant float* c_Parameter_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+__kernel void InterpolateVolumeCubicParametric(__global float* Volume, 
+	                                           read_only image3d_t Original_Volume, 
+											   __constant float* c_Parameter_Vector, 
+											   __private int DATA_W, 
+											   __private int DATA_H, 
+											   __private int DATA_D, 
+											   __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5117,7 +4860,13 @@ __kernel void InterpolateVolumeCubicParametric(__global float* Volume, read_only
 }
 
 
-__kernel void InterpolateVolumeCubicNonParametric(__global float* Volume, read_only image3d_t Original_Volume, __global const float* d_Displacement_Field, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+__kernel void InterpolateVolumeCubicNonParametric(__global float* Volume, 
+	                                              read_only image3d_t Original_Volume, 
+												  __global const float* d_Displacement_Field, 
+												  __private int DATA_W, 
+												  __private int DATA_H, 
+												  __private int DATA_D, 
+												  __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5164,7 +4913,14 @@ __kernel void InterpolateVolumeCubicNonParametric(__global float* Volume, read_o
 	Volume[idx] = result;
 }
 
-__kernel void RescaleVolumeCubic(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void RescaleVolumeCubic(__global float* Volume, 
+	                             read_only image3d_t Original_Volume, 
+								 __private float VOXEL_DIFFERENCE_X, 
+								 __private float VOXEL_DIFFERENCE_Y, 
+								 __private float VOXEL_DIFFERENCE_Z, 
+								 __private int DATA_W, 
+								 __private int DATA_H, 
+								 __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5213,7 +4969,14 @@ __kernel void RescaleVolumeCubic(__global float* Volume, read_only image3d_t Ori
 	Volume[idx] = result;
 }
 
-__kernel void RescaleVolumeLinear(__global float* Volume, read_only image3d_t Original_Volume, __private float VOXEL_DIFFERENCE_X, __private float VOXEL_DIFFERENCE_Y, __private float VOXEL_DIFFERENCE_Z, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void RescaleVolumeLinear(__global float* Volume, 
+	                              read_only image3d_t Original_Volume, 
+								  __private float VOXEL_DIFFERENCE_X, 
+								  __private float VOXEL_DIFFERENCE_Y, 
+								  __private float VOXEL_DIFFERENCE_Z, 
+								  __private int DATA_W, 
+								  __private int DATA_H, 
+								  __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5234,7 +4997,11 @@ __kernel void RescaleVolumeLinear(__global float* Volume, read_only image3d_t Or
 	Volume[idx] = Interpolated_Value.x;
 }
 
-__kernel void CalculateMagnitudes(__global float* Magnitudes, __global const float2* Complex, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void CalculateMagnitudes(__global float* Magnitudes, 
+	                              __global const float2* Complex, 
+								  __private int DATA_W, 
+								  __private int DATA_H, 
+								  __private int DATA_D)
 {
 	int x = get_global_id(0);	
 	int y = get_global_id(1);
@@ -5248,7 +5015,11 @@ __kernel void CalculateMagnitudes(__global float* Magnitudes, __global const flo
 	Magnitudes[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = sqrt(r * r + i * i);
 }
 
-__kernel void CalculateColumnSums(__global float* Sums, __global const float* Volume, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void CalculateColumnSums(__global float* Sums, 
+	                              __global const float* Volume, 
+								  __private int DATA_W, 
+								  __private int DATA_H, 
+								  __private int DATA_D)
 {
 	int y = get_global_id(0);	
 	int z = get_global_id(1);
@@ -5265,7 +5036,10 @@ __kernel void CalculateColumnSums(__global float* Sums, __global const float* Vo
 	Sums[Calculate2DIndex(y,z,DATA_H)] = sum;
 }
 
-__kernel void CalculateRowSums(__global float* Sums, __global const float* Image, __private int DATA_H, __private int DATA_D)
+__kernel void CalculateRowSums(__global float* Sums, 
+	                           __global const float* Image, 
+							   __private int DATA_H, 
+							   __private int DATA_D)
 {
 	int z = get_global_id(0);
 
@@ -5289,7 +5063,11 @@ float mymax(float a, float b)
 		return b;
 }
 
-__kernel void CalculateColumnMaxs(__global float* Maxs, __global const float* Volume, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void CalculateColumnMaxs(__global float* Maxs, 
+	                              __global const float* Volume, 
+								  __private int DATA_W, 
+								  __private int DATA_H, 
+								  __private int DATA_D)
 {
 	int y = get_global_id(0);	
 	int z = get_global_id(1);
@@ -5306,7 +5084,10 @@ __kernel void CalculateColumnMaxs(__global float* Maxs, __global const float* Vo
 	Maxs[Calculate2DIndex(y,z,DATA_H)] = max;
 }
 
-__kernel void CalculateRowMaxs(__global float* Maxs, __global const float* Image, __private int DATA_H, __private int DATA_D)
+__kernel void CalculateRowMaxs(__global float* Maxs, 
+	                           __global const float* Image, 
+							   __private int DATA_H, 
+							   __private int DATA_D)
 {
 	int z = get_global_id(0);
 
@@ -5577,7 +5358,11 @@ __kernel void CopyVolumeToNew(__global float* New_Volume,
 
 
 
-__kernel void AddVolume(__global float* Volume, __private float value, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void AddVolume(__global float* Volume, 
+	                    __private float value, 
+						__private int DATA_W, 
+						__private int DATA_H, 
+						__private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5592,7 +5377,12 @@ __kernel void AddVolume(__global float* Volume, __private float value, __private
 }
 
 
-__kernel void AddVolumes(__global float* Result, __global const float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void AddVolumes(__global float* Result, 
+	                     __global const float* Volume1, 
+						 __global const float* Volume2, 
+						 __private int DATA_W, 
+						 __private int DATA_H, 
+						 __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5606,7 +5396,11 @@ __kernel void AddVolumes(__global float* Result, __global const float* Volume1, 
 	Result[idx] = Volume1[idx] + Volume2[idx];
 }
 
-__kernel void AddVolumesOverwrite(__global float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void AddVolumesOverwrite(__global float* Volume1, 
+	                              __global const float* Volume2, 
+								  __private int DATA_W, 
+								  __private int DATA_H, 
+								  __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5620,7 +5414,11 @@ __kernel void AddVolumesOverwrite(__global float* Volume1, __global const float*
 	Volume1[idx] = Volume1[idx] + Volume2[idx];
 }
 
-__kernel void MultiplyVolume(__global float* Volume, __private float factor, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void MultiplyVolume(__global float* Volume, 
+	                         __private float factor, 
+							 __private int DATA_W, 
+							 __private int DATA_H, 
+							 __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5634,7 +5432,12 @@ __kernel void MultiplyVolume(__global float* Volume, __private float factor, __p
 	Volume[idx] = Volume[idx] * factor;
 }
 
-__kernel void MultiplyVolumes(__global float* Result, __global const float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void MultiplyVolumes(__global float* Result, 
+	                          __global const float* Volume1, 
+							  __global const float* Volume2, 
+							  __private int DATA_W, 
+							  __private int DATA_H, 
+							  __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5648,7 +5451,12 @@ __kernel void MultiplyVolumes(__global float* Result, __global const float* Volu
 	Result[idx] = Volume1[idx] * Volume2[idx];
 }
 
-__kernel void MultiplyVolumesOverwrite(__global float* Volume1, __global const float* Volume2, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int VOLUME)
+__kernel void MultiplyVolumesOverwrite(__global float* Volume1, 
+	                                   __global const float* Volume2, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int VOLUME)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5831,7 +5639,6 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 }
 
 __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
-		                                       __global float* Beta_Contrasts,
 		                                       __global float* Residuals,
 		                                       __global float* Residual_Variances,
 		                                       __global const float* Volumes,
@@ -5863,7 +5670,6 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
 			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-			Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
 
 		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
@@ -6395,7 +6201,14 @@ __kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Vo
     }
 }
 
-__kernel void GeneratePermutedVolumesSecondLevel(__global float* Permuted_Volumes, __global const float* Volumes, __global const float* Mask, __constant unsigned short int *c_Permutation_Vector, __private int DATA_W, __private int DATA_H, __private int DATA_D, __private int NUMBER_OF_SUBJECTS)
+__kernel void GeneratePermutedVolumesSecondLevel(__global float* Permuted_Volumes, 
+	                                             __global const float* Volumes, 
+												 __global const float* Mask, 
+												 __constant unsigned short int *c_Permutation_Vector, 
+												 __private int DATA_W, 
+												 __private int DATA_H, 
+												 __private int DATA_D, 
+												 __private int NUMBER_OF_SUBJECTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -6413,7 +6226,12 @@ __kernel void GeneratePermutedVolumesSecondLevel(__global float* Permuted_Volume
     }
 }
 
-__kernel void ThresholdVolume(__global float* Thresholded_Volume, __global const float* Volume, __private float threshold, __private int DATA_W, __private int DATA_H, __private int DATA_D)
+__kernel void ThresholdVolume(__global float* Thresholded_Volume, 
+	                          __global const float* Volume, 
+							  __private float threshold, 
+							  __private int DATA_W, 
+							  __private int DATA_H, 
+							  __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);

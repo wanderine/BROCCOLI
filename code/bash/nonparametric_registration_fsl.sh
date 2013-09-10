@@ -18,10 +18,15 @@ do
 	
 	rm anat_affine_fsl*
 
-	flirt -in ${dir}/anat/mprage_skullstripped.nii.gz -ref ${MNI_TEMPLATE} -out anat_affine_fsl.nii
-	fnirt --ref=${MNI_TEMPLATE} --in=anat_affine_fsl.nii.gz --iout=${results_directory}/FSL_warped_${subject}.nii
+	if [ "$subject" -gt "191" ]
+    then
+		flirt -in ${dir}/anat/mprage_skullstripped.nii.gz -ref ${MNI_TEMPLATE} -out anat_affine_fsl.nii
+		fnirt --ref=${MNI_TEMPLATE} --in=anat_affine_fsl.nii.gz --iout=${results_directory}/FSL_warped_${subject}.nii
+	fi
 	
 	subject=$((subject + 1))
+
+	echo $subject
 
 done
 

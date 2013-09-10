@@ -46,6 +46,7 @@ if ispc
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/BROCCOLI_test_data/';
+    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI';    
     %basepath = '../../test_data/fcon1000/classic/';
     %mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
     mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
@@ -53,7 +54,7 @@ elseif isunix
     mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
     
     opencl_platform = 2;
-    opencl_device = 0;
+    opencl_device = 1;
 end
 
 %study = 'Baltimore';
@@ -110,8 +111,8 @@ dirs = dir([basepath study]);
 
 s = 4;
 
-%for s = 179:length(dirs)
-for s = 3:20
+for s = 9:length(dirs)
+%for s = 3:3
 %for s = 3:length(dirs)
 %for s = 13:length(dirs)
     subject = dirs(s).name
@@ -221,6 +222,9 @@ for s = 3:20
     figure; imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
     
     pause
+    
+    filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-2) '.mat'];
+    %save(filename,'aligned_T1_nonparametric_opencl')
     
     %load mean_T1_volume.mat; mean_T1_volume = mean_T1_volume + aligned_T1_nonparametric_opencl/192; save mean_T1_volume.mat mean_T1_volume
     

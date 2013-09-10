@@ -14,7 +14,8 @@ date1=$(date +"%s")
 
 for dir in ${data_directory}/*/ 
 do
-#dir=/data/andek/BROCCOLI_test_data/Cambridge/sub04491
+
+	#dir=/data/andek/BROCCOLI_test_data/Cambridge/sub04491
 	
 	
 	rm anat_unifized.nii
@@ -22,16 +23,22 @@ do
 	rm anat_affine.1D
 	rm AFNI_nonlinear.nii
 
-	# The pipeline and parameters were obtained from the help text for 3dQwarp
+	if [ "$subject" -gt "4" ]
+    then
 
-	3dUnifize -prefix anat_unifized.nii -input ${dir}/anat/mprage_skullstripped.nii.gz
-	3dAllineate -prefix anat_affine.nii -base ${MNI_TEMPLATE} -source anat_unifized.nii -twopass -cost lpa -1Dmatrix_save anat_affine.1D -autoweight -fineblur 3 -cmass
-	3dQwarp -duplo -useweight -prefix ${results_directory}/AFNI_warped_subject${subject}.nii -source anat_affine.nii -base ${MNI_TEMPLATE} 
+		# The pipeline and parameters were obtained from the help text for 3dQwarp
 
+		3dUnifize -prefix anat_unifized.nii -input ${dir}/anat/mprage_skullstripped.nii.gz
+		3dAllineate -prefix anat_affine.nii -base ${MNI_TEMPLATE} -source anat_unifized.nii -twopass -cost lpa -1Dmatrix_save ${results_directory}/anat_affine_subject${subject}.1D -autoweight -fineblur 3 -cmass
+		3dQwarp -duplo -useweight -prefix ${results_directory}/AFNI_warped_subject${subject}.nii -source anat_affine.nii -base ${MNI_TEMPLATE} 
 
-	#3dQwarp -duplo -useweight -prefix AFNI_nonlinear.nii -source anat_affine.nii -base ${MNI_TEMPLATE} 
-	#3dNwarpApply -nwarp 'AFNI_nonlinear_WARP.nii anat_affine.1D' -source ${dir}/anat/mprage_skullstripped.nii.gz -prefix ANAT_warped_${subject}.nii
+		rm ${results_directory}/AFNI_warped_subject${subject}.nii
+
+		# Apply found transformations to original volume (without unifized intensity)
+		3dNwarpApply -nwarp ${results_directory}/AFNI_warped_subject${subject}_WARP.nii -affter ${results_directory}/anat_affine_subject${subject}.1D -source ${dir}/anat/mprage_skullstripped.nii.gz -master ${MNI_TEMPLATE} -prefix ${results_directory}/AFNI_warped_subject${subject}.nii
 	
+	fi
+
 	subject=$((subject + 1))	
 
 done

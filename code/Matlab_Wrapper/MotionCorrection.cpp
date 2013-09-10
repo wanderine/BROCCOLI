@@ -259,6 +259,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
     {
         BROCCOLI.PerformMotionCorrectionWrapper();
+        //BROCCOLI.PerformMotionCorrectionWrapperSeveralScales();
     }
     
     

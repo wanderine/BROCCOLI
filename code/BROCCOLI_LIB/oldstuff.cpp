@@ -597,3 +597,354 @@ void BROCCOLI_LIB::InvertMatrixDouble(double* inverse_matrix, double* matrix, in
 
 
 
+
+
+/*
+__kernel void CalculateAMatricesAndHVectors(__global float* a11, 
+	                                        __global float* a12, 
+											__global float* a13, 
+											__global float* a22, 
+											__global float* a23, 
+											__global float* a33, 
+											__global float* h1, 
+											__global float* h2, 
+											__global float* h3, 
+											__global const float* Phase_Differences, 
+											__global const float* Certainties, 
+											__global const float* t11, 
+											__global const float* t12, 
+											__global const float* t13, 
+											__global const float* t22, 
+											__global const float* t23, 
+											__global const float *t33, 
+											__constant float* c_Filter_Directions_X, 
+											__constant float* c_Filter_Directions_Y, 
+											__constant float* c_Filter_Directions_Z, 
+											__private int DATA_W, 
+											__private int DATA_H, 
+											__private int DATA_D) 
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+	
+	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int idx = x + y * DATA_W + z * DATA_W * DATA_H;
+	int offset = DATA_W * DATA_H * DATA_D;
+
+	float c, pd;
+	float a11Temp = 0.0f;
+	float a12Temp = 0.0f;
+	float a13Temp = 0.0f;
+	float a22Temp = 0.0f;
+	float a23Temp = 0.0f;
+	float a33Temp = 0.0f;
+	float h1Temp = 0.0f;
+	float h2Temp = 0.0f;
+	float h3Temp = 0.0f;
+	float tt11, tt12, tt13, tt22, tt23, tt33;
+		
+	tt11 = t11[idx] * t11[idx] + t12[idx] * t12[idx] + t13[idx] * t13[idx];
+    tt12 = t11[idx] * t12[idx] + t12[idx] * t22[idx] + t13[idx] * t23[idx];
+    tt13 = t11[idx] * t13[idx] + t12[idx] * t23[idx] + t13[idx] * t33[idx];
+    tt22 = t12[idx] * t12[idx] + t22[idx] * t22[idx] + t23[idx] * t23[idx];
+    tt23 = t12[idx] * t13[idx] + t22[idx] * t23[idx] + t23[idx] * t33[idx];
+    tt33 = t13[idx] * t13[idx] + t23[idx] * t23[idx] + t33[idx] * t33[idx];
+        
+	// First quadrature filter
+	c = Certainties[idx + 0*offset];
+	a11Temp += c * tt11;
+	a12Temp += c * tt12;
+	a13Temp += c * tt13;
+	a22Temp += c * tt22;
+	a23Temp += c * tt23;
+	a33Temp += c * tt33;
+			
+	pd = Phase_Differences[idx + 0*offset];
+	h1Temp += c * pd * (c_Filter_Directions_X[0] * tt11 + c_Filter_Directions_Y[0] * tt12 + c_Filter_Directions_Z[0] * tt13);
+	h2Temp += c * pd * (c_Filter_Directions_X[0] * tt12 + c_Filter_Directions_Y[0] * tt22 + c_Filter_Directions_Z[0] * tt23);
+	h3Temp += c * pd * (c_Filter_Directions_X[0] * tt13 + c_Filter_Directions_Y[0] * tt23 + c_Filter_Directions_Z[0] * tt33);
+		
+	// Second quadrature filter
+	c = Certainties[idx + 1*offset];
+	a11Temp += c * tt11;
+	a12Temp += c * tt12;
+	a13Temp += c * tt13;
+	a22Temp += c * tt22;
+	a23Temp += c * tt23;
+	a33Temp += c * tt33;
+			
+	pd = Phase_Differences[idx + 1*offset];
+	h1Temp += c * pd * (c_Filter_Directions_X[1] * tt11 + c_Filter_Directions_Y[1] * tt12 + c_Filter_Directions_Z[1] * tt13);
+	h2Temp += c * pd * (c_Filter_Directions_X[1] * tt12 + c_Filter_Directions_Y[1] * tt22 + c_Filter_Directions_Z[1] * tt23);
+	h3Temp += c * pd * (c_Filter_Directions_X[1] * tt13 + c_Filter_Directions_Y[1] * tt23 + c_Filter_Directions_Z[1] * tt33);
+	
+	// Third quadrature filter
+	c = Certainties[idx + 2*offset];
+	a11Temp += c * tt11;
+	a12Temp += c * tt12;
+	a13Temp += c * tt13;
+	a22Temp += c * tt22;
+	a23Temp += c * tt23;
+	a33Temp += c * tt33;
+			
+	pd = Phase_Differences[idx + 2*offset];
+	h1Temp += c * pd * (c_Filter_Directions_X[2] * tt11 + c_Filter_Directions_Y[2] * tt12 + c_Filter_Directions_Z[2] * tt13);
+	h2Temp += c * pd * (c_Filter_Directions_X[2] * tt12 + c_Filter_Directions_Y[2] * tt22 + c_Filter_Directions_Z[2] * tt23);
+	h3Temp += c * pd * (c_Filter_Directions_X[2] * tt13 + c_Filter_Directions_Y[2] * tt23 + c_Filter_Directions_Z[2] * tt33);
+	
+	// Fourth quadrature filter
+	c = Certainties[idx + 3*offset];
+	a11Temp += c * tt11;
+	a12Temp += c * tt12;
+	a13Temp += c * tt13;
+	a22Temp += c * tt22;
+	a23Temp += c * tt23;
+	a33Temp += c * tt33;
+			
+	pd = Phase_Differences[idx + 3*offset];
+	h1Temp += c * pd * (c_Filter_Directions_X[3] * tt11 + c_Filter_Directions_Y[3] * tt12 + c_Filter_Directions_Z[3] * tt13);
+	h2Temp += c * pd * (c_Filter_Directions_X[3] * tt12 + c_Filter_Directions_Y[3] * tt22 + c_Filter_Directions_Z[3] * tt23);
+	h3Temp += c * pd * (c_Filter_Directions_X[3] * tt13 + c_Filter_Directions_Y[3] * tt23 + c_Filter_Directions_Z[3] * tt33);
+	
+	// Fifth quadrature filter
+	c = Certainties[idx + 4*offset];
+	a11Temp += c * tt11;
+	a12Temp += c * tt12;
+	a13Temp += c * tt13;
+	a22Temp += c * tt22;
+	a23Temp += c * tt23;
+	a33Temp += c * tt33;
+			
+	pd = Phase_Differences[idx + 4*offset];
+	h1Temp += c * pd * (c_Filter_Directions_X[4] * tt11 + c_Filter_Directions_Y[4] * tt12 + c_Filter_Directions_Z[4] * tt13);
+	h2Temp += c * pd * (c_Filter_Directions_X[4] * tt12 + c_Filter_Directions_Y[4] * tt22 + c_Filter_Directions_Z[4] * tt23);
+	h3Temp += c * pd * (c_Filter_Directions_X[4] * tt13 + c_Filter_Directions_Y[4] * tt23 + c_Filter_Directions_Z[4] * tt33);
+	
+	// Sixth quadrature filter
+	c = Certainties[idx + 5*offset];
+	a11Temp += c * tt11;
+	a12Temp += c * tt12;
+	a13Temp += c * tt13;
+	a22Temp += c * tt22;
+	a23Temp += c * tt23;
+	a33Temp += c * tt33;
+			
+	pd = Phase_Differences[idx + 5*offset];
+	h1Temp += c * pd * (c_Filter_Directions_X[5] * tt11 + c_Filter_Directions_Y[5] * tt12 + c_Filter_Directions_Z[5] * tt13);
+	h2Temp += c * pd * (c_Filter_Directions_X[5] * tt12 + c_Filter_Directions_Y[5] * tt22 + c_Filter_Directions_Z[5] * tt23);
+	h3Temp += c * pd * (c_Filter_Directions_X[5] * tt13 + c_Filter_Directions_Y[5] * tt23 + c_Filter_Directions_Z[5] * tt33);
+	
+	a11[idx] = a11Temp;
+	a12[idx] = a12Temp;
+	a13[idx] = a13Temp;
+	a22[idx] = a22Temp;
+	a23[idx] = a23Temp;
+	a33[idx] = a33Temp;
+	h1[idx] = h1Temp;
+	h2[idx] = h2Temp;
+	h3[idx] = h3Temp;	
+}
+*/
+
+
+
+// Estimate Dk Ck and T
+/*
+__kernel void CalculatePhaseDifferencesCertaintiesAndTensorComponents(__global float* Phase_Differences, 
+	                                                                  __global float* Certainties, 
+																	  __global float* t11, 
+																	  __global float* t12, 
+																	  __global float* t13, 
+																	  __global float* t22, 
+																	  __global float* t23, 
+																	  __global float* t33, 
+																	  __global const float2* q1, 
+																	  __global const float2* q2, 
+																	  __private float m11,
+																	  __private float m12,
+																	  __private float m13,
+																	  __private float m22,
+																	  __private float m23, 
+																	  __private float m33, 
+																	  __private int DATA_W, 
+																	  __private int DATA_H, 
+																	  __private int DATA_D,
+																	  __private int filter) 
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int idx = x + y * DATA_W + z * DATA_W * DATA_H;
+
+	int offset = filter * DATA_W * DATA_H * DATA_D;
+
+	float2 q1_ = q1[idx];
+	float2 q2_ = q2[idx];
+
+	// q1 * conj(q2)
+	float qqReal = q1_.x * q2_.x + q1_.y * q2_.y;
+	float qqImag = -q1_.x * q2_.y + q1_.y * q2_.x;
+	float phaseDifference = atan2(qqImag,qqReal);
+	Phase_Differences[idx + offset] = phaseDifference;
+	float Aqq = sqrt(qqReal * qqReal + qqImag * qqImag);
+	Certainties[idx + offset] = sqrt(Aqq) * cos(phaseDifference/2.0f) * cos(phaseDifference/2.0f);
+		
+	// Estimate structure tensor for the deformed volume
+	float magnitude = sqrt(q2_.x * q2_.x + q2_.y * q2_.y);
+
+	t11[idx] += magnitude * m11;
+	t12[idx] += magnitude * m12;
+	t13[idx] += magnitude * m13;
+	t22[idx] += magnitude * m22;
+	t23[idx] += magnitude * m23;
+	t33[idx] += magnitude * m33;	
+}
+*/
+
+
+
+/*
+__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(__global float2 *Filter_Response_1,
+	                                                                 __global float2 *Filter_Response_2,
+																	 __global float2 *Filter_Response_3,
+																	 __global const float* Volume, 
+																	 __constant float2* c_Quadrature_Filter_1, 
+																	 __constant float2* c_Quadrature_Filter_2, 
+																	 __constant float2* c_Quadrature_Filter_3, 
+																	 __private int z_offset, 
+																	 __private int DATA_W, 
+																	 __private int DATA_H, 
+																	 __private int DATA_D)
+{   
+    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D + get_local_id(0);
+	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D + get_local_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+    
+    __local float l_Image[64][96]; // y, x
+
+    // Reset shared memory
+    l_Image[tIdx.y][tIdx.x]           = 0.0f;
+    l_Image[tIdx.y][tIdx.x + 32]      = 0.0f;
+    l_Image[tIdx.y][tIdx.x + 64]      = 0.0f;
+    l_Image[tIdx.y + 32][tIdx.x]      = 0.0f;
+    l_Image[tIdx.y + 32][tIdx.x + 32] = 0.0f;
+    l_Image[tIdx.y + 32][tIdx.x + 64] = 0.0f;
+
+    // Read data into shared memory
+
+    if ( ((z + z_offset) >= 0) && ((z + z_offset) < DATA_D) )
+    {
+        if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )   
+            l_Image[tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )
+            l_Image[tIdx.y][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  ) 
+            l_Image[tIdx.y][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+    }
+	
+   	// Make sure all threads have written to local memory
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Only threads inside the image do the convolution
+
+    if ( (x < DATA_W) && (y < DATA_H) )
+    {
+	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
+        Filter_Response_1_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.a;
+	    Filter_Response_1_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.b;
+	    Filter_Response_2_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.c;
+	    Filter_Response_2_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.d;
+	    Filter_Response_3_Real[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.e;
+	    Filter_Response_3_Imag[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += temp.f;
+    }
+
+    if ( ((x + 32) < DATA_W) && (y < DATA_H) )
+    {
+	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
+        Filter_Response_1_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.a;
+		Filter_Response_1_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.b;
+		Filter_Response_2_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.c;
+		Filter_Response_2_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.d;
+		Filter_Response_3_Real[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.e;
+		Filter_Response_3_Imag[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += temp.f;
+    }
+
+    if (tIdx.x < (32 - HALO*2))
+    {
+        if ( ((x + 64) < DATA_W) && (y < DATA_H) )
+	    {
+		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
+            Filter_Response_1_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += temp.f;
+	    }
+    }
+
+    if (tIdx.y < (32 - HALO*2))
+    {
+        if ( (x < DATA_W) && ((y + 32) < DATA_H) )
+	    {
+ 		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
+            Filter_Response_1_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += temp.f;
+	    }
+    }
+
+    if (tIdx.y < (32 - HALO*2))
+    {
+        if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
+	    {
+		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
+            Filter_Response_1_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += temp.f;
+	    }
+     } 
+
+    if ( (tIdx.x < (32 - HALO*2)) && (tIdx.y < (32 - HALO*2)) )
+    {
+        if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
+	    {
+		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1,c_Quadrature_Filter_2,c_Quadrature_Filter_3);
+            Filter_Response_1_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.a;
+		    Filter_Response_1_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.b;
+		    Filter_Response_2_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.c;
+		    Filter_Response_2_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.d;
+		    Filter_Response_3_Real[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.e;
+		    Filter_Response_3_Imag[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += temp.f;
+	    }
+     }
+}
+*/
+
+

@@ -17,7 +17,6 @@
  */
 
 #include "mex.h"
-#include "help_functions.cpp"
 #include "broccoli_lib.h"
 #include <math.h>
 

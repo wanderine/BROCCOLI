@@ -280,6 +280,7 @@ class BROCCOLI_LIB
 		void PerformRegistrationEPIT1Wrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
+		void PerformMotionCorrectionWrapperSeveralScales();
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
 		void PerformGLMWrapper();
@@ -402,12 +403,7 @@ class BROCCOLI_LIB
 		void AddAffineRegistrationParameters(float* h_Resulting_Parameters, float* h_New_Parameters, float* h_Old_Parameters);
 		void CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters);
 
-		//------------------------------------------------
-		// SVD 3x3
-		//------------------------------------------------
-		double cbrt(double x);
 		void RemoveTransformationScaling(float* h_Registration_Parameters);
-		void MatMul4x4(double* C, const double* A, const double* B);
 
 		void SetupDetrendingRegressors(int N);
 		void SetupStatisticalAnalysisRegressors(int N);

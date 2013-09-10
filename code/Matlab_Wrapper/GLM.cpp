@@ -46,6 +46,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;
     float           *h_AR1_Estimates, *h_AR2_Estimates, *h_AR3_Estimates, *h_AR4_Estimates;
     
+    double          *h_Design_Matrix_double, *h_Design_Matrix2_double;;
+    float           *h_Design_Matrix, *h_Design_Matrix2;
+    
     //---------------------
     
     /* Check the number of input and output arguments. */
@@ -57,11 +60,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<8)
+    if(nlhs<10)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>8)
+    if(nlhs>10)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -87,7 +90,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     const int *ARRAY_DIMENSIONS_GLM = mxGetDimensions(prhs[1]);
     const int *ARRAY_DIMENSIONS_CONTRAST = mxGetDimensions(prhs[4]);
     
-    int DATA_H, DATA_W, DATA_D, DATA_T, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS;
+    int DATA_H, DATA_W, DATA_D, DATA_T, NUMBER_OF_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONTRASTS;
     
     DATA_H = ARRAY_DIMENSIONS_DATA[0];
     DATA_W = ARRAY_DIMENSIONS_DATA[1];
@@ -95,6 +98,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     DATA_T = ARRAY_DIMENSIONS_DATA[3];
     
     NUMBER_OF_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
+    NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_REGRESSORS;
+    //NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_REGRESSORS + 4 + 6;
     NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[1];
                 
     int DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
@@ -102,8 +107,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int GLM_SIZE = DATA_T * NUMBER_OF_REGRESSORS * sizeof(float);
     int CONTRAST_SIZE = NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     int CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-    int BETA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_REGRESSORS * sizeof(float);
-    int STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    int BETA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+    //int STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    int STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * 1 * sizeof(float);
+    int DESIGN_MATRIX_SIZE = NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T * sizeof(float);
     
     mexPrintf("Data size : %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
     mexPrintf("Number of regressors : %i \n",  NUMBER_OF_REGRESSORS);
@@ -118,7 +125,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ARRAY_DIMENSIONS_OUT_BETA[0] = DATA_H;
     ARRAY_DIMENSIONS_OUT_BETA[1] = DATA_W;
     ARRAY_DIMENSIONS_OUT_BETA[2] = DATA_D;
-    ARRAY_DIMENSIONS_OUT_BETA[3] = NUMBER_OF_REGRESSORS;
+    ARRAY_DIMENSIONS_OUT_BETA[3] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
     
     plhs[0] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_BETA,mxDOUBLE_CLASS, mxREAL);
     h_Beta_Volumes_double = mxGetPr(plhs[0]);          
@@ -147,7 +154,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[0] = DATA_H;
     ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[1] = DATA_W;
     ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[2] = DATA_D;
-    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[3] = NUMBER_OF_CONTRASTS;
+    //ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[3] = NUMBER_OF_CONTRASTS;
+    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[3] = 1;
     
     plhs[3] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS,mxDOUBLE_CLASS, mxREAL);
     h_Statistical_Maps_double = mxGetPr(plhs[3]);          
@@ -170,6 +178,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[7] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
     h_AR4_Estimates_double = mxGetPr(plhs[7]);          
     
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX[2];
+    ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX[0] = DATA_T;
+    ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX[1] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+    
+    plhs[8] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX,mxDOUBLE_CLASS, mxREAL);
+    h_Design_Matrix_double = mxGetPr(plhs[8]);  
+        
+    plhs[9] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX,mxDOUBLE_CLASS, mxREAL);
+    h_Design_Matrix2_double = mxGetPr(plhs[9]);  
+    
     
     // ------------------------------------------------
     
@@ -178,7 +197,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_X_GLM                        = (float *)mxMalloc(GLM_SIZE);
     h_xtxxt_GLM                    = (float *)mxMalloc(GLM_SIZE);
     h_Contrasts                    = (float *)mxMalloc(CONTRAST_SIZE);
-    h_ctxtxc_GLM                   = (float *)mxMalloc(CONTRAST_SCALAR_SIZE);
+    //h_ctxtxc_GLM                   = (float *)mxMalloc(CONTRAST_SCALAR_SIZE);
+    h_ctxtxc_GLM                   = (float *)mxMalloc(CONTRAST_SIZE);
     
     h_Beta_Volumes                 = (float *)mxMalloc(BETA_SIZE);
     h_Residuals                    = (float *)mxMalloc(DATA_SIZE);
@@ -190,12 +210,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_AR3_Estimates                = (float *)mxMalloc(VOLUME_SIZE);
     h_AR4_Estimates                = (float *)mxMalloc(VOLUME_SIZE);
         
+    h_Design_Matrix                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
+    h_Design_Matrix2                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
+    
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, DATA_W, DATA_H, DATA_D, DATA_T);
     pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);
     pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);    
     pack_double2float(h_Contrasts, h_Contrasts_double, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS);
-    pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_CONTRASTS);
+    //pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_CONTRASTS);
+    pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_REGRESSORS * NUMBER_OF_CONTRASTS);
     
     //------------------------
     
@@ -221,7 +245,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
     BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
-    
+    BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
   
     /*
      * Error checking     
@@ -283,16 +307,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexPrintf("OPENCL error detected, aborting \n");
     }
     
-    unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
+    unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T);
+    unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T);
+    
+    unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, DATA_W, DATA_H, DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS);
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, DATA_W, DATA_H, DATA_D, DATA_T);
     unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, DATA_W, DATA_H, DATA_D);
-    unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, DATA_W, DATA_H, DATA_D, NUMBER_OF_CONTRASTS);
+    //unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, DATA_W, DATA_H, DATA_D, NUMBER_OF_CONTRASTS);
+    unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, DATA_W, DATA_H, DATA_D, 1);
     unpack_float2double_volume(h_AR1_Estimates_double, h_AR1_Estimates, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_AR2_Estimates_double, h_AR2_Estimates, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_AR3_Estimates_double, h_AR3_Estimates, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_AR4_Estimates_double, h_AR4_Estimates, DATA_W, DATA_H, DATA_D);
         
     // Free all the allocated memory on the host
+    
+    mxFree(h_Design_Matrix);
+    mxFree(h_Design_Matrix2);
+    
     mxFree(h_fMRI_Volumes);
     mxFree(h_X_GLM);
     mxFree(h_xtxxt_GLM);    
