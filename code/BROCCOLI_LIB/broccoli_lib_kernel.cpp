@@ -5667,11 +5667,8 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	{
 		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
 
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-		{
-			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
+		Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+		
 		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 		{
 			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
@@ -5696,17 +5693,14 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	meaneps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		//if (c_Censor[v] == 0.0f)
-		//{
-			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-			{
-				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
-			}
-			meaneps += eps;
-			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-		//}
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
+		}
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
 	}
 	meaneps /= (float)NUMBER_OF_VOLUMES;
 
@@ -5714,18 +5708,15 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	vareps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		//if (c_Censor[v] == 0.0f)
-		//{
-			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-			{
-				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
-			}
-			vareps += (eps - meaneps) * (eps - meaneps);
-		//}
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
+		}
+		vareps += (eps - meaneps) * (eps - meaneps);
 	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f); // correct for number of censor points?
+	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f); 
 	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
 
 	//-------------------------
@@ -5737,7 +5728,8 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 		cbeta[c] = 0.0f;
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+			//cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+			cbeta[c] += c_Contrasts[c + r * NUMBER_OF_CONTRASTS] * beta[r];
 		}
 	}
 
@@ -5748,9 +5740,9 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		temp[c] = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
 		{
-			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[c + r * NUMBER_OF_CONTRASTS] * cbeta[c];
+			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
 		}
 	}
 

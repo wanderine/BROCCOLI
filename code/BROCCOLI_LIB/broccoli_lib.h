@@ -283,7 +283,8 @@ class BROCCOLI_LIB
 		void PerformMotionCorrectionWrapperSeveralScales();
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
-		void PerformGLMWrapper();
+		void PerformGLMTTestWrapper();
+		void PerformGLMFTestWrapper();
 		void PerformFirstLevelAnalysisWrapper();
 		void CalculatePermutationTestThresholdFirstLevelWrapper();
 
