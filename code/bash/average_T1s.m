@@ -13,8 +13,7 @@ elseif isunix
     basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI';    
 end
 
-N = 2;
-
+N = 100;
 
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain.nii']);
 MNI = double(MNI_nii.img);
@@ -24,6 +23,8 @@ MNI_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain
 MNI_mask = double(MNI_mask_nii.img);
 
 %-----------------------------------------------------------------------
+% AFNI
+%-------------------------------------------------------------------
 
 mean_T1_volume_AFNI = zeros(182,218,182);
 for s = 1:N
@@ -45,8 +46,8 @@ end
 std_T1_volume_AFNI = std_T1_volume_AFNI / N;
 
 %-----------------------------------------------------------------
-
-N = 187;
+% FSL
+%-------------------------------------------------------------------
 
 mean_T1_volume_FSL = zeros(182,218,182);
 for s = 1:N
@@ -67,6 +68,8 @@ for s = 1:N
 end
 std_T1_volume_FSL = std_T1_volume_FSL / N;
 
+%-------------------------------------------------------------------
+% BROCCOLI
 %-------------------------------------------------------------------
 
 mean_T1_volume_BROCCOLI = zeros(182,218,182);
@@ -114,6 +117,12 @@ figure
 imagesc([ flipud(squeeze(std_T1_volume_FSL(85,:,:))')*3 flipud(squeeze(std_T1_volume_AFNI(85,:,:))')*3 flipud(squeeze(std_T1_volume_BROCCOLI(85,:,:))')*3       ]); colormap gray
 axis off
 
+
+sum(std_T1_volume_AFNI(:)) / sum(MNI_mask(:))
+
+sum(std_T1_volume_FSL(:)) / sum(MNI_mask(:))
+
+sum(std_T1_volume_BROCCOLI(:)) / sum(MNI_mask(:))
 
 
 

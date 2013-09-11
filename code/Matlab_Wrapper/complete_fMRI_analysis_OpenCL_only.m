@@ -50,12 +50,12 @@ end
 
 %study = 'Oulu';
 %study = 'ICBM';
-study = 'Cambridge';
-%study = 'Beijing';
+%study = 'Cambridge';
+study = 'Beijing';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-subject = 2;
+subject = 3;
 dirs = dir([basepath study]);
 subject = dirs(subject+2).name
 voxel_size = 1;
@@ -149,22 +149,45 @@ load filters_for_nonparametric_registration.mat
 [sy sx sz st] = size(fMRI_volumes);
 mask = randn(sy,sx,sz);
 
-X_GLM_ = zeros(st,1);
+X_GLM_ = zeros(st,3);
 X_GLM_ = zeros(st,1);
 NN = 0;
 while NN < st
-    X_GLM_((NN+1):(NN+10),1) =   1;  % Activity
-    X_GLM_((NN+11):(NN+20),1) =  0;  % Rest
+    X_GLM_((NN+1):(NN+10),1) =   0;  % Activity
+    X_GLM_((NN+11):(NN+20),1) =  1;  % Rest
     NN = NN + 20;
 end
 a = X_GLM_(1:st) - mean(X_GLM_(1:st));
 X_GLM(:,1) = a/norm(a(:));
 
+
+X_GLM_ = zeros(st,1);
+NN = 0;
+while NN < st
+    X_GLM_((NN+1):(NN+5),1) =   0;  % Activity
+    X_GLM_((NN+6):(NN+10),1) =  1;  % Rest
+    NN = NN + 10;
+end
+a = X_GLM_(1:st) - mean(X_GLM_(1:st));
+X_GLM(:,2) = a/norm(a(:));
+
+X_GLM_ = zeros(st,1);
+NN = 0;
+while NN < st
+    X_GLM_((NN+1):(NN+15),1) =   0;  % Activity
+    X_GLM_((NN+16):(NN+30),1) =  1;  % Rest
+    NN = NN + 30;
+end
+a = X_GLM_(1:st) - mean(X_GLM_(1:st));
+X_GLM(:,3) = a/norm(a(:));
+
+
+
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 % Create contrasts
 %contrasts = zeros(size(X_GLM,2),3);
-contrasts = [1]';
+contrasts = [1 0 0]';
 %contrasts = [1 0 0 0 0]';
 %contrasts(:,1) = [1 0 0 0 0 0 0 0]';
 %contrasts(:,2) = [0 1 0 0 0 0 0 0]';

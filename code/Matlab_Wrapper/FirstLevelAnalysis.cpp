@@ -209,7 +209,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     SMOOTHING_FILTER_LENGTH = 9;
     
     NUMBER_OF_GLM_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
-    NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + 4 + 6;
+    NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*2 + 4 + 6;
     NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[1];
     
     int EPI_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
@@ -590,6 +590,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
     BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
     BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
+    
+    BROCCOLI.SetTemporalDerivatives(1);
     BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
     BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);

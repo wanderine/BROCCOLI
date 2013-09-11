@@ -62,15 +62,15 @@ subject = 2;
 
 dirs = dir([basepath study]);
 s = subject + 2;
-%subject = dirs(s).name
+subject = dirs(s).name
     
 
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
-    %EPI_nii = load_nii([basepath study '/' subject '/func/rest'  '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    EPI_nii = load_nii([basepath study '/' subject '/func/rest'  '.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
     EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
 end
@@ -107,9 +107,8 @@ xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 %contrasts = [1 0; 0 -1];
 contrasts = [0 0 -3; 1 0 2];
 contrasts = [1 3 0; 0 1 -2; -1 0 1];
-%contrasts(:,1) = [1 0 0 0 0 0 0 0]';
-%contrasts(:,2) = [0 1 0 0 0 0 0 0]';
-%contrasts(:,3) = [0 0 0 0 1 0 0 0]';
+contrasts = [1 3 0; 0 1 -2];
+
 
 ctxtxc_GLM = inv(contrasts*inv(X_GLM'*X_GLM)*contrasts')
 
@@ -129,8 +128,8 @@ for x = 1:sx
             betas_cpu(y,x,z,:) = beta;
             eps = timeseries - X_GLM*beta;
             residuals_cpu(y,x,z,:) = eps;
-            %residual_variances_cpu(y,x,z) = sum((eps-mean(eps)).^2)/(st-size(X_GLM,2));
-            residual_variances_cpu(y,x,z) = var(eps);
+            residual_variances_cpu(y,x,z) = sum((eps-mean(eps)).^2)/(st-size(X_GLM,2) - 1);
+            %residual_variances_cpu(y,x,z) = var(eps);
             
             %F-test
             statistical_maps_cpu(y,x,z) = (contrasts*beta)' * 1/residual_variances_cpu(y,x,z) * ctxtxc_GLM * (contrasts*beta) / size(contrasts,1);

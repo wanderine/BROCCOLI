@@ -62,15 +62,15 @@ subject = 2;
 
 dirs = dir([basepath study]);
 s = subject + 2;
-%subject = dirs(s).name
+subject = dirs(s).name
     
 
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
 
 if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-    EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
-    %EPI_nii = load_nii([basepath study '/' subject '/func/rest'  '.nii.gz']);
+    %EPI_nii = load_nii([basepath study '/rest' num2str(subject) '.nii.gz']);
+    EPI_nii = load_nii([basepath study '/' subject '/func/rest'  '.nii.gz']);
 elseif ( strcmp(study,'OpenfMRI'))
     EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
 end
@@ -82,7 +82,6 @@ EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
 fMRI_volumes = double(EPI_nii.img);
 [sy sx sz st] = size(fMRI_volumes);
 [sy sx sz st]
-fMRI_volumes = fMRI_volumes / max(fMRI_volumes(:));
 
 
 % Create regressors
@@ -104,20 +103,21 @@ X_GLM(:,3) = randn(st,1);
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 % Create contrasts
-%contrasts = zeros(size(X_GLM,2),3);
+contrasts = zeros(size(X_GLM,2),3);
 %contrasts = [1 0 0 0 0]';
-contrasts = [1 0 -1]';
-%contrasts(:,1) = [1 0 0 0 0 0 0 0]';
-%contrasts(:,2) = [0 1 0 0 0 0 0 0]';
-%contrasts(:,3) = [0 0 0 0 1 0 0 0]';
+%contrasts = [0 1 0]';
+contrasts(1,:) = [1 0 4];
+contrasts(2,:) = [0 1 -2];
+contrasts(3,:) = [1 3 1];
+contrasts(4,:) = [1 0 -1];
 
-for i = 1:size(contrasts,2)
-    contrast = contrasts(:,i);
+for i = 1:size(contrasts,1)
+    contrast = contrasts(i,:)';
     ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
 end
 ctxtxc_GLM
 
-statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,2));
+statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,1));
 betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
 residuals_cpu = zeros(sy,sx,sz,st);
 residual_variances_cpu = zeros(sy,sx,sz);
@@ -133,12 +133,12 @@ for x = 1:sx
             betas_cpu(y,x,z,:) = beta;
             eps = timeseries - X_GLM*beta;
             residuals_cpu(y,x,z,:) = eps;
-            %residual_variances_cpu(y,x,z) = sum((eps-mean(eps)).^2)/(st-size(X_GLM,2));
-            residual_variances_cpu(y,x,z) = var(eps);
+            residual_variances_cpu(y,x,z) = sum((eps-mean(eps)).^2)/(st-size(X_GLM,2) - 1);
+            %residual_variances_cpu(y,x,z) = var(eps);
             
             %t-test
-            for i = 1:size(contrasts,2)
-                contrast = contrasts(:,i);
+            for i = 1:size(contrasts,1)
+                contrast = contrasts(i,:)';
                 statistical_maps_cpu(y,x,z,i) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM(i));
             end           
             

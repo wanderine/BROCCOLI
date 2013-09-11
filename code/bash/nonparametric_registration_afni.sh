@@ -23,7 +23,7 @@ do
 	rm anat_affine.1D
 	rm AFNI_nonlinear.nii
 
-	if [ "$subject" -gt "4" ]
+	if [ "$subject" -gt "80" ]
     then
 
 		# The pipeline and parameters were obtained from the help text for 3dQwarp

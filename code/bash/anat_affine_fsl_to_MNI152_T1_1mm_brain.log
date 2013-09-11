@@ -3,7 +3,7 @@
 # 	name of input image
 --in=anat_affine_fsl.nii.gz
 # 	name of output image
---iout=/data/andek/BROCCOLI_test_data/FSL/FSL_warped_1.nii
+--iout=/data/andek/BROCCOLI_test_data/FSL/FSL_warped_198.nii
 # If =1, use implicit masking based on value in --ref image. Default =1
 --imprefm=1
 # If =1, use implicit masking based on value in --in image, Default =1

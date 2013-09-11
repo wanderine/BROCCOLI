@@ -23,10 +23,6 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-//#include "broccoli_lib.h"
-//#include <opencl.h>
-
-
 // Help functions
 int Calculate2DIndex(int x, int y, int DATA_W)
 {
@@ -43,6 +39,7 @@ int Calculate4DIndex(int x, int y, int z, int t, int DATA_W, int DATA_H, int DAT
 	return x + y * DATA_W + z * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D;
 }
 
+// For parametric image registration
 void GetParameterIndices(int* i, int* j, int parameter)
 {
 	switch(parameter)
@@ -178,7 +175,6 @@ void GetParameterIndices(int* i, int* j, int parameter)
 // Convolution functions
 
 // Separable 3D convolution
-
 
 #define VALID_FILTER_RESPONSES_X_SEPARABLE_CONVOLUTION_ROWS 32
 #define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS 8
@@ -643,9 +639,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response,
 	int z = get_group_id(2) * VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS + get_local_id(2);	
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-
 	
-
 	// 8 * 16 * 24 valid filter responses = 3072
 	__local float l_Volume[8][16][32];
 
@@ -2441,11 +2435,11 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 
 
 float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD(__local float image[64][128],
-	                                     int y, 
-										 int x, 
-										 __constant float2* Filter_1, 
-										 __constant float2* Filter_2, 
-										 __constant float2* Filter_3)
+	                                         int y,
+	                                         int x,
+	                                         __constant float2* Filter_1,
+	                                         __constant float2* Filter_2,
+	                                         __constant float2* Filter_3)
 {
 	float pixel;
 	float6 sum;
@@ -2812,14 +2806,14 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD(__local float image[64][128],
 }
 
 float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128], 
-	                                      int y, 
-										  int x, 
-										  __constant float* Filter_1_Real, 
-										  __constant float* Filter_1_Imag, 
-										  __constant float* Filter_2_Real, 
-										  __constant float* Filter_2_Imag, 
-										  __constant float* Filter_3_Real, 
-										  __constant float* Filter_3_Imag)
+	                                      	  int y,
+	                                      	  int x,
+	                                      	  __constant float* Filter_1_Real,
+	                                      	  __constant float* Filter_1_Imag,
+	                                      	  __constant float* Filter_2_Real,
+	                                      	  __constant float* Filter_2_Imag,
+	                                      	  __constant float* Filter_3_Real,
+	                                      	  __constant float* Filter_3_Imag)
 {
 	float pixel;
 	float6 sum;
@@ -3385,7 +3379,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 	l_Image[tIdx.y][tIdx.x + 64]      = 0.0f;
     l_Image[tIdx.y][tIdx.x + 80]      = 0.0f;
 	l_Image[tIdx.y][tIdx.x + 96]      = 0.0f;
-	l_Image[tIdx.y][tIdx.x + 112]      = 0.0f;
+	l_Image[tIdx.y][tIdx.x + 112]     = 0.0f;
 
 	l_Image[tIdx.y + 16][tIdx.x]           = 0.0f;
     l_Image[tIdx.y + 16][tIdx.x + 16]      = 0.0f;
@@ -3394,7 +3388,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 	l_Image[tIdx.y + 16][tIdx.x + 64]      = 0.0f;
     l_Image[tIdx.y + 16][tIdx.x + 80]      = 0.0f;
 	l_Image[tIdx.y + 16][tIdx.x + 96]      = 0.0f;
-	l_Image[tIdx.y + 16][tIdx.x + 112]      = 0.0f;
+	l_Image[tIdx.y + 16][tIdx.x + 112]     = 0.0f;
 
 	l_Image[tIdx.y + 32][tIdx.x]           = 0.0f;
     l_Image[tIdx.y + 32][tIdx.x + 16]      = 0.0f;
@@ -3403,7 +3397,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 	l_Image[tIdx.y + 32][tIdx.x + 64]      = 0.0f;
     l_Image[tIdx.y + 32][tIdx.x + 80]      = 0.0f;
 	l_Image[tIdx.y + 32][tIdx.x + 96]      = 0.0f;
-	l_Image[tIdx.y + 32][tIdx.x + 112]      = 0.0f;
+	l_Image[tIdx.y + 32][tIdx.x + 112]     = 0.0f;
 
 	l_Image[tIdx.y + 48][tIdx.x]           = 0.0f;
     l_Image[tIdx.y + 48][tIdx.x + 16]      = 0.0f;
@@ -3412,7 +3406,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 	l_Image[tIdx.y + 48][tIdx.x + 64]      = 0.0f;
     l_Image[tIdx.y + 48][tIdx.x + 80]      = 0.0f;
 	l_Image[tIdx.y + 48][tIdx.x + 96]      = 0.0f;
-	l_Image[tIdx.y + 48][tIdx.x + 112]      = 0.0f;
+	l_Image[tIdx.y + 48][tIdx.x + 112]     = 0.0f;
 
     // Read data into shared memory
 
@@ -4913,6 +4907,34 @@ __kernel void InterpolateVolumeCubicNonParametric(__global float* Volume,
 	Volume[idx] = result;
 }
 
+__kernel void RescaleVolumeLinear(__global float* Volume,
+	                              read_only image3d_t Original_Volume,
+								  __private float VOXEL_DIFFERENCE_X,
+								  __private float VOXEL_DIFFERENCE_Y,
+								  __private float VOXEL_DIFFERENCE_Z,
+								  __private int DATA_W,
+								  __private int DATA_H,
+								  __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
+	float4 Motion_Vector;
+
+	Motion_Vector.x = x * VOXEL_DIFFERENCE_X + 0.5f;
+	Motion_Vector.y = y * VOXEL_DIFFERENCE_Y + 0.5f;
+	Motion_Vector.z = z * VOXEL_DIFFERENCE_Z + 0.5f;
+	Motion_Vector.w = 0.0f;
+
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
+	Volume[idx] = Interpolated_Value.x;
+}
+
 __kernel void RescaleVolumeCubic(__global float* Volume, 
 	                             read_only image3d_t Original_Volume, 
 								 __private float VOXEL_DIFFERENCE_X, 
@@ -4969,36 +4991,10 @@ __kernel void RescaleVolumeCubic(__global float* Volume,
 	Volume[idx] = result;
 }
 
-__kernel void RescaleVolumeLinear(__global float* Volume, 
-	                              read_only image3d_t Original_Volume, 
-								  __private float VOXEL_DIFFERENCE_X, 
-								  __private float VOXEL_DIFFERENCE_Y, 
-								  __private float VOXEL_DIFFERENCE_Z, 
-								  __private int DATA_W, 
-								  __private int DATA_H, 
-								  __private int DATA_D)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
 
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
 
-	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
-	float4 Motion_Vector;
-	
-	Motion_Vector.x = x * VOXEL_DIFFERENCE_X + 0.5f;
-	Motion_Vector.y = y * VOXEL_DIFFERENCE_Y + 0.5f;
-	Motion_Vector.z = z * VOXEL_DIFFERENCE_Z + 0.5f;
-	Motion_Vector.w = 0.0f;
-
-	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-	Volume[idx] = Interpolated_Value.x;
-}
-
-__kernel void CalculateMagnitudes(__global float* Magnitudes, 
-	                              __global const float2* Complex, 
+__kernel void CalculateMagnitudes(__global float* Magnitudes,
+	                              __global const float2* Complex,
 								  __private int DATA_W, 
 								  __private int DATA_H, 
 								  __private int DATA_D)
@@ -5504,13 +5500,11 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes,
 
 	int t = 0;
 	float beta[20];
-	//__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 	
 	// Reset all beta values
 	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{
 		beta[r] = 0.0f;
-		//beta[tIdx.y][tIdx.x][r] = 0.0f;
 	}
 
 	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
@@ -5522,7 +5516,6 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes,
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
 			beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
-			//beta[tIdx.y][tIdx.x][r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
 		}
 	}
 
@@ -5530,7 +5523,6 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes,
 	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{
 		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
-		//Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[tIdx.y][tIdx.x][r];
 	}
 }
 
@@ -5584,13 +5576,11 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 	int t = 0;
 	float eps, meaneps, vareps;
 	float beta[20];
-	//__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 
 	// Load beta values into shared memory
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{ 
 		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-		//beta[tIdx.y][tIdx.x][r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
 	}
 
 	// Calculate the mean of the error eps
@@ -5601,7 +5591,6 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{ 
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
 		}
 		eps *= c_Censored_Timepoints[v];
 		meaneps += eps;
@@ -5617,7 +5606,6 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
 		}
 		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
 	}
@@ -5631,7 +5619,6 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-			//contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[tIdx.y][tIdx.x][r];
 		}	
 		Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
@@ -5680,13 +5667,11 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	int t = 0;
 	float eps, meaneps, vareps;
 	float beta[20];
-	//__local float beta[16][32][16]; // y, x, regressors, For a maximum of 16 regressors per thread (32 KB)
 
-	// Load beta values into shared memory
+	// Load beta values into registers
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{
 		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-		//beta[tIdx.y][tIdx.x][r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
 	}
 
 	// Calculate the mean of the error eps
@@ -5697,7 +5682,6 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
 		}
 		meaneps += eps;
 		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
@@ -5712,7 +5696,6 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[tIdx.y][tIdx.x][r];
 		}
 		vareps += (eps - meaneps) * (eps - meaneps);
 	}
@@ -5728,8 +5711,7 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 		cbeta[c] = 0.0f;
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			//cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-			cbeta[c] += c_Contrasts[c + r * NUMBER_OF_CONTRASTS] * beta[r];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
 		}
 	}
 
@@ -5758,19 +5740,25 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 }
 	
 
-__kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical_Maps, 
-                                                     __global const float* Volumes, 
-													 __global const float* Mask, 
-													 __constant float* c_xtxxt_GLM, 
-													 __constant float *c_X_GLM, 
-													 __constant float* c_Contrasts, 
-													 __constant float* c_ctxtxc_GLM, 
-													 __private int DATA_W, 
-													 __private int DATA_H, 
-													 __private int DATA_D, 
-													 __private int NUMBER_OF_VOLUMES, 
-													 __private int NUMBER_OF_REGRESSORS, 
-													 __private int NUMBER_OF_CONTRASTS)
+
+// Functions for permutation test
+
+__kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statistical_Maps,
+		                                       	   	   	  __global float* Residuals,
+		                                       	   	   	  __global const float* Volumes,
+		                                       	   	   	  __global const float* Beta_Volumes,
+		                                       	   	   	  __global const float* Mask,
+		                                       	   	   	  __constant float *c_X_GLM,
+		                                       	   	   	  __constant float* c_Contrasts,
+		                                       	   	   	  __constant float* c_ctxtxc_GLM,
+		                                       	   	   	  __constant float* c_Censored_Timepoints,
+		                                       	   	   	  __private int DATA_W,
+		                                       	   	   	  __private int DATA_H,
+		                                       	   	   	  __private int DATA_D,
+		                                       	   	   	  __private int NUMBER_OF_VOLUMES,
+		                                       	   	   	  __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   	  __private int NUMBER_OF_CONTRASTS,
+		                                       	   	   	  __private int NUMBER_OF_CENSORED_TIMEPOINTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5782,53 +5770,127 @@ __kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical
 		return;
 
 	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{		
+	{
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
 			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
-			
+
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
 		return;
 	}
 
+	int t = 0;
 	float eps, meaneps, vareps;
 	float beta[20];
 
-	// Reset all beta values
-	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 	{
-		beta[r] = 0.0f;		
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
 	}
-
-	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
-	// Loop over volumes
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		//if (c_Censor[v] == 0.0f)
-		//{
-			float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-			// Loop over regressors
-			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-			{
-				beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];				
-			}
-		//}
-	}
-
 
 	// Calculate the mean of the error eps
 	meaneps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		//if (c_Censor[v] == 0.0f)
-		//{
-			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-			{ 
-				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];				
-			}
-			meaneps += eps;			
-		//}
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		eps *= c_Censored_Timepoints[v];
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+	meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
+
+	// Now calculate the variance of eps
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+	}
+	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+
+	// Loop over contrasts and calculate t-values
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
+	}
+}
+
+__kernel void CalculateStatisticalMapsGLMFTestPermutation(__global float* Statistical_Maps,
+		                                       	   	   	  __global float* Residuals,
+		                                       	   	   	  __global const float* Volumes,
+		                                       	   	   	  __global const float* Beta_Volumes,
+		                                       	   	   	  __global const float* Mask,
+		                                       	   	   	  __constant float* c_X_GLM,
+		                                       	   	   	  __constant float* c_Contrasts,
+		                                       	   	   	  __constant float* c_ctxtxc_GLM,
+		                                       	   	   	  __private int DATA_W,
+		                                       	   	   	  __private int DATA_H,
+		                                       	   	   	  __private int DATA_D,
+		                                       	   	   	  __private int NUMBER_OF_VOLUMES,
+		                                       	   	   	  __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   	  __private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[20];
+
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+	// Calculate the mean of the error eps
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
 	}
 	meaneps /= (float)NUMBER_OF_VOLUMES;
 
@@ -5836,36 +5898,51 @@ __kernel void CalculateStatisticalMapsGLMPermutation(__global float* Statistical
 	vareps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		//if (c_Censor[v] == 0.0f)
-		//{
-			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-			{
-				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];				
-			}
-			vareps += (eps - meaneps) * (eps - meaneps);
-		//}
-	}
-	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS); // correct for number of censor points?
-	vareps /= (float)(NUMBER_OF_VOLUMES-1); // correct for number of censor points?
-	
-	// Loop over contrasts and calculate t-values
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		float contrast_value = 0.0f;
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];			
-		}			
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		vareps += (eps - meaneps) * (eps - meaneps);
 	}
+	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
+
+	//-------------------------
+
+	// Calculate matrix vector product C*beta (minus u)
+	float cbeta[20];
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		cbeta[c] = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+	}
+
+	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+	float temp[20];
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		temp[c] = 0.0f;
+		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+		{
+			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
+		}
+	}
+
+	// Finally calculate (C*beta)^T * temp
+	float scalar = 0.0f;
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		scalar += cbeta[c] * temp[c];
+	}
+
+	// Save F-value
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
 }
-
-
-
-
-// Functions for permutation test
-
 
 
 
