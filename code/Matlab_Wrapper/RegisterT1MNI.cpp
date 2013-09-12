@@ -26,11 +26,6 @@ float round_( float d )
     return floor( d + 0.5f );
 }
 
-void cleanUp()
-{
-    //cudaDeviceReset();
-}
-
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {

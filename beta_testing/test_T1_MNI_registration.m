@@ -62,8 +62,8 @@ opencl_platform = 0;
 opencl_device = 0;
 
 % Set parameters for registration
-number_of_iterations_for_parametric_image_registration = 5;
-number_of_iterations_for_nonparametric_image_registration = 5;
+number_of_iterations_for_parametric_image_registration = 10;
+number_of_iterations_for_nonparametric_image_registration = 10;
 coarsest_scale = 8/voxel_size;
 MM_T1_Z_CUT = 50*voxel_size; % Number of slices to cut from the initial T1 volume
 
@@ -92,7 +92,7 @@ load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
 
 % Load T1 volume
-T1_nii = load_nii([basepath study '/'  subject '/anat/mprage_anonymized.nii.gz']);
+T1_nii = load_nii([basepath study '/'  subject '/anat/mprage_skullstripped.nii.gz']);
 
 T1 = double(T1_nii.img);
 T1 = T1/max(T1(:));
@@ -127,8 +127,26 @@ tic
     number_of_iterations_for_parametric_image_registration,number_of_iterations_for_nonparametric_image_registration,coarsest_scale,MM_T1_Z_CUT,opencl_platform, opencl_device);
 toc
 
+% Put the registration parameters into a 4 x 4 matrix
+affine_registration_parameters = zeros(4,4);
+affine_registration_parameters(1,4) = registration_parameters_opencl(1);
+affine_registration_parameters(2,4) = registration_parameters_opencl(2);
+affine_registration_parameters(3,4) = registration_parameters_opencl(3);
+affine_registration_parameters(4,4) = 1;
+affine_registration_parameters(1,1) = registration_parameters_opencl(4) + 1;
+affine_registration_parameters(2,1) = registration_parameters_opencl(5);
+affine_registration_parameters(3,1) = registration_parameters_opencl(6);
+affine_registration_parameters(4,1) = 0;
+affine_registration_parameters(1,2) = registration_parameters_opencl(7);
+affine_registration_parameters(2,2) = registration_parameters_opencl(8) + 1;
+affine_registration_parameters(3,2) = registration_parameters_opencl(9);
+affine_registration_parameters(4,2) = 0;
+affine_registration_parameters(1,3) = registration_parameters_opencl(10);
+affine_registration_parameters(2,3) = registration_parameters_opencl(11);
+affine_registration_parameters(3,3) = registration_parameters_opencl(12) + 1;
+affine_registration_parameters(4,3) = 0;
 
-registration_parameters_opencl
+affine_registration_parameters
 
 % Look at sagittal results
 slice = round(0.55*MNI_sy);
