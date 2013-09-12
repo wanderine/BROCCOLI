@@ -61,6 +61,12 @@ subject = dirs(subject+2).name
 voxel_size = 1;
 beta_space = 1; % 0 = EPI, 1 = MNI
 
+% Statistical settings
+USE_TEMPORAL_DERIVATIVES = 1;
+REGRESS_MOTION = 0;
+REGRESS_CONFOUNDS = 0;
+confounds = 1;
+
 % Settings for image registration
 number_of_iterations_for_parametric_image_registration = 5;
 number_of_iterations_for_nonparametric_image_registration = 5;
@@ -186,14 +192,11 @@ X_GLM(:,3) = a/norm(a(:));
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 % Create contrasts
-%contrasts = zeros(size(X_GLM,2),3);
-contrasts = [1 0 0]';
-%contrasts = [1 0 0 0 0]';
-%contrasts(:,1) = [1 0 0 0 0 0 0 0]';
-%contrasts(:,2) = [0 1 0 0 0 0 0 0]';
-%contrasts(:,3) = [0 0 0 0 1 0 0 0]';
-for i = 1:size(contrasts,2)
-    contrast = contrasts(:,i);
+
+contrasts = [1 0 0];
+
+for i = 1:size(contrasts,1)
+    contrast = contrasts(i,:)';
     ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
 end
 ctxtxc_GLM
@@ -210,8 +213,8 @@ f1_nonparametric_registration, f2_nonparametric_registration, f3_nonparametric_r
 m1, m2, m3, m4, m5, m6, ...
 filter_directions_x, filter_directions_y, filter_directions_z, ...
 number_of_iterations_for_parametric_image_registration, number_of_iterations_for_nonparametric_image_registration, ...
-coarsest_scale_T1_MNI, coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,EPI_smoothing_amount,AR_smoothing_amount, ...
-X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,beta_space,opencl_platform,opencl_device);
+coarsest_scale_T1_MNI, coarsest_scale_EPI_T1,MM_T1_Z_CUT,MM_EPI_Z_CUT,number_of_iterations_for_motion_correction,REGRESS_MOTION,EPI_smoothing_amount,AR_smoothing_amount, ...
+X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,USE_TEMPORAL_DERIVATIVES,beta_space,confounds,REGRESS_CONFOUNDS,opencl_platform,opencl_device);
 toc
 
 T1_MNI_registration_parameters

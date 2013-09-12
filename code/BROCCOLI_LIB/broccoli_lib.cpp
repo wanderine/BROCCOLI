@@ -65,70 +65,18 @@ BROCCOLI_LIB::BROCCOLI_LIB()
 {	
 	OPENCL_INITIATED = 0;
 	SetStartValues();
-	ResetAllPointers();
 }
 
 BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device)
 {
 	SetStartValues();
 	OPENCL_INITIATED = 0;
-	OpenCLInitiate(platform,device);	
-	ResetAllPointers();
-	//AllocateMemory();
-	//ReadImageRegistrationFilters();
-	//SetGlobalAndLocalWorkSizes();
+	OpenCLInitiate(platform,device);
 }
 
 // Destructor
 BROCCOLI_LIB::~BROCCOLI_LIB()
 {
-	// Free all the allocated memory
-	
-	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
-	{
-		void* pointer = host_pointers[i];
-		if (pointer != NULL)
-		{
-			free(pointer);
-		}
-	}
-
-	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
-	{
-		void* pointer = host_pointers_static[i];
-		if (pointer != NULL)
-		{
-			free(pointer);
-		}
-	}
-
-	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
-	{
-		void* pointer = host_pointers_permutation[i];
-		if (pointer != NULL)
-		{
-			free(pointer);
-		}
-	}
-
-	for (int i = 0; i < NUMBER_OF_DEVICE_POINTERS; i++)
-	{
-		float* pointer = device_pointers[i];
-		if (pointer != NULL)
-		{
-			//clReleaseMemObject();
-		}
-	}
-	
-	for (int i = 0; i < NUMBER_OF_DEVICE_POINTERS; i++)
-	{
-		float* pointer = device_pointers_permutation[i];
-		if (pointer != NULL)
-		{
-			//clReleaseMemObject();
-		}
-	}
-
 	OpenCLCleanup();
 }
 
@@ -184,9 +132,6 @@ void BROCCOLI_LIB::SetStartValues()
 	filename_activity_volume_nifti = "output\\activity_volume.nii";
 	
 	
-	THRESHOLD_ACTIVITY_MAP = false;
-	ACTIVITY_THRESHOLD = 0.05f;
-
 	IMAGE_REGISTRATION_FILTER_SIZE = 7;
 	NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION = 5;
 	NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION = 5;
@@ -197,15 +142,8 @@ void BROCCOLI_LIB::SetStartValues()
 	NUMBER_OF_DETRENDING_REGRESSORS = 4;
 	NUMBER_OF_MOTION_REGRESSORS = 6;
 
-	SEGMENTATION_THRESHOLD = 600.0f;
-	NUMBER_OF_STATISTICAL_BASIS_FUNCTIONS = 2;
-	NUMBER_OF_PERIODS = 4;
-	PERIOD_TIME = 20;
-
-	int DATA_SIZE_QUADRATURE_FILTER_REAL = sizeof(float) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE;
-	//int DATA_SIZE_QUADRATURE_FILTER_COMPLEX = sizeof(Complex) * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE;
-
-	int DATA_SIZE_SMOOTHING_FILTER_GLM = sizeof(float) * SMOOTHING_FILTER_SIZE;
+	REGRESS_MOTION = 1;
+	REGRESS_CONFOUNDS = 0;
 
 	error = 0;
 
@@ -335,60 +273,9 @@ void BROCCOLI_LIB::SetStartValues()
 	getProgramBuildInfoError = 0;
 }
 
-void BROCCOLI_LIB::ResetAllPointers()
-{
-	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
-	{	
-		host_pointers[i] = NULL;
-	}
 
-	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
-	{	
-		host_pointers_static[i] = NULL;
-	}
 
-	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
-	{	
-		host_pointers_permutation[i] = NULL;
-	}
 
-	for (int i = 0; i < NUMBER_OF_DEVICE_POINTERS; i++)
-	{
-		device_pointers[i] = NULL;
-	}
-
-	for (int i = 0; i < NUMBER_OF_DEVICE_POINTERS; i++)
-	{
-		device_pointers_permutation[i] = NULL;
-	}
-}
-
-void BROCCOLI_LIB::AllocateMemoryForFilters()
-{
-	/*
-	h_Quadrature_Filter_1_Real = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
-	h_Quadrature_Filter_1_Imag = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
-	h_Quadrature_Filter_2_Real = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
-	h_Quadrature_Filter_2_Imag = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
-	h_Quadrature_Filter_3_Real = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL);
-	h_Quadrature_Filter_3_Imag = (float*)malloc(DATA_SIZE_QUADRATURE_FILTER_REAL); 		
-	//h_Quadrature_Filter_1 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
-	//h_Quadrature_Filter_2 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
-	//h_Quadrature_Filter_3 = (Complex*)malloc(DATA_SIZE_QUADRATURE_FILTER_COMPLEX);
-
-	//h_GLM_Filter = (float*)malloc(DATA_SIZE_SMOOTHING_FILTER_GLM);
-
-	host_pointers_static[QF1R]   = (void*)h_Quadrature_Filter_1_Real;
-	host_pointers_static[QF1I]   = (void*)h_Quadrature_Filter_1_Imag;
-	host_pointers_static[QF2R]   = (void*)h_Quadrature_Filter_2_Real;
-	host_pointers_static[QF2I]   = (void*)h_Quadrature_Filter_2_Imag;
-	host_pointers_static[QF3R]   = (void*)h_Quadrature_Filter_3_Real;
-	host_pointers_static[QF3I]   = (void*)h_Quadrature_Filter_3_Imag;
-	//host_pointers_static[QF1]    = (void*)h_Quadrature_Filter_1;
-	//host_pointers_static[QF2]    = (void*)h_Quadrature_Filter_2;
-	//host_pointers_static[QF3]	 = (void*)h_Quadrature_Filter_3;
-	*/
-}	
 
 int BROCCOLI_LIB::GetOpenCLInitiated()
 {
@@ -884,116 +771,115 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 												program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);
 												buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
 
-												// Save to binary file
+												// If successful build, save to binary file
 												if (buildProgramError == SUCCESS)
 												{
 													SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename);
 												}
 											}
 
-											if (buildProgramError == SUCCESS)
+											// Always get build info
+
+											// Get size of build info
+											valueSize = 0;
+											getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
+
+											// Get build info
+											if (getProgramBuildInfoError == SUCCESS)
 											{
-												// Get size of build info
-												valueSize = 0;
-												getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
+												value = (char*)malloc(valueSize);
+												getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
 
 												if (getProgramBuildInfoError == SUCCESS)
 												{
-													// Get build info
-													value = (char*)malloc(valueSize);
-													getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
-
-													if (getProgramBuildInfoError == SUCCESS)
-													{
-														build_info.append(value);
-
-														// Create kernels
-
-														MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
-														MemsetFloat2Kernel = clCreateKernel(program,"MemsetFloat2",&createKernelErrorMemsetFloat2);
-														//MemsetDoubleKernel = clCreateKernel(program,"MemsetDouble",&createKernelErrorMemset);
-
-														if ( (VENDOR == NVIDIA) || (VENDOR == INTEL))
-														{
-															NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
-															SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&createKernelErrorSeparableConvolutionRows);
-															SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&createKernelErrorSeparableConvolutionColumns);
-															SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&createKernelErrorSeparableConvolutionRods);
-														}
-														else if (VENDOR == AMD)
-														{
-															NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
-															SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsAMD",&createKernelErrorSeparableConvolutionRows);
-															SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsAMD",&createKernelErrorSeparableConvolutionColumns);
-															SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsAMD",&createKernelErrorSeparableConvolutionRods);
-														}
-
-														// Kernels for parametric registration
-														CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
-														CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
-														CalculatePhaseGradientsYKernel = clCreateKernel(program,"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
-														CalculatePhaseGradientsZKernel = clCreateKernel(program,"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
-														CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
-														CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
-														CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
-														CalculateAMatrix1DValuesKernel = clCreateKernel(program,"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
-														CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
-														CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
-														CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);
-												
-														// Kernels for non-parametric registration
-														//CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel = clCreateKernel(program, "CalculatePhaseDifferencesCertaintiesAndTensorComponents", &createKernelErrorCalculatePhaseDifferencesCertaintiesAndTensorComponents);
-														CalculateTensorComponentsKernel = clCreateKernel(program, "CalculateTensorComponents", &createKernelErrorCalculateTensorComponents);
-														CalculateTensorNormsKernel = clCreateKernel(program, "CalculateTensorNorms", &createKernelErrorCalculateTensorNorms);
-														CalculateAMatricesAndHVectorsKernel = clCreateKernel(program, "CalculateAMatricesAndHVectors", &createKernelErrorCalculateAMatricesAndHVectors);
-														//CalculateDisplacementAndCertaintyUpdateKernel = clCreateKernel(program, "CalculateDisplacementAndCertaintyUpdate", &createKernelErrorCalculateDisplacementAndCertaintyUpdate);
-														CalculateDisplacementUpdateKernel = clCreateKernel(program, "CalculateDisplacementUpdate", &createKernelErrorCalculateDisplacementUpdate);
-
-														CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);
-														CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);
-														CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);
-														CalculateColumnMaxsKernel = clCreateKernel(program,"CalculateColumnMaxs",&createKernelErrorCalculateColumnMaxs);
-														CalculateRowMaxsKernel = clCreateKernel(program,"CalculateRowMaxs",&createKernelErrorCalculateRowMaxs);
-														ThresholdVolumeKernel = clCreateKernel(program,"ThresholdVolume",&createKernelErrorThresholdVolume);
-
-														InterpolateVolumeNearestParametricKernel = clCreateKernel(program,"InterpolateVolumeNearestParametric",&createKernelErrorInterpolateVolumeNearestParametric);
-														InterpolateVolumeLinearParametricKernel = clCreateKernel(program,"InterpolateVolumeLinearParametric",&createKernelErrorInterpolateVolumeLinearParametric);
-														InterpolateVolumeCubicParametricKernel = clCreateKernel(program,"InterpolateVolumeCubicParametric",&createKernelErrorInterpolateVolumeCubicParametric);
-														InterpolateVolumeNearestNonParametricKernel = clCreateKernel(program,"InterpolateVolumeNearestNonParametric",&createKernelErrorInterpolateVolumeNearestNonParametric);
-														InterpolateVolumeLinearNonParametricKernel = clCreateKernel(program,"InterpolateVolumeLinearNonParametric",&createKernelErrorInterpolateVolumeLinearNonParametric);
-														InterpolateVolumeCubicNonParametricKernel = clCreateKernel(program,"InterpolateVolumeCubicNonParametric",&createKernelErrorInterpolateVolumeCubicNonParametric);
-
-														RescaleVolumeLinearKernel = clCreateKernel(program,"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
-														RescaleVolumeCubicKernel = clCreateKernel(program,"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
-														CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
-														CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
-														CopyVolumeToNewKernel = clCreateKernel(program,"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
-
-														MultiplyVolumeKernel = clCreateKernel(program,"MultiplyVolume",&createKernelErrorMultiplyVolume);
-														MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
-														MultiplyVolumesOverwriteKernel = clCreateKernel(program,"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
-														AddVolumeKernel = clCreateKernel(program,"AddVolume",&createKernelErrorAddVolume);
-														AddVolumesKernel = clCreateKernel(program,"AddVolumes",&createKernelErrorAddVolumes);
-														AddVolumesOverwriteKernel = clCreateKernel(program,"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
-														RemoveMeanKernel = clCreateKernel(program,"RemoveMean",&createKernelErrorRemoveMean);
-
-														CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
-														CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
-														CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
-														CalculateStatisticalMapsGLMTTestPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestPermutation);
-														CalculateStatisticalMapsGLMFTestPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestPermutation);
-														EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
-														ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
-														GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
-														GeneratePermutedVolumesSecondLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesSecondLevel",&createKernelErrorGeneratePermutedVolumesSecondLevel);
-														RemoveLinearFitKernel = clCreateKernel(program,"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
-
-
-
-														OPENCL_INITIATED = 1;
-													}
-													free(value);
+													build_info.append(value);
 												}
+												free(value);
+											}
+
+											if (buildProgramError == SUCCESS)
+											{
+												// Create kernels
+
+												// Convolution kernels
+												if ( (VENDOR == NVIDIA) || (VENDOR == INTEL))
+												{
+													NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&createKernelErrorSeparableConvolutionRows);
+													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&createKernelErrorSeparableConvolutionColumns);
+													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&createKernelErrorSeparableConvolutionRods);
+												}
+												else if (VENDOR == AMD)
+												{
+													NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsAMD",&createKernelErrorSeparableConvolutionRows);
+													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsAMD",&createKernelErrorSeparableConvolutionColumns);
+													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsAMD",&createKernelErrorSeparableConvolutionRods);
+												}
+
+												// Kernels for parametric registration
+												CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
+												CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
+												CalculatePhaseGradientsYKernel = clCreateKernel(program,"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
+												CalculatePhaseGradientsZKernel = clCreateKernel(program,"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
+												CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
+												CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
+												CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
+												CalculateAMatrix1DValuesKernel = clCreateKernel(program,"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
+												CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
+												CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
+												CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);
+
+												// Kernels for non-parametric registration
+												CalculateTensorComponentsKernel = clCreateKernel(program, "CalculateTensorComponents", &createKernelErrorCalculateTensorComponents);
+												CalculateTensorNormsKernel = clCreateKernel(program, "CalculateTensorNorms", &createKernelErrorCalculateTensorNorms);
+												CalculateAMatricesAndHVectorsKernel = clCreateKernel(program, "CalculateAMatricesAndHVectors", &createKernelErrorCalculateAMatricesAndHVectors);
+												CalculateDisplacementUpdateKernel = clCreateKernel(program, "CalculateDisplacementUpdate", &createKernelErrorCalculateDisplacementUpdate);
+
+												CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);
+												CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);
+												CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);
+												CalculateColumnMaxsKernel = clCreateKernel(program,"CalculateColumnMaxs",&createKernelErrorCalculateColumnMaxs);
+												CalculateRowMaxsKernel = clCreateKernel(program,"CalculateRowMaxs",&createKernelErrorCalculateRowMaxs);
+												ThresholdVolumeKernel = clCreateKernel(program,"ThresholdVolume",&createKernelErrorThresholdVolume);
+
+												InterpolateVolumeNearestParametricKernel = clCreateKernel(program,"InterpolateVolumeNearestParametric",&createKernelErrorInterpolateVolumeNearestParametric);
+												InterpolateVolumeLinearParametricKernel = clCreateKernel(program,"InterpolateVolumeLinearParametric",&createKernelErrorInterpolateVolumeLinearParametric);
+												InterpolateVolumeCubicParametricKernel = clCreateKernel(program,"InterpolateVolumeCubicParametric",&createKernelErrorInterpolateVolumeCubicParametric);
+												InterpolateVolumeNearestNonParametricKernel = clCreateKernel(program,"InterpolateVolumeNearestNonParametric",&createKernelErrorInterpolateVolumeNearestNonParametric);
+												InterpolateVolumeLinearNonParametricKernel = clCreateKernel(program,"InterpolateVolumeLinearNonParametric",&createKernelErrorInterpolateVolumeLinearNonParametric);
+												InterpolateVolumeCubicNonParametricKernel = clCreateKernel(program,"InterpolateVolumeCubicNonParametric",&createKernelErrorInterpolateVolumeCubicNonParametric);
+
+												RescaleVolumeLinearKernel = clCreateKernel(program,"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
+												RescaleVolumeCubicKernel = clCreateKernel(program,"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
+												CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
+												CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
+												CopyVolumeToNewKernel = clCreateKernel(program,"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
+
+												// Help kernels
+												MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
+												MemsetFloat2Kernel = clCreateKernel(program,"MemsetFloat2",&createKernelErrorMemsetFloat2);
+												MultiplyVolumeKernel = clCreateKernel(program,"MultiplyVolume",&createKernelErrorMultiplyVolume);
+												MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
+												MultiplyVolumesOverwriteKernel = clCreateKernel(program,"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
+												AddVolumeKernel = clCreateKernel(program,"AddVolume",&createKernelErrorAddVolume);
+												AddVolumesKernel = clCreateKernel(program,"AddVolumes",&createKernelErrorAddVolumes);
+												AddVolumesOverwriteKernel = clCreateKernel(program,"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
+												RemoveMeanKernel = clCreateKernel(program,"RemoveMean",&createKernelErrorRemoveMean);
+
+												// Statistical kernels
+												CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
+												CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
+												CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
+												CalculateStatisticalMapsGLMTTestPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestPermutation);
+												CalculateStatisticalMapsGLMFTestPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestPermutation);
+												EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
+												ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
+												GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
+												GeneratePermutedVolumesSecondLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesSecondLevel",&createKernelErrorGeneratePermutedVolumesSecondLevel);
+												RemoveLinearFitKernel = clCreateKernel(program,"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
+
+												OPENCL_INITIATED = 1;
 											}
 										}
 									}
@@ -1886,7 +1772,27 @@ void BROCCOLI_LIB::SetMask(float* data)
 
 void BROCCOLI_LIB::SetTemporalDerivatives(int N)
 {
-	TEMPORAL_DERIVATIVES = N;
+	USE_TEMPORAL_DERIVATIVES = N;
+}
+
+void BROCCOLI_LIB::SetRegressConfounds(int R)
+{
+	REGRESS_CONFOUNDS = R;
+}
+
+void BROCCOLI_LIB::SetConfoundRegressors(float* regressors)
+{
+	h_X_GLM_Confounds = regressors;
+}
+
+void BROCCOLI_LIB::SetRegressMotion(int R)
+{
+	REGRESS_MOTION = R;
+}
+
+void BROCCOLI_LIB::SetNumberOfConfoundRegressors(int N)
+{
+	NUMBER_OF_CONFOUND_REGRESSORS = N;
 }
 
 void BROCCOLI_LIB::SetNumberOfGLMRegressors(int N)
@@ -2133,30 +2039,10 @@ void BROCCOLI_LIB::SetfMRIDataSliceTimepoint(int timepoint)
 	TIMEPOINT_fMRI_DATA = timepoint;
 }
 
-void BROCCOLI_LIB::SetActivityThreshold(float threshold)
-{
-	ACTIVITY_THRESHOLD = threshold;
-}
-
-void BROCCOLI_LIB::SetThresholdStatus(bool status)
-{
-	THRESHOLD_ACTIVITY_MAP = status;
-}
-
-void BROCCOLI_LIB::SetNumberOfBasisFunctionsDetrending(int N)
-{
-	NUMBER_OF_DETRENDING_REGRESSORS = N;
-}
 
 void BROCCOLI_LIB::SetfMRIDataFilename(std::string filename)
 {
 	filename_fMRI_data_nifti = filename;
-}
-
-void BROCCOLI_LIB::SetAnalysisMethod(int method)
-{
-	ANALYSIS_METHOD = method;
-	ReadSmoothingFilters();
 }
 
 
@@ -3440,7 +3326,7 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 
 
 
-// This function is used by all parametric registration functions, to setup necessary parameters
+// This function is used by all non-parametric registration functions, to setup necessary parameters
 void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int DATA_D)
 {
 	// Set global and local work sizes
@@ -3539,19 +3425,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int
 	// Set all kernel arguments
 
 
-	/*
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 0, sizeof(cl_mem), &d_Phase_Differences);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 1, sizeof(cl_mem), &d_Phase_Certainties);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 2, sizeof(cl_mem), &d_t11);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 3, sizeof(cl_mem), &d_t12);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 4, sizeof(cl_mem), &d_t13);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 5, sizeof(cl_mem), &d_t22);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 6, sizeof(cl_mem), &d_t23);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 7, sizeof(cl_mem), &d_t33);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 16, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 17, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 18, sizeof(int), &DATA_D);
-	*/
+
 
 	clSetKernelArg(CalculateTensorComponentsKernel, 0, sizeof(cl_mem), &d_t11);
 	clSetKernelArg(CalculateTensorComponentsKernel, 1, sizeof(cl_mem), &d_t12);
@@ -3574,31 +3448,6 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int
 	clSetKernelArg(CalculateTensorNormsKernel, 8, sizeof(int), &DATA_H);
 	clSetKernelArg(CalculateTensorNormsKernel, 9, sizeof(int), &DATA_D);
 
-	/*
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 0, sizeof(cl_mem), &d_a11);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 1, sizeof(cl_mem), &d_a12);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 2, sizeof(cl_mem), &d_a13);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 3, sizeof(cl_mem), &d_a22);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 4, sizeof(cl_mem), &d_a23);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 5, sizeof(cl_mem), &d_a33);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 6, sizeof(cl_mem), &d_h1);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 7, sizeof(cl_mem), &d_h2);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 8, sizeof(cl_mem), &d_h3);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 9, sizeof(cl_mem), &d_Phase_Differences);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 10, sizeof(cl_mem), &d_Phase_Certainties);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 11, sizeof(cl_mem), &d_t11);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 12, sizeof(cl_mem), &d_t12);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 13, sizeof(cl_mem), &d_t13);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 14, sizeof(cl_mem), &d_t22);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 15, sizeof(cl_mem), &d_t23);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 16, sizeof(cl_mem), &d_t33);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 17, sizeof(cl_mem), &c_Filter_Directions_X);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 18, sizeof(cl_mem), &c_Filter_Directions_Y);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 19, sizeof(cl_mem), &c_Filter_Directions_Z);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 20, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 21, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 22, sizeof(int), &DATA_D);
-	*/
 
 	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 0, sizeof(cl_mem), &d_a11);
 	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 1, sizeof(cl_mem), &d_a12);
@@ -3622,24 +3471,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int
 	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 21, sizeof(int), &DATA_H);
 	clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 22, sizeof(int), &DATA_D);
 
-	/*
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 0, sizeof(cl_mem), &d_Temp_Displacement_Field_X);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 1, sizeof(cl_mem), &d_Temp_Displacement_Field_Y);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 2, sizeof(cl_mem), &d_Temp_Displacement_Field_Z);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 3, sizeof(cl_mem), &d_Update_Certainty);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 4, sizeof(cl_mem), &d_a11);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 5, sizeof(cl_mem), &d_a12);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 6, sizeof(cl_mem), &d_a13);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 7, sizeof(cl_mem), &d_a22);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 8, sizeof(cl_mem), &d_a23);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 9, sizeof(cl_mem), &d_a33);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 10, sizeof(cl_mem), &d_h1);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 11, sizeof(cl_mem), &d_h2);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 12, sizeof(cl_mem), &d_h3);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 13, sizeof(int), &DATA_W);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 14, sizeof(int), &DATA_H);
-	clSetKernelArg(CalculateDisplacementAndCertaintyUpdateKernel, 15, sizeof(int), &DATA_D);
-	*/
+
 
 	clSetKernelArg(CalculateDisplacementUpdateKernel, 0, sizeof(cl_mem), &d_Temp_Displacement_Field_X);
 	clSetKernelArg(CalculateDisplacementUpdateKernel, 1, sizeof(cl_mem), &d_Temp_Displacement_Field_Y);
@@ -3831,80 +3663,10 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		SetMemory(d_h1, 0.0f, DATA_W * DATA_H * DATA_D);
 		SetMemory(d_h2, 0.0f, DATA_W * DATA_H * DATA_D);
 		SetMemory(d_h3, 0.0f, DATA_W * DATA_H * DATA_D);
-		/*
-		// Calculate phase differences, certainties and tensor components, first quadrature filter
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 8, sizeof(cl_mem), &d_q11);
-  	    clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 9, sizeof(cl_mem), &d_q21);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 10, sizeof(float), &M11_1);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 11, sizeof(float), &M12_1);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 12, sizeof(float), &M13_1);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 13, sizeof(float), &M22_1);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 14, sizeof(float), &M23_1);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 15, sizeof(float), &M33_1);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 19, sizeof(int), &zero);
-		runKernelErrorCalculatePhaseDifferencesCertaintiesAndTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
 
-		// Calculate phase differences, certainties and tensor components, second quadrature filter
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 8, sizeof(cl_mem), &d_q12);
-  	    clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 9, sizeof(cl_mem), &d_q22);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 10, sizeof(float), &M11_2);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 11, sizeof(float), &M12_2);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 12, sizeof(float), &M13_2);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 13, sizeof(float), &M22_2);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 14, sizeof(float), &M23_2);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 15, sizeof(float), &M33_2);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 19, sizeof(int), &one);
-		runKernelErrorCalculatePhaseDifferencesCertaintiesAndTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
+		// Calculate tensor components
 
-		// Calculate phase differences, certainties and tensor components, third quadrature filter
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 8, sizeof(cl_mem), &d_q13);
-  	    clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 9, sizeof(cl_mem), &d_q23);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 10, sizeof(float), &M11_3);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 11, sizeof(float), &M12_3);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 12, sizeof(float), &M13_3);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 13, sizeof(float), &M22_3);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 14, sizeof(float), &M23_3);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 15, sizeof(float), &M33_3);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 19, sizeof(int), &two);
-		runKernelErrorCalculatePhaseDifferencesCertaintiesAndTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
-
-		// Calculate phase differences, certainties and tensor components, fourth quadrature filter
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 8, sizeof(cl_mem), &d_q14);
-  	    clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 9, sizeof(cl_mem), &d_q24);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 10, sizeof(float), &M11_4);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 11, sizeof(float), &M12_4);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 12, sizeof(float), &M13_4);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 13, sizeof(float), &M22_4);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 14, sizeof(float), &M23_4);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 15, sizeof(float), &M33_4);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 19, sizeof(int), &three);
-		runKernelErrorCalculatePhaseDifferencesCertaintiesAndTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
-
-		// Calculate phase differences, certainties and tensor components, fifth quadrature filter
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 8, sizeof(cl_mem), &d_q15);
-  	    clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 9, sizeof(cl_mem), &d_q25);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 10, sizeof(float), &M11_5);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 11, sizeof(float), &M12_5);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 12, sizeof(float), &M13_5);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 13, sizeof(float), &M22_5);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 14, sizeof(float), &M23_5);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 15, sizeof(float), &M33_5);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 19, sizeof(int), &four);
-		runKernelErrorCalculatePhaseDifferencesCertaintiesAndTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
-
-		// Calculate phase differences, certainties and tensor components, sixth quadrature filter
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 8, sizeof(cl_mem), &d_q16);
-  	    clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 9, sizeof(cl_mem), &d_q26);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 10, sizeof(float), &M11_6);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 11, sizeof(float), &M12_6);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 12, sizeof(float), &M13_6);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 13, sizeof(float), &M22_6);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 14, sizeof(float), &M23_6);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 15, sizeof(float), &M33_6);
-		clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 19, sizeof(int), &five);
-		runKernelErrorCalculatePhaseDifferencesCertaintiesAndTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
-		*/
-
+		// First filter
 		clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q11);
   	    clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q21);
 		clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_1);
@@ -3915,6 +3677,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_1);
 		runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
 
+		// Second filter
 		clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q12);
   	    clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q22);
 		clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_2);
@@ -3925,6 +3688,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_2);
 		runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
 
+		// Third filter
 		clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q13);
   	    clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q23);
 		clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_3);
@@ -3935,6 +3699,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_3);
 		runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
 
+		// Fourth filter
 		clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q14);
   	    clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q24);
 		clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_4);
@@ -3945,6 +3710,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_4);
 		runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
 
+		// Fifth filter
 		clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q15);
   	    clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q25);
 		clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_5);
@@ -3955,6 +3721,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clSetKernelArg(CalculateTensorComponentsKernel, 13, sizeof(float), &M33_5);
 		runKernelErrorCalculateTensorComponents = clEnqueueNDRangeKernel(commandQueue, CalculateTensorComponentsKernel, 3, NULL, globalWorkSizeCalculatePhaseDifferencesAndCertainties, localWorkSizeCalculatePhaseDifferencesAndCertainties, 0, NULL, NULL);
 
+		// Sixth filter
 		clSetKernelArg(CalculateTensorComponentsKernel, 6, sizeof(cl_mem), &d_q16);
   	    clSetKernelArg(CalculateTensorComponentsKernel, 7, sizeof(cl_mem), &d_q26);
 		clSetKernelArg(CalculateTensorComponentsKernel, 8, sizeof(float), &M11_6);
@@ -4038,33 +3805,38 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 
 
 		// Calculate A-matrices and h-vectors
-		//runKernelErrorCalculateAMatricesAndHVectors = clEnqueueNDRangeKernel(commandQueue, CalculateAMatricesAndHVectorsKernel, 3, NULL, globalWorkSizeCalculateAMatricesAndHVectors, localWorkSizeCalculateAMatricesAndHVectors, 0, NULL, NULL);
 
+		// First filter
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 9, sizeof(cl_mem), &d_q11);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 10, sizeof(cl_mem), &d_q21);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 23, sizeof(int), &zero);
 		runKernelErrorCalculateAMatricesAndHVectors = clEnqueueNDRangeKernel(commandQueue, CalculateAMatricesAndHVectorsKernel, 3, NULL, globalWorkSizeCalculateAMatricesAndHVectors, localWorkSizeCalculateAMatricesAndHVectors, 0, NULL, NULL);
 
+		// Second filter
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 9, sizeof(cl_mem), &d_q12);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 10, sizeof(cl_mem), &d_q22);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 23, sizeof(int), &one);
 		runKernelErrorCalculateAMatricesAndHVectors = clEnqueueNDRangeKernel(commandQueue, CalculateAMatricesAndHVectorsKernel, 3, NULL, globalWorkSizeCalculateAMatricesAndHVectors, localWorkSizeCalculateAMatricesAndHVectors, 0, NULL, NULL);
 
+		// Third filter
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 9, sizeof(cl_mem), &d_q13);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 10, sizeof(cl_mem), &d_q23);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 23, sizeof(int), &two);
 		runKernelErrorCalculateAMatricesAndHVectors = clEnqueueNDRangeKernel(commandQueue, CalculateAMatricesAndHVectorsKernel, 3, NULL, globalWorkSizeCalculateAMatricesAndHVectors, localWorkSizeCalculateAMatricesAndHVectors, 0, NULL, NULL);
 
+		// Fourth filter
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 9, sizeof(cl_mem), &d_q14);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 10, sizeof(cl_mem), &d_q24);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 23, sizeof(int), &three);
 		runKernelErrorCalculateAMatricesAndHVectors = clEnqueueNDRangeKernel(commandQueue, CalculateAMatricesAndHVectorsKernel, 3, NULL, globalWorkSizeCalculateAMatricesAndHVectors, localWorkSizeCalculateAMatricesAndHVectors, 0, NULL, NULL);
 
+		// Fifth filter
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 9, sizeof(cl_mem), &d_q15);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 10, sizeof(cl_mem), &d_q25);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 23, sizeof(int), &four);
 		runKernelErrorCalculateAMatricesAndHVectors = clEnqueueNDRangeKernel(commandQueue, CalculateAMatricesAndHVectorsKernel, 3, NULL, globalWorkSizeCalculateAMatricesAndHVectors, localWorkSizeCalculateAMatricesAndHVectors, 0, NULL, NULL);
 
+		// Sixth filter
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 9, sizeof(cl_mem), &d_q16);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 10, sizeof(cl_mem), &d_q26);
 		clSetKernelArg(CalculateAMatricesAndHVectorsKernel, 23, sizeof(int), &five);
@@ -4098,17 +3870,12 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clEnqueueReadBuffer(commandQueue, d_a33, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_t33, 0, NULL, NULL);
 		*/
 
-		//runKernelErrorCalculateDisplacementAndCertaintyUpdate = clEnqueueNDRangeKernel(commandQueue, CalculateDisplacementAndCertaintyUpdateKernel, 3, NULL, globalWorkSizeCalculateDisplacementAndCertaintyUpdate, localWorkSizeCalculateDisplacementAndCertaintyUpdate, 0, NULL, NULL);
+
 		runKernelErrorCalculateDisplacementUpdate = clEnqueueNDRangeKernel(commandQueue, CalculateDisplacementUpdateKernel, 3, NULL, globalWorkSizeCalculateDisplacementAndCertaintyUpdate, localWorkSizeCalculateDisplacementAndCertaintyUpdate, 0, NULL, NULL);
 
 		//clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_X, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);
 		//clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_Y, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
 		//clEnqueueReadBuffer(commandQueue, d_Update_Displacement_Field_Z, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Gradients, 0, NULL, NULL);
-
-
-		//MultiplyVolume(d_Update_Displacement_Field_X, 0.75f, DATA_W, DATA_H, DATA_D);
-		//MultiplyVolume(d_Update_Displacement_Field_Y, 0.75f, DATA_W, DATA_H, DATA_D);
-		//MultiplyVolume(d_Update_Displacement_Field_Z, 0.75f, DATA_W, DATA_H, DATA_D);
 
 
 		/*
@@ -4180,14 +3947,6 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricCleanup()
 	//clReleaseMemObject(d_Phase_Differences);
 	//clReleaseMemObject(d_Phase_Certainties);
 
-	/*
-	clReleaseMemObject(c_Quadrature_Filter_1);
-	clReleaseMemObject(c_Quadrature_Filter_2);
-	clReleaseMemObject(c_Quadrature_Filter_3);
-	clReleaseMemObject(c_Quadrature_Filter_4);
-	clReleaseMemObject(c_Quadrature_Filter_5);
-	clReleaseMemObject(c_Quadrature_Filter_6);
-	*/
 
 	clReleaseMemObject(c_Quadrature_Filter_1_Real);
 	clReleaseMemObject(c_Quadrature_Filter_1_Imag);
@@ -4257,7 +4016,7 @@ void BROCCOLI_LIB::RemoveTransformationScaling(float* h_Registration_Parameters)
 	TransformationMatrix(1,1) += 1.0;
 	TransformationMatrix(2,2) += 1.0;
 
-	// Calculate SVD
+	// Calculate SVD, and calculate U and V matrices
 	Eigen::JacobiSVD<Eigen::MatrixXd> svd(TransformationMatrix, Eigen::ComputeThinU | Eigen::ComputeThinV);
 
 	// Calculate transformation matrix without scaling (i.e. singular values = ones)
@@ -6389,7 +6148,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	//-------------------------------
 
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*2 + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS;
+	//NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*2 + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -6424,7 +6184,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_ctxtxc_GLM = (float*)malloc(NUMBER_OF_CONTRASTS * sizeof(float));
 
 	h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
-	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
+	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
+
+	h_X_GLM_Confounds = (float*)malloc(NUMBER_OF_CONFOUND_REGRESSORS * EPI_DATA_T * sizeof(float));
 
 	SetupTTest(EPI_DATA_T);
 
@@ -6448,6 +6210,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	free(h_ctxtxc_GLM);
 	free(h_X_GLM_With_Temporal_Derivatives);
 	free(h_X_GLM_Convolved);
+	free(h_X_GLM_Confounds);
 
 	CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes);
 
@@ -8901,24 +8664,6 @@ void BROCCOLI_LIB::ReadImageRegistrationFilters()
 	//ReadComplexData(h_Quadrature_Filter_3, filename_real_quadrature_filter_3, filename_imag_quadrature_filter_3, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
 }
 
-void BROCCOLI_LIB::ReadSmoothingFilters()
-{
-	// Read smoothing filters from file
-	std::string mm_string;
-	std::stringstream out;
-	//out << SMOOTHING_AMOUNT_MM;
-	//mm_string = out.str();
-
-	//std::string filename_GLM = filename_GLM_filter + mm_string + "mm.raw";
-	//ReadRealDataFloat(h_GLM_Filter, filename_GLM, SMOOTHING_FILTER_SIZE);
-
-	//std::string filename_CCA_3D_1 = filename_CCA_3D_filter_1 + mm_string + "mm.raw";
-	//std::string filename_CCA_3D_2 = filename_CCA_3D_filter_2 + mm_string + "mm.raw";
-	//ReadRealDataFloat(h_CCA_3D_Filter_1, filename_CCA_3D_1, SMOOTHING_FILTER_SIZE);
-	//ReadRealDataFloat(h_CCA_3D_Filter_2, filename_CCA_3D_2, SMOOTHING_FILTER_SIZE);
-	//Convert2FloatToFloat2(h_CCA_3D_Filters, h_CCA_3D_Filter_1, h_CCA_3D_Filter_2, SMOOTHING_FILTER_SIZE);
-}
-
 /*
 void BROCCOLI_LIB::SetupParametersReadData()
 {
@@ -9440,7 +9185,7 @@ void BROCCOLI_LIB::SetupDetrendingRegressors(int N)
 void BROCCOLI_LIB::SetupTTest(int N)
 {
 	// Calculate total number of regressors
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 	// Create detrending regressors
 	Eigen::VectorXd Ones(N,1);
@@ -9467,7 +9212,7 @@ void BROCCOLI_LIB::SetupTTest(int N)
 	Quadratic.normalize();
 	Cubic.normalize();
 
-	if (TEMPORAL_DERIVATIVES)
+	if (USE_TEMPORAL_DERIVATIVES)
 	{
 		GenerateRegressorTemporalDerivatives(h_X_GLM_With_Temporal_Derivatives, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
 		ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_With_Temporal_Derivatives, N, NUMBER_OF_GLM_REGRESSORS*2);
@@ -9484,24 +9229,36 @@ void BROCCOLI_LIB::SetupTTest(int N)
 	for (int i = 0; i < N; i++)
 	{
 		// Regressors for paradigms
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1); r++)
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
 			X(i,r) = (double)h_X_GLM_Convolved[i + r * N];
 		}
 
-		// Add regressors for motion
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 0) = h_Motion_Parameters[i + 0 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 1) = h_Motion_Parameters[i + 1 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 2) = h_Motion_Parameters[i + 2 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 3) = h_Motion_Parameters[i + 3 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 4) = h_Motion_Parameters[i + 4 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 5) = h_Motion_Parameters[i + 5 * N];
+		// Detrending regressors
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) = Ones(i);
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) = Linear(i);
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) = Quadratic(i);
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) = Cubic(i);
 
-		// Add regressors for detrending
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 0) = Ones(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 1) = Linear(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 2) = Quadratic(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 3) = Cubic(i);
+		if (REGRESS_MOTION)
+		{
+			// Motion regressors
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) = h_Motion_Parameters[i + 0 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) = h_Motion_Parameters[i + 1 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) = h_Motion_Parameters[i + 2 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) = h_Motion_Parameters[i + 3 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) = h_Motion_Parameters[i + 4 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) = h_Motion_Parameters[i + 5 * N];
+		}
+
+		if (REGRESS_CONFOUNDS)
+		{
+			// Confounding regressors
+			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
+			{
+				X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) = (double)h_X_GLM_Confounds[i + r * N];
+			}
+		}
 	}
 
 	// Calculate pseudo inverse (could be done with SVD instead)
@@ -9514,44 +9271,67 @@ void BROCCOLI_LIB::SetupTTest(int N)
 	for (int i = 0; i < N; i++)
 	{
 		// Regressors for paradigms
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1); r++)
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
 			h_X_GLM[i + r * N] = X(i,r);
 		}
 
-		// Motion regressors
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 0);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 1);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 2);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 3);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 4) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 4);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 5);
-
 		// Detrending regressors
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 0);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 1);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 2);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 3);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3);
+
+		if (REGRESS_MOTION)
+		{
+			// Motion regressors
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5);
+		}
+
+		if (REGRESS_CONFOUNDS)
+		{
+			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
+			{
+				h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r);
+			}
+		}
+
 
 		// Regressors for paradigms
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1); r++)
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
 			h_xtxxt_GLM[i + r * N] = (float)xtxxt(r,i);
 		}
 
-		// Motion regressors
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 0,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 1,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 2,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 3,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 4) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 4,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + 5,i);
-
 		// Detrending regressors
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 0,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 1,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 2,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(TEMPORAL_DERIVATIVES+1) + NUMBER_OF_MOTION_REGRESSORS + 3,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3,i);
+
+		if (REGRESS_MOTION)
+		{
+			// Motion regressors
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5,i);
+		}
+
+		if (REGRESS_CONFOUNDS)
+		{
+			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
+			{
+				h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r,i);
+			}
+		}
 	}
 
 	// Now update the contrast vectors also
@@ -9560,7 +9340,7 @@ void BROCCOLI_LIB::SetupTTest(int N)
 		Eigen::VectorXd Contrast(NUMBER_OF_TOTAL_GLM_REGRESSORS);
 
 		// Copy contrasts for paradigm regressors
-		if (TEMPORAL_DERIVATIVES)
+		if (USE_TEMPORAL_DERIVATIVES)
 		{
 			// Paradigm regressors
 			int rr = 0;
@@ -9613,7 +9393,7 @@ void BROCCOLI_LIB::SetupTTest(int N)
 void BROCCOLI_LIB::SetupFTest(int N)
 {
 	// Calculate total number of regressors
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 	// Create detrending regressors
 	Eigen::VectorXd Ones(N,1);
@@ -9640,6 +9420,16 @@ void BROCCOLI_LIB::SetupFTest(int N)
 	Quadratic.normalize();
 	Cubic.normalize();
 
+	if (USE_TEMPORAL_DERIVATIVES)
+	{
+		GenerateRegressorTemporalDerivatives(h_X_GLM_With_Temporal_Derivatives, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
+		ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_With_Temporal_Derivatives, N, NUMBER_OF_GLM_REGRESSORS*2);
+	}
+	else
+	{
+		ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
+	}
+
 	// Setup total design matrix
 	Eigen::MatrixXd X(N,NUMBER_OF_TOTAL_GLM_REGRESSORS);
 
@@ -9647,24 +9437,36 @@ void BROCCOLI_LIB::SetupFTest(int N)
 	for (int i = 0; i < N; i++)
 	{
 		// Regressors for paradigms
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
-			X(i,r) = (double)h_X_GLM_In[i + r * N];
+			X(i,r) = (double)h_X_GLM_Convolved[i + r * N];
 		}
 
-		// Add regressors for motion
-		X(i,NUMBER_OF_GLM_REGRESSORS + 0) = h_Motion_Parameters[i + 0 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS + 1) = h_Motion_Parameters[i + 1 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS + 2) = h_Motion_Parameters[i + 2 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS + 3) = h_Motion_Parameters[i + 3 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS + 4) = h_Motion_Parameters[i + 4 * N];
-		X(i,NUMBER_OF_GLM_REGRESSORS + 5) = h_Motion_Parameters[i + 5 * N];
+		// Detrending regressors
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) = Ones(i);
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) = Linear(i);
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) = Quadratic(i);
+		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) = Cubic(i);
 
-		// Add regressors for detrending
-		X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 0) = Ones(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 1) = Linear(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 2) = Quadratic(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 3) = Cubic(i);
+		if (REGRESS_MOTION)
+		{
+			// Motion regressors
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) = h_Motion_Parameters[i + 0 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) = h_Motion_Parameters[i + 1 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) = h_Motion_Parameters[i + 2 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) = h_Motion_Parameters[i + 3 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) = h_Motion_Parameters[i + 4 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) = h_Motion_Parameters[i + 5 * N];
+		}
+
+		if (REGRESS_CONFOUNDS)
+		{
+			// Confounding regressors
+			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
+			{
+				X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) = (double)h_X_GLM_Confounds[i + r * N];
+			}
+		}
 	}
 
 	// Calculate pseudo inverse (could be done with SVD instead)
@@ -9677,44 +9479,67 @@ void BROCCOLI_LIB::SetupFTest(int N)
 	for (int i = 0; i < N; i++)
 	{
 		// Regressors for paradigms
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
 			h_X_GLM[i + r * N] = X(i,r);
 		}
 
-		// Motion regressors
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 0);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 1);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 2);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 3);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 4) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 4);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 5);
-
 		// Detrending regressors
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 0);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 1);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 2);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 3);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2);
+		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3);
+
+		if (REGRESS_MOTION)
+		{
+			// Motion regressors
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5);
+		}
+
+		if (REGRESS_CONFOUNDS)
+		{
+			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
+			{
+				h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r);
+			}
+		}
+
 
 		// Regressors for paradigms
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
 			h_xtxxt_GLM[i + r * N] = (float)xtxxt(r,i);
 		}
 
-		// Motion regressors
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 0,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 1,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 2,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 3,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 4) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 4,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 5,i);
-
 		// Detrending regressors
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 0,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 1,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 2,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS + 3,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2,i);
+		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3,i);
+
+		if (REGRESS_MOTION)
+		{
+			// Motion regressors
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5,i);
+		}
+
+		if (REGRESS_CONFOUNDS)
+		{
+			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
+			{
+				h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r,i);
+			}
+		}
 	}
 
 	Eigen::MatrixXd Contrasts(NUMBER_OF_CONTRASTS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
@@ -9722,22 +9547,48 @@ void BROCCOLI_LIB::SetupFTest(int N)
 	// Now update the contrasts also
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
-		// Copy contrasts for paradigm regressors
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		if (USE_TEMPORAL_DERIVATIVES)
 		{
-			Contrasts(c,r) = (double)h_Contrasts_In[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r];
-			h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r] = (float)Contrasts(c,r);
-		}
+			// Copy contrasts for paradigm regressors
+			int rr = 0;
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				Contrasts(c,rr) = (double)h_Contrasts_In[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r];
+				h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + rr] = (float)Contrasts(c,rr);
 
-		// Set all other contrasts to 0
-		for (int r = NUMBER_OF_GLM_REGRESSORS; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+				Contrasts(c,rr+1) = 0.0;
+				h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + rr + 1] = 0.0f;
+
+				rr += 2;
+			}
+
+			// Set all other contrasts to 0
+			for (int r = NUMBER_OF_GLM_REGRESSORS*2; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+			{
+				Contrasts(c,r) = 0.0;
+				h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r] = 0.0f;
+			}
+		}
+		// No temporal derivatives
+		else
 		{
-			Contrasts(c,r) = 0.0;
-			h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r] = 0.0f;
+			// Copy contrasts for paradigm regressors
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				Contrasts(c,r) = (double)h_Contrasts_In[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r];
+				h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r] = (float)Contrasts(c,r);
+			}
+
+			// Set all other contrasts to 0
+			for (int r = NUMBER_OF_GLM_REGRESSORS; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+			{
+				Contrasts(c,r) = 0.0;
+				h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r] = 0.0f;
+			}
 		}
 	}
 
-	// Calculate
+	// Calculate constants
 	Eigen::MatrixXd temp = Contrasts * inv_xtx * Contrasts.transpose();
 	Eigen::MatrixXd ctxtxc = temp.inverse();
 
@@ -9808,23 +9659,9 @@ void BROCCOLI_LIB::CreateHRF()
 		highres_hrf[i] = Gpdf(highres_hrf[i],p[0]/p[2],dt/p[2]) - 1.0/p[4] * Gpdf(highres_hrf[i],p[1]/p[3],dt/p[3]);
 	}
 
-
-
-
 	// Downsample the hrf
 	int downsample_factor = 16;
 	HRF_LENGTH = length/downsample_factor + 1;
-
-	//std::cout << "length is " << length << " and hrf length is " << hrf_length << std::endl;
-
-	/*
-	for (int i = 0; i < hrf_length; i++)
-	{
-		std::cout << "Loggamma of " << i << " is " << loggamma(i) << std::endl;
-		//std::cout << "Gpdf of " << i << " is " << Gpdf((float)i,p[0]/p[2],dt/p[2]) << std::endl;
-	}
-	*/
-
 
 	hrf = (float*)malloc(sizeof(float) * HRF_LENGTH);
 
@@ -9845,23 +9682,13 @@ void BROCCOLI_LIB::CreateHRF()
 	{
 		sum += hrf[i];
 	}
+	// Normalize
 	for (int i = 0; i < HRF_LENGTH; i++)
 	{
 		hrf[i] /= sum;
 	}
 
-	//WriteRealDataDouble(highres_hrf, "highres_hrf.raw", length);
-	//WriteRealDataFloat(hrf, "hrf.raw", hrf_length);
-
-
 	free(highres_hrf);
-
-	/*
-	for (int i = 0; i < hrf_length; i++)
-	{
-		std::cout << "hrf coefficient " << i << " is " << hrf[i] << std::endl;
-	}
-	*/
 }
 
 void BROCCOLI_LIB::GenerateRegressorTemporalDerivatives(float * Regressors_With_Temporal_Derivatives, float* Regressors, int NUMBER_OF_TIMEPOINTS, int NUMBER_OF_REGRESSORS)
@@ -9895,6 +9722,7 @@ void BROCCOLI_LIB::ConvolveRegressorsWithHRF(float* Convolved_Regressors, float*
 		for (int t = 0; t < NUMBER_OF_TIMEPOINTS; t++)
 		{
 			Convolved_Regressors[t + r * NUMBER_OF_TIMEPOINTS] = 0.0f;
+
 			int offset = -(int)(((float)HRF_LENGTH - 1.0f)/2.0f);
 			for (int tt = HRF_LENGTH - 1; tt >= 0; tt--)
 			{

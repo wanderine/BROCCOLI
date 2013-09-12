@@ -56,8 +56,12 @@ class BROCCOLI_LIB
 
 		// Statistics
 		void SetTemporalDerivatives(int TD);
+		void SetRegressMotion(int R);
+		void SetRegressConfounds(int R);
+		void SetConfoundRegressors(float* X_GLM);
 		void SetNumberOfGLMRegressors(int NR);
 		void SetNumberOfDetrendingRegressors(int NR);
+		void SetNumberOfConfoundRegressors(int NR);
 		void SetNumberOfContrasts(int NC);
 		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
@@ -168,12 +172,6 @@ class BROCCOLI_LIB
 		void SetOutputHVector(float*);
 
 		void SetfMRIDataFilename(std::string filename);
-		void SetfMRIParameters(float tr, float xs, float ys, float zs);
-		void SetNumberOfBasisFunctionsDetrending(int N);
-		void SetAnalysisMethod(int method);
-
-		void SetActivityThreshold(float threshold);
-		void SetThresholdStatus(bool status);
 
 		void SetfMRIDataSliceLocationX(int location);
 		void SetfMRIDataSliceLocationY(int location);
@@ -468,7 +466,6 @@ class BROCCOLI_LIB
 		void ReadRealDataDouble(double* data, std::string filename, int N);
 		//void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
 		void ReadImageRegistrationFilters();
-		void ReadSmoothingFilters();
 		void SetupParametersReadData();
 
 		//------------------------------------------------
@@ -485,8 +482,6 @@ class BROCCOLI_LIB
 		void OpenCLCleanup();
 
 		void SetStartValues();
-		void ResetAllPointers();
-		void AllocateMemoryForFilters();
 
 		//------------------------------------------------
 		// OpenCL variables
@@ -758,6 +753,7 @@ class BROCCOLI_LIB
 		int NUMBER_OF_MOTION_REGRESSORS;
 		int NUMBER_OF_TOTAL_GLM_REGRESSORS;
 		int NUMBER_OF_DETRENDING_REGRESSORS;
+		int NUMBER_OF_CONFOUND_REGRESSORS;
 		float SEGMENTATION_THRESHOLD;
 
 		// Resolution variables
@@ -819,13 +815,9 @@ class BROCCOLI_LIB
 		double* detrended_curve;
 
 		// Statistical analysis variables
-		int TEMPORAL_DERIVATIVES;
-		bool THRESHOLD_ACTIVITY_MAP;
-		float ACTIVITY_THRESHOLD;
-		int ANALYSIS_METHOD;
-		int NUMBER_OF_STATISTICAL_BASIS_FUNCTIONS;
-		int NUMBER_OF_PERIODS;
-		int PERIOD_TIME;
+		int USE_TEMPORAL_DERIVATIVES;
+		int REGRESS_MOTION;
+		int REGRESS_CONFOUNDS;
 
 		// Random permutation variables
 		int NUMBER_OF_PERMUTATIONS;
@@ -837,10 +829,6 @@ class BROCCOLI_LIB
 		//--------------------------------------------------
 		// Host pointers
 		//--------------------------------------------------
-
-		void		*host_pointers[NUMBER_OF_HOST_POINTERS];
-		void		*host_pointers_static[NUMBER_OF_HOST_POINTERS];
-		void		*host_pointers_permutation[NUMBER_OF_HOST_POINTERS];
 
 		// Data pointers
 		float		*h_fMRI_Volumes;
@@ -910,7 +898,7 @@ class BROCCOLI_LIB
 		float		*hrf;
 		int			 HRF_LENGTH;
 		float       *h_Contrasts, *h_Contrasts_In;
-		float		*h_X_GLM_Out, *h_X_GLM_In, *h_xtxxt_GLM_In, *h_ctxtxc_GLM_In;
+		float		*h_X_GLM_Out, *h_X_GLM_In, *h_X_GLM_Confounds, *h_xtxxt_GLM_In, *h_ctxtxc_GLM_In;
 		float		*h_X_GLM, *h_X_GLM_With_Temporal_Derivatives, *h_X_GLM_Convolved, *h_xtxxt_GLM, *h_xtxxt_GLM_Out, *h_ctxtxc_GLM;
 		float		*h_Censored_Timepoints, *h_Censored_Volumes;
 		float		*h_Statistical_Maps;
@@ -930,9 +918,6 @@ class BROCCOLI_LIB
 		//--------------------------------------------------
 		// Device pointers
 		//--------------------------------------------------
-
-		float		*device_pointers[NUMBER_OF_DEVICE_POINTERS];
-		float		*device_pointers_permutation[NUMBER_OF_DEVICE_POINTERS];
 
 		// Original data
 		cl_mem		d_fMRI_Volumes;
@@ -1004,7 +989,6 @@ class BROCCOLI_LIB
 
 		// Paraneters for single subject permutations
 		cl_mem		d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates;
-		cl_mem		d_Smoothed_AR1_Estimates, d_Smoothed_AR2_Estimates, d_Smoothed_AR3_Estimates, d_Smoothed_AR4_Estimates;
 
 		cl_mem		d_BOLD_Regressed_fMRI_Volumes;
 		cl_mem		d_Whitened_fMRI_Volumes;
