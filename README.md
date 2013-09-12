@@ -3,7 +3,11 @@ BROCCOLI
 
 BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many-core CPUs and GPUs.
 
-BROCCOLI is made with OpenCL and QT. BROCCOLI runs on Windows, Linux and Mac.
+BROCCOLI is a software for fMRI analysis which is made with the OpenCL (Open Computing Language) programming language. The 
+analysis can therefore be performed in parallel on many types of hardware, such as CPUs, Nvidia GPUs and AMD GPUs. The result is
+a significantly faster analysis than possible with existing software packages for fMRI analysis (SPM, FSL, AFNI). For example,
+normalization of an anatomical T1 volume to MNI space (1mm resolution) takes only 5 seconds with a GPU, compared to 34
+minutes with FSL.
 
 --------------------------------------------------------------------
 
