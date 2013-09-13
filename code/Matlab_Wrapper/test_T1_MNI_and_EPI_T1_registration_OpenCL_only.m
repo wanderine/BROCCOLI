@@ -54,7 +54,7 @@ elseif isunix
     mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    
     
     opencl_platform = 2;
-    opencl_device = 1;
+    opencl_device = 0;
 end
 
 %study = 'Baltimore';

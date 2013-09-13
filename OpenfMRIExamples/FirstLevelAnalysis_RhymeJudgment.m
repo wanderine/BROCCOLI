@@ -37,36 +37,38 @@ elseif isunix
     basepath = '/data/andek/OpenfMRI/';    
     opencl_platform = 2;
     opencl_device = 0;
+    mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release
 end
 
 study = 'RhymeJudgment/ds003';
+
 subject = 1;
 
 voxel_size = 1;
-beta_space = 1; % 0 = EPI, 1 = MNI
+beta_space = 0; % 0 = EPI, 1 = MNI
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
 %--------------------------------------------------------------------------------------
 
 use_temporal_derivatives = 1;
-regress_motion = 0;
-regress_confounds = 1;
+regress_motion = 1;
+regress_confounds = 0;
 
-EPI_smoothing_amount = 5.5;
+EPI_smoothing_amount = 6.0;
 AR_smoothing_amount = 7.0;
 
 %--------------------------------------------------------------------------------------
 % Settings for image registration
 %--------------------------------------------------------------------------------------
 
-number_of_iterations_for_parametric_image_registration = 5;
-number_of_iterations_for_nonparametric_image_registration = 5;
+number_of_iterations_for_parametric_image_registration = 15;
+number_of_iterations_for_nonparametric_image_registration = 10;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 8/voxel_size;
 MM_T1_Z_CUT = 30;
-MM_EPI_Z_CUT = 20;
+MM_EPI_Z_CUT = 0;
 
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
@@ -98,7 +100,7 @@ EPI = fMRI_volumes(:,:,:,1);
 EPI = EPI/max(EPI(:));
 
 [EPI_sy EPI_sx EPI_sz] = size(EPI);
-[EPI_sy EPI_sx EPI_sz]
+[EPI_sy EPI_sx EPI_sz st]
 
 EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
 EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
@@ -180,20 +182,30 @@ X_GLM = zeros(st,2);
 X_GLM(:,1) = X_GLM_1(1:st);
 X_GLM(:,2) = X_GLM_2(1:st);
 
+%X_GLM(100,1) = 1;
+
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 %--------------------------------------------------------------------------------------
 % Load confound regressors
 %--------------------------------------------------------------------------------------
 
-fid = fopen([basepath study '/sub00' num2str(subject) '/BOLD/task001_run001/QA/confound.txt']);
-text = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
-fclose(fid);
+% Calculate number of confounds
 
-confounds = zeros(st,14);
+confounds = 1;
 
-for i = 1:14
-    confounds(:,i) = text{i};
+if (regress_confounds == 1)
+    
+    fid = fopen([basepath study '/sub00' num2str(subject) '/BOLD/task001_run001/QA/confound.txt']);
+    text = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f%f%f%f');
+    fclose(fid);
+
+    confounds = zeros(st,14);
+
+    for i = 1:14
+        confounds(:,i) = text{i};
+    end
+    
 end
 
 
@@ -221,7 +233,7 @@ ctxtxc_GLM
 tic
 [beta_volumes, residuals, residual_variances, statistical_maps, T1_MNI_registration_parameters, EPI_T1_registration_parameters, ...
  EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl ...
- ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates, design_matrix1, design_matrix2] = ... 
+ ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates, design_matrix1, design_matrix2, aligned_T1, aligned_T1_nonparametric, aligned_EPI] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z, ...
 f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ...
 f1_nonparametric_registration, f2_nonparametric_registration, f3_nonparametric_registration, f4_nonparametric_registration, f5_nonparametric_registration, f6_nonparametric_registration, ...
@@ -237,6 +249,20 @@ T1_MNI_registration_parameters
 EPI_T1_registration_parameters
 
 EPI_MNI_registration_parameters
+
+slice = round(0.55*MNI_sy);
+%figure; imagesc(flipud(squeeze(aligned_T1(slice,:,:))')); colormap gray
+figure; imagesc(flipud(squeeze(aligned_T1_nonparametric(slice,:,:))')); colormap gray
+figure; imagesc(flipud(squeeze(aligned_EPI(slice,:,:))')); colormap gray
+figure; imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
+    
+slice = round(0.47*MNI_sz);
+%figure; imagesc(aligned_T1(:,:,slice)); colormap gray
+figure; imagesc(aligned_T1_nonparametric(:,:,slice)); colormap gray
+figure; imagesc(aligned_EPI(:,:,slice)); colormap gray
+figure; imagesc(MNI_brain(:,:,slice)); colormap gray
+
+%figure; imagesc(flipud(squeeze(EPI(35,:,:))')); colormap gray
 
 figure
 plot(motion_parameters(:,1),'g')
@@ -283,7 +309,7 @@ title('Beta 2')
 
 figure
 %imagesc(statistical_maps(20:end-19,20:end-19,slice,1)); colorbar
-imagesc(statistical_maps(10:end-10,10:end-10,slice,1)); colorbar
+imagesc(statistical_maps(10:end-10,10:end-10,slice,4)); colorbar
 title('t-values')
 
 if beta_space == 1

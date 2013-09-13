@@ -10,14 +10,14 @@
 
 .const .align 1 .b8 $str[31] = {99, 97, 110, 110, 111, 116, 32, 114, 101, 97, 100, 32, 95, 95, 119, 114, 105, 116, 101, 95, 111, 110, 108, 121, 32, 105, 109, 97, 103, 101, 0};
 .const .align 4 .b8 __GPU_i2opi_f[24] = {65, 144, 67, 60, 153, 149, 98, 219, 192, 221, 52, 245, 209, 87, 39, 252, 41, 21, 68, 78, 110, 131, 249, 162};
-.extern .shared .align 4 .b8 shr_1_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_2_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_3_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_4_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_5_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_6_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_7_l_Image[24576];
-.extern .shared .align 4 .b8 shr_8_l_Image[32768];
+.extern .shared .align 4 .b8 shr_9_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_10_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_11_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_12_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_13_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_14_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_15_l_Image[24576];
+.extern .shared .align 4 .b8 shr_16_l_Image[32768];
 .visible .global .samplerref volume_sampler_nearest = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = nearest, force_unnormalized_coords = 1 };
 .visible .global .samplerref volume_sampler_linear = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = linear, force_unnormalized_coords = 1 };
 
@@ -89,7 +89,7 @@
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 11;
-	mov.u32 	%r49, shr_1_l_Volume;
+	mov.u32 	%r49, shr_9_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -635,7 +635,7 @@ BB0_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 11;
-	mov.u32 	%r69, shr_2_l_Volume;
+	mov.u32 	%r69, shr_10_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -1645,7 +1645,7 @@ BB1_85:
 	mov.u32 	%r44, %tid.z;
 	// inline asm
 	shl.b32 	%r50, %r44, 11;
-	mov.u32 	%r51, shr_3_l_Volume;
+	mov.u32 	%r51, shr_11_l_Volume;
 	add.s32 	%r52, %r51, %r50;
 	shl.b32 	%r53, %r43, 7;
 	add.s32 	%r54, %r52, %r53;
@@ -2271,7 +2271,7 @@ BB2_53:
 	mov.u32 	%r68, %tid.z;
 	// inline asm
 	shl.b32 	%r74, %r68, 11;
-	mov.u32 	%r75, shr_4_l_Volume;
+	mov.u32 	%r75, shr_12_l_Volume;
 	add.s32 	%r76, %r75, %r74;
 	shl.b32 	%r77, %r67, 7;
 	add.s32 	%r78, %r76, %r77;
@@ -3454,7 +3454,7 @@ BB3_109:
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 10;
-	mov.u32 	%r49, shr_5_l_Volume;
+	mov.u32 	%r49, shr_13_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -3950,7 +3950,7 @@ BB4_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 10;
-	mov.u32 	%r69, shr_6_l_Volume;
+	mov.u32 	%r69, shr_14_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -5622,7 +5622,7 @@ BB8_2:
 	// inline asm
 	mov.u32 	%r45, %tid.y;
 	// inline asm
-	mov.u32 	%r52, shr_7_l_Image;
+	mov.u32 	%r52, shr_15_l_Image;
 	mad.lo.s32 	%r53, %r45, 384, %r52;
 	shl.b32 	%r54, %r44, 2;
 	add.s32 	%r18, %r53, %r54;
@@ -9851,7 +9851,7 @@ BB9_36:
 	mov.u32 	%r59, %tid.y;
 	// inline asm
 	shl.b32 	%r66, %r59, 9;
-	mov.u32 	%r67, shr_8_l_Image;
+	mov.u32 	%r67, shr_16_l_Image;
 	add.s32 	%r68, %r67, %r66;
 	shl.b32 	%r69, %r58, 2;
 	add.s32 	%r18, %r68, %r69;
@@ -10995,7 +10995,7 @@ BB10_99:
 
 	add.s32 	%r134, %r59, 3;
 	add.s32 	%r135, %r58, 19;
-	// Callseq Start 0
+	// Callseq Start 21
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11043,7 +11043,7 @@ BB10_99:
 	ld.param.f32	%f674, [retval0+16];
 	ld.param.f32	%f675, [retval0+20];
 	}
-	// Callseq End 0
+	// Callseq End 21
 	ld.global.v2.f32 	{%f7708, %f7709}, [%r30+128];
 	add.f32 	%f7710, %f7708, %f670;
 	add.f32 	%f7711, %f7709, %f671;
@@ -11066,7 +11066,7 @@ BB10_101:
 
 	add.s32 	%r138, %r59, 3;
 	add.s32 	%r139, %r58, 35;
-	// Callseq Start 1
+	// Callseq Start 22
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11114,7 +11114,7 @@ BB10_101:
 	ld.param.f32	%f680, [retval0+16];
 	ld.param.f32	%f681, [retval0+20];
 	}
-	// Callseq End 1
+	// Callseq End 22
 	ld.global.v2.f32 	{%f7690, %f7691}, [%r30+256];
 	add.f32 	%f7692, %f7690, %f676;
 	add.f32 	%f7693, %f7691, %f677;
@@ -11137,7 +11137,7 @@ BB10_103:
 
 	add.s32 	%r142, %r59, 3;
 	add.s32 	%r143, %r58, 51;
-	// Callseq Start 2
+	// Callseq Start 23
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11185,7 +11185,7 @@ BB10_103:
 	ld.param.f32	%f686, [retval0+16];
 	ld.param.f32	%f687, [retval0+20];
 	}
-	// Callseq End 2
+	// Callseq End 23
 	ld.global.v2.f32 	{%f7672, %f7673}, [%r30+384];
 	add.f32 	%f7674, %f7672, %f682;
 	add.f32 	%f7675, %f7673, %f683;
@@ -11208,7 +11208,7 @@ BB10_105:
 
 	add.s32 	%r146, %r59, 3;
 	add.s32 	%r147, %r58, 67;
-	// Callseq Start 3
+	// Callseq Start 24
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11256,7 +11256,7 @@ BB10_105:
 	ld.param.f32	%f692, [retval0+16];
 	ld.param.f32	%f693, [retval0+20];
 	}
-	// Callseq End 3
+	// Callseq End 24
 	ld.global.v2.f32 	{%f7654, %f7655}, [%r30+512];
 	add.f32 	%f7656, %f7654, %f688;
 	add.f32 	%f7657, %f7655, %f689;
@@ -11279,7 +11279,7 @@ BB10_107:
 
 	add.s32 	%r150, %r59, 3;
 	add.s32 	%r151, %r58, 83;
-	// Callseq Start 4
+	// Callseq Start 25
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11327,7 +11327,7 @@ BB10_107:
 	ld.param.f32	%f698, [retval0+16];
 	ld.param.f32	%f699, [retval0+20];
 	}
-	// Callseq End 4
+	// Callseq End 25
 	ld.global.v2.f32 	{%f7636, %f7637}, [%r30+640];
 	add.f32 	%f7638, %f7636, %f694;
 	add.f32 	%f7639, %f7637, %f695;
@@ -11350,7 +11350,7 @@ BB10_109:
 
 	add.s32 	%r154, %r59, 3;
 	add.s32 	%r155, %r58, 99;
-	// Callseq Start 5
+	// Callseq Start 26
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11398,7 +11398,7 @@ BB10_109:
 	ld.param.f32	%f704, [retval0+16];
 	ld.param.f32	%f705, [retval0+20];
 	}
-	// Callseq End 5
+	// Callseq End 26
 	ld.global.v2.f32 	{%f7618, %f7619}, [%r30+768];
 	add.f32 	%f7620, %f7618, %f700;
 	add.f32 	%f7621, %f7619, %f701;
@@ -11425,7 +11425,7 @@ BB10_111:
 
 	add.s32 	%r158, %r59, 3;
 	add.s32 	%r159, %r58, 115;
-	// Callseq Start 6
+	// Callseq Start 27
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11473,7 +11473,7 @@ BB10_111:
 	ld.param.f32	%f710, [retval0+16];
 	ld.param.f32	%f711, [retval0+20];
 	}
-	// Callseq End 6
+	// Callseq End 27
 	ld.global.v2.f32 	{%f7600, %f7601}, [%r30+896];
 	add.f32 	%f7602, %f7600, %f706;
 	add.f32 	%f7603, %f7601, %f707;
@@ -11497,7 +11497,7 @@ BB10_114:
 
 	add.s32 	%r161, %r59, 19;
 	add.s32 	%r162, %r58, 3;
-	// Callseq Start 7
+	// Callseq Start 28
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11545,7 +11545,7 @@ BB10_114:
 	ld.param.f32	%f716, [retval0+16];
 	ld.param.f32	%f717, [retval0+20];
 	}
-	// Callseq End 7
+	// Callseq End 28
 	ld.param.u32 	%r537, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_12];
 	mad.lo.s32 	%r164, %r15, %r537, %r33;
 	ld.param.u32 	%r488, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_11];
@@ -11594,7 +11594,7 @@ BB10_117:
 
 	add.s32 	%r176, %r59, 19;
 	add.s32 	%r177, %r58, 19;
-	// Callseq Start 8
+	// Callseq Start 29
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11642,7 +11642,7 @@ BB10_117:
 	ld.param.f32	%f722, [retval0+16];
 	ld.param.f32	%f723, [retval0+20];
 	}
-	// Callseq End 8
+	// Callseq End 29
 	ld.global.v2.f32 	{%f7564, %f7565}, [%r35+128];
 	add.f32 	%f7566, %f7564, %f718;
 	add.f32 	%f7567, %f7565, %f719;
@@ -11665,7 +11665,7 @@ BB10_120:
 
 	add.s32 	%r180, %r59, 19;
 	add.s32 	%r181, %r58, 35;
-	// Callseq Start 9
+	// Callseq Start 30
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11713,7 +11713,7 @@ BB10_120:
 	ld.param.f32	%f728, [retval0+16];
 	ld.param.f32	%f729, [retval0+20];
 	}
-	// Callseq End 9
+	// Callseq End 30
 	ld.global.v2.f32 	{%f7546, %f7547}, [%r35+256];
 	add.f32 	%f7548, %f7546, %f724;
 	add.f32 	%f7549, %f7547, %f725;
@@ -11736,7 +11736,7 @@ BB10_123:
 
 	add.s32 	%r184, %r59, 19;
 	add.s32 	%r185, %r58, 51;
-	// Callseq Start 10
+	// Callseq Start 31
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11784,7 +11784,7 @@ BB10_123:
 	ld.param.f32	%f734, [retval0+16];
 	ld.param.f32	%f735, [retval0+20];
 	}
-	// Callseq End 10
+	// Callseq End 31
 	ld.global.v2.f32 	{%f7528, %f7529}, [%r35+384];
 	add.f32 	%f7530, %f7528, %f730;
 	add.f32 	%f7531, %f7529, %f731;
@@ -11807,7 +11807,7 @@ BB10_126:
 
 	add.s32 	%r188, %r59, 19;
 	add.s32 	%r189, %r58, 67;
-	// Callseq Start 11
+	// Callseq Start 32
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11855,7 +11855,7 @@ BB10_126:
 	ld.param.f32	%f740, [retval0+16];
 	ld.param.f32	%f741, [retval0+20];
 	}
-	// Callseq End 11
+	// Callseq End 32
 	ld.global.v2.f32 	{%f7510, %f7511}, [%r35+512];
 	add.f32 	%f7512, %f7510, %f736;
 	add.f32 	%f7513, %f7511, %f737;
@@ -11878,7 +11878,7 @@ BB10_129:
 
 	add.s32 	%r192, %r59, 19;
 	add.s32 	%r193, %r58, 83;
-	// Callseq Start 12
+	// Callseq Start 33
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11926,7 +11926,7 @@ BB10_129:
 	ld.param.f32	%f746, [retval0+16];
 	ld.param.f32	%f747, [retval0+20];
 	}
-	// Callseq End 12
+	// Callseq End 33
 	ld.global.v2.f32 	{%f7492, %f7493}, [%r35+640];
 	add.f32 	%f7494, %f7492, %f742;
 	add.f32 	%f7495, %f7493, %f743;
@@ -11949,7 +11949,7 @@ BB10_132:
 
 	add.s32 	%r196, %r59, 19;
 	add.s32 	%r197, %r58, 99;
-	// Callseq Start 13
+	// Callseq Start 34
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11997,7 +11997,7 @@ BB10_132:
 	ld.param.f32	%f752, [retval0+16];
 	ld.param.f32	%f753, [retval0+20];
 	}
-	// Callseq End 13
+	// Callseq End 34
 	ld.global.v2.f32 	{%f7474, %f7475}, [%r35+768];
 	add.f32 	%f7476, %f7474, %f748;
 	add.f32 	%f7477, %f7475, %f749;
@@ -12025,7 +12025,7 @@ BB10_135:
 
 	add.s32 	%r201, %r59, 19;
 	add.s32 	%r202, %r58, 115;
-	// Callseq Start 14
+	// Callseq Start 35
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12073,7 +12073,7 @@ BB10_135:
 	ld.param.f32	%f758, [retval0+16];
 	ld.param.f32	%f759, [retval0+20];
 	}
-	// Callseq End 14
+	// Callseq End 35
 	ld.global.v2.f32 	{%f7456, %f7457}, [%r35+896];
 	add.f32 	%f7458, %f7456, %f754;
 	add.f32 	%f7459, %f7457, %f755;
@@ -12097,7 +12097,7 @@ BB10_139:
 
 	add.s32 	%r204, %r59, 35;
 	add.s32 	%r205, %r58, 3;
-	// Callseq Start 15
+	// Callseq Start 36
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12145,7 +12145,7 @@ BB10_139:
 	ld.param.f32	%f764, [retval0+16];
 	ld.param.f32	%f765, [retval0+20];
 	}
-	// Callseq End 15
+	// Callseq End 36
 	ld.param.u32 	%r527, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_12];
 	mad.lo.s32 	%r207, %r15, %r527, %r38;
 	ld.param.u32 	%r485, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_11];
@@ -12194,7 +12194,7 @@ BB10_142:
 
 	add.s32 	%r219, %r59, 35;
 	add.s32 	%r220, %r58, 19;
-	// Callseq Start 16
+	// Callseq Start 37
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12242,7 +12242,7 @@ BB10_142:
 	ld.param.f32	%f770, [retval0+16];
 	ld.param.f32	%f771, [retval0+20];
 	}
-	// Callseq End 16
+	// Callseq End 37
 	ld.global.v2.f32 	{%f7420, %f7421}, [%r40+128];
 	add.f32 	%f7422, %f7420, %f766;
 	add.f32 	%f7423, %f7421, %f767;
@@ -12265,7 +12265,7 @@ BB10_145:
 
 	add.s32 	%r223, %r59, 35;
 	add.s32 	%r224, %r58, 35;
-	// Callseq Start 17
+	// Callseq Start 38
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12313,7 +12313,7 @@ BB10_145:
 	ld.param.f32	%f776, [retval0+16];
 	ld.param.f32	%f777, [retval0+20];
 	}
-	// Callseq End 17
+	// Callseq End 38
 	ld.global.v2.f32 	{%f7402, %f7403}, [%r40+256];
 	add.f32 	%f7404, %f7402, %f772;
 	add.f32 	%f7405, %f7403, %f773;
@@ -12336,7 +12336,7 @@ BB10_148:
 
 	add.s32 	%r227, %r59, 35;
 	add.s32 	%r228, %r58, 51;
-	// Callseq Start 18
+	// Callseq Start 39
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12384,7 +12384,7 @@ BB10_148:
 	ld.param.f32	%f782, [retval0+16];
 	ld.param.f32	%f783, [retval0+20];
 	}
-	// Callseq End 18
+	// Callseq End 39
 	ld.global.v2.f32 	{%f7384, %f7385}, [%r40+384];
 	add.f32 	%f7386, %f7384, %f778;
 	add.f32 	%f7387, %f7385, %f779;
@@ -12407,7 +12407,7 @@ BB10_151:
 
 	add.s32 	%r231, %r59, 35;
 	add.s32 	%r232, %r58, 67;
-	// Callseq Start 19
+	// Callseq Start 40
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12455,7 +12455,7 @@ BB10_151:
 	ld.param.f32	%f788, [retval0+16];
 	ld.param.f32	%f789, [retval0+20];
 	}
-	// Callseq End 19
+	// Callseq End 40
 	ld.global.v2.f32 	{%f7366, %f7367}, [%r40+512];
 	add.f32 	%f7368, %f7366, %f784;
 	add.f32 	%f7369, %f7367, %f785;
@@ -12478,7 +12478,7 @@ BB10_154:
 
 	add.s32 	%r235, %r59, 35;
 	add.s32 	%r236, %r58, 83;
-	// Callseq Start 20
+	// Callseq Start 41
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12526,7 +12526,7 @@ BB10_154:
 	ld.param.f32	%f794, [retval0+16];
 	ld.param.f32	%f795, [retval0+20];
 	}
-	// Callseq End 20
+	// Callseq End 41
 	ld.global.v2.f32 	{%f7348, %f7349}, [%r40+640];
 	add.f32 	%f7350, %f7348, %f790;
 	add.f32 	%f7351, %f7349, %f791;
@@ -26083,7 +26083,7 @@ BB47_2:
 	.param .u32 CalculateBetaValuesGLM_param_9
 )
 {
-	.local .align 4 .b8 	__local_depot48[80];
+	.local .align 4 .b8 	__local_depot48[100];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<9>;
 	.reg .pred 	%p<17>;
@@ -26314,7 +26314,7 @@ BB48_17:
 	.param .u32 CalculateStatisticalMapsGLMTTest_param_17
 )
 {
-	.local .align 4 .b8 	__local_depot49[80];
+	.local .align 4 .b8 	__local_depot49[100];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<57>;
 	.reg .pred 	%p<24>;
@@ -26723,7 +26723,7 @@ BB49_32:
 	.param .u32 CalculateStatisticalMapsGLMFTest_param_14
 )
 {
-	.local .align 4 .b8 	__local_depot50[240];
+	.local .align 4 .b8 	__local_depot50[200];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<62>;
 	.reg .pred 	%p<26>;
@@ -26977,7 +26977,7 @@ BB50_21:
 	mov.u32 	%r65, %r246;
 	mov.u32 	%r66, %r245;
 	shl.b32 	%r153, %r66, 2;
-	add.u32 	%r154, %SP, 80;
+	add.u32 	%r154, %SP, 100;
 	add.s32 	%r67, %r154, %r153;
 	st.local.u32 	[%r67], %r152;
 	@!%p5 bra 	BB50_25;
@@ -27024,12 +27024,12 @@ BB50_28:
 	mov.u32 	%r252, %r254;
 	mov.u32 	%r77, %r252;
 	shl.b32 	%r161, %r251, 2;
-	add.u32 	%r162, %SP, 160;
+	add.u32 	%r162, %SP, 0;
 	add.s32 	%r79, %r162, %r161;
 	mov.u32 	%r256, 0;
 	st.local.u32 	[%r79], %r256;
 	mov.f32 	%f60, 0f00000000;
-	add.u32 	%r255, %SP, 80;
+	add.u32 	%r255, %SP, 100;
 	mov.u32 	%r253, %r77;
 
 BB50_29:
@@ -27063,8 +27063,8 @@ BB50_31:
 BB50_33:
 	mov.f32 	%f61, 0f00000000;
 	mov.u32 	%r259, 0;
-	add.u32 	%r258, %SP, 80;
-	add.u32 	%r257, %SP, 160;
+	add.u32 	%r258, %SP, 100;
+	add.u32 	%r257, %SP, 0;
 
 BB50_34:
 	ld.local.f32 	%f51, [%r257];
@@ -27139,7 +27139,7 @@ BB50_39:
 	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_15
 )
 {
-	.local .align 4 .b8 	__local_depot51[80];
+	.local .align 4 .b8 	__local_depot51[100];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<57>;
 	.reg .pred 	%p<24>;
@@ -27529,7 +27529,7 @@ BB51_32:
 	.param .u32 CalculateStatisticalMapsGLMFTestPermutation_param_13
 )
 {
-	.local .align 4 .b8 	__local_depot52[240];
+	.local .align 4 .b8 	__local_depot52[200];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<62>;
 	.reg .pred 	%p<26>;
@@ -27780,7 +27780,7 @@ BB52_21:
 	mov.u32 	%r63, %r243;
 	mov.u32 	%r64, %r242;
 	shl.b32 	%r151, %r64, 2;
-	add.u32 	%r152, %SP, 80;
+	add.u32 	%r152, %SP, 100;
 	add.s32 	%r65, %r152, %r151;
 	st.local.u32 	[%r65], %r150;
 	@!%p5 bra 	BB52_25;
@@ -27827,12 +27827,12 @@ BB52_28:
 	mov.u32 	%r249, %r251;
 	mov.u32 	%r75, %r249;
 	shl.b32 	%r159, %r248, 2;
-	add.u32 	%r160, %SP, 160;
+	add.u32 	%r160, %SP, 0;
 	add.s32 	%r77, %r160, %r159;
 	mov.u32 	%r253, 0;
 	st.local.u32 	[%r77], %r253;
 	mov.f32 	%f60, 0f00000000;
-	add.u32 	%r252, %SP, 80;
+	add.u32 	%r252, %SP, 100;
 	mov.u32 	%r250, %r75;
 
 BB52_29:
@@ -27866,8 +27866,8 @@ BB52_31:
 BB52_33:
 	mov.f32 	%f61, 0f00000000;
 	mov.u32 	%r256, 0;
-	add.u32 	%r255, %SP, 80;
-	add.u32 	%r254, %SP, 160;
+	add.u32 	%r255, %SP, 100;
+	add.u32 	%r254, %SP, 0;
 
 BB52_34:
 	ld.local.f32 	%f51, [%r254];

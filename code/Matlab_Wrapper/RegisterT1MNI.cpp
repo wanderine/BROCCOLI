@@ -226,7 +226,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ARRAY_DIMENSIONS_OUT_INTERPOLATED_T1_VOLUME[1] = T1_DATA_W_INTERPOLATED;
     ARRAY_DIMENSIONS_OUT_INTERPOLATED_T1_VOLUME[2] = T1_DATA_D_INTERPOLATED;
     
-    //plhs[2] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_INTERPOLATED_T1_VOLUME,mxDOUBLE_CLASS, mxREAL);
     plhs[3] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_ALIGNED_T1_VOLUME,mxDOUBLE_CLASS, mxREAL);
     h_Interpolated_T1_Volume_double = mxGetPr(plhs[3]);          
         

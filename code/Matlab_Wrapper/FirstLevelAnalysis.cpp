@@ -88,9 +88,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //-----------------------
     // Output
     
+    double     		*h_Aligned_T1_Volume_double, *h_Aligned_T1_Volume_NonParametric_double, *h_Aligned_EPI_Volume_double;
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
-    float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;
     double          *h_Design_Matrix_double, *h_Design_Matrix2_double;;
+    float           *h_Aligned_T1_Volume, *h_Aligned_T1_Volume_NonParametric, *h_Aligned_EPI_Volume;
+    float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;    
     float           *h_Design_Matrix, *h_Design_Matrix2;
     
     //---------------------
@@ -104,11 +106,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<16)
+    if(nlhs<19)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>16)
+    if(nlhs>19)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -409,8 +411,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_AR3_Estimates_double = mxGetPr(plhs[12]);          
     
     plhs[13] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_AR_ESTIMATES,mxDOUBLE_CLASS, mxREAL);
-    h_AR4_Estimates_double = mxGetPr(plhs[13]);  
-    
+    h_AR4_Estimates_double = mxGetPr(plhs[13]);          
     
     NUMBER_OF_DIMENSIONS = 2;
     int ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX[2];
@@ -423,6 +424,26 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[15] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX,mxDOUBLE_CLASS, mxREAL);
     h_Design_Matrix2_double = mxGetPr(plhs[15]);  
     
+    NUMBER_OF_DIMENSIONS = 3;
+    int ARRAY_DIMENSIONS_OUT_ALIGNED_T1_VOLUME[3];
+    ARRAY_DIMENSIONS_OUT_ALIGNED_T1_VOLUME[0] = MNI_DATA_H;
+    ARRAY_DIMENSIONS_OUT_ALIGNED_T1_VOLUME[1] = MNI_DATA_W;
+    ARRAY_DIMENSIONS_OUT_ALIGNED_T1_VOLUME[2] = MNI_DATA_D;
+    
+    plhs[16] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_ALIGNED_T1_VOLUME,mxDOUBLE_CLASS, mxREAL);
+    h_Aligned_T1_Volume_double = mxGetPr(plhs[16]);       
+    
+    plhs[17] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_ALIGNED_T1_VOLUME,mxDOUBLE_CLASS, mxREAL);
+    h_Aligned_T1_Volume_NonParametric_double = mxGetPr(plhs[17]);       
+    
+    NUMBER_OF_DIMENSIONS = 3;
+    int ARRAY_DIMENSIONS_OUT_ALIGNED_EPI_VOLUME[3];
+    ARRAY_DIMENSIONS_OUT_ALIGNED_EPI_VOLUME[0] = MNI_DATA_H;
+    ARRAY_DIMENSIONS_OUT_ALIGNED_EPI_VOLUME[1] = MNI_DATA_W;
+    ARRAY_DIMENSIONS_OUT_ALIGNED_EPI_VOLUME[2] = MNI_DATA_D;
+    
+    plhs[18] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_ALIGNED_EPI_VOLUME,mxDOUBLE_CLASS, mxREAL);
+    h_Aligned_EPI_Volume_double = mxGetPr(plhs[18]);   
     
     // ------------------------------------------------
     
@@ -433,6 +454,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_MNI_Brain_Volume                  = (float *)mxMalloc(MNI_DATA_SIZE);
     h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
     
+    h_Aligned_T1_Volume                                 = (float *)mxMalloc(MNI_DATA_SIZE);
+    h_Aligned_T1_Volume_NonParametric                   = (float *)mxMalloc(MNI_DATA_SIZE);
+    h_Aligned_EPI_Volume                                = (float *)mxMalloc(MNI_DATA_SIZE);
+
     h_Quadrature_Filter_1_Parametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
     h_Quadrature_Filter_2_Parametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);
     h_Quadrature_Filter_3_Parametric_Registration_Real  = (float *)mxMalloc(QUADRATURE_FILTER_SIZE);    
@@ -608,6 +633,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if (REGRESS_CONFOUNDS == 1)
     {
+        BROCCOLI.SetNumberOfConfoundRegressors(NUMBER_OF_CONFOUND_REGRESSORS);
         BROCCOLI.SetConfoundRegressors(h_X_GLM_Confounds);
     }
     
@@ -623,7 +649,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
     BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
     
-    
+    BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
+    BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric);
+    BROCCOLI.SetOutputAlignedEPIVolume(h_Aligned_EPI_Volume);
     
      /*
      * Error checking     
@@ -687,6 +715,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T);
     unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T);
+    
+    unpack_float2double_volume(h_Aligned_T1_Volume_double, h_Aligned_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    unpack_float2double_volume(h_Aligned_T1_Volume_NonParametric_double, h_Aligned_T1_Volume_NonParametric, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    unpack_float2double_volume(h_Aligned_EPI_Volume_double, h_Aligned_EPI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     
     unpack_float2double(h_T1_MNI_Registration_Parameters_double, h_T1_MNI_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE);
     unpack_float2double(h_EPI_T1_Registration_Parameters_double, h_EPI_T1_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID);
@@ -777,7 +809,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mxFree(h_X_GLM_Confounds);
     }
         
-    
+    mxFree(h_Aligned_T1_Volume); 
+    mxFree(h_Aligned_T1_Volume_NonParametric); 
+    mxFree(h_Aligned_EPI_Volume);
+
     mxFree(h_Beta_Volumes);
     mxFree(h_Residuals);
     mxFree(h_Residual_Variances);

@@ -690,21 +690,22 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 				// Get number of devices for current platform
 				cl_uint deviceIdCount = 0;
-				getDeviceIDsError = clGetDeviceIDs (platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
+				getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
 	
 				if (getDeviceIDsError == SUCCESS)
 				{
+					// Get device IDs for current platform
+					std::vector<cl_device_id> deviceIds(deviceIdCount);
+					getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
+
 					// Check if the requested device exists
 					if ((OPENCL_DEVICE >= 0) &&  (OPENCL_DEVICE < deviceIdCount))
 					{
-						// Get device IDs for current platform
-						std::vector<cl_device_id> deviceIds(deviceIdCount);
-						getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
-
 						if (getDeviceIDsError == SUCCESS)
 						{
 							// Create context
-							context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &createContextError);
+							//context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &createContextError);
+							context = clCreateContext(contextProperties, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, &createContextError);
 
 							if (createContextError == SUCCESS)
 							{
@@ -755,7 +756,8 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 										{
 											// First try to compile from binary file
 											createProgramError = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryFilename);
-											buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+											//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+											buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
 
 											// Otherwise compile from source code
 											if (buildProgramError != SUCCESS)
@@ -769,7 +771,8 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 												// Create program and build the code
 												program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);
-												buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+												//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
 
 												// If successful build, save to binary file
 												if (buildProgramError == SUCCESS)
@@ -5606,13 +5609,36 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1()
 	// the registration is performed to the skullstripped T1 volume, which has MNI size
 	ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE);
 
-	// Do the registration between EPI and skullstripped T1 with several scales, rigid
-	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_EPI_T1_Affine, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, TRANSLATION, NO_OVERWRITE, INTERPOLATION_MODE);
+	// Do the registration between EPI and skullstripped T1 with several scales, first translation
+	//AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_EPI_T1_Affine, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, TRANSLATION, DO_OVERWRITE, INTERPOLATION_MODE);
+
+	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_EPI_T1_Translation, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, TRANSLATION, DO_OVERWRITE, INTERPOLATION_MODE);
+
+	// Do the registration between EPI and skullstripped T1 with several scales, now rigid
+	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_EPI_T1_Rigid, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE, INTERPOLATION_MODE);
 
 	// Get translations
-	h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Affine[0];
-	h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Affine[1];
-	h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Affine[2];
+	//h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Affine[0];
+	//h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Affine[1];
+	//h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Affine[2];
+
+	h_Registration_Parameters_EPI_T1_Affine[0] = h_Registration_Parameters_EPI_T1_Translation[0] + h_Registration_Parameters_EPI_T1_Rigid[0];
+	h_Registration_Parameters_EPI_T1_Affine[1] = h_Registration_Parameters_EPI_T1_Translation[1] + h_Registration_Parameters_EPI_T1_Rigid[1];
+	h_Registration_Parameters_EPI_T1_Affine[2] = h_Registration_Parameters_EPI_T1_Translation[2] + h_Registration_Parameters_EPI_T1_Rigid[2];
+
+	h_Registration_Parameters_EPI_T1_Affine[3] = h_Registration_Parameters_EPI_T1_Rigid[3];
+	h_Registration_Parameters_EPI_T1_Affine[4] = h_Registration_Parameters_EPI_T1_Rigid[4];
+	h_Registration_Parameters_EPI_T1_Affine[5] = h_Registration_Parameters_EPI_T1_Rigid[5];
+	h_Registration_Parameters_EPI_T1_Affine[6] = h_Registration_Parameters_EPI_T1_Rigid[6];
+	h_Registration_Parameters_EPI_T1_Affine[7] = h_Registration_Parameters_EPI_T1_Rigid[7];
+	h_Registration_Parameters_EPI_T1_Affine[8] = h_Registration_Parameters_EPI_T1_Rigid[8];
+	h_Registration_Parameters_EPI_T1_Affine[9] = h_Registration_Parameters_EPI_T1_Rigid[9];
+	h_Registration_Parameters_EPI_T1_Affine[10] = h_Registration_Parameters_EPI_T1_Rigid[10];
+	h_Registration_Parameters_EPI_T1_Affine[11] = h_Registration_Parameters_EPI_T1_Rigid[11];
+
+	h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Translation[0] + h_Registration_Parameters_EPI_T1_Rigid[0];
+	h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Translation[1] + h_Registration_Parameters_EPI_T1_Rigid[1];
+	h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Translation[2] + h_Registration_Parameters_EPI_T1_Rigid[2];
 
 	// Get rotations
 	h_Registration_Parameters_EPI_T1[3] = h_Rotations[0];
@@ -5772,7 +5798,7 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstrip()
 	AlignTwoVolumesParametricSeveralScales(h_Registration_Parameters_T1_MNI, h_Rotations, d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
 
 	// Perform non-parametric registration between registered skullstripped volume and MNI brain volume
-	AlignTwoVolumesNonParametricSeveralScales(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION, NO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
+	AlignTwoVolumesNonParametricSeveralScales(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
 }
 
 
@@ -6060,6 +6086,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	PerformRegistrationT1MNINoSkullstrip();
 	//PerformRegistrationT1MNI();
 
+	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonParametric, 0, NULL, NULL);
+
 	h_Registration_Parameters_T1_MNI_Out[0] = h_Registration_Parameters_T1_MNI[0];
 	h_Registration_Parameters_T1_MNI_Out[1] = h_Registration_Parameters_T1_MNI[1];
 	h_Registration_Parameters_T1_MNI_Out[2] = h_Registration_Parameters_T1_MNI[2];
@@ -6091,6 +6119,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clEnqueueWriteBuffer(commandQueue, d_EPI_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
 
 	PerformRegistrationEPIT1();
+
+	TransformVolumeParametric(d_T1_EPI_Volume, h_Registration_Parameters_T1_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, INTERPOLATION_MODE);
+	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume, 0, NULL, NULL);
 
 	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1[0];
 	h_Registration_Parameters_EPI_T1_Out[1] = h_Registration_Parameters_EPI_T1[1];
@@ -6186,7 +6217,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
 	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
 
-	h_X_GLM_Confounds = (float*)malloc(NUMBER_OF_CONFOUND_REGRESSORS * EPI_DATA_T * sizeof(float));
 
 	SetupTTest(EPI_DATA_T);
 
@@ -6210,7 +6240,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	free(h_ctxtxc_GLM);
 	free(h_X_GLM_With_Temporal_Derivatives);
 	free(h_X_GLM_Convolved);
-	free(h_X_GLM_Confounds);
 
 	CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes);
 
@@ -7626,7 +7655,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Whitened_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
 
 	// Cochrane-Orcutt procedure
-	for (int it = 0; it < 3; it++)
+	for (int it = 0; it < 1; it++)
 	{
 		/*
 		for (int t = 0; t < (it*4); t++)
@@ -9146,10 +9175,14 @@ void BROCCOLI_LIB::SetupDetrendingRegressors(int N)
 	Cubic = Cubic.cwiseProduct(Linear);
 
 	// Normalize
-	Ones.normalize();
-	Linear.normalize();
-	Quadratic.normalize();
-	Cubic.normalize();
+	Linear = Linear / Linear.maxCoeff();
+	Quadratic = Quadratic / Quadratic.maxCoeff();
+	Cubic = Cubic / Cubic.maxCoeff();
+
+	// Demean
+	DemeanRegressor(Linear,N);
+	DemeanRegressor(Quadratic,N);
+	DemeanRegressor(Cubic,N);
 
 	// Setup total detrending design matrix
 	Eigen::MatrixXd X(N,4);
@@ -9182,6 +9215,36 @@ void BROCCOLI_LIB::SetupDetrendingRegressors(int N)
 	}
 }
 
+void BROCCOLI_LIB::DemeanRegressor(float* Regressor, int N)
+{
+	float mean = 0.0f;
+	for (int t = 0; t < N; t++)
+	{
+		mean += Regressor[t];
+	}
+	mean /= (float)N;
+
+	for (int t = 0; t < N; t++)
+	{
+		Regressor[t] -= mean;
+	}
+}
+
+void BROCCOLI_LIB::DemeanRegressor(Eigen::VectorXd& Regressor, int N)
+{
+	double mean = 0.0;
+	for (int t = 0; t < N; t++)
+	{
+		mean += Regressor(t);
+	}
+	mean /= (float)N;
+
+	for (int t = 0; t < N; t++)
+	{
+		Regressor(t) -= mean;
+	}
+}
+
 void BROCCOLI_LIB::SetupTTest(int N)
 {
 	// Calculate total number of regressors
@@ -9207,10 +9270,9 @@ void BROCCOLI_LIB::SetupTTest(int N)
 	Cubic = Cubic.cwiseProduct(Linear);
 
 	// Normalize
-	Ones.normalize();
-	Linear.normalize();
-	Quadratic.normalize();
-	Cubic.normalize();
+	Linear = Linear / Linear.maxCoeff();
+	Quadratic = Quadratic / Quadratic.maxCoeff();
+	Cubic = Cubic / Cubic.maxCoeff();
 
 	if (USE_TEMPORAL_DERIVATIVES)
 	{
@@ -9258,6 +9320,20 @@ void BROCCOLI_LIB::SetupTTest(int N)
 			{
 				X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) = (double)h_X_GLM_Confounds[i + r * N];
 			}
+		}
+	}
+
+	// Calculate which regressor contains only ones
+	int MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1);
+
+	// Demean regressors
+	for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+	{
+		if (r != MEAN_REGRESSOR)
+		{
+			Eigen::VectorXd regressor = X.block(0,r,N,1);
+			DemeanRegressor(regressor,N);
+			X.block(0,r,N,1) = regressor;
 		}
 	}
 
@@ -9415,10 +9491,9 @@ void BROCCOLI_LIB::SetupFTest(int N)
 	Cubic = Cubic.cwiseProduct(Linear);
 
 	// Normalize
-	Ones.normalize();
-	Linear.normalize();
-	Quadratic.normalize();
-	Cubic.normalize();
+	Linear = Linear / Linear.maxCoeff();
+	Quadratic = Quadratic / Quadratic.maxCoeff();
+	Cubic = Cubic / Cubic.maxCoeff();
 
 	if (USE_TEMPORAL_DERIVATIVES)
 	{
@@ -9468,6 +9543,21 @@ void BROCCOLI_LIB::SetupFTest(int N)
 			}
 		}
 	}
+
+	// Calculate which regressor contains only ones
+	int MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1);
+
+	// Demean regressors
+	for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+	{
+		if (r != MEAN_REGRESSOR)
+		{
+			Eigen::VectorXd regressor = X.block(0,r,N,1);
+			DemeanRegressor(regressor,N);
+			X.block(0,r,N,1) = regressor;
+		}
+	}
+
 
 	// Calculate pseudo inverse (could be done with SVD instead)
 	Eigen::MatrixXd xtx(NUMBER_OF_TOTAL_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
@@ -9723,7 +9813,8 @@ void BROCCOLI_LIB::ConvolveRegressorsWithHRF(float* Convolved_Regressors, float*
 		{
 			Convolved_Regressors[t + r * NUMBER_OF_TIMEPOINTS] = 0.0f;
 
-			int offset = -(int)(((float)HRF_LENGTH - 1.0f)/2.0f);
+			//int offset = -(int)(((float)HRF_LENGTH - 1.0f)/2.0f);
+			int offset = -(int)(((float)HRF_LENGTH - 1.0f)/1.0f);;
 			for (int tt = HRF_LENGTH - 1; tt >= 0; tt--)
 			{
 				if ( ((t + offset) >= 0) && ((t + offset) < NUMBER_OF_TIMEPOINTS) )

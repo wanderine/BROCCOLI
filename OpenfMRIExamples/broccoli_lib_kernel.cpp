@@ -182,7 +182,7 @@ void GetParameterIndices(int* i, int* j, int parameter)
 
 
 
-__kernel void SeparableConvolutionRows(__global float *Filter_Response, 
+__kernel void SeparableConvolutionRows(__global float *Filter_Response,
 	                                   __global const float* Volume, 
 									   __global const float* Certainty, 
 									   __constant float *c_Smoothing_Filter_Y, 
@@ -5499,7 +5499,7 @@ __kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes,
 	}
 
 	int t = 0;
-	float beta[20];
+	float beta[25];
 	
 	// Reset all beta values
 	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -5575,7 +5575,7 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[20];
+	float beta[25];
 
 	// Load beta values into shared memory
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -5666,7 +5666,7 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[20];
+	float beta[25];
 
 	// Load beta values into registers
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -5705,7 +5705,7 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	//-------------------------
 
 	// Calculate matrix vector product C*beta (minus u)
-	float cbeta[20];
+	float cbeta[25];
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		cbeta[c] = 0.0f;
@@ -5718,13 +5718,12 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
 
 	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
-	float temp[20];
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
-		temp[c] = 0.0f;
+		beta[c] = 0.0f;
 		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
 		{
-			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
 		}
 	}
 
@@ -5732,7 +5731,7 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	float scalar = 0.0f;
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
-		scalar += cbeta[c] * temp[c];
+		scalar += cbeta[c] * beta[c];
 	}
 
 	// Save F-value
@@ -5786,7 +5785,7 @@ __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statis
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[20];
+	float beta[25];
 
 	// Load beta values into registers
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -5872,7 +5871,7 @@ __kernel void CalculateStatisticalMapsGLMFTestPermutation(__global float* Statis
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[20];
+	float beta[25];
 
 	// Load beta values into registers
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -5910,7 +5909,7 @@ __kernel void CalculateStatisticalMapsGLMFTestPermutation(__global float* Statis
 	//-------------------------
 
 	// Calculate matrix vector product C*beta (minus u)
-	float cbeta[20];
+	float cbeta[25];
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		cbeta[c] = 0.0f;
@@ -5923,13 +5922,12 @@ __kernel void CalculateStatisticalMapsGLMFTestPermutation(__global float* Statis
 	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
 
 	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
-	float temp[20];
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
-		temp[c] = 0.0f;
+		beta[c] = 0.0f;
 		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
 		{
-			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
 		}
 	}
 
@@ -5937,7 +5935,7 @@ __kernel void CalculateStatisticalMapsGLMFTestPermutation(__global float* Statis
 	float scalar = 0.0f;
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
-		scalar += cbeta[c] * temp[c];
+		scalar += cbeta[c] * beta[c];
 	}
 
 	// Save F-value

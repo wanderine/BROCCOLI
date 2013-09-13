@@ -430,6 +430,9 @@ class BROCCOLI_LIB
 		void SetupDetrendingRegressors(int N);
 		void SetupTTest(int N);
 		void SetupFTest(int N);
+		void DemeanRegressor(float* Regressor, int N);
+		void DemeanRegressor(Eigen::VectorXd &Regressor, int N);
+
 
 		float Gpdf(double value, double shape, double scale);
 		float loggamma(int value);
@@ -865,7 +868,7 @@ class BROCCOLI_LIB
 		float		 h_A_Matrix[144], h_h_Vector[12];
 		float		 *h_A_Matrix_Out, *h_h_Vector_Out;
 		double		 h_A_Matrix_double[144], h_h_Vector_double[12];
-		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12], h_Registration_Parameters_EPI_T1_Affine[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], h_Registration_Parameters_EPI_MNI[12], *h_Registration_Parameters_T1_MNI_Out, h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out, *h_Registration_Parameters_EPI_MNI_Out;
+		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12], h_Registration_Parameters_EPI_T1_Affine[12], h_Registration_Parameters_EPI_T1_Translation[12], h_Registration_Parameters_EPI_T1_Rigid[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], h_Registration_Parameters_EPI_MNI[12], *h_Registration_Parameters_T1_MNI_Out, h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out, *h_Registration_Parameters_EPI_MNI_Out;
 		double       h_Registration_Parameters_double[12];
 		float		 h_Rotations[3], h_Rotations_Temp[3];
 		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
