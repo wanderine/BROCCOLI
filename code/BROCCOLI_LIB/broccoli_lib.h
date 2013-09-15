@@ -33,6 +33,7 @@
 
 #include <opencl.h>
 #include <string>
+#include <Dense>
 
 typedef unsigned int uint;
 typedef unsigned char uchar;
@@ -63,12 +64,12 @@ class BROCCOLI_LIB
 		void SetNumberOfDetrendingRegressors(int NR);
 		void SetNumberOfConfoundRegressors(int NR);
 		void SetNumberOfContrasts(int NC);
-		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);
-		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
+		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);		
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetNumberOfPermutations(int);
 		void SetBetaSpace(int space);
+
 
 		// Smoothing
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
@@ -137,6 +138,9 @@ class BROCCOLI_LIB
 		void SetOutputResiduals(float* output);
 		void SetOutputResidualVariances(float* output);
 		void SetOutputStatisticalMaps(float* output);
+		void SetOutputEPIMask(float*);
+		void SetOutputClusterIndices(float*);
+		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 
 		// Output image registration
 		void SetOutputMotionParameters(float* output);
@@ -310,6 +314,10 @@ class BROCCOLI_LIB
 		void OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
 
 	private:
+
+		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
+		void Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D);
+		void CalculateClusterSizes(int* Cluster_Sizes, float* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D);
 
 		//------------------------------------------------
 		// High level functions
@@ -821,6 +829,7 @@ class BROCCOLI_LIB
 		int USE_TEMPORAL_DERIVATIVES;
 		int REGRESS_MOTION;
 		int REGRESS_CONFOUNDS;
+		int NUMBER_OF_CLUSTERS;
 
 		// Random permutation variables
 		int NUMBER_OF_PERMUTATIONS;
@@ -837,6 +846,7 @@ class BROCCOLI_LIB
 		float		*h_fMRI_Volumes;
 		float		*h_MNI_Brain_Mask;
 		float		*h_Mask;
+		float		*h_EPI_Mask;
 		float		*h_T1_Volume;
 		float		*h_MNI_Volume;
 		float		*h_MNI_Brain_Volume;
@@ -912,6 +922,7 @@ class BROCCOLI_LIB
 		float		*h_AR2_Estimates;
 		float		*h_AR3_Estimates;
 		float		*h_AR4_Estimates;
+		float		*h_Cluster_Indices;
 
 		// Random permutation pointers
 		uint16		*h_Permutation_Matrix;

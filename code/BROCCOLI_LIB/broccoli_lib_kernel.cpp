@@ -6395,3 +6395,70 @@ __kernel void RemoveMean(__global float* Volumes,
 	}
 
 }
+
+
+/*
+__kernel void Clusterize(__global int* Cluster_Indices,
+						 __global const float* Data;
+						 __private float threshold;
+					     __private int DATA_W, 
+						 __private int DATA_H, 
+						 __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	// Threshold data
+	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
+	{
+		
+		int cluster_index = 1;
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y-1,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y+1,z-1,DATA_W,DATA_H)];
+		
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y-1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y-1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y+1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y+1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y+1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y-1,z,DATA_W,DATA_H)];
+
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y-1,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y+1,z+1,DATA_W,DATA_H)];
+		
+		// Check if neighbour has cluster index, then use that one and increment cluster size
+		if (cluster_index != 0)
+		{
+			Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;			
+		}
+		// Otherwise use new cluster index and increment atomic cluster index
+		else
+		{
+			cluster_index = atomic_inc(global_cluster_index);
+			Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;			
+		}
+
+
+		
+	}
+	else
+	{
+		Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+	}
+
+}
+*/
+
+

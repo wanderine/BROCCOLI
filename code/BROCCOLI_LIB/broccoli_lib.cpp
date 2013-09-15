@@ -1825,6 +1825,16 @@ void BROCCOLI_LIB::SetOutputDesignMatrix(float* data1, float* data2)
 	h_xtxxt_GLM_Out = data2;
 }
 
+void BROCCOLI_LIB::SetOutputClusterIndices(float* data)
+{
+	h_Cluster_Indices = data;
+}
+
+void BROCCOLI_LIB::SetOutputEPIMask(float* data)
+{
+	h_EPI_Mask = data;
+}
+
 void BROCCOLI_LIB::SetGLMScalars(float* data)
 {
 	h_ctxtxc_GLM_In = data;
@@ -4513,6 +4523,15 @@ int mymax(int a, int b)
 		return b;
 }
 
+int mymin(int a, int b)
+{
+	if (a < b)
+		return a;
+	else
+		return b;
+}
+
+
 float mymax(float a, float b)
 {
 	if (a > b)
@@ -6243,6 +6262,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes);
 
+	
 	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
@@ -6295,6 +6315,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+		Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+
 	}
 
 	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
@@ -9705,7 +9730,8 @@ float BROCCOLI_LIB::Gpdf(double value, double shape, double scale)
 {
 	//return pow(value, shape - scale) * exp(-value / scale) / (pow(scale,shape) * gamma((int)shape));
 
-	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
+	//return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
+	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
 }
 
 
@@ -9829,6 +9855,240 @@ void BROCCOLI_LIB::ConvolveRegressorsWithHRF(float* Convolved_Regressors, float*
 	free(hrf);
 }
 
+int BROCCOLI_LIB::Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H)
+{
+	return x + y * DATA_W + z * DATA_W * DATA_H;
+}
+
+void BROCCOLI_LIB::CalculateClusterSizes(int* Cluster_Sizes, float* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D)
+{
+	for (int c = 0; c < NUMBER_OF_CLUSTERS; c++)
+	{
+		Cluster_Sizes[c] = 0;
+	}
+
+	// Loop over clusters
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
+				{
+					if ( Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 0.0f )
+					{
+						// Increment number of voxels for current cluster
+						Cluster_Sizes[(int)Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]]++;
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
+
+// Forward relabelling of cluster indices
+int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
+{
+	int changed = 0;
+
+	// Loop through voxels
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				// Only look at voxels that survived the threshold
+				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+				{	
+					// Find the local maximal cluster index
+					float cluster_index = 0;
+					for (int zz = -1; zz < 2; zz++)
+					{
+						for (int yy = -1; yy < 2; yy++)
+						{
+							for (int xx = -1; xx < 2; xx++)
+							{
+								// Do not include center (current) voxel
+								int sum = abs(xx) + abs(yy) + abs(zz);								
+								if (sum != 0)
+								{
+									// Do not read outside volume
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) ) 
+									{
+										// Only consider voxels that survived threshold (to avoid get a 0 cluster index)
+										if ( Thresholded[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H] == 1.0f )
+										{
+											cluster_index = mymax(Cluster_Indices[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H],cluster_index);
+										}
+									}
+								}
+							}
+						}
+					}
+
+					// Check if the local maxima exists
+					if (cluster_index != 0.0f)
+					{
+						// Check if local maxima is different compared to current index, then increase number of changed labels
+						if (Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] != cluster_index)
+						{
+							changed++;
+							Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] = cluster_index;						
+						}						
+					}
+				}
+			}
+		}
+	}
+	return changed;
+}
+
+// Backward relabelling of cluster indices
+int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
+{
+	int changed = 0;
+
+	// Loop through voxels
+	for (int z = DATA_D-1; z >= 0; z--)
+	{
+		for (int y = DATA_H-1; y >= 0; y--)
+		{
+			for (int x = DATA_W-1; x >= 0; x--)
+			{
+				// Only look at voxels that survived the threshold
+				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+				{	
+					// Find the local maximal cluster index
+					float cluster_index = 0;
+					for (int zz = -1; zz < 2; zz++)
+					{
+						for (int yy = -1; yy < 2; yy++)
+						{
+							for (int xx = -1; xx < 2; xx++)
+							{
+								// Do not include center (current) voxel
+								int sum = abs(xx) + abs(yy) + abs(zz);
+								if (sum != 0)
+								{
+									// Do not read outside volume
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) ) 
+									{
+										// Only consider voxels that survived threshold (to avoid get a 0 cluster index)
+										if ( Thresholded[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H] == 1.0f )
+										{
+											cluster_index = mymax(Cluster_Indices[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H],cluster_index);
+										}
+									}
+								}
+							}
+						}
+					}
+
+					// Check if the local maxima exists
+					if (cluster_index != 0.0f)
+					{
+						// Check if local maxima is different compared to current index, then increase number of changed labels
+						if (Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] != cluster_index)
+						{
+							changed++;
+							Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] = cluster_index;
+						}						
+					}
+				}
+			}
+		}
+	}
+	return changed;
+}
+
+
+void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D)
+{
+	float* Thresholded = (float*)malloc(DATA_W * DATA_H * DATA_W * sizeof(float));
+
+	int current_cluster = 0;
+
+	// Set all indices to 0
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+				if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > Threshold )
+				{
+					Thresholded[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
+				}
+			}
+		}
+	}
+
+	// Make an initial labelling
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
+				{
+					if ( Thresholded[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
+					{						
+						// Check if neighbour already has a cluster index												
+						float cluster_index = 0.0f;
+						
+						for (int zz = -1; zz < 2; zz++)
+						{
+							for (int yy = -1; yy < 2; yy++)
+							{
+								for (int xx = -1; xx < 2; xx++)
+								{
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) ) 
+									{
+										cluster_index = mymax(Cluster_Indices[Calculate3DIndex(x+xx,y+yy,z+zz,DATA_W,DATA_H)],cluster_index);
+									}
+								}
+							}
+						}																		
+						
+						// Use existing cluster index
+						if (cluster_index != 0.0f)
+						{
+							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;							
+						}
+						// Use new cluster index
+						else
+						{
+							current_cluster += 1.0f;
+							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = current_cluster;														
+						}
+						
+					}
+				}				
+			}
+		}
+	}
+
+	NUMBER_OF_CLUSTERS = (int)current_cluster; // Note that some clusters have 0 voxels after relabelling
+
+	// Perform backward and forward relabellings of cluster indices until no changes are made
+	int changed_labels = 1;
+	while (changed_labels > 0)
+	{		
+		changed_labels = BackwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
+		changed_labels += ForwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
+	}
+
+	free(Thresholded);
+}
+
 
 
 float BROCCOLI_LIB::CalculateMax(float *data, int N)
@@ -9856,7 +10116,6 @@ float BROCCOLI_LIB::CalculateMin(float *data, int N)
 	}
 	return min;
 }
-
 
 
 

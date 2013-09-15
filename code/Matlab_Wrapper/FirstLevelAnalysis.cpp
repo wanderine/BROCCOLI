@@ -90,10 +90,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     double     		*h_Aligned_T1_Volume_double, *h_Aligned_T1_Volume_NonParametric_double, *h_Aligned_EPI_Volume_double;
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
-    double          *h_Design_Matrix_double, *h_Design_Matrix2_double;;
+    double          *h_Design_Matrix_double, *h_Design_Matrix2_double;
+    double          *h_Cluster_Indices_double;
     float           *h_Aligned_T1_Volume, *h_Aligned_T1_Volume_NonParametric, *h_Aligned_EPI_Volume;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;    
     float           *h_Design_Matrix, *h_Design_Matrix2;
+    float           *h_Cluster_Indices;
+    float           *h_EPI_Mask;
     
     //---------------------
     
@@ -106,11 +109,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<19)
+    if(nlhs<20)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>19)
+    if(nlhs>20)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -445,6 +448,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[18] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_ALIGNED_EPI_VOLUME,mxDOUBLE_CLASS, mxREAL);
     h_Aligned_EPI_Volume_double = mxGetPr(plhs[18]);   
     
+    NUMBER_OF_DIMENSIONS = 3;
+    int ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[3];
+    ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[0] = EPI_DATA_H;
+    ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[1] = EPI_DATA_W;
+    ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[2] = EPI_DATA_D;
+    
+    plhs[19] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES,mxDOUBLE_CLASS, mxREAL);
+    h_Cluster_Indices_double = mxGetPr(plhs[19]);   
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
@@ -453,6 +465,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_MNI_Volume                        = (float *)mxMalloc(MNI_DATA_SIZE);
     h_MNI_Brain_Volume                  = (float *)mxMalloc(MNI_DATA_SIZE);
     h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
+    
+    h_EPI_Mask                          = (float *)mxMalloc(EPI_VOLUME_SIZE);
+    h_Cluster_Indices                   = (float *)mxMalloc(EPI_VOLUME_SIZE);
     
     h_Aligned_T1_Volume                                 = (float *)mxMalloc(MNI_DATA_SIZE);
     h_Aligned_T1_Volume_NonParametric                   = (float *)mxMalloc(MNI_DATA_SIZE);
@@ -653,6 +668,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric);
     BROCCOLI.SetOutputAlignedEPIVolume(h_Aligned_EPI_Volume);
     
+    BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
+    BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
+    
      /*
      * Error checking     
      */
@@ -720,12 +738,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_Aligned_T1_Volume_NonParametric_double, h_Aligned_T1_Volume_NonParametric, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Aligned_EPI_Volume_double, h_Aligned_EPI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     
+    
     unpack_float2double(h_T1_MNI_Registration_Parameters_double, h_T1_MNI_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE);
     unpack_float2double(h_EPI_T1_Registration_Parameters_double, h_EPI_T1_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID);
     unpack_float2double(h_EPI_MNI_Registration_Parameters_double, h_EPI_MNI_Registration_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE);
     unpack_float2double(h_Motion_Parameters_double, h_Motion_Parameters, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID * EPI_DATA_T);
     unpack_float2double_volumes(h_Motion_Corrected_fMRI_Volumes_double, h_Motion_Corrected_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     unpack_float2double_volumes(h_Smoothed_fMRI_Volumes_double, h_Smoothed_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+    
+    unpack_float2double_volume(h_Cluster_Indices_double, h_Cluster_Indices, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     
     if (BETA_SPACE == MNI)
     {
@@ -757,6 +778,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_MNI_Volume);
     mxFree(h_MNI_Brain_Volume);
     mxFree(h_MNI_Brain_Mask);
+    
+    mxFree(h_EPI_Mask);
+    mxFree(h_Cluster_Indices);
     
     mxFree(h_Quadrature_Filter_1_Parametric_Registration_Real);
     mxFree(h_Quadrature_Filter_2_Parametric_Registration_Real);
