@@ -1768,6 +1768,16 @@ void BROCCOLI_LIB::SetInputMNIBrainMask(float* data)
 	h_MNI_Brain_Mask = data;
 }
 
+void BROCCOLI_LIB::SetInputFirstLevelResults(float* data)
+{
+	h_First_Level_Results = data;
+}
+
+void BROCCOLI_LIB::SetNumberOfSubjects(int N)
+{
+	NUMBER_OF_SUBJECTS = N;
+}
+
 void BROCCOLI_LIB::SetMask(float* data)
 {
 	h_Mask = data;
@@ -6262,7 +6272,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes);
 
-	
+
 	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
@@ -6316,8 +6326,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 
-		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
-		Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+		//clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+		//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 
 	}
@@ -6351,6 +6361,68 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_Residual_Variances);
 
 }
+
+void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
+{
+	//------------------------
+
+	// Allocate memory on device
+	d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	//-------------------------------
+
+	//NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS;
+
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	d_Beta_Contrasts = clCreateBuffer(context, CL_MEM_WRITE_ONLY, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+
+
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_X_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM , 0, NULL, NULL);
+
+
+	CalculateStatisticalMapsGLMTTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
+
+
+	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
+
+	clReleaseMemObject(d_First_Level_Results);
+	clReleaseMemObject(d_MNI_Brain_Mask);
+
+	clReleaseMemObject(c_X_GLM);
+	clReleaseMemObject(c_xtxxt_GLM);
+	clReleaseMemObject(c_Contrasts);
+	clReleaseMemObject(c_ctxtxc_GLM);
+
+	clReleaseMemObject(d_Beta_Volumes);
+	clReleaseMemObject(d_Statistical_Maps);
+	clReleaseMemObject(d_Beta_Contrasts);
+	clReleaseMemObject(d_Residuals);
+	clReleaseMemObject(d_Residual_Variances);
+
+}
+
 
 void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 {
@@ -7945,7 +8017,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevelPermutation(cl_mem 
 }
 
 // Calculates a statistical map for second level analysis
-void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes)
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes, cl_mem d_Mask)
 {
 	int NUMBER_OF_INVALID_VOLUMES = 0;
 
@@ -7962,14 +8034,14 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes)
 	// Calculate beta values
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 1, sizeof(cl_mem), &d_Volumes);
-	clSetKernelArg(CalculateBetaValuesGLMKernel, 2, sizeof(cl_mem), &d_Group_Mask);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 2, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_GLM);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 4, sizeof(cl_mem), &c_Censored_Volumes);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 5, sizeof(int),    &MNI_DATA_W);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 6, sizeof(int),    &MNI_DATA_H);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 7, sizeof(int),    &MNI_DATA_D);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 8, sizeof(int),    &NUMBER_OF_SUBJECTS);
-	clSetKernelArg(CalculateBetaValuesGLMKernel, 9, sizeof(int),    &NUMBER_OF_GLM_REGRESSORS);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 9, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
 	runKernelErrorCalculateBetaValuesGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuesGLMKernel, 3, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 
@@ -7980,7 +8052,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes)
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 3, sizeof(cl_mem),  &d_Residual_Variances);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 4, sizeof(cl_mem),  &d_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 5, sizeof(cl_mem),  &d_Beta_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 6, sizeof(cl_mem),  &d_Group_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 6, sizeof(cl_mem),  &d_Mask);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 7, sizeof(cl_mem),  &c_X_GLM);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 8, sizeof(cl_mem),  &c_Contrasts);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 9, sizeof(cl_mem),  &c_ctxtxc_GLM);
@@ -7989,7 +8061,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes)
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 12, sizeof(int),    &MNI_DATA_H);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 13, sizeof(int),    &MNI_DATA_D);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 14, sizeof(int),    &NUMBER_OF_SUBJECTS);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 15, sizeof(int),    &NUMBER_OF_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 15, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 16, sizeof(int),    &NUMBER_OF_CONTRASTS);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 17, sizeof(int),    &NUMBER_OF_INVALID_VOLUMES);
 	runKernelErrorCalculateStatisticalMapsGLMTTest = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
@@ -7999,7 +8071,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes)
 	clReleaseMemObject(c_Censored_Volumes);
 }
 
-void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem d_Volumes)
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem d_Volumes, cl_mem d_Mask)
 {
 	int NUMBER_OF_INVALID_VOLUMES = 0;
 
@@ -8017,14 +8089,14 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem d_Volumes)
 	// Calculate beta values
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 1, sizeof(cl_mem), &d_Volumes);
-	clSetKernelArg(CalculateBetaValuesGLMKernel, 2, sizeof(cl_mem), &d_Group_Mask);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 2, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_GLM);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 4, sizeof(cl_mem), &c_Censored_Volumes);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 5, sizeof(int),    &MNI_DATA_W);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 6, sizeof(int),    &MNI_DATA_H);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 7, sizeof(int),    &MNI_DATA_D);
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 8, sizeof(int),    &NUMBER_OF_SUBJECTS);
-	clSetKernelArg(CalculateBetaValuesGLMKernel, 9, sizeof(int),    &NUMBER_OF_GLM_REGRESSORS);
+	clSetKernelArg(CalculateBetaValuesGLMKernel, 9, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
 	runKernelErrorCalculateBetaValuesGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaValuesGLMKernel, 3, NULL, globalWorkSizeCalculateBetaValuesGLM, localWorkSizeCalculateBetaValuesGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 
@@ -8034,7 +8106,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem d_Volumes)
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 2, sizeof(cl_mem), &d_Residual_Variances);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 3, sizeof(cl_mem), &d_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 4, sizeof(cl_mem), &d_Beta_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 5, sizeof(cl_mem), &d_Group_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 5, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 6, sizeof(cl_mem), &c_X_GLM);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 7, sizeof(cl_mem), &c_Contrasts);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 8, sizeof(cl_mem), &c_ctxtxc_GLM);
@@ -8042,7 +8114,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem d_Volumes)
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 10, sizeof(int),   &MNI_DATA_H);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 11, sizeof(int),   &MNI_DATA_D);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 12, sizeof(int),   &NUMBER_OF_SUBJECTS);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 13, sizeof(int),   &NUMBER_OF_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 13, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 14, sizeof(int),   &NUMBER_OF_CONTRASTS);
 	runKernelErrorCalculateStatisticalMapsGLMFTest = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMFTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
@@ -9730,8 +9802,8 @@ float BROCCOLI_LIB::Gpdf(double value, double shape, double scale)
 {
 	//return pow(value, shape - scale) * exp(-value / scale) / (pow(scale,shape) * gamma((int)shape));
 
-	//return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
-	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
+	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
+	//return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
 }
 
 
@@ -9904,7 +9976,7 @@ int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA
 			{
 				// Only look at voxels that survived the threshold
 				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
-				{	
+				{
 					// Find the local maximal cluster index
 					float cluster_index = 0;
 					for (int zz = -1; zz < 2; zz++)
@@ -9914,11 +9986,11 @@ int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA
 							for (int xx = -1; xx < 2; xx++)
 							{
 								// Do not include center (current) voxel
-								int sum = abs(xx) + abs(yy) + abs(zz);								
+								int sum = abs(xx) + abs(yy) + abs(zz);
 								if (sum != 0)
 								{
 									// Do not read outside volume
-									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) ) 
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
 									{
 										// Only consider voxels that survived threshold (to avoid get a 0 cluster index)
 										if ( Thresholded[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H] == 1.0f )
@@ -9938,8 +10010,8 @@ int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA
 						if (Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] != cluster_index)
 						{
 							changed++;
-							Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] = cluster_index;						
-						}						
+							Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] = cluster_index;
+						}
 					}
 				}
 			}
@@ -9962,7 +10034,7 @@ int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DAT
 			{
 				// Only look at voxels that survived the threshold
 				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
-				{	
+				{
 					// Find the local maximal cluster index
 					float cluster_index = 0;
 					for (int zz = -1; zz < 2; zz++)
@@ -9976,7 +10048,7 @@ int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DAT
 								if (sum != 0)
 								{
 									// Do not read outside volume
-									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) ) 
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
 									{
 										// Only consider voxels that survived threshold (to avoid get a 0 cluster index)
 										if ( Thresholded[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H] == 1.0f )
@@ -9997,7 +10069,7 @@ int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DAT
 						{
 							changed++;
 							Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] = cluster_index;
-						}						
+						}
 					}
 				}
 			}
@@ -10040,38 +10112,38 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 				if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
 				{
 					if ( Thresholded[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
-					{						
-						// Check if neighbour already has a cluster index												
+					{
+						// Check if neighbour already has a cluster index
 						float cluster_index = 0.0f;
-						
+
 						for (int zz = -1; zz < 2; zz++)
 						{
 							for (int yy = -1; yy < 2; yy++)
 							{
 								for (int xx = -1; xx < 2; xx++)
 								{
-									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) ) 
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
 									{
 										cluster_index = mymax(Cluster_Indices[Calculate3DIndex(x+xx,y+yy,z+zz,DATA_W,DATA_H)],cluster_index);
 									}
 								}
 							}
-						}																		
-						
+						}
+
 						// Use existing cluster index
 						if (cluster_index != 0.0f)
 						{
-							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;							
+							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;
 						}
 						// Use new cluster index
 						else
 						{
 							current_cluster += 1.0f;
-							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = current_cluster;														
+							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = current_cluster;
 						}
-						
+
 					}
-				}				
+				}
 			}
 		}
 	}
@@ -10081,7 +10153,7 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 	// Perform backward and forward relabellings of cluster indices until no changes are made
 	int changed_labels = 1;
 	while (changed_labels > 0)
-	{		
+	{
 		changed_labels = BackwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
 		changed_labels += ForwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
 	}

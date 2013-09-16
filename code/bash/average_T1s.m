@@ -14,7 +14,7 @@ elseif isunix
     basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI';    
 end
 
-N = 198;
+N = 9;
 
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain.nii']);
 MNI = double(MNI_nii.img);
@@ -24,6 +24,7 @@ MNI_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain
 MNI_mask = double(MNI_mask_nii.img);
 
 MNI_masked = MNI(MNI_mask == 1);
+MNI_masked_ = MNI_masked/max(MNI_masked(:)) * 256;
 
 %-----------------------------------------------------------------------
 % AFNI
@@ -40,9 +41,10 @@ for s = 1:N
     T1 = T1/max(T1(:));
     mean_T1_volume_AFNI = mean_T1_volume_AFNI + T1;
     T1_masked = T1(MNI_mask == 1);
-    mutual_information_AFNI(s) = mi(T1_masked(:),MNI_masked(:));
     correlation_AFNI(s) = corr2(T1_masked(:),MNI_masked(:));
     ssd_AFNI(s) = sum( (T1_masked(:) - MNI_masked(:)).^2 );
+    T1_masked_ = T1_masked/max(T1_masked(:)) * 256;    
+    mutual_information_AFNI(s) = mi(T1_masked_(:),MNI_masked_(:));
 end
 mean_T1_volume_AFNI = mean_T1_volume_AFNI/N;
 
@@ -70,10 +72,11 @@ for s = 1:N
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
     mean_T1_volume_FSL = mean_T1_volume_FSL + T1; 
-    T1_masked = T1(MNI_mask == 1);
-    mutual_information_FSL(s) = mi(T1_masked(:),MNI_masked(:));
+    T1_masked = T1(MNI_mask == 1);    
     correlation_FSL(s) = corr2(T1_masked(:),MNI_masked(:));
     ssd_FSL(s) = sum( (T1_masked(:) - MNI_masked(:)).^2 );
+    T1_masked_ = T1_masked/max(T1_masked(:)) * 256;    
+    mutual_information_FSL(s) = mi(T1_masked_(:),MNI_masked_(:));
 end
 mean_T1_volume_FSL = mean_T1_volume_FSL/N;
 
@@ -101,10 +104,11 @@ for s = 1:N
     T1 = aligned_T1_nonparametric_opencl;
     T1 = T1/max(T1(:));
     mean_T1_volume_BROCCOLI = mean_T1_volume_BROCCOLI + T1;  
-    T1_masked = T1(MNI_mask == 1);
-    mutual_information_BROCCOLI(s) = mi(T1_masked(:),MNI_masked(:));
+    T1_masked = T1(MNI_mask == 1);    
     correlation_BROCCOLI(s) = corr2(T1_masked(:),MNI_masked(:));
     ssd_BROCCOLI(s) = sum( (T1_masked(:) - MNI_masked(:)).^2 );
+    T1_masked_ = T1_masked/max(T1_masked(:)) * 256;    
+    mutual_information_BROCCOLI(s) = mi(T1_masked_(:),MNI_masked_(:));
 end
 mean_T1_volume_BROCCOLI = mean_T1_volume_BROCCOLI/N;
 
@@ -127,7 +131,7 @@ close all
 figure
 image([ MNI(:,:,85)*50 mean_T1_volume_FSL(:,:,85)*75 mean_T1_volume_AFNI(:,:,85)*75  mean_T1_volume_BROCCOLI(:,:,85)*75 ]); colormap gray
 axis off
-print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial.png
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial.png
 
 figure
 imagesc([ std_T1_volume_FSL(:,:,85) std_T1_volume_AFNI(:,:,85)  std_T1_volume_BROCCOLI(:,:,85) ]); colormap gray
@@ -137,7 +141,7 @@ axis off
 figure
 image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75  ]); colormap gray
 axis off
-print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal.png
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal.png
 
 
 figure

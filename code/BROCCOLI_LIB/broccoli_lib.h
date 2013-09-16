@@ -64,7 +64,7 @@ class BROCCOLI_LIB
 		void SetNumberOfDetrendingRegressors(int NR);
 		void SetNumberOfConfoundRegressors(int NR);
 		void SetNumberOfContrasts(int NC);
-		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);		
+		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetNumberOfPermutations(int);
@@ -132,6 +132,8 @@ class BROCCOLI_LIB
 		void SetInputMNIVolume(float* input);
 		void SetInputMNIBrainVolume(float* input);
 		void SetInputMNIBrainMask(float* input);
+		void SetInputFirstLevelResults(float* input);
+		void SetNumberOfSubjects(int N);
 
 		// Output statistics
 		void SetOutputBetaVolumes(float* output);
@@ -304,6 +306,7 @@ class BROCCOLI_LIB
 		void PerformGLMTTestWrapper();
 		void PerformGLMFTestWrapper();
 		void PerformFirstLevelAnalysisWrapper();
+		void PerformSecondLevelAnalysisWrapper();
 		void CalculatePermutationTestThresholdFirstLevelWrapper();
 
 		void CalculateSlicesfMRIData();
@@ -334,10 +337,10 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem Volumes);
 		void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(cl_mem Volumes);
 		void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(cl_mem Volumes);
-		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes);
-		void CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem Volumes);
-		void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(cl_mem Volumes);
-		void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(cl_mem Volumes);
+		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes, cl_mem Mask);
+		void CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem Volumes, cl_mem Mask);
+		void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(cl_mem Volumes, cl_mem Mask);
+		void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(cl_mem Volumes, cl_mem Mask);
 
 		void CalculatePermutationTestThresholdFirstLevel(cl_mem Volumes);
 		void CalculatePermutationTestThresholdSecondLevel();
@@ -916,6 +919,7 @@ class BROCCOLI_LIB
 		float		*h_Censored_Timepoints, *h_Censored_Volumes;
 		float		*h_Statistical_Maps;
 		float       *h_Beta_Volumes;
+		float		*h_First_Level_Results;
 		float       *h_Residuals;
 		float       *h_Residual_Variances;
 		float		*h_AR1_Estimates;
@@ -992,6 +996,7 @@ class BROCCOLI_LIB
 		cl_mem		c_xtxxt_Detrend, c_X_Detrend;
 
 		// Statistical analysis
+		cl_mem		d_First_Level_Results;
 		cl_mem		d_Beta_Volumes, d_Beta_Volumes_MNI;
 		cl_mem		d_Statistical_Maps, d_Statistical_Maps_MNI;
 		cl_mem		c_Censor;
