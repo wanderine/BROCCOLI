@@ -55,7 +55,7 @@ study = 'Beijing';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-subject = 1;
+subject = 3;
 dirs = dir([basepath study]);
 subject = dirs(subject+2).name
 voxel_size = 1;
@@ -351,19 +351,10 @@ for i = 1:N
 end
 
 N = max(cluster_indices(:));
-s = 1;
 for i = 1:N
-    if (sum(cluster_indices(:) == i) ~= 0)
-        broccoli_sums(s) = sum(cluster_indices(:) == i);
-        s = s + 1;
-    end
+    if (
+    broccoli_sums(i) = sum(cluster_indices(:) == i);
 end
-
-matlab_sums = sort(matlab_sums);
-broccoli_sums = sort(broccoli_sums);
-
-
-[matlab_sums'; broccoli_sums]'
 
 
 
