@@ -5742,22 +5742,456 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 
 // Functions for permutation test
 
+
+int CalculateBetaWeights(__private float* beta,
+		                 __private float value,
+		                 __constant float* c_xtxxt_GLM,
+		                 int v,
+		                 int NUMBER_OF_VOLUMES,
+		                 int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+
+			break;
+
+		case 2:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+
+			break;
+
+		case 3:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+
+			break;
+
+		case 4:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+
+			break;
+
+		case 5:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+
+			break;
+
+		case 6:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+
+			break;
+
+		case 7:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+
+			break;
+
+		case 8:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+
+			break;
+
+		case 9:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+
+			break;
+
+		case 10:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+
+
+
+float CalculateEps(__private float eps,
+		           __private float* beta,
+		           __constant float* c_X_GLM,
+		           int v,
+		           int NUMBER_OF_VOLUMES,
+		           int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+
+			break;
+
+		case 2:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+
+			break;
+
+		case 3:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+
+			break;
+
+		case 4:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+
+			break;
+
+		case 5:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+
+			break;
+
+		case 6:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+
+			break;
+
+		case 7:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+
+			break;
+
+		case 8:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+
+			break;
+
+		case 9:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+
+			break;
+
+		case 10:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return eps;
+}
+
+
+
+float CalculateContrastValue(__private float* beta, __constant float* c_Contrasts, int c, int NUMBER_OF_REGRESSORS)
+{
+	float contrast_value = 0.0f;
+
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+
+			break;
+
+		case 2:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+
+			break;
+
+		case 3:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+
+			break;
+
+		case 4:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+
+			break;
+
+		case 5:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+
+			break;
+
+		case 6:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+
+			break;
+
+		case 7:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+
+			break;
+
+		case 8:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+
+			break;
+
+		case 9:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+
+			break;
+
+		case 10:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return contrast_value;
+}
+
+
+/*
+int CalculateBetaWeights(__private float* beta,
+		                 __private float value,
+		                 __constant float* c_xtxxt_GLM,
+		                 int v,
+		                 int NUMBER_OF_VOLUMES,
+		                 int NUMBER_OF_REGRESSORS)
+{
+	beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+	beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+	beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+	beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+	beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+	beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+	beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+	beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+	beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+	beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+
+	return 0;
+}
+
+
+float CalculateEps(__private float eps,
+		           __private float* beta,
+		           __constant float* c_X_GLM,
+		           int v,
+		           int NUMBER_OF_VOLUMES,
+		           int NUMBER_OF_REGRESSORS)
+{
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+
+	return eps;
+}
+
+
+
+float CalculateContrastValue(__private float* beta, __constant float* c_Contrasts, int c, int NUMBER_OF_REGRESSORS)
+{
+	float contrast_value = 0.0f;
+
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+
+
+	return contrast_value;
+}
+
+*/
+
 __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statistical_Maps,
-		                                       	   	   	  __global float* Residuals,
 		                                       	   	   	  __global const float* Volumes,
-		                                       	   	   	  __global const float* Beta_Volumes,
 		                                       	   	   	  __global const float* Mask,
-		                                       	   	   	  __constant float *c_X_GLM,
+		                                       	   	   	  __constant float* c_X_GLM,
+		                                       	   	   	  __constant float* c_xtxxt_GLM,
 		                                       	   	   	  __constant float* c_Contrasts,
 		                                       	   	   	  __constant float* c_ctxtxc_GLM,
-		                                       	   	   	  __constant float* c_Censored_Timepoints,
+		                                       	   	   	  __constant unsigned short int* c_Permutation_Vector,
 		                                       	   	   	  __private int DATA_W,
 		                                       	   	   	  __private int DATA_H,
 		                                       	   	   	  __private int DATA_D,
 		                                       	   	   	  __private int NUMBER_OF_VOLUMES,
 		                                       	   	   	  __private int NUMBER_OF_REGRESSORS,
-		                                       	   	   	  __private int NUMBER_OF_CONTRASTS,
-		                                       	   	   	  __private int NUMBER_OF_CENSORED_TIMEPOINTS)
+		                                       	   	   	  __private int NUMBER_OF_CONTRASTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5775,60 +6209,88 @@ __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statis
 			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
 
-		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-		{
-			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
 		return;
 	}
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[25];
+	float beta[20];
 
-	// Load beta values into registers
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+		float value = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+		//float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		// Loop over regressors
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+		//	beta[r] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+		//}
+		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 	}
 
 	// Calculate the mean of the error eps
 	meaneps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		eps *= c_Censored_Timepoints[v];
-		meaneps += eps;
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+		eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+		//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+		//	//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		//}
+		meaneps += CalculateEps(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 	}
-	meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
+	meaneps /= ((float)NUMBER_OF_VOLUMES);
 
 	// Now calculate the variance of eps
 	vareps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+		eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+		//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		//}
+		eps = CalculateEps(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+		vareps += (eps - meaneps) * (eps - meaneps);
 	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
+	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
 
 	// Loop over contrasts and calculate t-values
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		float contrast_value = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+			//contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		//}
+		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
 	}
 }
@@ -6285,7 +6747,14 @@ __kernel void GeneratePermutedVolumesSecondLevel(__global float* Permuted_Volume
         return;
 
     if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
-		return;
+    {
+  //  	for (int v = 0; v < NUMBER_OF_SUBJECTS; v++)
+  // 	{
+  //  		Permuted_Volumes[Calculate4DIndex(x, y, z, v, DATA_W, DATA_H, DATA_D)] = 0.0f;
+  //  	}
+    	return;
+    }
+
 
     for (int v = 0; v < NUMBER_OF_SUBJECTS; v++)
 	{        					

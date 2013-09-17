@@ -170,6 +170,7 @@ class BROCCOLI_LIB
 		void SetOutputDetrendedfMRIVolumes(float*);
 		void SetOutputWhitenedfMRIVolumes(float*);
 		void SetOutputPermutedfMRIVolumes(float*);
+		void SetOutputPermutedFirstLevelResults(float*);
 		void SetOutputAREstimates(float*, float*, float*, float*);
 		void SetOutputSliceSums(float*);
 		void SetOutputTopSlice(float*);
@@ -342,6 +343,8 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(cl_mem Volumes, cl_mem Mask);
 		void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(cl_mem Volumes, cl_mem Mask);
 
+
+
 		void CalculatePermutationTestThresholdFirstLevel(cl_mem Volumes);
 		void CalculatePermutationTestThresholdSecondLevel();
 
@@ -353,7 +356,7 @@ class BROCCOLI_LIB
 		void PerformWhiteningPriorPermutations(cl_mem whitened_volumes, cl_mem volumes);
 		void WhitenfMRIVolumes();
 		void GeneratePermutedVolumesFirstLevel(cl_mem permuted_volumes, cl_mem whitened_volumes, int permutation);
-		void GeneratePermutedVolumesSecondLevel(cl_mem permuted_volumes, cl_mem volumes, int permutation);
+		void GeneratePermutedVolumesSecondLevel(cl_mem permuted_volumes, cl_mem volumes, cl_mem mask, int permutation);
 		void PerformDetrendingPermutation();
 		void PerformSmoothingPermutation();
 		void CalculateStatisticalMapPermutation();
@@ -909,6 +912,7 @@ class BROCCOLI_LIB
 		float		*h_Detrended_fMRI_Volumes;
 		float		*h_Whitened_fMRI_Volumes;
 		float		*h_Permuted_fMRI_Volumes;
+		float		*h_Permuted_First_Level_Results;
 
 		// Statistical analysis pointers
 		float		*hrf;
@@ -1012,6 +1016,7 @@ class BROCCOLI_LIB
 		cl_mem		d_BOLD_Regressed_fMRI_Volumes;
 		cl_mem		d_Whitened_fMRI_Volumes;
 		cl_mem		d_Permuted_fMRI_Volumes;
+		cl_mem		d_Permuted_First_Level_Results;
 
 		cl_mem		c_Permutation_Vector;
 

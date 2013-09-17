@@ -37,7 +37,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double		    *h_X_GLM_double, *h_xtxxt_GLM_double, *h_X_GLM_Confounds_double, *h_Contrasts_double, *h_ctxtxc_GLM_double;
     float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM;  
             
-    int             MNI_DATA_W, MNI_DATA_H, MNI_DATA_D; 
+    int             MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS, NUMBER_OF_PERMUTATIONS; 
                     
     int             NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONFOUND_REGRESSORS, NUMBER_OF_CONTRASTS, REGRESS_CONFOUNDS; 
     
@@ -48,29 +48,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //-----------------------
     // Output
     
+    double          *h_Permutation_Distribution_double;
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
     double          *h_Design_Matrix_double, *h_Design_Matrix2_double;
     double          *h_Cluster_Indices_double;
+    double          *h_Permuted_First_Level_Results_double;
+    float           *h_Permutation_Distribution;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;    
     float           *h_Design_Matrix, *h_Design_Matrix2;
     float           *h_Cluster_Indices;
+    float           *h_Permuted_First_Level_Results;
     
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<10)
+    if(nrhs<11)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>10)
+    if(nrhs>11)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<7)
+    if(nlhs<9)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>7)
+    if(nlhs>9)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -89,8 +93,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_X_GLM_Confounds_double =  (double*)mxGetData(prhs[6]);
     REGRESS_CONFOUNDS = (int)mxGetScalar(prhs[7]);
     
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[8]);
-    OPENCL_DEVICE = (int)mxGetScalar(prhs[9]);
+    NUMBER_OF_PERMUTATIONS = (int)mxGetScalar(prhs[8]);
+    
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[9]);
+    OPENCL_DEVICE = (int)mxGetScalar(prhs[10]);
     
     const int *ARRAY_DIMENSIONS_FIRST_LEVEL_RESULTS = mxGetDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_MNI = mxGetDimensions(prhs[1]);
@@ -119,19 +125,22 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int DESIGN_MATRIX_SIZE = NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float);
     
     int CONFOUNDS_SIZE = NUMBER_OF_CONFOUND_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float);
-    
-    
+        
     int BETA_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);        
     int STATISTICAL_MAPS_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);    
     int RESIDUAL_VARIANCES_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);    
     
     int RESIDUAL_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float);
     
-    mexPrintf("First level results data size : %i x %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);
+    int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * sizeof(float);
+    
+    mexPrintf("First level results data size : %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    mexPrintf("Number of subjects: %i \n",NUMBER_OF_SUBJECTS);
     mexPrintf("Number of GLM regressors : %i \n",  NUMBER_OF_GLM_REGRESSORS);
     mexPrintf("Number of confound regressors : %i \n",  NUMBER_OF_CONFOUND_REGRESSORS);
     mexPrintf("Number of total GLM regressors : %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
     mexPrintf("Number of contrasts : %i \n",  NUMBER_OF_CONTRASTS);
+    mexPrintf("Number of permutations : %i \n",  NUMBER_OF_PERMUTATIONS);
     
     //-------------------------------------------------
     // Output to Matlab
@@ -170,8 +179,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[4];
     ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[0] = MNI_DATA_H;
     ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[1] = MNI_DATA_W;
-    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[2] = MNI_DATA_D;        
-    
+    ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[2] = MNI_DATA_D;            
     ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS[3] = NUMBER_OF_CONTRASTS;
     
     plhs[3] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_STATISTICAL_MAPS,mxDOUBLE_CLASS, mxREAL);
@@ -197,13 +205,33 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[6] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES,mxDOUBLE_CLASS, mxREAL);
     h_Cluster_Indices_double = mxGetPr(plhs[6]);   
     
+    NUMBER_OF_DIMENSIONS = 2;
+    int ARRAY_DIMENSIONS_OUT_DISTRIBUTION[2];
+    ARRAY_DIMENSIONS_OUT_DISTRIBUTION[0] = NUMBER_OF_PERMUTATIONS;
+    ARRAY_DIMENSIONS_OUT_DISTRIBUTION[1] = 1;
+    
+    plhs[7] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DISTRIBUTION,mxDOUBLE_CLASS, mxREAL);
+    h_Permutation_Distribution_double = mxGetPr(plhs[7]); 
+    
+    NUMBER_OF_DIMENSIONS = 4;
+    int ARRAY_DIMENSIONS_OUT_PERMUTED[4];
+    ARRAY_DIMENSIONS_OUT_PERMUTED[0] = MNI_DATA_H;
+    ARRAY_DIMENSIONS_OUT_PERMUTED[1] = MNI_DATA_W;
+    ARRAY_DIMENSIONS_OUT_PERMUTED[2] = MNI_DATA_D; 
+    ARRAY_DIMENSIONS_OUT_PERMUTED[3] = NUMBER_OF_SUBJECTS;
+    
+    plhs[8] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_PERMUTED,mxDOUBLE_CLASS, mxREAL);
+    h_Permuted_First_Level_Results_double = mxGetPr(plhs[8]);  
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
     h_First_Level_Results               = (float *)mxMalloc(FIRST_LEVEL_RESULTS_DATA_SIZE);
+    h_Permuted_First_Level_Results      = (float *)mxMalloc(FIRST_LEVEL_RESULTS_DATA_SIZE);
+    
     h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
     
-    h_Cluster_Indices                   = (float *)mxMalloc(EPI_VOLUME_SIZE);
+    h_Cluster_Indices                   = (float *)mxMalloc(MNI_DATA_SIZE);
             
     h_X_GLM                             = (float *)mxMalloc(GLM_SIZE);
     h_xtxxt_GLM                         = (float *)mxMalloc(GLM_SIZE);
@@ -212,7 +240,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if (REGRESS_CONFOUNDS == 1)
     {
-        h_X_GLM_Confounds                   = (float *)mxMalloc(CONFOUNDS_SIZE);
+        h_X_GLM_Confounds               = (float *)mxMalloc(CONFOUNDS_SIZE);
     }
     
     h_Beta_Volumes                      = (float *)mxMalloc(BETA_DATA_SIZE);
@@ -221,7 +249,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Statistical_Maps                  = (float *)mxMalloc(STATISTICAL_MAPS_DATA_SIZE);
             
     h_Design_Matrix                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
-    h_Design_Matrix2                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
+    h_Design_Matrix2                    = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
+    
+    h_Permutation_Distribution          = (float *)mxMalloc(NULL_DISTRIBUTION_SIZE);
     
     // Reorder and cast data
     pack_double2float_volumes(h_First_Level_Results, h_First_Level_Results_double, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);
@@ -255,6 +285,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetConfoundRegressors(h_X_GLM_Confounds);
     }
     
+    BROCCOLI.SetNumberOfSubjects(NUMBER_OF_SUBJECTS);
+    BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
     BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
     BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
@@ -266,6 +298,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);        
     BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
+    BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
+    BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);
     
      /*
      * Error checking     
@@ -327,6 +361,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexPrintf("OPENCL error detected, aborting \n");
     }    
     
+    unpack_float2double_volumes(h_Permuted_First_Level_Results_double, h_Permuted_First_Level_Results, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);  
+    
     unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS);
     unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS);            
     
@@ -338,12 +374,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);        
         
+    unpack_float2double(h_Permutation_Distribution_double, h_Permutation_Distribution, NUMBER_OF_PERMUTATIONS);  
+    
     // Free all the allocated memory on the host
     
     mxFree(h_Design_Matrix);
     mxFree(h_Design_Matrix2);
     
     mxFree(h_First_Level_Results);
+    mxFree(h_Permuted_First_Level_Results);
+    
     mxFree(h_MNI_Brain_Mask);
     
     mxFree(h_Cluster_Indices);
@@ -363,6 +403,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Residual_Variances);
     mxFree(h_Statistical_Maps);
           
+    mxFree(h_Permutation_Distribution);
+    
     return;
 }
 

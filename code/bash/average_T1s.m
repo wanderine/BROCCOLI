@@ -14,7 +14,7 @@ elseif isunix
     basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI';    
 end
 
-N = 9;
+N = 35;
 
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain.nii']);
 MNI = double(MNI_nii.img);

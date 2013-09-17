@@ -2327,6 +2327,11 @@ void BROCCOLI_LIB::SetOutputPermutedfMRIVolumes(float* permuted)
 	h_Permuted_fMRI_Volumes = permuted;
 }
 
+void BROCCOLI_LIB::SetOutputPermutedFirstLevelResults(float* permuted)
+{
+	h_Permuted_First_Level_Results = permuted;
+}
+
 void BROCCOLI_LIB::SetOutputDownsampledVolume(float* downsampled)
 {
 	h_Downsampled_Volume = downsampled;
@@ -6326,8 +6331,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 
-		//clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
-		//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+		Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 
 	}
@@ -6368,21 +6373,33 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 
 	// Allocate memory on device
 	d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	d_Permuted_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
 	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy data to device
 	clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results, 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+	clFinish(commandQueue);
 
 	//-------------------------------
 
 	//NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS;
 
-	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+	//c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	//c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	//c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	//c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * 20 * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * sizeof(float), NULL, NULL);
+
+
+
+	c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), NULL, NULL);
 
 	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
@@ -6393,11 +6410,11 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	// Copy data to device
 
 
-	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_X_GLM , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM , 0, NULL, NULL);
-
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_X_GLM_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_xtxxt_GLM_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In , 0, NULL, NULL);
+	clFinish(commandQueue);
 
 	CalculateStatisticalMapsGLMTTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
 
@@ -6406,14 +6423,28 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	// Estimate null distribution
+	h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
+
+	CalculatePermutationTestThresholdSecondLevel();
+
+	clEnqueueReadBuffer(commandQueue, d_Permuted_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Permuted_First_Level_Results, 0, NULL, NULL);
+
+	free(h_Permutation_Matrix);
 
 	clReleaseMemObject(d_First_Level_Results);
+	clReleaseMemObject(d_Permuted_First_Level_Results);
 	clReleaseMemObject(d_MNI_Brain_Mask);
 
 	clReleaseMemObject(c_X_GLM);
 	clReleaseMemObject(c_xtxxt_GLM);
 	clReleaseMemObject(c_Contrasts);
 	clReleaseMemObject(c_ctxtxc_GLM);
+	clReleaseMemObject(c_Permutation_Vector);
 
 	clReleaseMemObject(d_Beta_Volumes);
 	clReleaseMemObject(d_Statistical_Maps);
@@ -8019,6 +8050,8 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevelPermutation(cl_mem 
 // Calculates a statistical map for second level analysis
 void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes, cl_mem d_Mask)
 {
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
 	int NUMBER_OF_INVALID_VOLUMES = 0;
 
 	h_Censored_Volumes = (float*)malloc(NUMBER_OF_SUBJECTS * sizeof(float));
@@ -8030,6 +8063,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes,
 		h_Censored_Volumes[v] = 1.0f;
 	}
 	clEnqueueWriteBuffer(commandQueue, c_Censored_Volumes, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(float), h_Censored_Volumes , 0, NULL, NULL);
+
 
 	// Calculate beta values
 	clSetKernelArg(CalculateBetaValuesGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
@@ -8046,6 +8080,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes,
 	clFinish(commandQueue);
 
 	// Calculate t-values and residuals
+
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 1, sizeof(cl_mem),  &d_Beta_Contrasts);
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestKernel, 2, sizeof(cl_mem),  &d_Residuals);
@@ -8067,8 +8102,32 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem d_Volumes,
 	runKernelErrorCalculateStatisticalMapsGLMTTest = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 
+
 	free(h_Censored_Volumes);
 	clReleaseMemObject(c_Censored_Volumes);
+}
+
+// Calculates a statistical map for second level analysis
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevelPermutation(cl_mem d_Volumes, cl_mem d_Mask)
+{
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 2, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 3, sizeof(cl_mem), &c_X_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 4, sizeof(cl_mem), &c_xtxxt_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 5, sizeof(cl_mem), &c_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 6, sizeof(cl_mem), &c_ctxtxc_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 7, sizeof(cl_mem), &c_Permutation_Vector);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 8, sizeof(int), &MNI_DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 9, sizeof(int), &MNI_DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 10, sizeof(int), &MNI_DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 11, sizeof(int), &NUMBER_OF_SUBJECTS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 12, sizeof(int), &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestPermutationKernel, 13, sizeof(int), &NUMBER_OF_CONTRASTS);
+	runKernelErrorCalculateStatisticalMapsGLMTTest = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestPermutationKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
 }
 
 void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem d_Volumes, cl_mem d_Mask)
@@ -8333,13 +8392,16 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
     // Loop over all the permutations, save the maximum test value from each permutation
     for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
     {
-         // Copy a new permutation vector to constant memory
+    	// Copy a new permutation vector to constant memory
+   		clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 
-        //GeneratePermutedVolumesSecondLevel();
-        //CalculateStatisticalMapPermutation();
-		//h_Maximum_Test_Values[p] = FindMaxTestvaluePermutation();
+        //GeneratePermutedVolumesSecondLevel(d_Permuted_First_Level_Results, d_First_Level_Results, d_MNI_Brain_Mask, p);
+        //CalculateStatisticalMapsGLMTTestSecondLevelPermutation(d_Permuted_First_Level_Results, d_MNI_Brain_Mask);
+   		CalculateStatisticalMapsGLMTTestSecondLevelPermutation(d_First_Level_Results, d_MNI_Brain_Mask);
+        h_Permutation_Distribution[p] = CalculateMax(d_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     }
 
+    clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 
     // Sort the maximum test values
 
@@ -8388,6 +8450,30 @@ void BROCCOLI_LIB::GeneratePermutationMatrixFirstLevel()
     }
 }
 
+// Generates a permutation matrix for several subjects
+void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevel()
+{
+    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+    {
+		// Generate numbers from 0 to number of subjects
+        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+        {
+            h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = (unsigned short int)i;
+        }
+
+		// Generate random number and switch position of existing numbers
+        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+        {
+            int j = rand() % (NUMBER_OF_SUBJECTS - i) + i;
+
+			// Check if random permutation is valid?!
+
+            unsigned short int temp = h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS];
+            h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS] = h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS];
+            h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = temp;
+        }
+    }
+}
 
 void BROCCOLI_LIB::CreateBOLDRegressedVolumes()
 {
@@ -8398,6 +8484,7 @@ void BROCCOLI_LIB::CreateBOLDRegressedVolumes()
 
 void BROCCOLI_LIB::GeneratePermutedVolumesFirstLevel(cl_mem d_Permuted_fMRI_Volumes, cl_mem d_Whitened_fMRI_Volumes, int permutation)
 {
+	// Copy a new permutation vector to constant memory
 	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, EPI_DATA_T * sizeof(unsigned short int), &h_Permutation_Matrix[permutation * EPI_DATA_T], 0, NULL, NULL);
 
 	clSetKernelArg(GeneratePermutedVolumesFirstLevelKernel, 0, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
@@ -8417,13 +8504,14 @@ void BROCCOLI_LIB::GeneratePermutedVolumesFirstLevel(cl_mem d_Permuted_fMRI_Volu
 	clFinish(commandQueue);
 }
 
-void BROCCOLI_LIB::GeneratePermutedVolumesSecondLevel(cl_mem d_Permuted_Volumes, cl_mem d_Volumes, int permutation)
+void BROCCOLI_LIB::GeneratePermutedVolumesSecondLevel(cl_mem d_Permuted_Volumes, cl_mem d_Volumes, cl_mem d_Mask, int permutation)
 {
-	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(float), &h_Permutation_Matrix[permutation * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
+	// Copy a new permutation vector to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[permutation * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 
-	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 0, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
-	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
-	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 0, sizeof(cl_mem), &d_Permuted_Volumes);
+	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 2, sizeof(cl_mem), &d_Mask);
 	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 3, sizeof(cl_mem), &c_Permutation_Vector);
 	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 4, sizeof(int), &MNI_DATA_W);
 	clSetKernelArg(GeneratePermutedVolumesSecondLevelKernel, 5, sizeof(int), &MNI_DATA_H);
@@ -8449,30 +8537,7 @@ void BROCCOLI_LIB::SetupParametersPermutationMultiSubject()
 
 }
 
-// Generates a permutation matrix for several subjects
-void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevel()
-{
-    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-    {
-		// Generate numbers from 0 to number of subjects
-        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
-        {
-            h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = (unsigned short int)i;
-        }
 
-		// Generate random number and switch position of existing numbers
-        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
-        {
-            int j = rand() % (NUMBER_OF_SUBJECTS - i) + i;
-
-			// Check if random permutation is valid?!
-
-            unsigned short int t = h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS];
-            h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS] = h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS];
-            h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = t;
-        }
-    }
-}
 
 
 
