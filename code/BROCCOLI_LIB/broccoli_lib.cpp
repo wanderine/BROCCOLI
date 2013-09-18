@@ -1627,8 +1627,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesThresholdVolume(int DATA_W, int DAT
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D)
 {	
-	localWorkSizeCalculateBetaValuesGLM[0] = 16;
-	localWorkSizeCalculateBetaValuesGLM[1] = 16;
+	localWorkSizeCalculateBetaValuesGLM[0] = 32;
+	localWorkSizeCalculateBetaValuesGLM[1] = 8;
 	localWorkSizeCalculateBetaValuesGLM[2] = 1;
 	
 	// Calculate how many blocks are required
@@ -1641,8 +1641,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeCalculateBetaValuesGLM[1] = yBlocks * localWorkSizeCalculateBetaValuesGLM[1];
 	globalWorkSizeCalculateBetaValuesGLM[2] = zBlocks * localWorkSizeCalculateBetaValuesGLM[2];
 
-	localWorkSizeCalculateStatisticalMapsGLM[0] = 16;
-	localWorkSizeCalculateStatisticalMapsGLM[1] = 16;
+	localWorkSizeCalculateStatisticalMapsGLM[0] = 32;
+	localWorkSizeCalculateStatisticalMapsGLM[1] = 8;
 	localWorkSizeCalculateStatisticalMapsGLM[2] = 1;
 
 	// Calculate how many blocks are required
@@ -1656,8 +1656,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeCalculateStatisticalMapsGLM[2] = zBlocks * localWorkSizeCalculateStatisticalMapsGLM[2];
 
 
-	localWorkSizeEstimateAR4Models[0] = 16;
-	localWorkSizeEstimateAR4Models[1] = 16;
+	localWorkSizeEstimateAR4Models[0] = 32;
+	localWorkSizeEstimateAR4Models[1] = 8;
 	localWorkSizeEstimateAR4Models[2] = 1;
 	
 	// Calculate how many blocks are required
@@ -1670,8 +1670,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeEstimateAR4Models[1] = yBlocks * localWorkSizeEstimateAR4Models[1];
 	globalWorkSizeEstimateAR4Models[2] = zBlocks * localWorkSizeEstimateAR4Models[2];
 
-	localWorkSizeApplyWhiteningAR4[0] = 16;
-	localWorkSizeApplyWhiteningAR4[1] = 16;
+	localWorkSizeApplyWhiteningAR4[0] = 32;
+	localWorkSizeApplyWhiteningAR4[1] = 8;
 	localWorkSizeApplyWhiteningAR4[2] = 1;
 	
 	// Calculate how many blocks are required
@@ -1684,8 +1684,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeApplyWhiteningAR4[1] = yBlocks * localWorkSizeApplyWhiteningAR4[1];
 	globalWorkSizeApplyWhiteningAR4[2] = zBlocks * localWorkSizeApplyWhiteningAR4[2];
 
-	localWorkSizeGeneratePermutedVolumesFirstLevel[0] = 16;
-	localWorkSizeGeneratePermutedVolumesFirstLevel[1] = 16;
+	localWorkSizeGeneratePermutedVolumesFirstLevel[0] = 32;
+	localWorkSizeGeneratePermutedVolumesFirstLevel[1] = 8;
 	localWorkSizeGeneratePermutedVolumesFirstLevel[2] = 1;
 	
 	// Calculate how many blocks are required
@@ -1698,8 +1698,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeGeneratePermutedVolumesFirstLevel[1] = yBlocks * localWorkSizeGeneratePermutedVolumesFirstLevel[1];
 	globalWorkSizeGeneratePermutedVolumesFirstLevel[2] = zBlocks * localWorkSizeGeneratePermutedVolumesFirstLevel[2];
 
-	localWorkSizeGeneratePermutedVolumesSecondLevel[0] = 16;
-	localWorkSizeGeneratePermutedVolumesSecondLevel[1] = 16;
+	localWorkSizeGeneratePermutedVolumesSecondLevel[0] = 32;
+	localWorkSizeGeneratePermutedVolumesSecondLevel[1] = 8;
 	localWorkSizeGeneratePermutedVolumesSecondLevel[2] = 1;
 	
 	// Calculate how many blocks are required
@@ -1712,8 +1712,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeGeneratePermutedVolumesSecondLevel[1] = yBlocks * localWorkSizeGeneratePermutedVolumesSecondLevel[1];
 	globalWorkSizeGeneratePermutedVolumesSecondLevel[2] = zBlocks * localWorkSizeGeneratePermutedVolumesSecondLevel[2];
 
-	localWorkSizeRemoveLinearFit[0] = 16;
-	localWorkSizeRemoveLinearFit[1] = 16;
+	localWorkSizeRemoveLinearFit[0] = 32;
+	localWorkSizeRemoveLinearFit[1] = 8;
 	localWorkSizeRemoveLinearFit[2] = 1;
 	
 	// Calculate how many blocks are required
@@ -6387,17 +6387,11 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS;
 
 
-	//c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	//c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	//c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-	//c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-
-	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * 20 * sizeof(float), NULL, NULL);
-	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, 20 * sizeof(float), NULL, NULL);
-
-
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	
 
 	c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), NULL, NULL);
 
@@ -6719,8 +6713,7 @@ float BROCCOLI_LIB::CalculateMax(cl_mem d_Volume, int DATA_W, int DATA_H, int DA
 
 	cl_mem d_Column_Maxs = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Maxs = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_D * sizeof(float), NULL, NULL);
-
-	// Calculate sum of filter smoothed EPI for each slice
+	
 	clSetKernelArg(CalculateColumnMaxsKernel, 0, sizeof(cl_mem), &d_Column_Maxs);
 	clSetKernelArg(CalculateColumnMaxsKernel, 1, sizeof(cl_mem), &d_Volume);
 	clSetKernelArg(CalculateColumnMaxsKernel, 2, sizeof(int), &DATA_W);
@@ -8389,6 +8382,8 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
 {
 	GeneratePermutationMatrixSecondLevel();
 
+	SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS);
+
     // Loop over all the permutations, save the maximum test value from each permutation
     for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
     {
@@ -9867,8 +9862,8 @@ float BROCCOLI_LIB::Gpdf(double value, double shape, double scale)
 {
 	//return pow(value, shape - scale) * exp(-value / scale) / (pow(scale,shape) * gamma((int)shape));
 
-	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
-	//return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
+	//return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
+	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
 }
 
 

@@ -50,12 +50,12 @@ end
 
 %study = 'Oulu';
 %study = 'ICBM';
-%study = 'Cambridge';
-study = 'Beijing';
+study = 'Cambridge';
+%study = 'Beijing';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-subject = 1;
+subject = 5;
 dirs = dir([basepath study]);
 subject = dirs(subject+2).name
 voxel_size = 1;
@@ -304,7 +304,7 @@ title('Residual variances')
 
  
 figure
-imagesc(ar1_estimates(:,:,32)); colorbar
+imagesc(ar1_estimates(:,:,25)); colorbar
 
 figure
 imagesc(flipud(squeeze(ar1_estimates(35,:,:,1))')); colorbar

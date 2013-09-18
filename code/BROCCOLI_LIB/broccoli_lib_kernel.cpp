@@ -5857,6 +5857,352 @@ int CalculateBetaWeights(__private float* beta,
 
 			break;
 
+		case 11:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+
+			break;
+
+		case 12:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+
+			break;
+
+		case 13:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			
+			break;
+
+		case 14:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			
+			break;
+
+		case 15:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			
+			break;
+
+		case 16:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			
+			break;
+
+		case 17:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			
+			break;
+
+		case 18:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			
+			break;
+
+		case 19:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+
+			break;
+
+		case 20:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			
+			break;
+
+		case 21:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			
+			break;
+
+		case 22:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+
+			break;
+
+		case 23:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + v];
+
+			break;
+
+		case 24:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + v];
+			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + v];
+			
+			break;
+
+		case 25:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + v];
+			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + v];
+			beta[24] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 24 + v];
+			
+			break;
+
+
 		default:
 			1;
 			break;
@@ -5981,6 +6327,351 @@ float CalculateEps(__private float eps,
 
 			break;
 
+		case 11:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			
+			break;
+
+		case 12:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			
+			break;
+
+		case 13:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			
+			break;
+
+		case 14:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			
+			break;
+
+		case 15:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			
+			break;
+
+		case 16:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			
+			break;
+
+		case 17:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			
+			break;
+
+		case 18:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			
+			break;
+
+		case 19:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			
+			break;
+
+		case 20:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			
+			break;
+
+		case 21:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			
+			break;
+
+		case 22:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			
+			break;
+
+		case 23:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
+			
+			break;
+
+		case 24:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 23 + v] * beta[23];
+			
+			break;
+
+		case 25:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 23 + v] * beta[23];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 24 + v] * beta[24];
+
+			break;
+
 		default:
 			1;
 			break;
@@ -6100,7 +6791,351 @@ float CalculateContrastValue(__private float* beta, __constant float* c_Contrast
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
 
+		case 11:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			
 			break;
+
+		case 12:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			
+			break;
+
+		case 13:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			
+			break;
+
+		case 14:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			
+			break;
+
+		case 15:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			
+			break;
+
+		case 16:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			
+			break;
+
+		case 17:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			
+			break;
+
+		case 18:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			
+			break;
+
+		case 19:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			
+			break;
+
+		case 20:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			
+			break;
+
+		case 21:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+
+			break;
+
+		case 22:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			
+			break;
+
+		case 23:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			
+			break;
+
+		case 24:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
+			
+			break;
+
+		case 25:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 24] * beta[24];
+
+			break;
+
 
 		default:
 			1;
@@ -6111,72 +7146,7 @@ float CalculateContrastValue(__private float* beta, __constant float* c_Contrast
 }
 
 
-/*
-int CalculateBetaWeights(__private float* beta,
-		                 __private float value,
-		                 __constant float* c_xtxxt_GLM,
-		                 int v,
-		                 int NUMBER_OF_VOLUMES,
-		                 int NUMBER_OF_REGRESSORS)
-{
-	beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
-	beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
-	beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
-	beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
-	beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
-	beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
-	beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
-	beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
-	beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
-	beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
 
-	return 0;
-}
-
-
-float CalculateEps(__private float eps,
-		           __private float* beta,
-		           __constant float* c_X_GLM,
-		           int v,
-		           int NUMBER_OF_VOLUMES,
-		           int NUMBER_OF_REGRESSORS)
-{
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
-	eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
-
-	return eps;
-}
-
-
-
-float CalculateContrastValue(__private float* beta, __constant float* c_Contrasts, int c, int NUMBER_OF_REGRESSORS)
-{
-	float contrast_value = 0.0f;
-
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
-	contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
-
-
-	return contrast_value;
-}
-
-*/
 
 __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statistical_Maps,
 		                                       	   	   	  __global const float* Volumes,
@@ -6204,17 +7174,17 @@ __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statis
 
 	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-		{
-			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
+		//for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		//{
+		//	Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		//}
 
 		return;
 	}
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[20];
+	float beta[25];
 
 	beta[0] = 0.0f;
 	beta[1] = 0.0f;
@@ -6236,6 +7206,11 @@ __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statis
 	beta[17] = 0.0f;
 	beta[18] = 0.0f;
 	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
 
 
 	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y

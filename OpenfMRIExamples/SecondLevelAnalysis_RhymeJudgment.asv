@@ -52,7 +52,7 @@ voxel_size = 2;
 %--------------------------------------------------------------------------------------
 
 regress_confounds = 0;
-number_of_permutations = 1000;
+number_of_permutations = 5000;
 
 %--------------------------------------------------------------------------------------
 % Load MNI templates
@@ -85,16 +85,20 @@ end
 % Create GLM regressors
 %--------------------------------------------------------------------------------------
 
-nr = 25;
+nr = 20;
 X_GLM = zeros(number_of_subjects,nr);
 
 for subject = 1:13
    X_GLM(subject,1) = subject; 
    
-   for r = 2:nr
-        X_GLM(subject,r) = randn; 
-   end
+   %for r = 2:nr
+   %     X_GLM(subject,r) = randn; 
+   %end
    
+end
+
+for r = 2:nr
+    X_GLM(r,r) = 1; 
 end
 
 
@@ -159,11 +163,9 @@ elseif nr == 23
              
 elseif nr == 25
 
-    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] ;                 
-    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
+                 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+             
 end
 
 for i = 1:size(contrasts,1)

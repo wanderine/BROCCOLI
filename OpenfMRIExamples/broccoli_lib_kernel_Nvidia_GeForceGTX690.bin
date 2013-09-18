@@ -10,14 +10,14 @@
 
 .const .align 1 .b8 $str[31] = {99, 97, 110, 110, 111, 116, 32, 114, 101, 97, 100, 32, 95, 95, 119, 114, 105, 116, 101, 95, 111, 110, 108, 121, 32, 105, 109, 97, 103, 101, 0};
 .const .align 4 .b8 __GPU_i2opi_f[24] = {65, 144, 67, 60, 153, 149, 98, 219, 192, 221, 52, 245, 209, 87, 39, 252, 41, 21, 68, 78, 110, 131, 249, 162};
-.extern .shared .align 4 .b8 shr_1_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_2_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_3_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_4_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_5_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_6_l_Volume[16384];
-.extern .shared .align 4 .b8 shr_7_l_Image[24576];
-.extern .shared .align 4 .b8 shr_8_l_Image[32768];
+.extern .shared .align 4 .b8 shr_17_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_18_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_19_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_20_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_21_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_22_l_Volume[16384];
+.extern .shared .align 4 .b8 shr_23_l_Image[24576];
+.extern .shared .align 4 .b8 shr_24_l_Image[32768];
 .visible .global .samplerref volume_sampler_nearest = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = nearest, force_unnormalized_coords = 1 };
 .visible .global .samplerref volume_sampler_linear = { addr_mode_0 = clamp_to_border, addr_mode_1 = clamp_to_border, addr_mode_2 = clamp_to_border, filter_mode = linear, force_unnormalized_coords = 1 };
 
@@ -89,7 +89,7 @@
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 11;
-	mov.u32 	%r49, shr_1_l_Volume;
+	mov.u32 	%r49, shr_17_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -635,7 +635,7 @@ BB0_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 11;
-	mov.u32 	%r69, shr_2_l_Volume;
+	mov.u32 	%r69, shr_18_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -1645,7 +1645,7 @@ BB1_85:
 	mov.u32 	%r44, %tid.z;
 	// inline asm
 	shl.b32 	%r50, %r44, 11;
-	mov.u32 	%r51, shr_3_l_Volume;
+	mov.u32 	%r51, shr_19_l_Volume;
 	add.s32 	%r52, %r51, %r50;
 	shl.b32 	%r53, %r43, 7;
 	add.s32 	%r54, %r52, %r53;
@@ -2271,7 +2271,7 @@ BB2_53:
 	mov.u32 	%r68, %tid.z;
 	// inline asm
 	shl.b32 	%r74, %r68, 11;
-	mov.u32 	%r75, shr_4_l_Volume;
+	mov.u32 	%r75, shr_20_l_Volume;
 	add.s32 	%r76, %r75, %r74;
 	shl.b32 	%r77, %r67, 7;
 	add.s32 	%r78, %r76, %r77;
@@ -3454,7 +3454,7 @@ BB3_109:
 	mov.u32 	%r43, %tid.z;
 	// inline asm
 	shl.b32 	%r48, %r43, 10;
-	mov.u32 	%r49, shr_5_l_Volume;
+	mov.u32 	%r49, shr_21_l_Volume;
 	add.s32 	%r50, %r49, %r48;
 	shl.b32 	%r51, %r42, 7;
 	add.s32 	%r52, %r50, %r51;
@@ -3950,7 +3950,7 @@ BB4_41:
 	mov.u32 	%r63, %tid.z;
 	// inline asm
 	shl.b32 	%r68, %r63, 10;
-	mov.u32 	%r69, shr_6_l_Volume;
+	mov.u32 	%r69, shr_22_l_Volume;
 	add.s32 	%r70, %r69, %r68;
 	shl.b32 	%r71, %r62, 7;
 	add.s32 	%r72, %r70, %r71;
@@ -5622,7 +5622,7 @@ BB8_2:
 	// inline asm
 	mov.u32 	%r45, %tid.y;
 	// inline asm
-	mov.u32 	%r52, shr_7_l_Image;
+	mov.u32 	%r52, shr_23_l_Image;
 	mad.lo.s32 	%r53, %r45, 384, %r52;
 	shl.b32 	%r54, %r44, 2;
 	add.s32 	%r18, %r53, %r54;
@@ -9851,7 +9851,7 @@ BB9_36:
 	mov.u32 	%r59, %tid.y;
 	// inline asm
 	shl.b32 	%r66, %r59, 9;
-	mov.u32 	%r67, shr_8_l_Image;
+	mov.u32 	%r67, shr_24_l_Image;
 	add.s32 	%r68, %r67, %r66;
 	shl.b32 	%r69, %r58, 2;
 	add.s32 	%r18, %r68, %r69;
@@ -10995,7 +10995,7 @@ BB10_99:
 
 	add.s32 	%r134, %r59, 3;
 	add.s32 	%r135, %r58, 19;
-	// Callseq Start 0
+	// Callseq Start 42
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11043,7 +11043,7 @@ BB10_99:
 	ld.param.f32	%f674, [retval0+16];
 	ld.param.f32	%f675, [retval0+20];
 	}
-	// Callseq End 0
+	// Callseq End 42
 	ld.global.v2.f32 	{%f7708, %f7709}, [%r30+128];
 	add.f32 	%f7710, %f7708, %f670;
 	add.f32 	%f7711, %f7709, %f671;
@@ -11066,7 +11066,7 @@ BB10_101:
 
 	add.s32 	%r138, %r59, 3;
 	add.s32 	%r139, %r58, 35;
-	// Callseq Start 1
+	// Callseq Start 43
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11114,7 +11114,7 @@ BB10_101:
 	ld.param.f32	%f680, [retval0+16];
 	ld.param.f32	%f681, [retval0+20];
 	}
-	// Callseq End 1
+	// Callseq End 43
 	ld.global.v2.f32 	{%f7690, %f7691}, [%r30+256];
 	add.f32 	%f7692, %f7690, %f676;
 	add.f32 	%f7693, %f7691, %f677;
@@ -11137,7 +11137,7 @@ BB10_103:
 
 	add.s32 	%r142, %r59, 3;
 	add.s32 	%r143, %r58, 51;
-	// Callseq Start 2
+	// Callseq Start 44
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11185,7 +11185,7 @@ BB10_103:
 	ld.param.f32	%f686, [retval0+16];
 	ld.param.f32	%f687, [retval0+20];
 	}
-	// Callseq End 2
+	// Callseq End 44
 	ld.global.v2.f32 	{%f7672, %f7673}, [%r30+384];
 	add.f32 	%f7674, %f7672, %f682;
 	add.f32 	%f7675, %f7673, %f683;
@@ -11208,7 +11208,7 @@ BB10_105:
 
 	add.s32 	%r146, %r59, 3;
 	add.s32 	%r147, %r58, 67;
-	// Callseq Start 3
+	// Callseq Start 45
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11256,7 +11256,7 @@ BB10_105:
 	ld.param.f32	%f692, [retval0+16];
 	ld.param.f32	%f693, [retval0+20];
 	}
-	// Callseq End 3
+	// Callseq End 45
 	ld.global.v2.f32 	{%f7654, %f7655}, [%r30+512];
 	add.f32 	%f7656, %f7654, %f688;
 	add.f32 	%f7657, %f7655, %f689;
@@ -11279,7 +11279,7 @@ BB10_107:
 
 	add.s32 	%r150, %r59, 3;
 	add.s32 	%r151, %r58, 83;
-	// Callseq Start 4
+	// Callseq Start 46
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11327,7 +11327,7 @@ BB10_107:
 	ld.param.f32	%f698, [retval0+16];
 	ld.param.f32	%f699, [retval0+20];
 	}
-	// Callseq End 4
+	// Callseq End 46
 	ld.global.v2.f32 	{%f7636, %f7637}, [%r30+640];
 	add.f32 	%f7638, %f7636, %f694;
 	add.f32 	%f7639, %f7637, %f695;
@@ -11350,7 +11350,7 @@ BB10_109:
 
 	add.s32 	%r154, %r59, 3;
 	add.s32 	%r155, %r58, 99;
-	// Callseq Start 5
+	// Callseq Start 47
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11398,7 +11398,7 @@ BB10_109:
 	ld.param.f32	%f704, [retval0+16];
 	ld.param.f32	%f705, [retval0+20];
 	}
-	// Callseq End 5
+	// Callseq End 47
 	ld.global.v2.f32 	{%f7618, %f7619}, [%r30+768];
 	add.f32 	%f7620, %f7618, %f700;
 	add.f32 	%f7621, %f7619, %f701;
@@ -11425,7 +11425,7 @@ BB10_111:
 
 	add.s32 	%r158, %r59, 3;
 	add.s32 	%r159, %r58, 115;
-	// Callseq Start 6
+	// Callseq Start 48
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11473,7 +11473,7 @@ BB10_111:
 	ld.param.f32	%f710, [retval0+16];
 	ld.param.f32	%f711, [retval0+20];
 	}
-	// Callseq End 6
+	// Callseq End 48
 	ld.global.v2.f32 	{%f7600, %f7601}, [%r30+896];
 	add.f32 	%f7602, %f7600, %f706;
 	add.f32 	%f7603, %f7601, %f707;
@@ -11497,7 +11497,7 @@ BB10_114:
 
 	add.s32 	%r161, %r59, 19;
 	add.s32 	%r162, %r58, 3;
-	// Callseq Start 7
+	// Callseq Start 49
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11545,7 +11545,7 @@ BB10_114:
 	ld.param.f32	%f716, [retval0+16];
 	ld.param.f32	%f717, [retval0+20];
 	}
-	// Callseq End 7
+	// Callseq End 49
 	ld.param.u32 	%r537, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_12];
 	mad.lo.s32 	%r164, %r15, %r537, %r33;
 	ld.param.u32 	%r488, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_11];
@@ -11594,7 +11594,7 @@ BB10_117:
 
 	add.s32 	%r176, %r59, 19;
 	add.s32 	%r177, %r58, 19;
-	// Callseq Start 8
+	// Callseq Start 50
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11642,7 +11642,7 @@ BB10_117:
 	ld.param.f32	%f722, [retval0+16];
 	ld.param.f32	%f723, [retval0+20];
 	}
-	// Callseq End 8
+	// Callseq End 50
 	ld.global.v2.f32 	{%f7564, %f7565}, [%r35+128];
 	add.f32 	%f7566, %f7564, %f718;
 	add.f32 	%f7567, %f7565, %f719;
@@ -11665,7 +11665,7 @@ BB10_120:
 
 	add.s32 	%r180, %r59, 19;
 	add.s32 	%r181, %r58, 35;
-	// Callseq Start 9
+	// Callseq Start 51
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11713,7 +11713,7 @@ BB10_120:
 	ld.param.f32	%f728, [retval0+16];
 	ld.param.f32	%f729, [retval0+20];
 	}
-	// Callseq End 9
+	// Callseq End 51
 	ld.global.v2.f32 	{%f7546, %f7547}, [%r35+256];
 	add.f32 	%f7548, %f7546, %f724;
 	add.f32 	%f7549, %f7547, %f725;
@@ -11736,7 +11736,7 @@ BB10_123:
 
 	add.s32 	%r184, %r59, 19;
 	add.s32 	%r185, %r58, 51;
-	// Callseq Start 10
+	// Callseq Start 52
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11784,7 +11784,7 @@ BB10_123:
 	ld.param.f32	%f734, [retval0+16];
 	ld.param.f32	%f735, [retval0+20];
 	}
-	// Callseq End 10
+	// Callseq End 52
 	ld.global.v2.f32 	{%f7528, %f7529}, [%r35+384];
 	add.f32 	%f7530, %f7528, %f730;
 	add.f32 	%f7531, %f7529, %f731;
@@ -11807,7 +11807,7 @@ BB10_126:
 
 	add.s32 	%r188, %r59, 19;
 	add.s32 	%r189, %r58, 67;
-	// Callseq Start 11
+	// Callseq Start 53
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11855,7 +11855,7 @@ BB10_126:
 	ld.param.f32	%f740, [retval0+16];
 	ld.param.f32	%f741, [retval0+20];
 	}
-	// Callseq End 11
+	// Callseq End 53
 	ld.global.v2.f32 	{%f7510, %f7511}, [%r35+512];
 	add.f32 	%f7512, %f7510, %f736;
 	add.f32 	%f7513, %f7511, %f737;
@@ -11878,7 +11878,7 @@ BB10_129:
 
 	add.s32 	%r192, %r59, 19;
 	add.s32 	%r193, %r58, 83;
-	// Callseq Start 12
+	// Callseq Start 54
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11926,7 +11926,7 @@ BB10_129:
 	ld.param.f32	%f746, [retval0+16];
 	ld.param.f32	%f747, [retval0+20];
 	}
-	// Callseq End 12
+	// Callseq End 54
 	ld.global.v2.f32 	{%f7492, %f7493}, [%r35+640];
 	add.f32 	%f7494, %f7492, %f742;
 	add.f32 	%f7495, %f7493, %f743;
@@ -11949,7 +11949,7 @@ BB10_132:
 
 	add.s32 	%r196, %r59, 19;
 	add.s32 	%r197, %r58, 99;
-	// Callseq Start 13
+	// Callseq Start 55
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -11997,7 +11997,7 @@ BB10_132:
 	ld.param.f32	%f752, [retval0+16];
 	ld.param.f32	%f753, [retval0+20];
 	}
-	// Callseq End 13
+	// Callseq End 55
 	ld.global.v2.f32 	{%f7474, %f7475}, [%r35+768];
 	add.f32 	%f7476, %f7474, %f748;
 	add.f32 	%f7477, %f7475, %f749;
@@ -12025,7 +12025,7 @@ BB10_135:
 
 	add.s32 	%r201, %r59, 19;
 	add.s32 	%r202, %r58, 115;
-	// Callseq Start 14
+	// Callseq Start 56
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12073,7 +12073,7 @@ BB10_135:
 	ld.param.f32	%f758, [retval0+16];
 	ld.param.f32	%f759, [retval0+20];
 	}
-	// Callseq End 14
+	// Callseq End 56
 	ld.global.v2.f32 	{%f7456, %f7457}, [%r35+896];
 	add.f32 	%f7458, %f7456, %f754;
 	add.f32 	%f7459, %f7457, %f755;
@@ -12097,7 +12097,7 @@ BB10_139:
 
 	add.s32 	%r204, %r59, 35;
 	add.s32 	%r205, %r58, 3;
-	// Callseq Start 15
+	// Callseq Start 57
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12145,7 +12145,7 @@ BB10_139:
 	ld.param.f32	%f764, [retval0+16];
 	ld.param.f32	%f765, [retval0+20];
 	}
-	// Callseq End 15
+	// Callseq End 57
 	ld.param.u32 	%r527, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_12];
 	mad.lo.s32 	%r207, %r15, %r527, %r38;
 	ld.param.u32 	%r485, [Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD_param_11];
@@ -12194,7 +12194,7 @@ BB10_142:
 
 	add.s32 	%r219, %r59, 35;
 	add.s32 	%r220, %r58, 19;
-	// Callseq Start 16
+	// Callseq Start 58
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12242,7 +12242,7 @@ BB10_142:
 	ld.param.f32	%f770, [retval0+16];
 	ld.param.f32	%f771, [retval0+20];
 	}
-	// Callseq End 16
+	// Callseq End 58
 	ld.global.v2.f32 	{%f7420, %f7421}, [%r40+128];
 	add.f32 	%f7422, %f7420, %f766;
 	add.f32 	%f7423, %f7421, %f767;
@@ -12265,7 +12265,7 @@ BB10_145:
 
 	add.s32 	%r223, %r59, 35;
 	add.s32 	%r224, %r58, 35;
-	// Callseq Start 17
+	// Callseq Start 59
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12313,7 +12313,7 @@ BB10_145:
 	ld.param.f32	%f776, [retval0+16];
 	ld.param.f32	%f777, [retval0+20];
 	}
-	// Callseq End 17
+	// Callseq End 59
 	ld.global.v2.f32 	{%f7402, %f7403}, [%r40+256];
 	add.f32 	%f7404, %f7402, %f772;
 	add.f32 	%f7405, %f7403, %f773;
@@ -12336,7 +12336,7 @@ BB10_148:
 
 	add.s32 	%r227, %r59, 35;
 	add.s32 	%r228, %r58, 51;
-	// Callseq Start 18
+	// Callseq Start 60
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12384,7 +12384,7 @@ BB10_148:
 	ld.param.f32	%f782, [retval0+16];
 	ld.param.f32	%f783, [retval0+20];
 	}
-	// Callseq End 18
+	// Callseq End 60
 	ld.global.v2.f32 	{%f7384, %f7385}, [%r40+384];
 	add.f32 	%f7386, %f7384, %f778;
 	add.f32 	%f7387, %f7385, %f779;
@@ -12407,7 +12407,7 @@ BB10_151:
 
 	add.s32 	%r231, %r59, 35;
 	add.s32 	%r232, %r58, 67;
-	// Callseq Start 19
+	// Callseq Start 61
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12455,7 +12455,7 @@ BB10_151:
 	ld.param.f32	%f788, [retval0+16];
 	ld.param.f32	%f789, [retval0+20];
 	}
-	// Callseq End 19
+	// Callseq End 61
 	ld.global.v2.f32 	{%f7366, %f7367}, [%r40+512];
 	add.f32 	%f7368, %f7366, %f784;
 	add.f32 	%f7369, %f7367, %f785;
@@ -12478,7 +12478,7 @@ BB10_154:
 
 	add.s32 	%r235, %r59, 35;
 	add.s32 	%r236, %r58, 83;
-	// Callseq Start 20
+	// Callseq Start 62
 	{
 	.reg .b32 temp_param_reg;
 	.param .b32 param0;
@@ -12526,7 +12526,7 @@ BB10_154:
 	ld.param.f32	%f794, [retval0+16];
 	ld.param.f32	%f795, [retval0+20];
 	}
-	// Callseq End 20
+	// Callseq End 62
 	ld.global.v2.f32 	{%f7348, %f7349}, [%r40+640];
 	add.f32 	%f7350, %f7348, %f790;
 	add.f32 	%f7351, %f7349, %f791;
@@ -26083,7 +26083,7 @@ BB47_2:
 	.param .u32 CalculateBetaValuesGLM_param_9
 )
 {
-	.local .align 4 .b8 	__local_depot48[80];
+	.local .align 4 .b8 	__local_depot48[100];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<9>;
 	.reg .pred 	%p<17>;
@@ -26314,7 +26314,7 @@ BB48_17:
 	.param .u32 CalculateStatisticalMapsGLMTTest_param_17
 )
 {
-	.local .align 4 .b8 	__local_depot49[80];
+	.local .align 4 .b8 	__local_depot49[100];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<57>;
 	.reg .pred 	%p<24>;
@@ -26723,7 +26723,7 @@ BB49_32:
 	.param .u32 CalculateStatisticalMapsGLMFTest_param_14
 )
 {
-	.local .align 4 .b8 	__local_depot50[240];
+	.local .align 4 .b8 	__local_depot50[200];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<62>;
 	.reg .pred 	%p<26>;
@@ -26977,7 +26977,7 @@ BB50_21:
 	mov.u32 	%r65, %r246;
 	mov.u32 	%r66, %r245;
 	shl.b32 	%r153, %r66, 2;
-	add.u32 	%r154, %SP, 80;
+	add.u32 	%r154, %SP, 100;
 	add.s32 	%r67, %r154, %r153;
 	st.local.u32 	[%r67], %r152;
 	@!%p5 bra 	BB50_25;
@@ -27024,12 +27024,12 @@ BB50_28:
 	mov.u32 	%r252, %r254;
 	mov.u32 	%r77, %r252;
 	shl.b32 	%r161, %r251, 2;
-	add.u32 	%r162, %SP, 160;
+	add.u32 	%r162, %SP, 0;
 	add.s32 	%r79, %r162, %r161;
 	mov.u32 	%r256, 0;
 	st.local.u32 	[%r79], %r256;
 	mov.f32 	%f60, 0f00000000;
-	add.u32 	%r255, %SP, 80;
+	add.u32 	%r255, %SP, 100;
 	mov.u32 	%r253, %r77;
 
 BB50_29:
@@ -27063,8 +27063,8 @@ BB50_31:
 BB50_33:
 	mov.f32 	%f61, 0f00000000;
 	mov.u32 	%r259, 0;
-	add.u32 	%r258, %SP, 80;
-	add.u32 	%r257, %SP, 160;
+	add.u32 	%r258, %SP, 100;
+	add.u32 	%r257, %SP, 0;
 
 BB50_34:
 	ld.local.f32 	%f51, [%r257];
@@ -27124,391 +27124,4537 @@ BB50_39:
 	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_0,
 	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_1,
 	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_2,
-	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_3,
-	.param .u32 .ptr .global .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_4,
+	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_3,
+	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_4,
 	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_5,
 	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_6,
-	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_7,
-	.param .u32 .ptr .const .align 4 CalculateStatisticalMapsGLMTTestPermutation_param_8,
+	.param .u32 .ptr .const .align 2 CalculateStatisticalMapsGLMTTestPermutation_param_7,
+	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_8,
 	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_9,
 	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_10,
 	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_11,
 	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_12,
-	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_13,
-	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_14,
-	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_15
+	.param .u32 CalculateStatisticalMapsGLMTTestPermutation_param_13
 )
 {
-	.local .align 4 .b8 	__local_depot51[80];
-	.reg .b32 	%SP;
-	.reg .f32 	%f<57>;
-	.reg .pred 	%p<24>;
-	.reg .s32 	%r<259>;
+	.reg .f32 	%f<3456>;
+	.reg .pred 	%p<147>;
+	.reg .s32 	%r<425>;
 
 
-	mov.u32 	%SP, __local_depot51;
+	ld.param.u32 	%r9, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
 	ld.param.u32 	%r10, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
 	ld.param.u32 	%r11, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	ld.param.u32 	%r12, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
 	// inline asm
-	mov.u32 	%r86, %envreg3;
-	// inline asm
-	// inline asm
-	mov.u32 	%r87, %ntid.x;
+	mov.u32 	%r132, %envreg3;
 	// inline asm
 	// inline asm
-	mov.u32 	%r88, %ctaid.x;
+	mov.u32 	%r133, %ntid.x;
 	// inline asm
 	// inline asm
-	mov.u32 	%r89, %tid.x;
-	// inline asm
-	add.s32 	%r101, %r89, %r86;
-	mad.lo.s32 	%r21, %r88, %r87, %r101;
-	// inline asm
-	mov.u32 	%r90, %envreg4;
+	mov.u32 	%r134, %ctaid.x;
 	// inline asm
 	// inline asm
-	mov.u32 	%r91, %ntid.y;
+	mov.u32 	%r135, %tid.x;
+	// inline asm
+	add.s32 	%r147, %r135, %r132;
+	mad.lo.s32 	%r19, %r134, %r133, %r147;
+	// inline asm
+	mov.u32 	%r136, %envreg4;
 	// inline asm
 	// inline asm
-	mov.u32 	%r92, %ctaid.y;
+	mov.u32 	%r137, %ntid.y;
 	// inline asm
 	// inline asm
-	mov.u32 	%r93, %tid.y;
-	// inline asm
-	add.s32 	%r102, %r93, %r90;
-	mad.lo.s32 	%r26, %r92, %r91, %r102;
-	// inline asm
-	mov.u32 	%r94, %envreg5;
+	mov.u32 	%r138, %ctaid.y;
 	// inline asm
 	// inline asm
-	mov.u32 	%r95, %ntid.z;
+	mov.u32 	%r139, %tid.y;
+	// inline asm
+	add.s32 	%r148, %r139, %r136;
+	mad.lo.s32 	%r24, %r138, %r137, %r148;
+	// inline asm
+	mov.u32 	%r140, %envreg5;
 	// inline asm
 	// inline asm
-	mov.u32 	%r96, %ctaid.z;
+	mov.u32 	%r141, %ntid.z;
 	// inline asm
 	// inline asm
-	mov.u32 	%r97, %tid.z;
+	mov.u32 	%r142, %ctaid.z;
 	// inline asm
-	add.s32 	%r103, %r97, %r94;
-	mad.lo.s32 	%r31, %r96, %r95, %r103;
-	setp.lt.s32 	%p5, %r21, %r10;
-	setp.lt.s32 	%p6, %r26, %r11;
-	and.pred  	%p7, %p5, %p6;
-	setp.lt.s32 	%p8, %r31, %r12;
-	and.pred  	%p9, %p7, %p8;
-	@!%p9 bra 	BB51_32;
+	// inline asm
+	mov.u32 	%r143, %tid.z;
+	// inline asm
+	add.s32 	%r149, %r143, %r140;
+	mad.lo.s32 	%r29, %r142, %r141, %r149;
+	setp.lt.s32 	%p1, %r19, %r9;
+	setp.lt.s32 	%p2, %r24, %r10;
+	and.pred  	%p3, %p1, %p2;
+	setp.lt.s32 	%p4, %r29, %r11;
+	and.pred  	%p5, %p3, %p4;
+	@!%p5 bra 	BB51_251;
 
-	ld.param.u32 	%r205, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	mad.lo.s32 	%r104, %r31, %r205, %r26;
-	ld.param.u32 	%r198, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
-	mad.lo.s32 	%r105, %r104, %r198, %r21;
-	shl.b32 	%r106, %r105, 2;
-	ld.param.u32 	%r185, [CalculateStatisticalMapsGLMTTestPermutation_param_4];
-	add.s32 	%r107, %r185, %r106;
-	ld.global.f32 	%f22, [%r107];
-	setp.neu.f32 	%p10, %f22, 0f3F800000;
-	@%p10 bra 	BB51_26;
+	ld.param.u32 	%r255, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
+	mad.lo.s32 	%r150, %r29, %r255, %r24;
+	ld.param.u32 	%r250, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
+	mad.lo.s32 	%r151, %r150, %r250, %r19;
+	shl.b32 	%r152, %r151, 2;
+	ld.param.u32 	%r236, [CalculateStatisticalMapsGLMTTestPermutation_param_2];
+	add.s32 	%r153, %r236, %r152;
+	ld.global.f32 	%f522, [%r153];
+	setp.neu.f32 	%p6, %f522, 0f3F800000;
+	@%p6 bra 	BB51_251;
 
-	ld.param.u32 	%r228, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	setp.lt.s32 	%p11, %r228, 1;
-	@%p11 bra 	BB51_5;
+	ld.param.u32 	%r271, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	setp.gt.s32 	%p7, %r271, 0;
+	@%p7 bra 	BB51_4;
 
-	ld.param.u32 	%r204, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	mad.lo.s32 	%r116, %r204, %r31, %r26;
-	ld.param.u32 	%r197, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
-	mad.lo.s32 	%r117, %r197, %r116, %r21;
-	shl.b32 	%r118, %r117, 2;
-	ld.param.u32 	%r184, [CalculateStatisticalMapsGLMTTestPermutation_param_3];
-	add.s32 	%r235, %r184, %r118;
-	ld.param.u32 	%r211, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
-	mul.lo.s32 	%r119, %r211, %r204;
-	mul.lo.s32 	%r120, %r119, %r197;
-	shl.b32 	%r33, %r120, 2;
-	mov.u32 	%r236, 0;
-	add.u32 	%r234, %SP, 0;
+	mov.f32 	%f3439, 0f00000000;
+	mov.f32 	%f3438, %f3439;
+	mov.f32 	%f3437, %f3439;
+	mov.f32 	%f3436, %f3439;
+	mov.f32 	%f3435, %f3439;
+	mov.f32 	%f3434, %f3439;
+	mov.f32 	%f3433, %f3439;
+	mov.f32 	%f3432, %f3439;
+	mov.f32 	%f3431, %f3439;
+	mov.f32 	%f3430, %f3439;
+	mov.f32 	%f3429, %f3439;
+	mov.f32 	%f3428, %f3439;
+	mov.f32 	%f3427, %f3439;
+	mov.f32 	%f3426, %f3439;
+	mov.f32 	%f3425, %f3439;
+	mov.f32 	%f3424, %f3439;
+	mov.f32 	%f3423, %f3439;
+	mov.f32 	%f3422, %f3439;
+	mov.f32 	%f3421, %f3439;
+	mov.f32 	%f3420, %f3439;
+	mov.f32 	%f3419, %f3439;
+	mov.f32 	%f3418, %f3439;
+	mov.f32 	%f3417, %f3439;
+	mov.f32 	%f3416, %f3439;
+	mov.f32 	%f3415, %f3439;
+	bra.uni 	BB51_64;
 
 BB51_4:
-	ld.global.f32 	%f23, [%r235];
-	st.local.f32 	[%r234], %f23;
-	add.s32 	%r235, %r235, %r33;
-	add.s32 	%r234, %r234, 4;
-	add.s32 	%r236, %r236, 1;
-	ld.param.u32 	%r227, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	setp.lt.s32 	%p12, %r236, %r227;
-	@%p12 bra 	BB51_4;
+	mov.f32 	%f3439, 0f00000000;
+	mov.f32 	%f3438, %f3439;
+	mov.f32 	%f3437, %f3439;
+	mov.f32 	%f3436, %f3439;
+	mov.f32 	%f3435, %f3439;
+	mov.f32 	%f3434, %f3439;
+	mov.f32 	%f3433, %f3439;
+	mov.f32 	%f3432, %f3439;
+	mov.f32 	%f3431, %f3439;
+	mov.f32 	%f3430, %f3439;
+	mov.f32 	%f3429, %f3439;
+	mov.f32 	%f3428, %f3439;
+	mov.f32 	%f3427, %f3439;
+	mov.f32 	%f3426, %f3439;
+	mov.f32 	%f3425, %f3439;
+	mov.f32 	%f3424, %f3439;
+	mov.f32 	%f3423, %f3439;
+	mov.f32 	%f3422, %f3439;
+	mov.f32 	%f3421, %f3439;
+	mov.f32 	%f3420, %f3439;
+	mov.f32 	%f3419, %f3439;
+	mov.f32 	%f3418, %f3439;
+	mov.f32 	%f3417, %f3439;
+	mov.f32 	%f3416, %f3439;
+	mov.f32 	%f3415, %f3439;
+	mov.u32 	%r411, 0;
+	ld.param.u32 	%r409, [CalculateStatisticalMapsGLMTTestPermutation_param_4];
+	ld.param.u32 	%r410, [CalculateStatisticalMapsGLMTTestPermutation_param_7];
 
 BB51_5:
-	ld.param.u32 	%r219, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	setp.gt.s32 	%p1, %r219, 0;
-	@%p1 bra 	BB51_7;
+	ld.const.u16 	%r157, [%r410];
+	ld.param.u32 	%r259, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
+	mad.lo.s32 	%r158, %r157, %r259, %r29;
+	ld.param.u32 	%r254, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
+	mad.lo.s32 	%r161, %r158, %r254, %r24;
+	ld.param.u32 	%r249, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
+	mad.lo.s32 	%r164, %r161, %r249, %r19;
+	shl.b32 	%r165, %r164, 2;
+	ld.param.u32 	%r235, [CalculateStatisticalMapsGLMTTestPermutation_param_1];
+	add.s32 	%r166, %r235, %r165;
+	ld.global.f32 	%f26, [%r166];
+	ld.param.u32 	%r270, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	shl.b32 	%r167, %r270, 2;
+	add.s32 	%r33, %r409, %r167;
+	shl.b32 	%r168, %r270, 3;
+	add.s32 	%r34, %r409, %r168;
+	add.s32 	%r35, %r33, %r168;
+	mad.lo.s32 	%r36, %r270, 12, %r33;
+	shl.b32 	%r169, %r270, 4;
+	add.s32 	%r37, %r33, %r169;
+	mad.lo.s32 	%r38, %r270, 20, %r33;
+	mad.lo.s32 	%r39, %r270, 24, %r33;
+	mad.lo.s32 	%r40, %r270, 28, %r33;
+	shl.b32 	%r170, %r270, 5;
+	add.s32 	%r41, %r33, %r170;
+	mad.lo.s32 	%r42, %r270, 36, %r33;
+	mad.lo.s32 	%r43, %r270, 40, %r33;
+	mad.lo.s32 	%r44, %r270, 44, %r33;
+	mad.lo.s32 	%r45, %r270, 48, %r33;
+	mad.lo.s32 	%r46, %r270, 52, %r33;
+	mad.lo.s32 	%r47, %r270, 56, %r33;
+	mad.lo.s32 	%r48, %r270, 60, %r33;
+	shl.b32 	%r171, %r270, 6;
+	add.s32 	%r49, %r33, %r171;
+	mad.lo.s32 	%r50, %r270, 68, %r33;
+	mad.lo.s32 	%r51, %r270, 72, %r33;
+	mad.lo.s32 	%r52, %r270, 76, %r33;
+	mad.lo.s32 	%r53, %r270, 80, %r33;
+	mad.lo.s32 	%r54, %r270, 84, %r33;
+	mad.lo.s32 	%r55, %r270, 88, %r33;
+	ld.param.u32 	%r406, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p8, %r406, 12;
+	@%p8 bra 	BB51_25;
 
-	mov.f32 	%f53, 0f00000000;
-	bra.uni 	BB51_12;
+	ld.param.u32 	%r388, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p26, %r388, 6;
+	@%p26 bra 	BB51_16;
 
-BB51_7:
-	ld.param.u32 	%r218, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	shl.b32 	%r40, %r218, 2;
-	ld.param.u32 	%r226, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	setp.gt.s32 	%p2, %r226, 0;
-	mov.u32 	%r237, 0;
-	mov.f32 	%f53, 0f00000000;
-	ld.param.u32 	%r240, [CalculateStatisticalMapsGLMTTestPermutation_param_5];
+	ld.param.u32 	%r380, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p34, %r380, 3;
+	@%p34 bra 	BB51_12;
 
-BB51_8:
-	mov.u32 	%r238, %r240;
-	mov.u32 	%r41, %r238;
-	ld.param.u32 	%r210, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
-	mad.lo.s32 	%r122, %r237, %r210, %r31;
-	ld.param.u32 	%r203, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	mad.lo.s32 	%r123, %r122, %r203, %r26;
-	ld.param.u32 	%r196, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
-	mad.lo.s32 	%r43, %r123, %r196, %r21;
-	shl.b32 	%r124, %r43, 2;
-	ld.param.u32 	%r183, [CalculateStatisticalMapsGLMTTestPermutation_param_2];
-	add.s32 	%r125, %r183, %r124;
-	ld.global.f32 	%f52, [%r125];
-	@%p2 bra 	BB51_9;
-	bra.uni 	BB51_11;
+	ld.param.u32 	%r376, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p38, %r376, 1;
+	@%p38 bra 	BB51_62;
 
-BB51_9:
-	mov.u32 	%r242, 0;
-	add.u32 	%r241, %SP, 0;
-	mov.u32 	%r239, %r41;
+	ld.param.u32 	%r375, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p39, %r375, 2;
+	@%p39 bra 	BB51_61;
 
-BB51_10:
-	mov.u32 	%r44, %r239;
-	ld.local.f32 	%f26, [%r241];
-	ld.const.f32 	%f27, [%r44];
-	neg.f32 	%f28, %f27;
-	fma.rn.f32 	%f52, %f28, %f26, %f52;
-	add.s32 	%r241, %r241, 4;
-	add.s32 	%r48, %r44, %r40;
-	add.s32 	%r242, %r242, 1;
-	ld.param.u32 	%r225, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	setp.lt.s32 	%p13, %r242, %r225;
-	mov.u32 	%r239, %r48;
-	@%p13 bra 	BB51_10;
+	ld.param.u32 	%r374, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p40, %r374, 3;
+	@%p40 bra 	BB51_11;
+	bra.uni 	BB51_63;
 
 BB51_11:
-	shl.b32 	%r128, %r237, 2;
-	ld.param.u32 	%r191, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
-	add.s32 	%r129, %r191, %r128;
-	ld.const.f32 	%f29, [%r129];
-	mul.f32 	%f30, %f52, %f29;
-	fma.rn.f32 	%f53, %f52, %f29, %f53;
-	ld.param.u32 	%r181, [CalculateStatisticalMapsGLMTTestPermutation_param_1];
-	add.s32 	%r131, %r181, %r124;
-	st.global.f32 	[%r131], %f30;
-	add.s32 	%r237, %r237, 1;
-	ld.param.u32 	%r217, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	setp.lt.s32 	%p14, %r237, %r217;
-	add.s32 	%r51, %r41, 4;
-	mov.u32 	%r240, %r51;
-	@%p14 bra 	BB51_8;
+	ld.const.f32 	%f892, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f892, %f3415;
+	ld.const.f32 	%f893, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f893, %f3416;
+	ld.const.f32 	%f894, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f894, %f3417;
+	bra.uni 	BB51_63;
 
 BB51_12:
-	ld.param.u32 	%r233, [CalculateStatisticalMapsGLMTTestPermutation_param_15];
-	cvt.rn.f32.s32 	%f8, %r233;
-	ld.param.u32 	%r216, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	cvt.rn.f32.s32 	%f9, %r216;
-	sub.f32 	%f31, %f9, %f8;
-	div.full.f32 	%f10, %f53, %f31;
-	@%p1 bra 	BB51_14;
+	ld.param.u32 	%r379, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p35, %r379, 4;
+	@%p35 bra 	BB51_60;
 
-	mov.f32 	%f55, 0f00000000;
-	bra.uni 	BB51_19;
+	ld.param.u32 	%r378, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p36, %r378, 5;
+	@%p36 bra 	BB51_59;
 
-BB51_14:
-	ld.param.u32 	%r215, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	shl.b32 	%r52, %r215, 2;
-	ld.param.u32 	%r224, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	setp.gt.s32 	%p3, %r224, 0;
-	mov.u32 	%r243, 0;
-	mov.f32 	%f55, 0f00000000;
-	ld.param.u32 	%r246, [CalculateStatisticalMapsGLMTTestPermutation_param_5];
+	ld.param.u32 	%r377, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p37, %r377, 6;
+	@%p37 bra 	BB51_15;
+	bra.uni 	BB51_63;
 
 BB51_15:
-	mov.u32 	%r244, %r246;
-	mov.u32 	%r53, %r244;
-	ld.param.u32 	%r209, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
-	mad.lo.s32 	%r133, %r243, %r209, %r31;
-	ld.param.u32 	%r202, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	mad.lo.s32 	%r134, %r133, %r202, %r26;
-	ld.param.u32 	%r195, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
-	mad.lo.s32 	%r135, %r134, %r195, %r21;
-	shl.b32 	%r136, %r135, 2;
-	ld.param.u32 	%r182, [CalculateStatisticalMapsGLMTTestPermutation_param_2];
-	add.s32 	%r137, %r182, %r136;
-	ld.global.f32 	%f54, [%r137];
-	@%p3 bra 	BB51_16;
-	bra.uni 	BB51_18;
+	ld.const.f32 	%f877, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f877, %f3415;
+	ld.const.f32 	%f878, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f878, %f3416;
+	ld.const.f32 	%f879, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f879, %f3417;
+	ld.const.f32 	%f880, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f880, %f3418;
+	ld.const.f32 	%f881, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f881, %f3419;
+	ld.const.f32 	%f882, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f882, %f3420;
+	bra.uni 	BB51_63;
 
 BB51_16:
-	mov.u32 	%r248, 0;
-	add.u32 	%r247, %SP, 0;
-	mov.u32 	%r245, %r53;
+	ld.param.u32 	%r387, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p27, %r387, 9;
+	@%p27 bra 	BB51_21;
 
-BB51_17:
-	mov.u32 	%r55, %r245;
-	ld.local.f32 	%f34, [%r247];
-	ld.const.f32 	%f35, [%r55];
-	neg.f32 	%f36, %f35;
-	fma.rn.f32 	%f54, %f36, %f34, %f54;
-	add.s32 	%r247, %r247, 4;
-	add.s32 	%r59, %r55, %r52;
-	add.s32 	%r248, %r248, 1;
-	ld.param.u32 	%r223, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	setp.lt.s32 	%p15, %r248, %r223;
-	mov.u32 	%r245, %r59;
-	@%p15 bra 	BB51_17;
+	ld.param.u32 	%r383, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p31, %r383, 7;
+	@%p31 bra 	BB51_58;
 
-BB51_18:
-	sub.f32 	%f37, %f54, %f10;
-	mul.f32 	%f38, %f37, %f37;
-	shl.b32 	%r140, %r243, 2;
-	ld.param.u32 	%r190, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
-	add.s32 	%r141, %r190, %r140;
-	ld.const.f32 	%f39, [%r141];
-	fma.rn.f32 	%f55, %f38, %f39, %f55;
-	add.s32 	%r243, %r243, 1;
-	ld.param.u32 	%r214, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	setp.lt.s32 	%p16, %r243, %r214;
-	add.s32 	%r62, %r53, 4;
-	mov.u32 	%r246, %r62;
-	@%p16 bra 	BB51_15;
+	ld.param.u32 	%r382, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p32, %r382, 8;
+	@%p32 bra 	BB51_57;
 
-BB51_19:
-	ld.param.u32 	%r222, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	cvt.rn.f32.s32 	%f40, %r222;
-	sub.f32 	%f41, %f9, %f40;
-	sub.f32 	%f42, %f41, %f8;
-	add.f32 	%f43, %f42, 0fBF800000;
-	div.full.f32 	%f18, %f55, %f43;
-	ld.param.u32 	%r232, [CalculateStatisticalMapsGLMTTestPermutation_param_14];
-	setp.lt.s32 	%p17, %r232, 1;
-	@%p17 bra 	BB51_32;
+	ld.param.u32 	%r381, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p33, %r381, 9;
+	@%p33 bra 	BB51_20;
+	bra.uni 	BB51_63;
 
-	ld.param.u32 	%r221, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	shl.b32 	%r63, %r221, 2;
-	setp.gt.s32 	%p4, %r221, 0;
-	mov.u32 	%r249, 0;
-	ld.param.u32 	%r252, [CalculateStatisticalMapsGLMTTestPermutation_param_6];
+BB51_20:
+	ld.const.f32 	%f853, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f853, %f3415;
+	ld.const.f32 	%f854, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f854, %f3416;
+	ld.const.f32 	%f855, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f855, %f3417;
+	ld.const.f32 	%f856, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f856, %f3418;
+	ld.const.f32 	%f857, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f857, %f3419;
+	ld.const.f32 	%f858, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f858, %f3420;
+	ld.const.f32 	%f859, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f859, %f3421;
+	ld.const.f32 	%f860, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f860, %f3422;
+	ld.const.f32 	%f861, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f861, %f3423;
+	bra.uni 	BB51_63;
 
 BB51_21:
-	mov.u32 	%r250, %r252;
-	mov.u32 	%r64, %r250;
-	@%p4 bra 	BB51_23;
+	ld.param.u32 	%r386, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p28, %r386, 10;
+	@%p28 bra 	BB51_56;
 
-	mov.f32 	%f56, 0f00000000;
-	bra.uni 	BB51_25;
+	ld.param.u32 	%r385, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p29, %r385, 11;
+	@%p29 bra 	BB51_55;
 
-BB51_23:
-	mov.f32 	%f56, 0f00000000;
-	mov.u32 	%r254, 0;
-	add.u32 	%r253, %SP, 0;
-	mov.u32 	%r251, %r64;
+	ld.param.u32 	%r384, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p30, %r384, 12;
+	@%p30 bra 	BB51_24;
+	bra.uni 	BB51_63;
 
 BB51_24:
-	mov.u32 	%r66, %r251;
-	ld.local.f32 	%f46, [%r253];
-	ld.const.f32 	%f47, [%r66];
-	fma.rn.f32 	%f56, %f47, %f46, %f56;
-	add.s32 	%r253, %r253, 4;
-	add.s32 	%r70, %r66, 4;
-	add.s32 	%r254, %r254, 1;
-	ld.param.u32 	%r220, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
-	setp.lt.s32 	%p18, %r254, %r220;
-	mov.u32 	%r251, %r70;
-	@%p18 bra 	BB51_24;
+	ld.const.f32 	%f820, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f820, %f3415;
+	ld.const.f32 	%f821, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f821, %f3416;
+	ld.const.f32 	%f822, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f822, %f3417;
+	ld.const.f32 	%f823, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f823, %f3418;
+	ld.const.f32 	%f824, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f824, %f3419;
+	ld.const.f32 	%f825, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f825, %f3420;
+	ld.const.f32 	%f826, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f826, %f3421;
+	ld.const.f32 	%f827, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f827, %f3422;
+	ld.const.f32 	%f828, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f828, %f3423;
+	ld.const.f32 	%f829, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f829, %f3424;
+	ld.const.f32 	%f830, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f830, %f3425;
+	ld.const.f32 	%f831, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f831, %f3426;
+	bra.uni 	BB51_63;
 
 BB51_25:
-	shl.b32 	%r145, %r249, 2;
-	ld.param.u32 	%r189, [CalculateStatisticalMapsGLMTTestPermutation_param_7];
-	add.s32 	%r146, %r189, %r145;
-	ld.const.f32 	%f50, [%r146];
-	mul.f32 	%f49, %f18, %f50;
-	// inline asm
-	rsqrt.approx.f32 	%f48, %f49;
-	// inline asm
-	mul.f32 	%f51, %f56, %f48;
-	ld.param.u32 	%r208, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
-	mad.lo.s32 	%r147, %r249, %r208, %r31;
-	ld.param.u32 	%r201, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	mad.lo.s32 	%r148, %r147, %r201, %r26;
-	ld.param.u32 	%r194, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
-	mad.lo.s32 	%r149, %r148, %r194, %r21;
-	shl.b32 	%r150, %r149, 2;
-	ld.param.u32 	%r179, [CalculateStatisticalMapsGLMTTestPermutation_param_0];
-	add.s32 	%r151, %r179, %r150;
-	st.global.f32 	[%r151], %f51;
-	add.s32 	%r249, %r249, 1;
-	ld.param.u32 	%r231, [CalculateStatisticalMapsGLMTTestPermutation_param_14];
-	setp.lt.s32 	%p19, %r249, %r231;
-	add.s32 	%r73, %r64, %r63;
-	mov.u32 	%r252, %r73;
-	@%p19 bra 	BB51_21;
-	bra.uni 	BB51_32;
+	ld.param.u32 	%r405, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p9, %r405, 18;
+	@%p9 bra 	BB51_35;
 
-BB51_26:
-	ld.param.u32 	%r230, [CalculateStatisticalMapsGLMTTestPermutation_param_14];
-	setp.lt.s32 	%p20, %r230, 1;
-	@%p20 bra 	BB51_29;
+	ld.param.u32 	%r395, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p19, %r395, 15;
+	@%p19 bra 	BB51_31;
 
-	ld.param.u32 	%r200, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	mad.lo.s32 	%r159, %r200, %r31, %r26;
-	ld.param.u32 	%r193, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
-	mad.lo.s32 	%r160, %r193, %r159, %r21;
-	shl.b32 	%r161, %r160, 2;
-	ld.param.u32 	%r178, [CalculateStatisticalMapsGLMTTestPermutation_param_0];
-	add.s32 	%r255, %r178, %r161;
-	ld.param.u32 	%r207, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
-	mul.lo.s32 	%r162, %r207, %r200;
-	mul.lo.s32 	%r163, %r162, %r193;
-	shl.b32 	%r75, %r163, 2;
-	mov.u32 	%r152, 0;
-	mov.u32 	%r256, %r152;
+	ld.param.u32 	%r391, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p23, %r391, 13;
+	@%p23 bra 	BB51_54;
 
-BB51_28:
-	mov.u32 	%r77, %r256;
-	st.global.u32 	[%r255], %r152;
-	add.s32 	%r255, %r255, %r75;
-	add.s32 	%r79, %r77, 1;
-	ld.param.u32 	%r229, [CalculateStatisticalMapsGLMTTestPermutation_param_14];
-	setp.lt.s32 	%p21, %r79, %r229;
-	mov.u32 	%r256, %r79;
-	@%p21 bra 	BB51_28;
+	ld.param.u32 	%r390, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p24, %r390, 14;
+	@%p24 bra 	BB51_53;
 
-BB51_29:
-	ld.param.u32 	%r213, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	setp.lt.s32 	%p22, %r213, 1;
-	@%p22 bra 	BB51_32;
+	ld.param.u32 	%r389, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p25, %r389, 15;
+	@%p25 bra 	BB51_30;
+	bra.uni 	BB51_63;
 
-	ld.param.u32 	%r199, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
-	mad.lo.s32 	%r172, %r199, %r31, %r26;
-	ld.param.u32 	%r192, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
-	mad.lo.s32 	%r173, %r192, %r172, %r21;
-	shl.b32 	%r174, %r173, 2;
-	ld.param.u32 	%r180, [CalculateStatisticalMapsGLMTTestPermutation_param_1];
-	add.s32 	%r257, %r180, %r174;
-	ld.param.u32 	%r206, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
-	mul.lo.s32 	%r175, %r206, %r199;
-	mul.lo.s32 	%r176, %r175, %r192;
-	shl.b32 	%r81, %r176, 2;
-	mov.u32 	%r165, 0;
-	mov.u32 	%r258, %r165;
+BB51_30:
+	ld.const.f32 	%f778, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f778, %f3415;
+	ld.const.f32 	%f779, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f779, %f3416;
+	ld.const.f32 	%f780, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f780, %f3417;
+	ld.const.f32 	%f781, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f781, %f3418;
+	ld.const.f32 	%f782, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f782, %f3419;
+	ld.const.f32 	%f783, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f783, %f3420;
+	ld.const.f32 	%f784, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f784, %f3421;
+	ld.const.f32 	%f785, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f785, %f3422;
+	ld.const.f32 	%f786, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f786, %f3423;
+	ld.const.f32 	%f787, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f787, %f3424;
+	ld.const.f32 	%f788, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f788, %f3425;
+	ld.const.f32 	%f789, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f789, %f3426;
+	ld.const.f32 	%f790, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f790, %f3427;
+	ld.const.f32 	%f791, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f791, %f3428;
+	ld.const.f32 	%f792, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f792, %f3429;
+	bra.uni 	BB51_63;
 
 BB51_31:
-	mov.u32 	%r83, %r258;
-	st.global.u32 	[%r257], %r165;
-	add.s32 	%r257, %r257, %r81;
-	add.s32 	%r85, %r83, 1;
-	ld.param.u32 	%r212, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
-	setp.lt.s32 	%p23, %r85, %r212;
-	mov.u32 	%r258, %r85;
-	@%p23 bra 	BB51_31;
+	ld.param.u32 	%r394, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p20, %r394, 16;
+	@%p20 bra 	BB51_52;
 
-BB51_32:
+	ld.param.u32 	%r393, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p21, %r393, 17;
+	@%p21 bra 	BB51_51;
+
+	ld.param.u32 	%r392, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p22, %r392, 18;
+	@%p22 bra 	BB51_34;
+	bra.uni 	BB51_63;
+
+BB51_34:
+	ld.const.f32 	%f727, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f727, %f3415;
+	ld.const.f32 	%f728, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f728, %f3416;
+	ld.const.f32 	%f729, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f729, %f3417;
+	ld.const.f32 	%f730, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f730, %f3418;
+	ld.const.f32 	%f731, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f731, %f3419;
+	ld.const.f32 	%f732, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f732, %f3420;
+	ld.const.f32 	%f733, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f733, %f3421;
+	ld.const.f32 	%f734, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f734, %f3422;
+	ld.const.f32 	%f735, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f735, %f3423;
+	ld.const.f32 	%f736, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f736, %f3424;
+	ld.const.f32 	%f737, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f737, %f3425;
+	ld.const.f32 	%f738, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f738, %f3426;
+	ld.const.f32 	%f739, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f739, %f3427;
+	ld.const.f32 	%f740, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f740, %f3428;
+	ld.const.f32 	%f741, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f741, %f3429;
+	ld.const.f32 	%f742, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f742, %f3430;
+	ld.const.f32 	%f743, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f743, %f3431;
+	ld.const.f32 	%f744, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f744, %f3432;
+	bra.uni 	BB51_63;
+
+BB51_35:
+	ld.param.u32 	%r404, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p10, %r404, 21;
+	@%p10 bra 	BB51_40;
+
+	ld.param.u32 	%r398, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p16, %r398, 19;
+	@%p16 bra 	BB51_50;
+
+	ld.param.u32 	%r397, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p17, %r397, 20;
+	@%p17 bra 	BB51_49;
+
+	ld.param.u32 	%r396, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p18, %r396, 21;
+	@%p18 bra 	BB51_39;
+	bra.uni 	BB51_63;
+
+BB51_39:
+	ld.const.f32 	%f667, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f667, %f3415;
+	ld.const.f32 	%f668, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f668, %f3416;
+	ld.const.f32 	%f669, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f669, %f3417;
+	ld.const.f32 	%f670, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f670, %f3418;
+	ld.const.f32 	%f671, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f671, %f3419;
+	ld.const.f32 	%f672, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f672, %f3420;
+	ld.const.f32 	%f673, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f673, %f3421;
+	ld.const.f32 	%f674, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f674, %f3422;
+	ld.const.f32 	%f675, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f675, %f3423;
+	ld.const.f32 	%f676, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f676, %f3424;
+	ld.const.f32 	%f677, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f677, %f3425;
+	ld.const.f32 	%f678, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f678, %f3426;
+	ld.const.f32 	%f679, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f679, %f3427;
+	ld.const.f32 	%f680, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f680, %f3428;
+	ld.const.f32 	%f681, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f681, %f3429;
+	ld.const.f32 	%f682, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f682, %f3430;
+	ld.const.f32 	%f683, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f683, %f3431;
+	ld.const.f32 	%f684, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f684, %f3432;
+	ld.const.f32 	%f685, [%r50];
+	fma.rn.f32 	%f3433, %f26, %f685, %f3433;
+	ld.const.f32 	%f686, [%r51];
+	fma.rn.f32 	%f3434, %f26, %f686, %f3434;
+	ld.const.f32 	%f687, [%r52];
+	fma.rn.f32 	%f3435, %f26, %f687, %f3435;
+	bra.uni 	BB51_63;
+
+BB51_40:
+	ld.param.u32 	%r403, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p11, %r403, 23;
+	@%p11 bra 	BB51_44;
+
+	ld.param.u32 	%r400, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p14, %r400, 22;
+	@%p14 bra 	BB51_48;
+
+	ld.param.u32 	%r399, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p15, %r399, 23;
+	@%p15 bra 	BB51_43;
+	bra.uni 	BB51_63;
+
+BB51_43:
+	ld.const.f32 	%f622, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f622, %f3415;
+	ld.const.f32 	%f623, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f623, %f3416;
+	ld.const.f32 	%f624, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f624, %f3417;
+	ld.const.f32 	%f625, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f625, %f3418;
+	ld.const.f32 	%f626, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f626, %f3419;
+	ld.const.f32 	%f627, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f627, %f3420;
+	ld.const.f32 	%f628, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f628, %f3421;
+	ld.const.f32 	%f629, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f629, %f3422;
+	ld.const.f32 	%f630, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f630, %f3423;
+	ld.const.f32 	%f631, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f631, %f3424;
+	ld.const.f32 	%f632, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f632, %f3425;
+	ld.const.f32 	%f633, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f633, %f3426;
+	ld.const.f32 	%f634, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f634, %f3427;
+	ld.const.f32 	%f635, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f635, %f3428;
+	ld.const.f32 	%f636, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f636, %f3429;
+	ld.const.f32 	%f637, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f637, %f3430;
+	ld.const.f32 	%f638, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f638, %f3431;
+	ld.const.f32 	%f639, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f639, %f3432;
+	ld.const.f32 	%f640, [%r50];
+	fma.rn.f32 	%f3433, %f26, %f640, %f3433;
+	ld.const.f32 	%f641, [%r51];
+	fma.rn.f32 	%f3434, %f26, %f641, %f3434;
+	ld.const.f32 	%f642, [%r52];
+	fma.rn.f32 	%f3435, %f26, %f642, %f3435;
+	ld.const.f32 	%f643, [%r53];
+	fma.rn.f32 	%f3436, %f26, %f643, %f3436;
+	ld.const.f32 	%f644, [%r54];
+	fma.rn.f32 	%f3437, %f26, %f644, %f3437;
+	bra.uni 	BB51_63;
+
+BB51_44:
+	ld.param.u32 	%r402, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p12, %r402, 24;
+	@%p12 bra 	BB51_47;
+
+	ld.param.u32 	%r401, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.ne.s32 	%p13, %r401, 25;
+	@%p13 bra 	BB51_63;
+
+	ld.const.f32 	%f573, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f573, %f3415;
+	ld.param.u32 	%r269, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	shl.b32 	%r172, %r269, 2;
+	add.s32 	%r173, %r409, %r172;
+	ld.const.f32 	%f574, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f574, %f3416;
+	ld.const.f32 	%f575, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f575, %f3417;
+	ld.const.f32 	%f576, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f576, %f3418;
+	ld.const.f32 	%f577, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f577, %f3419;
+	ld.const.f32 	%f578, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f578, %f3420;
+	ld.const.f32 	%f579, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f579, %f3421;
+	ld.const.f32 	%f580, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f580, %f3422;
+	ld.const.f32 	%f581, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f581, %f3423;
+	ld.const.f32 	%f582, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f582, %f3424;
+	ld.const.f32 	%f583, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f583, %f3425;
+	ld.const.f32 	%f584, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f584, %f3426;
+	ld.const.f32 	%f585, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f585, %f3427;
+	ld.const.f32 	%f586, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f586, %f3428;
+	ld.const.f32 	%f587, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f587, %f3429;
+	ld.const.f32 	%f588, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f588, %f3430;
+	ld.const.f32 	%f589, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f589, %f3431;
+	ld.const.f32 	%f590, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f590, %f3432;
+	ld.const.f32 	%f591, [%r50];
+	fma.rn.f32 	%f3433, %f26, %f591, %f3433;
+	ld.const.f32 	%f592, [%r51];
+	fma.rn.f32 	%f3434, %f26, %f592, %f3434;
+	ld.const.f32 	%f593, [%r52];
+	fma.rn.f32 	%f3435, %f26, %f593, %f3435;
+	ld.const.f32 	%f594, [%r53];
+	fma.rn.f32 	%f3436, %f26, %f594, %f3436;
+	ld.const.f32 	%f595, [%r54];
+	fma.rn.f32 	%f3437, %f26, %f595, %f3437;
+	ld.const.f32 	%f596, [%r55];
+	fma.rn.f32 	%f3438, %f26, %f596, %f3438;
+	mad.lo.s32 	%r174, %r269, 92, %r173;
+	ld.const.f32 	%f597, [%r174];
+	fma.rn.f32 	%f3439, %f26, %f597, %f3439;
+	bra.uni 	BB51_63;
+
+BB51_47:
+	ld.const.f32 	%f598, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f598, %f3415;
+	ld.const.f32 	%f599, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f599, %f3416;
+	ld.const.f32 	%f600, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f600, %f3417;
+	ld.const.f32 	%f601, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f601, %f3418;
+	ld.const.f32 	%f602, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f602, %f3419;
+	ld.const.f32 	%f603, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f603, %f3420;
+	ld.const.f32 	%f604, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f604, %f3421;
+	ld.const.f32 	%f605, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f605, %f3422;
+	ld.const.f32 	%f606, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f606, %f3423;
+	ld.const.f32 	%f607, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f607, %f3424;
+	ld.const.f32 	%f608, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f608, %f3425;
+	ld.const.f32 	%f609, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f609, %f3426;
+	ld.const.f32 	%f610, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f610, %f3427;
+	ld.const.f32 	%f611, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f611, %f3428;
+	ld.const.f32 	%f612, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f612, %f3429;
+	ld.const.f32 	%f613, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f613, %f3430;
+	ld.const.f32 	%f614, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f614, %f3431;
+	ld.const.f32 	%f615, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f615, %f3432;
+	ld.const.f32 	%f616, [%r50];
+	fma.rn.f32 	%f3433, %f26, %f616, %f3433;
+	ld.const.f32 	%f617, [%r51];
+	fma.rn.f32 	%f3434, %f26, %f617, %f3434;
+	ld.const.f32 	%f618, [%r52];
+	fma.rn.f32 	%f3435, %f26, %f618, %f3435;
+	ld.const.f32 	%f619, [%r53];
+	fma.rn.f32 	%f3436, %f26, %f619, %f3436;
+	ld.const.f32 	%f620, [%r54];
+	fma.rn.f32 	%f3437, %f26, %f620, %f3437;
+	ld.const.f32 	%f621, [%r55];
+	fma.rn.f32 	%f3438, %f26, %f621, %f3438;
+	bra.uni 	BB51_63;
+
+BB51_48:
+	ld.const.f32 	%f645, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f645, %f3415;
+	ld.const.f32 	%f646, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f646, %f3416;
+	ld.const.f32 	%f647, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f647, %f3417;
+	ld.const.f32 	%f648, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f648, %f3418;
+	ld.const.f32 	%f649, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f649, %f3419;
+	ld.const.f32 	%f650, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f650, %f3420;
+	ld.const.f32 	%f651, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f651, %f3421;
+	ld.const.f32 	%f652, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f652, %f3422;
+	ld.const.f32 	%f653, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f653, %f3423;
+	ld.const.f32 	%f654, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f654, %f3424;
+	ld.const.f32 	%f655, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f655, %f3425;
+	ld.const.f32 	%f656, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f656, %f3426;
+	ld.const.f32 	%f657, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f657, %f3427;
+	ld.const.f32 	%f658, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f658, %f3428;
+	ld.const.f32 	%f659, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f659, %f3429;
+	ld.const.f32 	%f660, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f660, %f3430;
+	ld.const.f32 	%f661, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f661, %f3431;
+	ld.const.f32 	%f662, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f662, %f3432;
+	ld.const.f32 	%f663, [%r50];
+	fma.rn.f32 	%f3433, %f26, %f663, %f3433;
+	ld.const.f32 	%f664, [%r51];
+	fma.rn.f32 	%f3434, %f26, %f664, %f3434;
+	ld.const.f32 	%f665, [%r52];
+	fma.rn.f32 	%f3435, %f26, %f665, %f3435;
+	ld.const.f32 	%f666, [%r53];
+	fma.rn.f32 	%f3436, %f26, %f666, %f3436;
+	bra.uni 	BB51_63;
+
+BB51_49:
+	ld.const.f32 	%f688, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f688, %f3415;
+	ld.const.f32 	%f689, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f689, %f3416;
+	ld.const.f32 	%f690, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f690, %f3417;
+	ld.const.f32 	%f691, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f691, %f3418;
+	ld.const.f32 	%f692, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f692, %f3419;
+	ld.const.f32 	%f693, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f693, %f3420;
+	ld.const.f32 	%f694, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f694, %f3421;
+	ld.const.f32 	%f695, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f695, %f3422;
+	ld.const.f32 	%f696, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f696, %f3423;
+	ld.const.f32 	%f697, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f697, %f3424;
+	ld.const.f32 	%f698, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f698, %f3425;
+	ld.const.f32 	%f699, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f699, %f3426;
+	ld.const.f32 	%f700, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f700, %f3427;
+	ld.const.f32 	%f701, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f701, %f3428;
+	ld.const.f32 	%f702, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f702, %f3429;
+	ld.const.f32 	%f703, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f703, %f3430;
+	ld.const.f32 	%f704, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f704, %f3431;
+	ld.const.f32 	%f705, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f705, %f3432;
+	ld.const.f32 	%f706, [%r50];
+	fma.rn.f32 	%f3433, %f26, %f706, %f3433;
+	ld.const.f32 	%f707, [%r51];
+	fma.rn.f32 	%f3434, %f26, %f707, %f3434;
+	bra.uni 	BB51_63;
+
+BB51_50:
+	ld.const.f32 	%f708, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f708, %f3415;
+	ld.const.f32 	%f709, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f709, %f3416;
+	ld.const.f32 	%f710, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f710, %f3417;
+	ld.const.f32 	%f711, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f711, %f3418;
+	ld.const.f32 	%f712, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f712, %f3419;
+	ld.const.f32 	%f713, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f713, %f3420;
+	ld.const.f32 	%f714, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f714, %f3421;
+	ld.const.f32 	%f715, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f715, %f3422;
+	ld.const.f32 	%f716, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f716, %f3423;
+	ld.const.f32 	%f717, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f717, %f3424;
+	ld.const.f32 	%f718, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f718, %f3425;
+	ld.const.f32 	%f719, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f719, %f3426;
+	ld.const.f32 	%f720, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f720, %f3427;
+	ld.const.f32 	%f721, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f721, %f3428;
+	ld.const.f32 	%f722, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f722, %f3429;
+	ld.const.f32 	%f723, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f723, %f3430;
+	ld.const.f32 	%f724, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f724, %f3431;
+	ld.const.f32 	%f725, [%r49];
+	fma.rn.f32 	%f3432, %f26, %f725, %f3432;
+	ld.const.f32 	%f726, [%r50];
+	fma.rn.f32 	%f3433, %f26, %f726, %f3433;
+	bra.uni 	BB51_63;
+
+BB51_51:
+	ld.const.f32 	%f745, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f745, %f3415;
+	ld.const.f32 	%f746, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f746, %f3416;
+	ld.const.f32 	%f747, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f747, %f3417;
+	ld.const.f32 	%f748, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f748, %f3418;
+	ld.const.f32 	%f749, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f749, %f3419;
+	ld.const.f32 	%f750, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f750, %f3420;
+	ld.const.f32 	%f751, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f751, %f3421;
+	ld.const.f32 	%f752, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f752, %f3422;
+	ld.const.f32 	%f753, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f753, %f3423;
+	ld.const.f32 	%f754, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f754, %f3424;
+	ld.const.f32 	%f755, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f755, %f3425;
+	ld.const.f32 	%f756, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f756, %f3426;
+	ld.const.f32 	%f757, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f757, %f3427;
+	ld.const.f32 	%f758, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f758, %f3428;
+	ld.const.f32 	%f759, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f759, %f3429;
+	ld.const.f32 	%f760, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f760, %f3430;
+	ld.const.f32 	%f761, [%r48];
+	fma.rn.f32 	%f3431, %f26, %f761, %f3431;
+	bra.uni 	BB51_63;
+
+BB51_52:
+	ld.const.f32 	%f762, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f762, %f3415;
+	ld.const.f32 	%f763, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f763, %f3416;
+	ld.const.f32 	%f764, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f764, %f3417;
+	ld.const.f32 	%f765, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f765, %f3418;
+	ld.const.f32 	%f766, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f766, %f3419;
+	ld.const.f32 	%f767, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f767, %f3420;
+	ld.const.f32 	%f768, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f768, %f3421;
+	ld.const.f32 	%f769, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f769, %f3422;
+	ld.const.f32 	%f770, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f770, %f3423;
+	ld.const.f32 	%f771, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f771, %f3424;
+	ld.const.f32 	%f772, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f772, %f3425;
+	ld.const.f32 	%f773, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f773, %f3426;
+	ld.const.f32 	%f774, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f774, %f3427;
+	ld.const.f32 	%f775, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f775, %f3428;
+	ld.const.f32 	%f776, [%r46];
+	fma.rn.f32 	%f3429, %f26, %f776, %f3429;
+	ld.const.f32 	%f777, [%r47];
+	fma.rn.f32 	%f3430, %f26, %f777, %f3430;
+	bra.uni 	BB51_63;
+
+BB51_53:
+	ld.const.f32 	%f793, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f793, %f3415;
+	ld.const.f32 	%f794, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f794, %f3416;
+	ld.const.f32 	%f795, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f795, %f3417;
+	ld.const.f32 	%f796, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f796, %f3418;
+	ld.const.f32 	%f797, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f797, %f3419;
+	ld.const.f32 	%f798, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f798, %f3420;
+	ld.const.f32 	%f799, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f799, %f3421;
+	ld.const.f32 	%f800, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f800, %f3422;
+	ld.const.f32 	%f801, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f801, %f3423;
+	ld.const.f32 	%f802, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f802, %f3424;
+	ld.const.f32 	%f803, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f803, %f3425;
+	ld.const.f32 	%f804, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f804, %f3426;
+	ld.const.f32 	%f805, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f805, %f3427;
+	ld.const.f32 	%f806, [%r45];
+	fma.rn.f32 	%f3428, %f26, %f806, %f3428;
+	bra.uni 	BB51_63;
+
+BB51_54:
+	ld.const.f32 	%f807, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f807, %f3415;
+	ld.const.f32 	%f808, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f808, %f3416;
+	ld.const.f32 	%f809, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f809, %f3417;
+	ld.const.f32 	%f810, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f810, %f3418;
+	ld.const.f32 	%f811, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f811, %f3419;
+	ld.const.f32 	%f812, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f812, %f3420;
+	ld.const.f32 	%f813, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f813, %f3421;
+	ld.const.f32 	%f814, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f814, %f3422;
+	ld.const.f32 	%f815, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f815, %f3423;
+	ld.const.f32 	%f816, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f816, %f3424;
+	ld.const.f32 	%f817, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f817, %f3425;
+	ld.const.f32 	%f818, [%r43];
+	fma.rn.f32 	%f3426, %f26, %f818, %f3426;
+	ld.const.f32 	%f819, [%r44];
+	fma.rn.f32 	%f3427, %f26, %f819, %f3427;
+	bra.uni 	BB51_63;
+
+BB51_55:
+	ld.const.f32 	%f832, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f832, %f3415;
+	ld.const.f32 	%f833, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f833, %f3416;
+	ld.const.f32 	%f834, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f834, %f3417;
+	ld.const.f32 	%f835, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f835, %f3418;
+	ld.const.f32 	%f836, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f836, %f3419;
+	ld.const.f32 	%f837, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f837, %f3420;
+	ld.const.f32 	%f838, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f838, %f3421;
+	ld.const.f32 	%f839, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f839, %f3422;
+	ld.const.f32 	%f840, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f840, %f3423;
+	ld.const.f32 	%f841, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f841, %f3424;
+	ld.const.f32 	%f842, [%r42];
+	fma.rn.f32 	%f3425, %f26, %f842, %f3425;
+	bra.uni 	BB51_63;
+
+BB51_56:
+	ld.const.f32 	%f843, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f843, %f3415;
+	ld.const.f32 	%f844, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f844, %f3416;
+	ld.const.f32 	%f845, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f845, %f3417;
+	ld.const.f32 	%f846, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f846, %f3418;
+	ld.const.f32 	%f847, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f847, %f3419;
+	ld.const.f32 	%f848, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f848, %f3420;
+	ld.const.f32 	%f849, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f849, %f3421;
+	ld.const.f32 	%f850, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f850, %f3422;
+	ld.const.f32 	%f851, [%r40];
+	fma.rn.f32 	%f3423, %f26, %f851, %f3423;
+	ld.const.f32 	%f852, [%r41];
+	fma.rn.f32 	%f3424, %f26, %f852, %f3424;
+	bra.uni 	BB51_63;
+
+BB51_57:
+	ld.const.f32 	%f862, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f862, %f3415;
+	ld.const.f32 	%f863, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f863, %f3416;
+	ld.const.f32 	%f864, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f864, %f3417;
+	ld.const.f32 	%f865, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f865, %f3418;
+	ld.const.f32 	%f866, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f866, %f3419;
+	ld.const.f32 	%f867, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f867, %f3420;
+	ld.const.f32 	%f868, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f868, %f3421;
+	ld.const.f32 	%f869, [%r39];
+	fma.rn.f32 	%f3422, %f26, %f869, %f3422;
+	bra.uni 	BB51_63;
+
+BB51_58:
+	ld.const.f32 	%f870, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f870, %f3415;
+	ld.const.f32 	%f871, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f871, %f3416;
+	ld.const.f32 	%f872, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f872, %f3417;
+	ld.const.f32 	%f873, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f873, %f3418;
+	ld.const.f32 	%f874, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f874, %f3419;
+	ld.const.f32 	%f875, [%r37];
+	fma.rn.f32 	%f3420, %f26, %f875, %f3420;
+	ld.const.f32 	%f876, [%r38];
+	fma.rn.f32 	%f3421, %f26, %f876, %f3421;
+	bra.uni 	BB51_63;
+
+BB51_59:
+	ld.const.f32 	%f883, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f883, %f3415;
+	ld.const.f32 	%f884, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f884, %f3416;
+	ld.const.f32 	%f885, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f885, %f3417;
+	ld.const.f32 	%f886, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f886, %f3418;
+	ld.const.f32 	%f887, [%r36];
+	fma.rn.f32 	%f3419, %f26, %f887, %f3419;
+	bra.uni 	BB51_63;
+
+BB51_60:
+	ld.const.f32 	%f888, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f888, %f3415;
+	ld.const.f32 	%f889, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f889, %f3416;
+	ld.const.f32 	%f890, [%r34];
+	fma.rn.f32 	%f3417, %f26, %f890, %f3417;
+	ld.const.f32 	%f891, [%r35];
+	fma.rn.f32 	%f3418, %f26, %f891, %f3418;
+	bra.uni 	BB51_63;
+
+BB51_61:
+	ld.const.f32 	%f895, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f895, %f3415;
+	ld.const.f32 	%f896, [%r33];
+	fma.rn.f32 	%f3416, %f26, %f896, %f3416;
+	bra.uni 	BB51_63;
+
+BB51_62:
+	ld.const.f32 	%f897, [%r409];
+	fma.rn.f32 	%f3415, %f26, %f897, %f3415;
+
+BB51_63:
+	add.s32 	%r410, %r410, 2;
+	add.s32 	%r409, %r409, 4;
+	add.s32 	%r411, %r411, 1;
+	ld.param.u32 	%r268, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	setp.lt.s32 	%p41, %r411, %r268;
+	@%p41 bra 	BB51_5;
+
+BB51_64:
+	ld.param.u32 	%r267, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	setp.gt.s32 	%p42, %r267, 0;
+	@%p42 bra 	BB51_66;
+
+	mov.f32 	%f3441, 0f00000000;
+	bra.uni 	BB51_126;
+
+BB51_66:
+	mov.f32 	%f3441, 0f00000000;
+	mov.u32 	%r414, 0;
+	ld.param.u32 	%r412, [CalculateStatisticalMapsGLMTTestPermutation_param_3];
+	ld.param.u32 	%r413, [CalculateStatisticalMapsGLMTTestPermutation_param_7];
+
+BB51_67:
+	ld.const.u16 	%r178, [%r413];
+	ld.param.u32 	%r258, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
+	mad.lo.s32 	%r179, %r178, %r258, %r29;
+	ld.param.u32 	%r253, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
+	mad.lo.s32 	%r182, %r179, %r253, %r24;
+	ld.param.u32 	%r248, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
+	mad.lo.s32 	%r185, %r182, %r248, %r19;
+	shl.b32 	%r186, %r185, 2;
+	ld.param.u32 	%r234, [CalculateStatisticalMapsGLMTTestPermutation_param_1];
+	add.s32 	%r187, %r234, %r186;
+	ld.global.f32 	%f3440, [%r187];
+	ld.param.u32 	%r266, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	shl.b32 	%r188, %r266, 2;
+	add.s32 	%r62, %r412, %r188;
+	shl.b32 	%r189, %r266, 3;
+	add.s32 	%r63, %r412, %r189;
+	add.s32 	%r64, %r62, %r189;
+	mad.lo.s32 	%r65, %r266, 12, %r62;
+	shl.b32 	%r190, %r266, 4;
+	add.s32 	%r66, %r62, %r190;
+	mad.lo.s32 	%r67, %r266, 20, %r62;
+	mad.lo.s32 	%r68, %r266, 24, %r62;
+	mad.lo.s32 	%r69, %r266, 28, %r62;
+	shl.b32 	%r191, %r266, 5;
+	add.s32 	%r70, %r62, %r191;
+	mad.lo.s32 	%r71, %r266, 36, %r62;
+	mad.lo.s32 	%r72, %r266, 40, %r62;
+	mad.lo.s32 	%r73, %r266, 44, %r62;
+	mad.lo.s32 	%r74, %r266, 48, %r62;
+	mad.lo.s32 	%r75, %r266, 52, %r62;
+	mad.lo.s32 	%r76, %r266, 56, %r62;
+	mad.lo.s32 	%r77, %r266, 60, %r62;
+	shl.b32 	%r192, %r266, 6;
+	add.s32 	%r78, %r62, %r192;
+	mad.lo.s32 	%r79, %r266, 68, %r62;
+	mad.lo.s32 	%r80, %r266, 72, %r62;
+	mad.lo.s32 	%r81, %r266, 76, %r62;
+	mad.lo.s32 	%r82, %r266, 80, %r62;
+	mad.lo.s32 	%r83, %r266, 84, %r62;
+	mad.lo.s32 	%r84, %r266, 88, %r62;
+	ld.param.u32 	%r373, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p43, %r373, 12;
+	@%p43 bra 	BB51_87;
+
+	ld.param.u32 	%r355, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p61, %r355, 6;
+	@%p61 bra 	BB51_78;
+
+	ld.param.u32 	%r347, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p69, %r347, 3;
+	@%p69 bra 	BB51_74;
+
+	ld.param.u32 	%r343, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p73, %r343, 1;
+	@%p73 bra 	BB51_124;
+
+	ld.param.u32 	%r342, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p74, %r342, 2;
+	@%p74 bra 	BB51_123;
+
+	ld.param.u32 	%r341, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p75, %r341, 3;
+	@%p75 bra 	BB51_73;
+	bra.uni 	BB51_125;
+
+BB51_73:
+	ld.const.f32 	%f1835, [%r412];
+	neg.f32 	%f1836, %f1835;
+	fma.rn.f32 	%f1837, %f1836, %f3415, %f3440;
+	ld.const.f32 	%f1838, [%r62];
+	neg.f32 	%f1839, %f1838;
+	fma.rn.f32 	%f1840, %f1839, %f3416, %f1837;
+	ld.const.f32 	%f1841, [%r63];
+	neg.f32 	%f1842, %f1841;
+	fma.rn.f32 	%f3440, %f1842, %f3417, %f1840;
+	bra.uni 	BB51_125;
+
+BB51_74:
+	ld.param.u32 	%r346, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p70, %r346, 4;
+	@%p70 bra 	BB51_122;
+
+	ld.param.u32 	%r345, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p71, %r345, 5;
+	@%p71 bra 	BB51_121;
+
+	ld.param.u32 	%r344, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p72, %r344, 6;
+	@%p72 bra 	BB51_77;
+	bra.uni 	BB51_125;
+
+BB51_77:
+	ld.const.f32 	%f1793, [%r412];
+	neg.f32 	%f1794, %f1793;
+	fma.rn.f32 	%f1795, %f1794, %f3415, %f3440;
+	ld.const.f32 	%f1796, [%r62];
+	neg.f32 	%f1797, %f1796;
+	fma.rn.f32 	%f1798, %f1797, %f3416, %f1795;
+	ld.const.f32 	%f1799, [%r63];
+	neg.f32 	%f1800, %f1799;
+	fma.rn.f32 	%f1801, %f1800, %f3417, %f1798;
+	ld.const.f32 	%f1802, [%r64];
+	neg.f32 	%f1803, %f1802;
+	fma.rn.f32 	%f1804, %f1803, %f3418, %f1801;
+	ld.const.f32 	%f1805, [%r65];
+	neg.f32 	%f1806, %f1805;
+	fma.rn.f32 	%f1807, %f1806, %f3419, %f1804;
+	ld.const.f32 	%f1808, [%r66];
+	neg.f32 	%f1809, %f1808;
+	fma.rn.f32 	%f3440, %f1809, %f3420, %f1807;
+	bra.uni 	BB51_125;
+
+BB51_78:
+	ld.param.u32 	%r354, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p62, %r354, 9;
+	@%p62 bra 	BB51_83;
+
+	ld.param.u32 	%r350, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p66, %r350, 7;
+	@%p66 bra 	BB51_120;
+
+	ld.param.u32 	%r349, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p67, %r349, 8;
+	@%p67 bra 	BB51_119;
+
+	ld.param.u32 	%r348, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p68, %r348, 9;
+	@%p68 bra 	BB51_82;
+	bra.uni 	BB51_125;
+
+BB51_82:
+	ld.const.f32 	%f1724, [%r412];
+	neg.f32 	%f1725, %f1724;
+	fma.rn.f32 	%f1726, %f1725, %f3415, %f3440;
+	ld.const.f32 	%f1727, [%r62];
+	neg.f32 	%f1728, %f1727;
+	fma.rn.f32 	%f1729, %f1728, %f3416, %f1726;
+	ld.const.f32 	%f1730, [%r63];
+	neg.f32 	%f1731, %f1730;
+	fma.rn.f32 	%f1732, %f1731, %f3417, %f1729;
+	ld.const.f32 	%f1733, [%r64];
+	neg.f32 	%f1734, %f1733;
+	fma.rn.f32 	%f1735, %f1734, %f3418, %f1732;
+	ld.const.f32 	%f1736, [%r65];
+	neg.f32 	%f1737, %f1736;
+	fma.rn.f32 	%f1738, %f1737, %f3419, %f1735;
+	ld.const.f32 	%f1739, [%r66];
+	neg.f32 	%f1740, %f1739;
+	fma.rn.f32 	%f1741, %f1740, %f3420, %f1738;
+	ld.const.f32 	%f1742, [%r67];
+	neg.f32 	%f1743, %f1742;
+	fma.rn.f32 	%f1744, %f1743, %f3421, %f1741;
+	ld.const.f32 	%f1745, [%r68];
+	neg.f32 	%f1746, %f1745;
+	fma.rn.f32 	%f1747, %f1746, %f3422, %f1744;
+	ld.const.f32 	%f1748, [%r69];
+	neg.f32 	%f1749, %f1748;
+	fma.rn.f32 	%f3440, %f1749, %f3423, %f1747;
+	bra.uni 	BB51_125;
+
+BB51_83:
+	ld.param.u32 	%r353, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p63, %r353, 10;
+	@%p63 bra 	BB51_118;
+
+	ld.param.u32 	%r352, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p64, %r352, 11;
+	@%p64 bra 	BB51_117;
+
+	ld.param.u32 	%r351, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p65, %r351, 12;
+	@%p65 bra 	BB51_86;
+	bra.uni 	BB51_125;
+
+BB51_86:
+	ld.const.f32 	%f1628, [%r412];
+	neg.f32 	%f1629, %f1628;
+	fma.rn.f32 	%f1630, %f1629, %f3415, %f3440;
+	ld.const.f32 	%f1631, [%r62];
+	neg.f32 	%f1632, %f1631;
+	fma.rn.f32 	%f1633, %f1632, %f3416, %f1630;
+	ld.const.f32 	%f1634, [%r63];
+	neg.f32 	%f1635, %f1634;
+	fma.rn.f32 	%f1636, %f1635, %f3417, %f1633;
+	ld.const.f32 	%f1637, [%r64];
+	neg.f32 	%f1638, %f1637;
+	fma.rn.f32 	%f1639, %f1638, %f3418, %f1636;
+	ld.const.f32 	%f1640, [%r65];
+	neg.f32 	%f1641, %f1640;
+	fma.rn.f32 	%f1642, %f1641, %f3419, %f1639;
+	ld.const.f32 	%f1643, [%r66];
+	neg.f32 	%f1644, %f1643;
+	fma.rn.f32 	%f1645, %f1644, %f3420, %f1642;
+	ld.const.f32 	%f1646, [%r67];
+	neg.f32 	%f1647, %f1646;
+	fma.rn.f32 	%f1648, %f1647, %f3421, %f1645;
+	ld.const.f32 	%f1649, [%r68];
+	neg.f32 	%f1650, %f1649;
+	fma.rn.f32 	%f1651, %f1650, %f3422, %f1648;
+	ld.const.f32 	%f1652, [%r69];
+	neg.f32 	%f1653, %f1652;
+	fma.rn.f32 	%f1654, %f1653, %f3423, %f1651;
+	ld.const.f32 	%f1655, [%r70];
+	neg.f32 	%f1656, %f1655;
+	fma.rn.f32 	%f1657, %f1656, %f3424, %f1654;
+	ld.const.f32 	%f1658, [%r71];
+	neg.f32 	%f1659, %f1658;
+	fma.rn.f32 	%f1660, %f1659, %f3425, %f1657;
+	ld.const.f32 	%f1661, [%r72];
+	neg.f32 	%f1662, %f1661;
+	fma.rn.f32 	%f3440, %f1662, %f3426, %f1660;
+	bra.uni 	BB51_125;
+
+BB51_87:
+	ld.param.u32 	%r372, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p44, %r372, 18;
+	@%p44 bra 	BB51_97;
+
+	ld.param.u32 	%r362, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p54, %r362, 15;
+	@%p54 bra 	BB51_93;
+
+	ld.param.u32 	%r358, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p58, %r358, 13;
+	@%p58 bra 	BB51_116;
+
+	ld.param.u32 	%r357, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p59, %r357, 14;
+	@%p59 bra 	BB51_115;
+
+	ld.param.u32 	%r356, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p60, %r356, 15;
+	@%p60 bra 	BB51_92;
+	bra.uni 	BB51_125;
+
+BB51_92:
+	ld.const.f32 	%f1505, [%r412];
+	neg.f32 	%f1506, %f1505;
+	fma.rn.f32 	%f1507, %f1506, %f3415, %f3440;
+	ld.const.f32 	%f1508, [%r62];
+	neg.f32 	%f1509, %f1508;
+	fma.rn.f32 	%f1510, %f1509, %f3416, %f1507;
+	ld.const.f32 	%f1511, [%r63];
+	neg.f32 	%f1512, %f1511;
+	fma.rn.f32 	%f1513, %f1512, %f3417, %f1510;
+	ld.const.f32 	%f1514, [%r64];
+	neg.f32 	%f1515, %f1514;
+	fma.rn.f32 	%f1516, %f1515, %f3418, %f1513;
+	ld.const.f32 	%f1517, [%r65];
+	neg.f32 	%f1518, %f1517;
+	fma.rn.f32 	%f1519, %f1518, %f3419, %f1516;
+	ld.const.f32 	%f1520, [%r66];
+	neg.f32 	%f1521, %f1520;
+	fma.rn.f32 	%f1522, %f1521, %f3420, %f1519;
+	ld.const.f32 	%f1523, [%r67];
+	neg.f32 	%f1524, %f1523;
+	fma.rn.f32 	%f1525, %f1524, %f3421, %f1522;
+	ld.const.f32 	%f1526, [%r68];
+	neg.f32 	%f1527, %f1526;
+	fma.rn.f32 	%f1528, %f1527, %f3422, %f1525;
+	ld.const.f32 	%f1529, [%r69];
+	neg.f32 	%f1530, %f1529;
+	fma.rn.f32 	%f1531, %f1530, %f3423, %f1528;
+	ld.const.f32 	%f1532, [%r70];
+	neg.f32 	%f1533, %f1532;
+	fma.rn.f32 	%f1534, %f1533, %f3424, %f1531;
+	ld.const.f32 	%f1535, [%r71];
+	neg.f32 	%f1536, %f1535;
+	fma.rn.f32 	%f1537, %f1536, %f3425, %f1534;
+	ld.const.f32 	%f1538, [%r72];
+	neg.f32 	%f1539, %f1538;
+	fma.rn.f32 	%f1540, %f1539, %f3426, %f1537;
+	ld.const.f32 	%f1541, [%r73];
+	neg.f32 	%f1542, %f1541;
+	fma.rn.f32 	%f1543, %f1542, %f3427, %f1540;
+	ld.const.f32 	%f1544, [%r74];
+	neg.f32 	%f1545, %f1544;
+	fma.rn.f32 	%f1546, %f1545, %f3428, %f1543;
+	ld.const.f32 	%f1547, [%r75];
+	neg.f32 	%f1548, %f1547;
+	fma.rn.f32 	%f3440, %f1548, %f3429, %f1546;
+	bra.uni 	BB51_125;
+
+BB51_93:
+	ld.param.u32 	%r361, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p55, %r361, 16;
+	@%p55 bra 	BB51_114;
+
+	ld.param.u32 	%r360, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p56, %r360, 17;
+	@%p56 bra 	BB51_113;
+
+	ld.param.u32 	%r359, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p57, %r359, 18;
+	@%p57 bra 	BB51_96;
+	bra.uni 	BB51_125;
+
+BB51_96:
+	ld.const.f32 	%f1355, [%r412];
+	neg.f32 	%f1356, %f1355;
+	fma.rn.f32 	%f1357, %f1356, %f3415, %f3440;
+	ld.const.f32 	%f1358, [%r62];
+	neg.f32 	%f1359, %f1358;
+	fma.rn.f32 	%f1360, %f1359, %f3416, %f1357;
+	ld.const.f32 	%f1361, [%r63];
+	neg.f32 	%f1362, %f1361;
+	fma.rn.f32 	%f1363, %f1362, %f3417, %f1360;
+	ld.const.f32 	%f1364, [%r64];
+	neg.f32 	%f1365, %f1364;
+	fma.rn.f32 	%f1366, %f1365, %f3418, %f1363;
+	ld.const.f32 	%f1367, [%r65];
+	neg.f32 	%f1368, %f1367;
+	fma.rn.f32 	%f1369, %f1368, %f3419, %f1366;
+	ld.const.f32 	%f1370, [%r66];
+	neg.f32 	%f1371, %f1370;
+	fma.rn.f32 	%f1372, %f1371, %f3420, %f1369;
+	ld.const.f32 	%f1373, [%r67];
+	neg.f32 	%f1374, %f1373;
+	fma.rn.f32 	%f1375, %f1374, %f3421, %f1372;
+	ld.const.f32 	%f1376, [%r68];
+	neg.f32 	%f1377, %f1376;
+	fma.rn.f32 	%f1378, %f1377, %f3422, %f1375;
+	ld.const.f32 	%f1379, [%r69];
+	neg.f32 	%f1380, %f1379;
+	fma.rn.f32 	%f1381, %f1380, %f3423, %f1378;
+	ld.const.f32 	%f1382, [%r70];
+	neg.f32 	%f1383, %f1382;
+	fma.rn.f32 	%f1384, %f1383, %f3424, %f1381;
+	ld.const.f32 	%f1385, [%r71];
+	neg.f32 	%f1386, %f1385;
+	fma.rn.f32 	%f1387, %f1386, %f3425, %f1384;
+	ld.const.f32 	%f1388, [%r72];
+	neg.f32 	%f1389, %f1388;
+	fma.rn.f32 	%f1390, %f1389, %f3426, %f1387;
+	ld.const.f32 	%f1391, [%r73];
+	neg.f32 	%f1392, %f1391;
+	fma.rn.f32 	%f1393, %f1392, %f3427, %f1390;
+	ld.const.f32 	%f1394, [%r74];
+	neg.f32 	%f1395, %f1394;
+	fma.rn.f32 	%f1396, %f1395, %f3428, %f1393;
+	ld.const.f32 	%f1397, [%r75];
+	neg.f32 	%f1398, %f1397;
+	fma.rn.f32 	%f1399, %f1398, %f3429, %f1396;
+	ld.const.f32 	%f1400, [%r76];
+	neg.f32 	%f1401, %f1400;
+	fma.rn.f32 	%f1402, %f1401, %f3430, %f1399;
+	ld.const.f32 	%f1403, [%r77];
+	neg.f32 	%f1404, %f1403;
+	fma.rn.f32 	%f1405, %f1404, %f3431, %f1402;
+	ld.const.f32 	%f1406, [%r78];
+	neg.f32 	%f1407, %f1406;
+	fma.rn.f32 	%f3440, %f1407, %f3432, %f1405;
+	bra.uni 	BB51_125;
+
+BB51_97:
+	ld.param.u32 	%r371, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p45, %r371, 21;
+	@%p45 bra 	BB51_102;
+
+	ld.param.u32 	%r365, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p51, %r365, 19;
+	@%p51 bra 	BB51_112;
+
+	ld.param.u32 	%r364, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p52, %r364, 20;
+	@%p52 bra 	BB51_111;
+
+	ld.param.u32 	%r363, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p53, %r363, 21;
+	@%p53 bra 	BB51_101;
+	bra.uni 	BB51_125;
+
+BB51_101:
+	ld.const.f32 	%f1178, [%r412];
+	neg.f32 	%f1179, %f1178;
+	fma.rn.f32 	%f1180, %f1179, %f3415, %f3440;
+	ld.const.f32 	%f1181, [%r62];
+	neg.f32 	%f1182, %f1181;
+	fma.rn.f32 	%f1183, %f1182, %f3416, %f1180;
+	ld.const.f32 	%f1184, [%r63];
+	neg.f32 	%f1185, %f1184;
+	fma.rn.f32 	%f1186, %f1185, %f3417, %f1183;
+	ld.const.f32 	%f1187, [%r64];
+	neg.f32 	%f1188, %f1187;
+	fma.rn.f32 	%f1189, %f1188, %f3418, %f1186;
+	ld.const.f32 	%f1190, [%r65];
+	neg.f32 	%f1191, %f1190;
+	fma.rn.f32 	%f1192, %f1191, %f3419, %f1189;
+	ld.const.f32 	%f1193, [%r66];
+	neg.f32 	%f1194, %f1193;
+	fma.rn.f32 	%f1195, %f1194, %f3420, %f1192;
+	ld.const.f32 	%f1196, [%r67];
+	neg.f32 	%f1197, %f1196;
+	fma.rn.f32 	%f1198, %f1197, %f3421, %f1195;
+	ld.const.f32 	%f1199, [%r68];
+	neg.f32 	%f1200, %f1199;
+	fma.rn.f32 	%f1201, %f1200, %f3422, %f1198;
+	ld.const.f32 	%f1202, [%r69];
+	neg.f32 	%f1203, %f1202;
+	fma.rn.f32 	%f1204, %f1203, %f3423, %f1201;
+	ld.const.f32 	%f1205, [%r70];
+	neg.f32 	%f1206, %f1205;
+	fma.rn.f32 	%f1207, %f1206, %f3424, %f1204;
+	ld.const.f32 	%f1208, [%r71];
+	neg.f32 	%f1209, %f1208;
+	fma.rn.f32 	%f1210, %f1209, %f3425, %f1207;
+	ld.const.f32 	%f1211, [%r72];
+	neg.f32 	%f1212, %f1211;
+	fma.rn.f32 	%f1213, %f1212, %f3426, %f1210;
+	ld.const.f32 	%f1214, [%r73];
+	neg.f32 	%f1215, %f1214;
+	fma.rn.f32 	%f1216, %f1215, %f3427, %f1213;
+	ld.const.f32 	%f1217, [%r74];
+	neg.f32 	%f1218, %f1217;
+	fma.rn.f32 	%f1219, %f1218, %f3428, %f1216;
+	ld.const.f32 	%f1220, [%r75];
+	neg.f32 	%f1221, %f1220;
+	fma.rn.f32 	%f1222, %f1221, %f3429, %f1219;
+	ld.const.f32 	%f1223, [%r76];
+	neg.f32 	%f1224, %f1223;
+	fma.rn.f32 	%f1225, %f1224, %f3430, %f1222;
+	ld.const.f32 	%f1226, [%r77];
+	neg.f32 	%f1227, %f1226;
+	fma.rn.f32 	%f1228, %f1227, %f3431, %f1225;
+	ld.const.f32 	%f1229, [%r78];
+	neg.f32 	%f1230, %f1229;
+	fma.rn.f32 	%f1231, %f1230, %f3432, %f1228;
+	ld.const.f32 	%f1232, [%r79];
+	neg.f32 	%f1233, %f1232;
+	fma.rn.f32 	%f1234, %f1233, %f3433, %f1231;
+	ld.const.f32 	%f1235, [%r80];
+	neg.f32 	%f1236, %f1235;
+	fma.rn.f32 	%f1237, %f1236, %f3434, %f1234;
+	ld.const.f32 	%f1238, [%r81];
+	neg.f32 	%f1239, %f1238;
+	fma.rn.f32 	%f3440, %f1239, %f3435, %f1237;
+	bra.uni 	BB51_125;
+
+BB51_102:
+	ld.param.u32 	%r370, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p46, %r370, 23;
+	@%p46 bra 	BB51_106;
+
+	ld.param.u32 	%r367, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p49, %r367, 22;
+	@%p49 bra 	BB51_110;
+
+	ld.param.u32 	%r366, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p50, %r366, 23;
+	@%p50 bra 	BB51_105;
+	bra.uni 	BB51_125;
+
+BB51_105:
+	ld.const.f32 	%f1045, [%r412];
+	neg.f32 	%f1046, %f1045;
+	fma.rn.f32 	%f1047, %f1046, %f3415, %f3440;
+	ld.const.f32 	%f1048, [%r62];
+	neg.f32 	%f1049, %f1048;
+	fma.rn.f32 	%f1050, %f1049, %f3416, %f1047;
+	ld.const.f32 	%f1051, [%r63];
+	neg.f32 	%f1052, %f1051;
+	fma.rn.f32 	%f1053, %f1052, %f3417, %f1050;
+	ld.const.f32 	%f1054, [%r64];
+	neg.f32 	%f1055, %f1054;
+	fma.rn.f32 	%f1056, %f1055, %f3418, %f1053;
+	ld.const.f32 	%f1057, [%r65];
+	neg.f32 	%f1058, %f1057;
+	fma.rn.f32 	%f1059, %f1058, %f3419, %f1056;
+	ld.const.f32 	%f1060, [%r66];
+	neg.f32 	%f1061, %f1060;
+	fma.rn.f32 	%f1062, %f1061, %f3420, %f1059;
+	ld.const.f32 	%f1063, [%r67];
+	neg.f32 	%f1064, %f1063;
+	fma.rn.f32 	%f1065, %f1064, %f3421, %f1062;
+	ld.const.f32 	%f1066, [%r68];
+	neg.f32 	%f1067, %f1066;
+	fma.rn.f32 	%f1068, %f1067, %f3422, %f1065;
+	ld.const.f32 	%f1069, [%r69];
+	neg.f32 	%f1070, %f1069;
+	fma.rn.f32 	%f1071, %f1070, %f3423, %f1068;
+	ld.const.f32 	%f1072, [%r70];
+	neg.f32 	%f1073, %f1072;
+	fma.rn.f32 	%f1074, %f1073, %f3424, %f1071;
+	ld.const.f32 	%f1075, [%r71];
+	neg.f32 	%f1076, %f1075;
+	fma.rn.f32 	%f1077, %f1076, %f3425, %f1074;
+	ld.const.f32 	%f1078, [%r72];
+	neg.f32 	%f1079, %f1078;
+	fma.rn.f32 	%f1080, %f1079, %f3426, %f1077;
+	ld.const.f32 	%f1081, [%r73];
+	neg.f32 	%f1082, %f1081;
+	fma.rn.f32 	%f1083, %f1082, %f3427, %f1080;
+	ld.const.f32 	%f1084, [%r74];
+	neg.f32 	%f1085, %f1084;
+	fma.rn.f32 	%f1086, %f1085, %f3428, %f1083;
+	ld.const.f32 	%f1087, [%r75];
+	neg.f32 	%f1088, %f1087;
+	fma.rn.f32 	%f1089, %f1088, %f3429, %f1086;
+	ld.const.f32 	%f1090, [%r76];
+	neg.f32 	%f1091, %f1090;
+	fma.rn.f32 	%f1092, %f1091, %f3430, %f1089;
+	ld.const.f32 	%f1093, [%r77];
+	neg.f32 	%f1094, %f1093;
+	fma.rn.f32 	%f1095, %f1094, %f3431, %f1092;
+	ld.const.f32 	%f1096, [%r78];
+	neg.f32 	%f1097, %f1096;
+	fma.rn.f32 	%f1098, %f1097, %f3432, %f1095;
+	ld.const.f32 	%f1099, [%r79];
+	neg.f32 	%f1100, %f1099;
+	fma.rn.f32 	%f1101, %f1100, %f3433, %f1098;
+	ld.const.f32 	%f1102, [%r80];
+	neg.f32 	%f1103, %f1102;
+	fma.rn.f32 	%f1104, %f1103, %f3434, %f1101;
+	ld.const.f32 	%f1105, [%r81];
+	neg.f32 	%f1106, %f1105;
+	fma.rn.f32 	%f1107, %f1106, %f3435, %f1104;
+	ld.const.f32 	%f1108, [%r82];
+	neg.f32 	%f1109, %f1108;
+	fma.rn.f32 	%f1110, %f1109, %f3436, %f1107;
+	ld.const.f32 	%f1111, [%r83];
+	neg.f32 	%f1112, %f1111;
+	fma.rn.f32 	%f3440, %f1112, %f3437, %f1110;
+	bra.uni 	BB51_125;
+
+BB51_106:
+	ld.param.u32 	%r369, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p47, %r369, 24;
+	@%p47 bra 	BB51_109;
+
+	ld.param.u32 	%r368, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.ne.s32 	%p48, %r368, 25;
+	@%p48 bra 	BB51_125;
+
+	ld.const.f32 	%f900, [%r412];
+	neg.f32 	%f901, %f900;
+	fma.rn.f32 	%f902, %f901, %f3415, %f3440;
+	ld.param.u32 	%r265, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	shl.b32 	%r193, %r265, 2;
+	add.s32 	%r194, %r412, %r193;
+	ld.const.f32 	%f903, [%r62];
+	neg.f32 	%f904, %f903;
+	fma.rn.f32 	%f905, %f904, %f3416, %f902;
+	ld.const.f32 	%f906, [%r63];
+	neg.f32 	%f907, %f906;
+	fma.rn.f32 	%f908, %f907, %f3417, %f905;
+	ld.const.f32 	%f909, [%r64];
+	neg.f32 	%f910, %f909;
+	fma.rn.f32 	%f911, %f910, %f3418, %f908;
+	ld.const.f32 	%f912, [%r65];
+	neg.f32 	%f913, %f912;
+	fma.rn.f32 	%f914, %f913, %f3419, %f911;
+	ld.const.f32 	%f915, [%r66];
+	neg.f32 	%f916, %f915;
+	fma.rn.f32 	%f917, %f916, %f3420, %f914;
+	ld.const.f32 	%f918, [%r67];
+	neg.f32 	%f919, %f918;
+	fma.rn.f32 	%f920, %f919, %f3421, %f917;
+	ld.const.f32 	%f921, [%r68];
+	neg.f32 	%f922, %f921;
+	fma.rn.f32 	%f923, %f922, %f3422, %f920;
+	ld.const.f32 	%f924, [%r69];
+	neg.f32 	%f925, %f924;
+	fma.rn.f32 	%f926, %f925, %f3423, %f923;
+	ld.const.f32 	%f927, [%r70];
+	neg.f32 	%f928, %f927;
+	fma.rn.f32 	%f929, %f928, %f3424, %f926;
+	ld.const.f32 	%f930, [%r71];
+	neg.f32 	%f931, %f930;
+	fma.rn.f32 	%f932, %f931, %f3425, %f929;
+	ld.const.f32 	%f933, [%r72];
+	neg.f32 	%f934, %f933;
+	fma.rn.f32 	%f935, %f934, %f3426, %f932;
+	ld.const.f32 	%f936, [%r73];
+	neg.f32 	%f937, %f936;
+	fma.rn.f32 	%f938, %f937, %f3427, %f935;
+	ld.const.f32 	%f939, [%r74];
+	neg.f32 	%f940, %f939;
+	fma.rn.f32 	%f941, %f940, %f3428, %f938;
+	ld.const.f32 	%f942, [%r75];
+	neg.f32 	%f943, %f942;
+	fma.rn.f32 	%f944, %f943, %f3429, %f941;
+	ld.const.f32 	%f945, [%r76];
+	neg.f32 	%f946, %f945;
+	fma.rn.f32 	%f947, %f946, %f3430, %f944;
+	ld.const.f32 	%f948, [%r77];
+	neg.f32 	%f949, %f948;
+	fma.rn.f32 	%f950, %f949, %f3431, %f947;
+	ld.const.f32 	%f951, [%r78];
+	neg.f32 	%f952, %f951;
+	fma.rn.f32 	%f953, %f952, %f3432, %f950;
+	ld.const.f32 	%f954, [%r79];
+	neg.f32 	%f955, %f954;
+	fma.rn.f32 	%f956, %f955, %f3433, %f953;
+	ld.const.f32 	%f957, [%r80];
+	neg.f32 	%f958, %f957;
+	fma.rn.f32 	%f959, %f958, %f3434, %f956;
+	ld.const.f32 	%f960, [%r81];
+	neg.f32 	%f961, %f960;
+	fma.rn.f32 	%f962, %f961, %f3435, %f959;
+	ld.const.f32 	%f963, [%r82];
+	neg.f32 	%f964, %f963;
+	fma.rn.f32 	%f965, %f964, %f3436, %f962;
+	ld.const.f32 	%f966, [%r83];
+	neg.f32 	%f967, %f966;
+	fma.rn.f32 	%f968, %f967, %f3437, %f965;
+	ld.const.f32 	%f969, [%r84];
+	neg.f32 	%f970, %f969;
+	fma.rn.f32 	%f971, %f970, %f3438, %f968;
+	mad.lo.s32 	%r195, %r265, 92, %r194;
+	ld.const.f32 	%f972, [%r195];
+	neg.f32 	%f973, %f972;
+	fma.rn.f32 	%f3440, %f973, %f3439, %f971;
+	bra.uni 	BB51_125;
+
+BB51_109:
+	ld.const.f32 	%f974, [%r412];
+	neg.f32 	%f975, %f974;
+	fma.rn.f32 	%f976, %f975, %f3415, %f3440;
+	ld.const.f32 	%f977, [%r62];
+	neg.f32 	%f978, %f977;
+	fma.rn.f32 	%f979, %f978, %f3416, %f976;
+	ld.const.f32 	%f980, [%r63];
+	neg.f32 	%f981, %f980;
+	fma.rn.f32 	%f982, %f981, %f3417, %f979;
+	ld.const.f32 	%f983, [%r64];
+	neg.f32 	%f984, %f983;
+	fma.rn.f32 	%f985, %f984, %f3418, %f982;
+	ld.const.f32 	%f986, [%r65];
+	neg.f32 	%f987, %f986;
+	fma.rn.f32 	%f988, %f987, %f3419, %f985;
+	ld.const.f32 	%f989, [%r66];
+	neg.f32 	%f990, %f989;
+	fma.rn.f32 	%f991, %f990, %f3420, %f988;
+	ld.const.f32 	%f992, [%r67];
+	neg.f32 	%f993, %f992;
+	fma.rn.f32 	%f994, %f993, %f3421, %f991;
+	ld.const.f32 	%f995, [%r68];
+	neg.f32 	%f996, %f995;
+	fma.rn.f32 	%f997, %f996, %f3422, %f994;
+	ld.const.f32 	%f998, [%r69];
+	neg.f32 	%f999, %f998;
+	fma.rn.f32 	%f1000, %f999, %f3423, %f997;
+	ld.const.f32 	%f1001, [%r70];
+	neg.f32 	%f1002, %f1001;
+	fma.rn.f32 	%f1003, %f1002, %f3424, %f1000;
+	ld.const.f32 	%f1004, [%r71];
+	neg.f32 	%f1005, %f1004;
+	fma.rn.f32 	%f1006, %f1005, %f3425, %f1003;
+	ld.const.f32 	%f1007, [%r72];
+	neg.f32 	%f1008, %f1007;
+	fma.rn.f32 	%f1009, %f1008, %f3426, %f1006;
+	ld.const.f32 	%f1010, [%r73];
+	neg.f32 	%f1011, %f1010;
+	fma.rn.f32 	%f1012, %f1011, %f3427, %f1009;
+	ld.const.f32 	%f1013, [%r74];
+	neg.f32 	%f1014, %f1013;
+	fma.rn.f32 	%f1015, %f1014, %f3428, %f1012;
+	ld.const.f32 	%f1016, [%r75];
+	neg.f32 	%f1017, %f1016;
+	fma.rn.f32 	%f1018, %f1017, %f3429, %f1015;
+	ld.const.f32 	%f1019, [%r76];
+	neg.f32 	%f1020, %f1019;
+	fma.rn.f32 	%f1021, %f1020, %f3430, %f1018;
+	ld.const.f32 	%f1022, [%r77];
+	neg.f32 	%f1023, %f1022;
+	fma.rn.f32 	%f1024, %f1023, %f3431, %f1021;
+	ld.const.f32 	%f1025, [%r78];
+	neg.f32 	%f1026, %f1025;
+	fma.rn.f32 	%f1027, %f1026, %f3432, %f1024;
+	ld.const.f32 	%f1028, [%r79];
+	neg.f32 	%f1029, %f1028;
+	fma.rn.f32 	%f1030, %f1029, %f3433, %f1027;
+	ld.const.f32 	%f1031, [%r80];
+	neg.f32 	%f1032, %f1031;
+	fma.rn.f32 	%f1033, %f1032, %f3434, %f1030;
+	ld.const.f32 	%f1034, [%r81];
+	neg.f32 	%f1035, %f1034;
+	fma.rn.f32 	%f1036, %f1035, %f3435, %f1033;
+	ld.const.f32 	%f1037, [%r82];
+	neg.f32 	%f1038, %f1037;
+	fma.rn.f32 	%f1039, %f1038, %f3436, %f1036;
+	ld.const.f32 	%f1040, [%r83];
+	neg.f32 	%f1041, %f1040;
+	fma.rn.f32 	%f1042, %f1041, %f3437, %f1039;
+	ld.const.f32 	%f1043, [%r84];
+	neg.f32 	%f1044, %f1043;
+	fma.rn.f32 	%f3440, %f1044, %f3438, %f1042;
+	bra.uni 	BB51_125;
+
+BB51_110:
+	ld.const.f32 	%f1113, [%r412];
+	neg.f32 	%f1114, %f1113;
+	fma.rn.f32 	%f1115, %f1114, %f3415, %f3440;
+	ld.const.f32 	%f1116, [%r62];
+	neg.f32 	%f1117, %f1116;
+	fma.rn.f32 	%f1118, %f1117, %f3416, %f1115;
+	ld.const.f32 	%f1119, [%r63];
+	neg.f32 	%f1120, %f1119;
+	fma.rn.f32 	%f1121, %f1120, %f3417, %f1118;
+	ld.const.f32 	%f1122, [%r64];
+	neg.f32 	%f1123, %f1122;
+	fma.rn.f32 	%f1124, %f1123, %f3418, %f1121;
+	ld.const.f32 	%f1125, [%r65];
+	neg.f32 	%f1126, %f1125;
+	fma.rn.f32 	%f1127, %f1126, %f3419, %f1124;
+	ld.const.f32 	%f1128, [%r66];
+	neg.f32 	%f1129, %f1128;
+	fma.rn.f32 	%f1130, %f1129, %f3420, %f1127;
+	ld.const.f32 	%f1131, [%r67];
+	neg.f32 	%f1132, %f1131;
+	fma.rn.f32 	%f1133, %f1132, %f3421, %f1130;
+	ld.const.f32 	%f1134, [%r68];
+	neg.f32 	%f1135, %f1134;
+	fma.rn.f32 	%f1136, %f1135, %f3422, %f1133;
+	ld.const.f32 	%f1137, [%r69];
+	neg.f32 	%f1138, %f1137;
+	fma.rn.f32 	%f1139, %f1138, %f3423, %f1136;
+	ld.const.f32 	%f1140, [%r70];
+	neg.f32 	%f1141, %f1140;
+	fma.rn.f32 	%f1142, %f1141, %f3424, %f1139;
+	ld.const.f32 	%f1143, [%r71];
+	neg.f32 	%f1144, %f1143;
+	fma.rn.f32 	%f1145, %f1144, %f3425, %f1142;
+	ld.const.f32 	%f1146, [%r72];
+	neg.f32 	%f1147, %f1146;
+	fma.rn.f32 	%f1148, %f1147, %f3426, %f1145;
+	ld.const.f32 	%f1149, [%r73];
+	neg.f32 	%f1150, %f1149;
+	fma.rn.f32 	%f1151, %f1150, %f3427, %f1148;
+	ld.const.f32 	%f1152, [%r74];
+	neg.f32 	%f1153, %f1152;
+	fma.rn.f32 	%f1154, %f1153, %f3428, %f1151;
+	ld.const.f32 	%f1155, [%r75];
+	neg.f32 	%f1156, %f1155;
+	fma.rn.f32 	%f1157, %f1156, %f3429, %f1154;
+	ld.const.f32 	%f1158, [%r76];
+	neg.f32 	%f1159, %f1158;
+	fma.rn.f32 	%f1160, %f1159, %f3430, %f1157;
+	ld.const.f32 	%f1161, [%r77];
+	neg.f32 	%f1162, %f1161;
+	fma.rn.f32 	%f1163, %f1162, %f3431, %f1160;
+	ld.const.f32 	%f1164, [%r78];
+	neg.f32 	%f1165, %f1164;
+	fma.rn.f32 	%f1166, %f1165, %f3432, %f1163;
+	ld.const.f32 	%f1167, [%r79];
+	neg.f32 	%f1168, %f1167;
+	fma.rn.f32 	%f1169, %f1168, %f3433, %f1166;
+	ld.const.f32 	%f1170, [%r80];
+	neg.f32 	%f1171, %f1170;
+	fma.rn.f32 	%f1172, %f1171, %f3434, %f1169;
+	ld.const.f32 	%f1173, [%r81];
+	neg.f32 	%f1174, %f1173;
+	fma.rn.f32 	%f1175, %f1174, %f3435, %f1172;
+	ld.const.f32 	%f1176, [%r82];
+	neg.f32 	%f1177, %f1176;
+	fma.rn.f32 	%f3440, %f1177, %f3436, %f1175;
+	bra.uni 	BB51_125;
+
+BB51_111:
+	ld.const.f32 	%f1240, [%r412];
+	neg.f32 	%f1241, %f1240;
+	fma.rn.f32 	%f1242, %f1241, %f3415, %f3440;
+	ld.const.f32 	%f1243, [%r62];
+	neg.f32 	%f1244, %f1243;
+	fma.rn.f32 	%f1245, %f1244, %f3416, %f1242;
+	ld.const.f32 	%f1246, [%r63];
+	neg.f32 	%f1247, %f1246;
+	fma.rn.f32 	%f1248, %f1247, %f3417, %f1245;
+	ld.const.f32 	%f1249, [%r64];
+	neg.f32 	%f1250, %f1249;
+	fma.rn.f32 	%f1251, %f1250, %f3418, %f1248;
+	ld.const.f32 	%f1252, [%r65];
+	neg.f32 	%f1253, %f1252;
+	fma.rn.f32 	%f1254, %f1253, %f3419, %f1251;
+	ld.const.f32 	%f1255, [%r66];
+	neg.f32 	%f1256, %f1255;
+	fma.rn.f32 	%f1257, %f1256, %f3420, %f1254;
+	ld.const.f32 	%f1258, [%r67];
+	neg.f32 	%f1259, %f1258;
+	fma.rn.f32 	%f1260, %f1259, %f3421, %f1257;
+	ld.const.f32 	%f1261, [%r68];
+	neg.f32 	%f1262, %f1261;
+	fma.rn.f32 	%f1263, %f1262, %f3422, %f1260;
+	ld.const.f32 	%f1264, [%r69];
+	neg.f32 	%f1265, %f1264;
+	fma.rn.f32 	%f1266, %f1265, %f3423, %f1263;
+	ld.const.f32 	%f1267, [%r70];
+	neg.f32 	%f1268, %f1267;
+	fma.rn.f32 	%f1269, %f1268, %f3424, %f1266;
+	ld.const.f32 	%f1270, [%r71];
+	neg.f32 	%f1271, %f1270;
+	fma.rn.f32 	%f1272, %f1271, %f3425, %f1269;
+	ld.const.f32 	%f1273, [%r72];
+	neg.f32 	%f1274, %f1273;
+	fma.rn.f32 	%f1275, %f1274, %f3426, %f1272;
+	ld.const.f32 	%f1276, [%r73];
+	neg.f32 	%f1277, %f1276;
+	fma.rn.f32 	%f1278, %f1277, %f3427, %f1275;
+	ld.const.f32 	%f1279, [%r74];
+	neg.f32 	%f1280, %f1279;
+	fma.rn.f32 	%f1281, %f1280, %f3428, %f1278;
+	ld.const.f32 	%f1282, [%r75];
+	neg.f32 	%f1283, %f1282;
+	fma.rn.f32 	%f1284, %f1283, %f3429, %f1281;
+	ld.const.f32 	%f1285, [%r76];
+	neg.f32 	%f1286, %f1285;
+	fma.rn.f32 	%f1287, %f1286, %f3430, %f1284;
+	ld.const.f32 	%f1288, [%r77];
+	neg.f32 	%f1289, %f1288;
+	fma.rn.f32 	%f1290, %f1289, %f3431, %f1287;
+	ld.const.f32 	%f1291, [%r78];
+	neg.f32 	%f1292, %f1291;
+	fma.rn.f32 	%f1293, %f1292, %f3432, %f1290;
+	ld.const.f32 	%f1294, [%r79];
+	neg.f32 	%f1295, %f1294;
+	fma.rn.f32 	%f1296, %f1295, %f3433, %f1293;
+	ld.const.f32 	%f1297, [%r80];
+	neg.f32 	%f1298, %f1297;
+	fma.rn.f32 	%f3440, %f1298, %f3434, %f1296;
+	bra.uni 	BB51_125;
+
+BB51_112:
+	ld.const.f32 	%f1299, [%r412];
+	neg.f32 	%f1300, %f1299;
+	fma.rn.f32 	%f1301, %f1300, %f3415, %f3440;
+	ld.const.f32 	%f1302, [%r62];
+	neg.f32 	%f1303, %f1302;
+	fma.rn.f32 	%f1304, %f1303, %f3416, %f1301;
+	ld.const.f32 	%f1305, [%r63];
+	neg.f32 	%f1306, %f1305;
+	fma.rn.f32 	%f1307, %f1306, %f3417, %f1304;
+	ld.const.f32 	%f1308, [%r64];
+	neg.f32 	%f1309, %f1308;
+	fma.rn.f32 	%f1310, %f1309, %f3418, %f1307;
+	ld.const.f32 	%f1311, [%r65];
+	neg.f32 	%f1312, %f1311;
+	fma.rn.f32 	%f1313, %f1312, %f3419, %f1310;
+	ld.const.f32 	%f1314, [%r66];
+	neg.f32 	%f1315, %f1314;
+	fma.rn.f32 	%f1316, %f1315, %f3420, %f1313;
+	ld.const.f32 	%f1317, [%r67];
+	neg.f32 	%f1318, %f1317;
+	fma.rn.f32 	%f1319, %f1318, %f3421, %f1316;
+	ld.const.f32 	%f1320, [%r68];
+	neg.f32 	%f1321, %f1320;
+	fma.rn.f32 	%f1322, %f1321, %f3422, %f1319;
+	ld.const.f32 	%f1323, [%r69];
+	neg.f32 	%f1324, %f1323;
+	fma.rn.f32 	%f1325, %f1324, %f3423, %f1322;
+	ld.const.f32 	%f1326, [%r70];
+	neg.f32 	%f1327, %f1326;
+	fma.rn.f32 	%f1328, %f1327, %f3424, %f1325;
+	ld.const.f32 	%f1329, [%r71];
+	neg.f32 	%f1330, %f1329;
+	fma.rn.f32 	%f1331, %f1330, %f3425, %f1328;
+	ld.const.f32 	%f1332, [%r72];
+	neg.f32 	%f1333, %f1332;
+	fma.rn.f32 	%f1334, %f1333, %f3426, %f1331;
+	ld.const.f32 	%f1335, [%r73];
+	neg.f32 	%f1336, %f1335;
+	fma.rn.f32 	%f1337, %f1336, %f3427, %f1334;
+	ld.const.f32 	%f1338, [%r74];
+	neg.f32 	%f1339, %f1338;
+	fma.rn.f32 	%f1340, %f1339, %f3428, %f1337;
+	ld.const.f32 	%f1341, [%r75];
+	neg.f32 	%f1342, %f1341;
+	fma.rn.f32 	%f1343, %f1342, %f3429, %f1340;
+	ld.const.f32 	%f1344, [%r76];
+	neg.f32 	%f1345, %f1344;
+	fma.rn.f32 	%f1346, %f1345, %f3430, %f1343;
+	ld.const.f32 	%f1347, [%r77];
+	neg.f32 	%f1348, %f1347;
+	fma.rn.f32 	%f1349, %f1348, %f3431, %f1346;
+	ld.const.f32 	%f1350, [%r78];
+	neg.f32 	%f1351, %f1350;
+	fma.rn.f32 	%f1352, %f1351, %f3432, %f1349;
+	ld.const.f32 	%f1353, [%r79];
+	neg.f32 	%f1354, %f1353;
+	fma.rn.f32 	%f3440, %f1354, %f3433, %f1352;
+	bra.uni 	BB51_125;
+
+BB51_113:
+	ld.const.f32 	%f1408, [%r412];
+	neg.f32 	%f1409, %f1408;
+	fma.rn.f32 	%f1410, %f1409, %f3415, %f3440;
+	ld.const.f32 	%f1411, [%r62];
+	neg.f32 	%f1412, %f1411;
+	fma.rn.f32 	%f1413, %f1412, %f3416, %f1410;
+	ld.const.f32 	%f1414, [%r63];
+	neg.f32 	%f1415, %f1414;
+	fma.rn.f32 	%f1416, %f1415, %f3417, %f1413;
+	ld.const.f32 	%f1417, [%r64];
+	neg.f32 	%f1418, %f1417;
+	fma.rn.f32 	%f1419, %f1418, %f3418, %f1416;
+	ld.const.f32 	%f1420, [%r65];
+	neg.f32 	%f1421, %f1420;
+	fma.rn.f32 	%f1422, %f1421, %f3419, %f1419;
+	ld.const.f32 	%f1423, [%r66];
+	neg.f32 	%f1424, %f1423;
+	fma.rn.f32 	%f1425, %f1424, %f3420, %f1422;
+	ld.const.f32 	%f1426, [%r67];
+	neg.f32 	%f1427, %f1426;
+	fma.rn.f32 	%f1428, %f1427, %f3421, %f1425;
+	ld.const.f32 	%f1429, [%r68];
+	neg.f32 	%f1430, %f1429;
+	fma.rn.f32 	%f1431, %f1430, %f3422, %f1428;
+	ld.const.f32 	%f1432, [%r69];
+	neg.f32 	%f1433, %f1432;
+	fma.rn.f32 	%f1434, %f1433, %f3423, %f1431;
+	ld.const.f32 	%f1435, [%r70];
+	neg.f32 	%f1436, %f1435;
+	fma.rn.f32 	%f1437, %f1436, %f3424, %f1434;
+	ld.const.f32 	%f1438, [%r71];
+	neg.f32 	%f1439, %f1438;
+	fma.rn.f32 	%f1440, %f1439, %f3425, %f1437;
+	ld.const.f32 	%f1441, [%r72];
+	neg.f32 	%f1442, %f1441;
+	fma.rn.f32 	%f1443, %f1442, %f3426, %f1440;
+	ld.const.f32 	%f1444, [%r73];
+	neg.f32 	%f1445, %f1444;
+	fma.rn.f32 	%f1446, %f1445, %f3427, %f1443;
+	ld.const.f32 	%f1447, [%r74];
+	neg.f32 	%f1448, %f1447;
+	fma.rn.f32 	%f1449, %f1448, %f3428, %f1446;
+	ld.const.f32 	%f1450, [%r75];
+	neg.f32 	%f1451, %f1450;
+	fma.rn.f32 	%f1452, %f1451, %f3429, %f1449;
+	ld.const.f32 	%f1453, [%r76];
+	neg.f32 	%f1454, %f1453;
+	fma.rn.f32 	%f1455, %f1454, %f3430, %f1452;
+	ld.const.f32 	%f1456, [%r77];
+	neg.f32 	%f1457, %f1456;
+	fma.rn.f32 	%f3440, %f1457, %f3431, %f1455;
+	bra.uni 	BB51_125;
+
+BB51_114:
+	ld.const.f32 	%f1458, [%r412];
+	neg.f32 	%f1459, %f1458;
+	fma.rn.f32 	%f1460, %f1459, %f3415, %f3440;
+	ld.const.f32 	%f1461, [%r62];
+	neg.f32 	%f1462, %f1461;
+	fma.rn.f32 	%f1463, %f1462, %f3416, %f1460;
+	ld.const.f32 	%f1464, [%r63];
+	neg.f32 	%f1465, %f1464;
+	fma.rn.f32 	%f1466, %f1465, %f3417, %f1463;
+	ld.const.f32 	%f1467, [%r64];
+	neg.f32 	%f1468, %f1467;
+	fma.rn.f32 	%f1469, %f1468, %f3418, %f1466;
+	ld.const.f32 	%f1470, [%r65];
+	neg.f32 	%f1471, %f1470;
+	fma.rn.f32 	%f1472, %f1471, %f3419, %f1469;
+	ld.const.f32 	%f1473, [%r66];
+	neg.f32 	%f1474, %f1473;
+	fma.rn.f32 	%f1475, %f1474, %f3420, %f1472;
+	ld.const.f32 	%f1476, [%r67];
+	neg.f32 	%f1477, %f1476;
+	fma.rn.f32 	%f1478, %f1477, %f3421, %f1475;
+	ld.const.f32 	%f1479, [%r68];
+	neg.f32 	%f1480, %f1479;
+	fma.rn.f32 	%f1481, %f1480, %f3422, %f1478;
+	ld.const.f32 	%f1482, [%r69];
+	neg.f32 	%f1483, %f1482;
+	fma.rn.f32 	%f1484, %f1483, %f3423, %f1481;
+	ld.const.f32 	%f1485, [%r70];
+	neg.f32 	%f1486, %f1485;
+	fma.rn.f32 	%f1487, %f1486, %f3424, %f1484;
+	ld.const.f32 	%f1488, [%r71];
+	neg.f32 	%f1489, %f1488;
+	fma.rn.f32 	%f1490, %f1489, %f3425, %f1487;
+	ld.const.f32 	%f1491, [%r72];
+	neg.f32 	%f1492, %f1491;
+	fma.rn.f32 	%f1493, %f1492, %f3426, %f1490;
+	ld.const.f32 	%f1494, [%r73];
+	neg.f32 	%f1495, %f1494;
+	fma.rn.f32 	%f1496, %f1495, %f3427, %f1493;
+	ld.const.f32 	%f1497, [%r74];
+	neg.f32 	%f1498, %f1497;
+	fma.rn.f32 	%f1499, %f1498, %f3428, %f1496;
+	ld.const.f32 	%f1500, [%r75];
+	neg.f32 	%f1501, %f1500;
+	fma.rn.f32 	%f1502, %f1501, %f3429, %f1499;
+	ld.const.f32 	%f1503, [%r76];
+	neg.f32 	%f1504, %f1503;
+	fma.rn.f32 	%f3440, %f1504, %f3430, %f1502;
+	bra.uni 	BB51_125;
+
+BB51_115:
+	ld.const.f32 	%f1549, [%r412];
+	neg.f32 	%f1550, %f1549;
+	fma.rn.f32 	%f1551, %f1550, %f3415, %f3440;
+	ld.const.f32 	%f1552, [%r62];
+	neg.f32 	%f1553, %f1552;
+	fma.rn.f32 	%f1554, %f1553, %f3416, %f1551;
+	ld.const.f32 	%f1555, [%r63];
+	neg.f32 	%f1556, %f1555;
+	fma.rn.f32 	%f1557, %f1556, %f3417, %f1554;
+	ld.const.f32 	%f1558, [%r64];
+	neg.f32 	%f1559, %f1558;
+	fma.rn.f32 	%f1560, %f1559, %f3418, %f1557;
+	ld.const.f32 	%f1561, [%r65];
+	neg.f32 	%f1562, %f1561;
+	fma.rn.f32 	%f1563, %f1562, %f3419, %f1560;
+	ld.const.f32 	%f1564, [%r66];
+	neg.f32 	%f1565, %f1564;
+	fma.rn.f32 	%f1566, %f1565, %f3420, %f1563;
+	ld.const.f32 	%f1567, [%r67];
+	neg.f32 	%f1568, %f1567;
+	fma.rn.f32 	%f1569, %f1568, %f3421, %f1566;
+	ld.const.f32 	%f1570, [%r68];
+	neg.f32 	%f1571, %f1570;
+	fma.rn.f32 	%f1572, %f1571, %f3422, %f1569;
+	ld.const.f32 	%f1573, [%r69];
+	neg.f32 	%f1574, %f1573;
+	fma.rn.f32 	%f1575, %f1574, %f3423, %f1572;
+	ld.const.f32 	%f1576, [%r70];
+	neg.f32 	%f1577, %f1576;
+	fma.rn.f32 	%f1578, %f1577, %f3424, %f1575;
+	ld.const.f32 	%f1579, [%r71];
+	neg.f32 	%f1580, %f1579;
+	fma.rn.f32 	%f1581, %f1580, %f3425, %f1578;
+	ld.const.f32 	%f1582, [%r72];
+	neg.f32 	%f1583, %f1582;
+	fma.rn.f32 	%f1584, %f1583, %f3426, %f1581;
+	ld.const.f32 	%f1585, [%r73];
+	neg.f32 	%f1586, %f1585;
+	fma.rn.f32 	%f1587, %f1586, %f3427, %f1584;
+	ld.const.f32 	%f1588, [%r74];
+	neg.f32 	%f1589, %f1588;
+	fma.rn.f32 	%f3440, %f1589, %f3428, %f1587;
+	bra.uni 	BB51_125;
+
+BB51_116:
+	ld.const.f32 	%f1590, [%r412];
+	neg.f32 	%f1591, %f1590;
+	fma.rn.f32 	%f1592, %f1591, %f3415, %f3440;
+	ld.const.f32 	%f1593, [%r62];
+	neg.f32 	%f1594, %f1593;
+	fma.rn.f32 	%f1595, %f1594, %f3416, %f1592;
+	ld.const.f32 	%f1596, [%r63];
+	neg.f32 	%f1597, %f1596;
+	fma.rn.f32 	%f1598, %f1597, %f3417, %f1595;
+	ld.const.f32 	%f1599, [%r64];
+	neg.f32 	%f1600, %f1599;
+	fma.rn.f32 	%f1601, %f1600, %f3418, %f1598;
+	ld.const.f32 	%f1602, [%r65];
+	neg.f32 	%f1603, %f1602;
+	fma.rn.f32 	%f1604, %f1603, %f3419, %f1601;
+	ld.const.f32 	%f1605, [%r66];
+	neg.f32 	%f1606, %f1605;
+	fma.rn.f32 	%f1607, %f1606, %f3420, %f1604;
+	ld.const.f32 	%f1608, [%r67];
+	neg.f32 	%f1609, %f1608;
+	fma.rn.f32 	%f1610, %f1609, %f3421, %f1607;
+	ld.const.f32 	%f1611, [%r68];
+	neg.f32 	%f1612, %f1611;
+	fma.rn.f32 	%f1613, %f1612, %f3422, %f1610;
+	ld.const.f32 	%f1614, [%r69];
+	neg.f32 	%f1615, %f1614;
+	fma.rn.f32 	%f1616, %f1615, %f3423, %f1613;
+	ld.const.f32 	%f1617, [%r70];
+	neg.f32 	%f1618, %f1617;
+	fma.rn.f32 	%f1619, %f1618, %f3424, %f1616;
+	ld.const.f32 	%f1620, [%r71];
+	neg.f32 	%f1621, %f1620;
+	fma.rn.f32 	%f1622, %f1621, %f3425, %f1619;
+	ld.const.f32 	%f1623, [%r72];
+	neg.f32 	%f1624, %f1623;
+	fma.rn.f32 	%f1625, %f1624, %f3426, %f1622;
+	ld.const.f32 	%f1626, [%r73];
+	neg.f32 	%f1627, %f1626;
+	fma.rn.f32 	%f3440, %f1627, %f3427, %f1625;
+	bra.uni 	BB51_125;
+
+BB51_117:
+	ld.const.f32 	%f1663, [%r412];
+	neg.f32 	%f1664, %f1663;
+	fma.rn.f32 	%f1665, %f1664, %f3415, %f3440;
+	ld.const.f32 	%f1666, [%r62];
+	neg.f32 	%f1667, %f1666;
+	fma.rn.f32 	%f1668, %f1667, %f3416, %f1665;
+	ld.const.f32 	%f1669, [%r63];
+	neg.f32 	%f1670, %f1669;
+	fma.rn.f32 	%f1671, %f1670, %f3417, %f1668;
+	ld.const.f32 	%f1672, [%r64];
+	neg.f32 	%f1673, %f1672;
+	fma.rn.f32 	%f1674, %f1673, %f3418, %f1671;
+	ld.const.f32 	%f1675, [%r65];
+	neg.f32 	%f1676, %f1675;
+	fma.rn.f32 	%f1677, %f1676, %f3419, %f1674;
+	ld.const.f32 	%f1678, [%r66];
+	neg.f32 	%f1679, %f1678;
+	fma.rn.f32 	%f1680, %f1679, %f3420, %f1677;
+	ld.const.f32 	%f1681, [%r67];
+	neg.f32 	%f1682, %f1681;
+	fma.rn.f32 	%f1683, %f1682, %f3421, %f1680;
+	ld.const.f32 	%f1684, [%r68];
+	neg.f32 	%f1685, %f1684;
+	fma.rn.f32 	%f1686, %f1685, %f3422, %f1683;
+	ld.const.f32 	%f1687, [%r69];
+	neg.f32 	%f1688, %f1687;
+	fma.rn.f32 	%f1689, %f1688, %f3423, %f1686;
+	ld.const.f32 	%f1690, [%r70];
+	neg.f32 	%f1691, %f1690;
+	fma.rn.f32 	%f1692, %f1691, %f3424, %f1689;
+	ld.const.f32 	%f1693, [%r71];
+	neg.f32 	%f1694, %f1693;
+	fma.rn.f32 	%f3440, %f1694, %f3425, %f1692;
+	bra.uni 	BB51_125;
+
+BB51_118:
+	ld.const.f32 	%f1695, [%r412];
+	neg.f32 	%f1696, %f1695;
+	fma.rn.f32 	%f1697, %f1696, %f3415, %f3440;
+	ld.const.f32 	%f1698, [%r62];
+	neg.f32 	%f1699, %f1698;
+	fma.rn.f32 	%f1700, %f1699, %f3416, %f1697;
+	ld.const.f32 	%f1701, [%r63];
+	neg.f32 	%f1702, %f1701;
+	fma.rn.f32 	%f1703, %f1702, %f3417, %f1700;
+	ld.const.f32 	%f1704, [%r64];
+	neg.f32 	%f1705, %f1704;
+	fma.rn.f32 	%f1706, %f1705, %f3418, %f1703;
+	ld.const.f32 	%f1707, [%r65];
+	neg.f32 	%f1708, %f1707;
+	fma.rn.f32 	%f1709, %f1708, %f3419, %f1706;
+	ld.const.f32 	%f1710, [%r66];
+	neg.f32 	%f1711, %f1710;
+	fma.rn.f32 	%f1712, %f1711, %f3420, %f1709;
+	ld.const.f32 	%f1713, [%r67];
+	neg.f32 	%f1714, %f1713;
+	fma.rn.f32 	%f1715, %f1714, %f3421, %f1712;
+	ld.const.f32 	%f1716, [%r68];
+	neg.f32 	%f1717, %f1716;
+	fma.rn.f32 	%f1718, %f1717, %f3422, %f1715;
+	ld.const.f32 	%f1719, [%r69];
+	neg.f32 	%f1720, %f1719;
+	fma.rn.f32 	%f1721, %f1720, %f3423, %f1718;
+	ld.const.f32 	%f1722, [%r70];
+	neg.f32 	%f1723, %f1722;
+	fma.rn.f32 	%f3440, %f1723, %f3424, %f1721;
+	bra.uni 	BB51_125;
+
+BB51_119:
+	ld.const.f32 	%f1750, [%r412];
+	neg.f32 	%f1751, %f1750;
+	fma.rn.f32 	%f1752, %f1751, %f3415, %f3440;
+	ld.const.f32 	%f1753, [%r62];
+	neg.f32 	%f1754, %f1753;
+	fma.rn.f32 	%f1755, %f1754, %f3416, %f1752;
+	ld.const.f32 	%f1756, [%r63];
+	neg.f32 	%f1757, %f1756;
+	fma.rn.f32 	%f1758, %f1757, %f3417, %f1755;
+	ld.const.f32 	%f1759, [%r64];
+	neg.f32 	%f1760, %f1759;
+	fma.rn.f32 	%f1761, %f1760, %f3418, %f1758;
+	ld.const.f32 	%f1762, [%r65];
+	neg.f32 	%f1763, %f1762;
+	fma.rn.f32 	%f1764, %f1763, %f3419, %f1761;
+	ld.const.f32 	%f1765, [%r66];
+	neg.f32 	%f1766, %f1765;
+	fma.rn.f32 	%f1767, %f1766, %f3420, %f1764;
+	ld.const.f32 	%f1768, [%r67];
+	neg.f32 	%f1769, %f1768;
+	fma.rn.f32 	%f1770, %f1769, %f3421, %f1767;
+	ld.const.f32 	%f1771, [%r68];
+	neg.f32 	%f1772, %f1771;
+	fma.rn.f32 	%f3440, %f1772, %f3422, %f1770;
+	bra.uni 	BB51_125;
+
+BB51_120:
+	ld.const.f32 	%f1773, [%r412];
+	neg.f32 	%f1774, %f1773;
+	fma.rn.f32 	%f1775, %f1774, %f3415, %f3440;
+	ld.const.f32 	%f1776, [%r62];
+	neg.f32 	%f1777, %f1776;
+	fma.rn.f32 	%f1778, %f1777, %f3416, %f1775;
+	ld.const.f32 	%f1779, [%r63];
+	neg.f32 	%f1780, %f1779;
+	fma.rn.f32 	%f1781, %f1780, %f3417, %f1778;
+	ld.const.f32 	%f1782, [%r64];
+	neg.f32 	%f1783, %f1782;
+	fma.rn.f32 	%f1784, %f1783, %f3418, %f1781;
+	ld.const.f32 	%f1785, [%r65];
+	neg.f32 	%f1786, %f1785;
+	fma.rn.f32 	%f1787, %f1786, %f3419, %f1784;
+	ld.const.f32 	%f1788, [%r66];
+	neg.f32 	%f1789, %f1788;
+	fma.rn.f32 	%f1790, %f1789, %f3420, %f1787;
+	ld.const.f32 	%f1791, [%r67];
+	neg.f32 	%f1792, %f1791;
+	fma.rn.f32 	%f3440, %f1792, %f3421, %f1790;
+	bra.uni 	BB51_125;
+
+BB51_121:
+	ld.const.f32 	%f1810, [%r412];
+	neg.f32 	%f1811, %f1810;
+	fma.rn.f32 	%f1812, %f1811, %f3415, %f3440;
+	ld.const.f32 	%f1813, [%r62];
+	neg.f32 	%f1814, %f1813;
+	fma.rn.f32 	%f1815, %f1814, %f3416, %f1812;
+	ld.const.f32 	%f1816, [%r63];
+	neg.f32 	%f1817, %f1816;
+	fma.rn.f32 	%f1818, %f1817, %f3417, %f1815;
+	ld.const.f32 	%f1819, [%r64];
+	neg.f32 	%f1820, %f1819;
+	fma.rn.f32 	%f1821, %f1820, %f3418, %f1818;
+	ld.const.f32 	%f1822, [%r65];
+	neg.f32 	%f1823, %f1822;
+	fma.rn.f32 	%f3440, %f1823, %f3419, %f1821;
+	bra.uni 	BB51_125;
+
+BB51_122:
+	ld.const.f32 	%f1824, [%r412];
+	neg.f32 	%f1825, %f1824;
+	fma.rn.f32 	%f1826, %f1825, %f3415, %f3440;
+	ld.const.f32 	%f1827, [%r62];
+	neg.f32 	%f1828, %f1827;
+	fma.rn.f32 	%f1829, %f1828, %f3416, %f1826;
+	ld.const.f32 	%f1830, [%r63];
+	neg.f32 	%f1831, %f1830;
+	fma.rn.f32 	%f1832, %f1831, %f3417, %f1829;
+	ld.const.f32 	%f1833, [%r64];
+	neg.f32 	%f1834, %f1833;
+	fma.rn.f32 	%f3440, %f1834, %f3418, %f1832;
+	bra.uni 	BB51_125;
+
+BB51_123:
+	ld.const.f32 	%f1843, [%r412];
+	neg.f32 	%f1844, %f1843;
+	fma.rn.f32 	%f1845, %f1844, %f3415, %f3440;
+	ld.const.f32 	%f1846, [%r62];
+	neg.f32 	%f1847, %f1846;
+	fma.rn.f32 	%f3440, %f1847, %f3416, %f1845;
+	bra.uni 	BB51_125;
+
+BB51_124:
+	ld.const.f32 	%f1848, [%r412];
+	neg.f32 	%f1849, %f1848;
+	fma.rn.f32 	%f3440, %f1849, %f3415, %f3440;
+
+BB51_125:
+	add.f32 	%f3441, %f3441, %f3440;
+	add.s32 	%r413, %r413, 2;
+	add.s32 	%r412, %r412, 4;
+	add.s32 	%r414, %r414, 1;
+	ld.param.u32 	%r264, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	setp.lt.s32 	%p76, %r414, %r264;
+	@%p76 bra 	BB51_67;
+
+BB51_126:
+	ld.param.u32 	%r263, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	cvt.rn.f32.s32 	%f432, %r263;
+	div.full.f32 	%f433, %f3441, %f432;
+	setp.gt.s32 	%p77, %r263, 0;
+	@%p77 bra 	BB51_128;
+
+	mov.f32 	%f3443, 0f00000000;
+	bra.uni 	BB51_188;
+
+BB51_128:
+	mov.f32 	%f3443, 0f00000000;
+	mov.u32 	%r417, 0;
+	ld.param.u32 	%r415, [CalculateStatisticalMapsGLMTTestPermutation_param_3];
+	ld.param.u32 	%r416, [CalculateStatisticalMapsGLMTTestPermutation_param_7];
+
+BB51_129:
+	ld.const.u16 	%r199, [%r416];
+	ld.param.u32 	%r257, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
+	mad.lo.s32 	%r200, %r199, %r257, %r29;
+	ld.param.u32 	%r252, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
+	mad.lo.s32 	%r203, %r200, %r252, %r24;
+	ld.param.u32 	%r247, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
+	mad.lo.s32 	%r206, %r203, %r247, %r19;
+	shl.b32 	%r207, %r206, 2;
+	ld.param.u32 	%r233, [CalculateStatisticalMapsGLMTTestPermutation_param_1];
+	add.s32 	%r208, %r233, %r207;
+	ld.global.f32 	%f3442, [%r208];
+	ld.param.u32 	%r262, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	shl.b32 	%r209, %r262, 2;
+	add.s32 	%r91, %r415, %r209;
+	shl.b32 	%r210, %r262, 3;
+	add.s32 	%r92, %r415, %r210;
+	add.s32 	%r93, %r91, %r210;
+	mad.lo.s32 	%r94, %r262, 12, %r91;
+	shl.b32 	%r211, %r262, 4;
+	add.s32 	%r95, %r91, %r211;
+	mad.lo.s32 	%r96, %r262, 20, %r91;
+	mad.lo.s32 	%r97, %r262, 24, %r91;
+	mad.lo.s32 	%r98, %r262, 28, %r91;
+	shl.b32 	%r212, %r262, 5;
+	add.s32 	%r99, %r91, %r212;
+	mad.lo.s32 	%r100, %r262, 36, %r91;
+	mad.lo.s32 	%r101, %r262, 40, %r91;
+	mad.lo.s32 	%r102, %r262, 44, %r91;
+	mad.lo.s32 	%r103, %r262, 48, %r91;
+	mad.lo.s32 	%r104, %r262, 52, %r91;
+	mad.lo.s32 	%r105, %r262, 56, %r91;
+	mad.lo.s32 	%r106, %r262, 60, %r91;
+	shl.b32 	%r213, %r262, 6;
+	add.s32 	%r107, %r91, %r213;
+	mad.lo.s32 	%r108, %r262, 68, %r91;
+	mad.lo.s32 	%r109, %r262, 72, %r91;
+	mad.lo.s32 	%r110, %r262, 76, %r91;
+	mad.lo.s32 	%r111, %r262, 80, %r91;
+	mad.lo.s32 	%r112, %r262, 84, %r91;
+	mad.lo.s32 	%r113, %r262, 88, %r91;
+	ld.param.u32 	%r340, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p78, %r340, 12;
+	@%p78 bra 	BB51_149;
+
+	ld.param.u32 	%r322, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p96, %r322, 6;
+	@%p96 bra 	BB51_140;
+
+	ld.param.u32 	%r314, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p104, %r314, 3;
+	@%p104 bra 	BB51_136;
+
+	ld.param.u32 	%r310, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p108, %r310, 1;
+	@%p108 bra 	BB51_186;
+
+	ld.param.u32 	%r309, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p109, %r309, 2;
+	@%p109 bra 	BB51_185;
+
+	ld.param.u32 	%r308, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p110, %r308, 3;
+	@%p110 bra 	BB51_135;
+	bra.uni 	BB51_187;
+
+BB51_135:
+	ld.const.f32 	%f2787, [%r415];
+	neg.f32 	%f2788, %f2787;
+	fma.rn.f32 	%f2789, %f2788, %f3415, %f3442;
+	ld.const.f32 	%f2790, [%r91];
+	neg.f32 	%f2791, %f2790;
+	fma.rn.f32 	%f2792, %f2791, %f3416, %f2789;
+	ld.const.f32 	%f2793, [%r92];
+	neg.f32 	%f2794, %f2793;
+	fma.rn.f32 	%f3442, %f2794, %f3417, %f2792;
+	bra.uni 	BB51_187;
+
+BB51_136:
+	ld.param.u32 	%r313, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p105, %r313, 4;
+	@%p105 bra 	BB51_184;
+
+	ld.param.u32 	%r312, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p106, %r312, 5;
+	@%p106 bra 	BB51_183;
+
+	ld.param.u32 	%r311, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p107, %r311, 6;
+	@%p107 bra 	BB51_139;
+	bra.uni 	BB51_187;
+
+BB51_139:
+	ld.const.f32 	%f2745, [%r415];
+	neg.f32 	%f2746, %f2745;
+	fma.rn.f32 	%f2747, %f2746, %f3415, %f3442;
+	ld.const.f32 	%f2748, [%r91];
+	neg.f32 	%f2749, %f2748;
+	fma.rn.f32 	%f2750, %f2749, %f3416, %f2747;
+	ld.const.f32 	%f2751, [%r92];
+	neg.f32 	%f2752, %f2751;
+	fma.rn.f32 	%f2753, %f2752, %f3417, %f2750;
+	ld.const.f32 	%f2754, [%r93];
+	neg.f32 	%f2755, %f2754;
+	fma.rn.f32 	%f2756, %f2755, %f3418, %f2753;
+	ld.const.f32 	%f2757, [%r94];
+	neg.f32 	%f2758, %f2757;
+	fma.rn.f32 	%f2759, %f2758, %f3419, %f2756;
+	ld.const.f32 	%f2760, [%r95];
+	neg.f32 	%f2761, %f2760;
+	fma.rn.f32 	%f3442, %f2761, %f3420, %f2759;
+	bra.uni 	BB51_187;
+
+BB51_140:
+	ld.param.u32 	%r321, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p97, %r321, 9;
+	@%p97 bra 	BB51_145;
+
+	ld.param.u32 	%r317, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p101, %r317, 7;
+	@%p101 bra 	BB51_182;
+
+	ld.param.u32 	%r316, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p102, %r316, 8;
+	@%p102 bra 	BB51_181;
+
+	ld.param.u32 	%r315, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p103, %r315, 9;
+	@%p103 bra 	BB51_144;
+	bra.uni 	BB51_187;
+
+BB51_144:
+	ld.const.f32 	%f2676, [%r415];
+	neg.f32 	%f2677, %f2676;
+	fma.rn.f32 	%f2678, %f2677, %f3415, %f3442;
+	ld.const.f32 	%f2679, [%r91];
+	neg.f32 	%f2680, %f2679;
+	fma.rn.f32 	%f2681, %f2680, %f3416, %f2678;
+	ld.const.f32 	%f2682, [%r92];
+	neg.f32 	%f2683, %f2682;
+	fma.rn.f32 	%f2684, %f2683, %f3417, %f2681;
+	ld.const.f32 	%f2685, [%r93];
+	neg.f32 	%f2686, %f2685;
+	fma.rn.f32 	%f2687, %f2686, %f3418, %f2684;
+	ld.const.f32 	%f2688, [%r94];
+	neg.f32 	%f2689, %f2688;
+	fma.rn.f32 	%f2690, %f2689, %f3419, %f2687;
+	ld.const.f32 	%f2691, [%r95];
+	neg.f32 	%f2692, %f2691;
+	fma.rn.f32 	%f2693, %f2692, %f3420, %f2690;
+	ld.const.f32 	%f2694, [%r96];
+	neg.f32 	%f2695, %f2694;
+	fma.rn.f32 	%f2696, %f2695, %f3421, %f2693;
+	ld.const.f32 	%f2697, [%r97];
+	neg.f32 	%f2698, %f2697;
+	fma.rn.f32 	%f2699, %f2698, %f3422, %f2696;
+	ld.const.f32 	%f2700, [%r98];
+	neg.f32 	%f2701, %f2700;
+	fma.rn.f32 	%f3442, %f2701, %f3423, %f2699;
+	bra.uni 	BB51_187;
+
+BB51_145:
+	ld.param.u32 	%r320, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p98, %r320, 10;
+	@%p98 bra 	BB51_180;
+
+	ld.param.u32 	%r319, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p99, %r319, 11;
+	@%p99 bra 	BB51_179;
+
+	ld.param.u32 	%r318, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p100, %r318, 12;
+	@%p100 bra 	BB51_148;
+	bra.uni 	BB51_187;
+
+BB51_148:
+	ld.const.f32 	%f2580, [%r415];
+	neg.f32 	%f2581, %f2580;
+	fma.rn.f32 	%f2582, %f2581, %f3415, %f3442;
+	ld.const.f32 	%f2583, [%r91];
+	neg.f32 	%f2584, %f2583;
+	fma.rn.f32 	%f2585, %f2584, %f3416, %f2582;
+	ld.const.f32 	%f2586, [%r92];
+	neg.f32 	%f2587, %f2586;
+	fma.rn.f32 	%f2588, %f2587, %f3417, %f2585;
+	ld.const.f32 	%f2589, [%r93];
+	neg.f32 	%f2590, %f2589;
+	fma.rn.f32 	%f2591, %f2590, %f3418, %f2588;
+	ld.const.f32 	%f2592, [%r94];
+	neg.f32 	%f2593, %f2592;
+	fma.rn.f32 	%f2594, %f2593, %f3419, %f2591;
+	ld.const.f32 	%f2595, [%r95];
+	neg.f32 	%f2596, %f2595;
+	fma.rn.f32 	%f2597, %f2596, %f3420, %f2594;
+	ld.const.f32 	%f2598, [%r96];
+	neg.f32 	%f2599, %f2598;
+	fma.rn.f32 	%f2600, %f2599, %f3421, %f2597;
+	ld.const.f32 	%f2601, [%r97];
+	neg.f32 	%f2602, %f2601;
+	fma.rn.f32 	%f2603, %f2602, %f3422, %f2600;
+	ld.const.f32 	%f2604, [%r98];
+	neg.f32 	%f2605, %f2604;
+	fma.rn.f32 	%f2606, %f2605, %f3423, %f2603;
+	ld.const.f32 	%f2607, [%r99];
+	neg.f32 	%f2608, %f2607;
+	fma.rn.f32 	%f2609, %f2608, %f3424, %f2606;
+	ld.const.f32 	%f2610, [%r100];
+	neg.f32 	%f2611, %f2610;
+	fma.rn.f32 	%f2612, %f2611, %f3425, %f2609;
+	ld.const.f32 	%f2613, [%r101];
+	neg.f32 	%f2614, %f2613;
+	fma.rn.f32 	%f3442, %f2614, %f3426, %f2612;
+	bra.uni 	BB51_187;
+
+BB51_149:
+	ld.param.u32 	%r339, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p79, %r339, 18;
+	@%p79 bra 	BB51_159;
+
+	ld.param.u32 	%r329, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p89, %r329, 15;
+	@%p89 bra 	BB51_155;
+
+	ld.param.u32 	%r325, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p93, %r325, 13;
+	@%p93 bra 	BB51_178;
+
+	ld.param.u32 	%r324, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p94, %r324, 14;
+	@%p94 bra 	BB51_177;
+
+	ld.param.u32 	%r323, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p95, %r323, 15;
+	@%p95 bra 	BB51_154;
+	bra.uni 	BB51_187;
+
+BB51_154:
+	ld.const.f32 	%f2457, [%r415];
+	neg.f32 	%f2458, %f2457;
+	fma.rn.f32 	%f2459, %f2458, %f3415, %f3442;
+	ld.const.f32 	%f2460, [%r91];
+	neg.f32 	%f2461, %f2460;
+	fma.rn.f32 	%f2462, %f2461, %f3416, %f2459;
+	ld.const.f32 	%f2463, [%r92];
+	neg.f32 	%f2464, %f2463;
+	fma.rn.f32 	%f2465, %f2464, %f3417, %f2462;
+	ld.const.f32 	%f2466, [%r93];
+	neg.f32 	%f2467, %f2466;
+	fma.rn.f32 	%f2468, %f2467, %f3418, %f2465;
+	ld.const.f32 	%f2469, [%r94];
+	neg.f32 	%f2470, %f2469;
+	fma.rn.f32 	%f2471, %f2470, %f3419, %f2468;
+	ld.const.f32 	%f2472, [%r95];
+	neg.f32 	%f2473, %f2472;
+	fma.rn.f32 	%f2474, %f2473, %f3420, %f2471;
+	ld.const.f32 	%f2475, [%r96];
+	neg.f32 	%f2476, %f2475;
+	fma.rn.f32 	%f2477, %f2476, %f3421, %f2474;
+	ld.const.f32 	%f2478, [%r97];
+	neg.f32 	%f2479, %f2478;
+	fma.rn.f32 	%f2480, %f2479, %f3422, %f2477;
+	ld.const.f32 	%f2481, [%r98];
+	neg.f32 	%f2482, %f2481;
+	fma.rn.f32 	%f2483, %f2482, %f3423, %f2480;
+	ld.const.f32 	%f2484, [%r99];
+	neg.f32 	%f2485, %f2484;
+	fma.rn.f32 	%f2486, %f2485, %f3424, %f2483;
+	ld.const.f32 	%f2487, [%r100];
+	neg.f32 	%f2488, %f2487;
+	fma.rn.f32 	%f2489, %f2488, %f3425, %f2486;
+	ld.const.f32 	%f2490, [%r101];
+	neg.f32 	%f2491, %f2490;
+	fma.rn.f32 	%f2492, %f2491, %f3426, %f2489;
+	ld.const.f32 	%f2493, [%r102];
+	neg.f32 	%f2494, %f2493;
+	fma.rn.f32 	%f2495, %f2494, %f3427, %f2492;
+	ld.const.f32 	%f2496, [%r103];
+	neg.f32 	%f2497, %f2496;
+	fma.rn.f32 	%f2498, %f2497, %f3428, %f2495;
+	ld.const.f32 	%f2499, [%r104];
+	neg.f32 	%f2500, %f2499;
+	fma.rn.f32 	%f3442, %f2500, %f3429, %f2498;
+	bra.uni 	BB51_187;
+
+BB51_155:
+	ld.param.u32 	%r328, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p90, %r328, 16;
+	@%p90 bra 	BB51_176;
+
+	ld.param.u32 	%r327, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p91, %r327, 17;
+	@%p91 bra 	BB51_175;
+
+	ld.param.u32 	%r326, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p92, %r326, 18;
+	@%p92 bra 	BB51_158;
+	bra.uni 	BB51_187;
+
+BB51_158:
+	ld.const.f32 	%f2307, [%r415];
+	neg.f32 	%f2308, %f2307;
+	fma.rn.f32 	%f2309, %f2308, %f3415, %f3442;
+	ld.const.f32 	%f2310, [%r91];
+	neg.f32 	%f2311, %f2310;
+	fma.rn.f32 	%f2312, %f2311, %f3416, %f2309;
+	ld.const.f32 	%f2313, [%r92];
+	neg.f32 	%f2314, %f2313;
+	fma.rn.f32 	%f2315, %f2314, %f3417, %f2312;
+	ld.const.f32 	%f2316, [%r93];
+	neg.f32 	%f2317, %f2316;
+	fma.rn.f32 	%f2318, %f2317, %f3418, %f2315;
+	ld.const.f32 	%f2319, [%r94];
+	neg.f32 	%f2320, %f2319;
+	fma.rn.f32 	%f2321, %f2320, %f3419, %f2318;
+	ld.const.f32 	%f2322, [%r95];
+	neg.f32 	%f2323, %f2322;
+	fma.rn.f32 	%f2324, %f2323, %f3420, %f2321;
+	ld.const.f32 	%f2325, [%r96];
+	neg.f32 	%f2326, %f2325;
+	fma.rn.f32 	%f2327, %f2326, %f3421, %f2324;
+	ld.const.f32 	%f2328, [%r97];
+	neg.f32 	%f2329, %f2328;
+	fma.rn.f32 	%f2330, %f2329, %f3422, %f2327;
+	ld.const.f32 	%f2331, [%r98];
+	neg.f32 	%f2332, %f2331;
+	fma.rn.f32 	%f2333, %f2332, %f3423, %f2330;
+	ld.const.f32 	%f2334, [%r99];
+	neg.f32 	%f2335, %f2334;
+	fma.rn.f32 	%f2336, %f2335, %f3424, %f2333;
+	ld.const.f32 	%f2337, [%r100];
+	neg.f32 	%f2338, %f2337;
+	fma.rn.f32 	%f2339, %f2338, %f3425, %f2336;
+	ld.const.f32 	%f2340, [%r101];
+	neg.f32 	%f2341, %f2340;
+	fma.rn.f32 	%f2342, %f2341, %f3426, %f2339;
+	ld.const.f32 	%f2343, [%r102];
+	neg.f32 	%f2344, %f2343;
+	fma.rn.f32 	%f2345, %f2344, %f3427, %f2342;
+	ld.const.f32 	%f2346, [%r103];
+	neg.f32 	%f2347, %f2346;
+	fma.rn.f32 	%f2348, %f2347, %f3428, %f2345;
+	ld.const.f32 	%f2349, [%r104];
+	neg.f32 	%f2350, %f2349;
+	fma.rn.f32 	%f2351, %f2350, %f3429, %f2348;
+	ld.const.f32 	%f2352, [%r105];
+	neg.f32 	%f2353, %f2352;
+	fma.rn.f32 	%f2354, %f2353, %f3430, %f2351;
+	ld.const.f32 	%f2355, [%r106];
+	neg.f32 	%f2356, %f2355;
+	fma.rn.f32 	%f2357, %f2356, %f3431, %f2354;
+	ld.const.f32 	%f2358, [%r107];
+	neg.f32 	%f2359, %f2358;
+	fma.rn.f32 	%f3442, %f2359, %f3432, %f2357;
+	bra.uni 	BB51_187;
+
+BB51_159:
+	ld.param.u32 	%r338, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p80, %r338, 21;
+	@%p80 bra 	BB51_164;
+
+	ld.param.u32 	%r332, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p86, %r332, 19;
+	@%p86 bra 	BB51_174;
+
+	ld.param.u32 	%r331, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p87, %r331, 20;
+	@%p87 bra 	BB51_173;
+
+	ld.param.u32 	%r330, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p88, %r330, 21;
+	@%p88 bra 	BB51_163;
+	bra.uni 	BB51_187;
+
+BB51_163:
+	ld.const.f32 	%f2130, [%r415];
+	neg.f32 	%f2131, %f2130;
+	fma.rn.f32 	%f2132, %f2131, %f3415, %f3442;
+	ld.const.f32 	%f2133, [%r91];
+	neg.f32 	%f2134, %f2133;
+	fma.rn.f32 	%f2135, %f2134, %f3416, %f2132;
+	ld.const.f32 	%f2136, [%r92];
+	neg.f32 	%f2137, %f2136;
+	fma.rn.f32 	%f2138, %f2137, %f3417, %f2135;
+	ld.const.f32 	%f2139, [%r93];
+	neg.f32 	%f2140, %f2139;
+	fma.rn.f32 	%f2141, %f2140, %f3418, %f2138;
+	ld.const.f32 	%f2142, [%r94];
+	neg.f32 	%f2143, %f2142;
+	fma.rn.f32 	%f2144, %f2143, %f3419, %f2141;
+	ld.const.f32 	%f2145, [%r95];
+	neg.f32 	%f2146, %f2145;
+	fma.rn.f32 	%f2147, %f2146, %f3420, %f2144;
+	ld.const.f32 	%f2148, [%r96];
+	neg.f32 	%f2149, %f2148;
+	fma.rn.f32 	%f2150, %f2149, %f3421, %f2147;
+	ld.const.f32 	%f2151, [%r97];
+	neg.f32 	%f2152, %f2151;
+	fma.rn.f32 	%f2153, %f2152, %f3422, %f2150;
+	ld.const.f32 	%f2154, [%r98];
+	neg.f32 	%f2155, %f2154;
+	fma.rn.f32 	%f2156, %f2155, %f3423, %f2153;
+	ld.const.f32 	%f2157, [%r99];
+	neg.f32 	%f2158, %f2157;
+	fma.rn.f32 	%f2159, %f2158, %f3424, %f2156;
+	ld.const.f32 	%f2160, [%r100];
+	neg.f32 	%f2161, %f2160;
+	fma.rn.f32 	%f2162, %f2161, %f3425, %f2159;
+	ld.const.f32 	%f2163, [%r101];
+	neg.f32 	%f2164, %f2163;
+	fma.rn.f32 	%f2165, %f2164, %f3426, %f2162;
+	ld.const.f32 	%f2166, [%r102];
+	neg.f32 	%f2167, %f2166;
+	fma.rn.f32 	%f2168, %f2167, %f3427, %f2165;
+	ld.const.f32 	%f2169, [%r103];
+	neg.f32 	%f2170, %f2169;
+	fma.rn.f32 	%f2171, %f2170, %f3428, %f2168;
+	ld.const.f32 	%f2172, [%r104];
+	neg.f32 	%f2173, %f2172;
+	fma.rn.f32 	%f2174, %f2173, %f3429, %f2171;
+	ld.const.f32 	%f2175, [%r105];
+	neg.f32 	%f2176, %f2175;
+	fma.rn.f32 	%f2177, %f2176, %f3430, %f2174;
+	ld.const.f32 	%f2178, [%r106];
+	neg.f32 	%f2179, %f2178;
+	fma.rn.f32 	%f2180, %f2179, %f3431, %f2177;
+	ld.const.f32 	%f2181, [%r107];
+	neg.f32 	%f2182, %f2181;
+	fma.rn.f32 	%f2183, %f2182, %f3432, %f2180;
+	ld.const.f32 	%f2184, [%r108];
+	neg.f32 	%f2185, %f2184;
+	fma.rn.f32 	%f2186, %f2185, %f3433, %f2183;
+	ld.const.f32 	%f2187, [%r109];
+	neg.f32 	%f2188, %f2187;
+	fma.rn.f32 	%f2189, %f2188, %f3434, %f2186;
+	ld.const.f32 	%f2190, [%r110];
+	neg.f32 	%f2191, %f2190;
+	fma.rn.f32 	%f3442, %f2191, %f3435, %f2189;
+	bra.uni 	BB51_187;
+
+BB51_164:
+	ld.param.u32 	%r337, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p81, %r337, 23;
+	@%p81 bra 	BB51_168;
+
+	ld.param.u32 	%r334, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p84, %r334, 22;
+	@%p84 bra 	BB51_172;
+
+	ld.param.u32 	%r333, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p85, %r333, 23;
+	@%p85 bra 	BB51_167;
+	bra.uni 	BB51_187;
+
+BB51_167:
+	ld.const.f32 	%f1997, [%r415];
+	neg.f32 	%f1998, %f1997;
+	fma.rn.f32 	%f1999, %f1998, %f3415, %f3442;
+	ld.const.f32 	%f2000, [%r91];
+	neg.f32 	%f2001, %f2000;
+	fma.rn.f32 	%f2002, %f2001, %f3416, %f1999;
+	ld.const.f32 	%f2003, [%r92];
+	neg.f32 	%f2004, %f2003;
+	fma.rn.f32 	%f2005, %f2004, %f3417, %f2002;
+	ld.const.f32 	%f2006, [%r93];
+	neg.f32 	%f2007, %f2006;
+	fma.rn.f32 	%f2008, %f2007, %f3418, %f2005;
+	ld.const.f32 	%f2009, [%r94];
+	neg.f32 	%f2010, %f2009;
+	fma.rn.f32 	%f2011, %f2010, %f3419, %f2008;
+	ld.const.f32 	%f2012, [%r95];
+	neg.f32 	%f2013, %f2012;
+	fma.rn.f32 	%f2014, %f2013, %f3420, %f2011;
+	ld.const.f32 	%f2015, [%r96];
+	neg.f32 	%f2016, %f2015;
+	fma.rn.f32 	%f2017, %f2016, %f3421, %f2014;
+	ld.const.f32 	%f2018, [%r97];
+	neg.f32 	%f2019, %f2018;
+	fma.rn.f32 	%f2020, %f2019, %f3422, %f2017;
+	ld.const.f32 	%f2021, [%r98];
+	neg.f32 	%f2022, %f2021;
+	fma.rn.f32 	%f2023, %f2022, %f3423, %f2020;
+	ld.const.f32 	%f2024, [%r99];
+	neg.f32 	%f2025, %f2024;
+	fma.rn.f32 	%f2026, %f2025, %f3424, %f2023;
+	ld.const.f32 	%f2027, [%r100];
+	neg.f32 	%f2028, %f2027;
+	fma.rn.f32 	%f2029, %f2028, %f3425, %f2026;
+	ld.const.f32 	%f2030, [%r101];
+	neg.f32 	%f2031, %f2030;
+	fma.rn.f32 	%f2032, %f2031, %f3426, %f2029;
+	ld.const.f32 	%f2033, [%r102];
+	neg.f32 	%f2034, %f2033;
+	fma.rn.f32 	%f2035, %f2034, %f3427, %f2032;
+	ld.const.f32 	%f2036, [%r103];
+	neg.f32 	%f2037, %f2036;
+	fma.rn.f32 	%f2038, %f2037, %f3428, %f2035;
+	ld.const.f32 	%f2039, [%r104];
+	neg.f32 	%f2040, %f2039;
+	fma.rn.f32 	%f2041, %f2040, %f3429, %f2038;
+	ld.const.f32 	%f2042, [%r105];
+	neg.f32 	%f2043, %f2042;
+	fma.rn.f32 	%f2044, %f2043, %f3430, %f2041;
+	ld.const.f32 	%f2045, [%r106];
+	neg.f32 	%f2046, %f2045;
+	fma.rn.f32 	%f2047, %f2046, %f3431, %f2044;
+	ld.const.f32 	%f2048, [%r107];
+	neg.f32 	%f2049, %f2048;
+	fma.rn.f32 	%f2050, %f2049, %f3432, %f2047;
+	ld.const.f32 	%f2051, [%r108];
+	neg.f32 	%f2052, %f2051;
+	fma.rn.f32 	%f2053, %f2052, %f3433, %f2050;
+	ld.const.f32 	%f2054, [%r109];
+	neg.f32 	%f2055, %f2054;
+	fma.rn.f32 	%f2056, %f2055, %f3434, %f2053;
+	ld.const.f32 	%f2057, [%r110];
+	neg.f32 	%f2058, %f2057;
+	fma.rn.f32 	%f2059, %f2058, %f3435, %f2056;
+	ld.const.f32 	%f2060, [%r111];
+	neg.f32 	%f2061, %f2060;
+	fma.rn.f32 	%f2062, %f2061, %f3436, %f2059;
+	ld.const.f32 	%f2063, [%r112];
+	neg.f32 	%f2064, %f2063;
+	fma.rn.f32 	%f3442, %f2064, %f3437, %f2062;
+	bra.uni 	BB51_187;
+
+BB51_168:
+	ld.param.u32 	%r336, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p82, %r336, 24;
+	@%p82 bra 	BB51_171;
+
+	ld.param.u32 	%r335, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.ne.s32 	%p83, %r335, 25;
+	@%p83 bra 	BB51_187;
+
+	ld.const.f32 	%f1852, [%r415];
+	neg.f32 	%f1853, %f1852;
+	fma.rn.f32 	%f1854, %f1853, %f3415, %f3442;
+	ld.param.u32 	%r261, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	shl.b32 	%r214, %r261, 2;
+	add.s32 	%r215, %r415, %r214;
+	ld.const.f32 	%f1855, [%r91];
+	neg.f32 	%f1856, %f1855;
+	fma.rn.f32 	%f1857, %f1856, %f3416, %f1854;
+	ld.const.f32 	%f1858, [%r92];
+	neg.f32 	%f1859, %f1858;
+	fma.rn.f32 	%f1860, %f1859, %f3417, %f1857;
+	ld.const.f32 	%f1861, [%r93];
+	neg.f32 	%f1862, %f1861;
+	fma.rn.f32 	%f1863, %f1862, %f3418, %f1860;
+	ld.const.f32 	%f1864, [%r94];
+	neg.f32 	%f1865, %f1864;
+	fma.rn.f32 	%f1866, %f1865, %f3419, %f1863;
+	ld.const.f32 	%f1867, [%r95];
+	neg.f32 	%f1868, %f1867;
+	fma.rn.f32 	%f1869, %f1868, %f3420, %f1866;
+	ld.const.f32 	%f1870, [%r96];
+	neg.f32 	%f1871, %f1870;
+	fma.rn.f32 	%f1872, %f1871, %f3421, %f1869;
+	ld.const.f32 	%f1873, [%r97];
+	neg.f32 	%f1874, %f1873;
+	fma.rn.f32 	%f1875, %f1874, %f3422, %f1872;
+	ld.const.f32 	%f1876, [%r98];
+	neg.f32 	%f1877, %f1876;
+	fma.rn.f32 	%f1878, %f1877, %f3423, %f1875;
+	ld.const.f32 	%f1879, [%r99];
+	neg.f32 	%f1880, %f1879;
+	fma.rn.f32 	%f1881, %f1880, %f3424, %f1878;
+	ld.const.f32 	%f1882, [%r100];
+	neg.f32 	%f1883, %f1882;
+	fma.rn.f32 	%f1884, %f1883, %f3425, %f1881;
+	ld.const.f32 	%f1885, [%r101];
+	neg.f32 	%f1886, %f1885;
+	fma.rn.f32 	%f1887, %f1886, %f3426, %f1884;
+	ld.const.f32 	%f1888, [%r102];
+	neg.f32 	%f1889, %f1888;
+	fma.rn.f32 	%f1890, %f1889, %f3427, %f1887;
+	ld.const.f32 	%f1891, [%r103];
+	neg.f32 	%f1892, %f1891;
+	fma.rn.f32 	%f1893, %f1892, %f3428, %f1890;
+	ld.const.f32 	%f1894, [%r104];
+	neg.f32 	%f1895, %f1894;
+	fma.rn.f32 	%f1896, %f1895, %f3429, %f1893;
+	ld.const.f32 	%f1897, [%r105];
+	neg.f32 	%f1898, %f1897;
+	fma.rn.f32 	%f1899, %f1898, %f3430, %f1896;
+	ld.const.f32 	%f1900, [%r106];
+	neg.f32 	%f1901, %f1900;
+	fma.rn.f32 	%f1902, %f1901, %f3431, %f1899;
+	ld.const.f32 	%f1903, [%r107];
+	neg.f32 	%f1904, %f1903;
+	fma.rn.f32 	%f1905, %f1904, %f3432, %f1902;
+	ld.const.f32 	%f1906, [%r108];
+	neg.f32 	%f1907, %f1906;
+	fma.rn.f32 	%f1908, %f1907, %f3433, %f1905;
+	ld.const.f32 	%f1909, [%r109];
+	neg.f32 	%f1910, %f1909;
+	fma.rn.f32 	%f1911, %f1910, %f3434, %f1908;
+	ld.const.f32 	%f1912, [%r110];
+	neg.f32 	%f1913, %f1912;
+	fma.rn.f32 	%f1914, %f1913, %f3435, %f1911;
+	ld.const.f32 	%f1915, [%r111];
+	neg.f32 	%f1916, %f1915;
+	fma.rn.f32 	%f1917, %f1916, %f3436, %f1914;
+	ld.const.f32 	%f1918, [%r112];
+	neg.f32 	%f1919, %f1918;
+	fma.rn.f32 	%f1920, %f1919, %f3437, %f1917;
+	ld.const.f32 	%f1921, [%r113];
+	neg.f32 	%f1922, %f1921;
+	fma.rn.f32 	%f1923, %f1922, %f3438, %f1920;
+	mad.lo.s32 	%r216, %r261, 92, %r215;
+	ld.const.f32 	%f1924, [%r216];
+	neg.f32 	%f1925, %f1924;
+	fma.rn.f32 	%f3442, %f1925, %f3439, %f1923;
+	bra.uni 	BB51_187;
+
+BB51_171:
+	ld.const.f32 	%f1926, [%r415];
+	neg.f32 	%f1927, %f1926;
+	fma.rn.f32 	%f1928, %f1927, %f3415, %f3442;
+	ld.const.f32 	%f1929, [%r91];
+	neg.f32 	%f1930, %f1929;
+	fma.rn.f32 	%f1931, %f1930, %f3416, %f1928;
+	ld.const.f32 	%f1932, [%r92];
+	neg.f32 	%f1933, %f1932;
+	fma.rn.f32 	%f1934, %f1933, %f3417, %f1931;
+	ld.const.f32 	%f1935, [%r93];
+	neg.f32 	%f1936, %f1935;
+	fma.rn.f32 	%f1937, %f1936, %f3418, %f1934;
+	ld.const.f32 	%f1938, [%r94];
+	neg.f32 	%f1939, %f1938;
+	fma.rn.f32 	%f1940, %f1939, %f3419, %f1937;
+	ld.const.f32 	%f1941, [%r95];
+	neg.f32 	%f1942, %f1941;
+	fma.rn.f32 	%f1943, %f1942, %f3420, %f1940;
+	ld.const.f32 	%f1944, [%r96];
+	neg.f32 	%f1945, %f1944;
+	fma.rn.f32 	%f1946, %f1945, %f3421, %f1943;
+	ld.const.f32 	%f1947, [%r97];
+	neg.f32 	%f1948, %f1947;
+	fma.rn.f32 	%f1949, %f1948, %f3422, %f1946;
+	ld.const.f32 	%f1950, [%r98];
+	neg.f32 	%f1951, %f1950;
+	fma.rn.f32 	%f1952, %f1951, %f3423, %f1949;
+	ld.const.f32 	%f1953, [%r99];
+	neg.f32 	%f1954, %f1953;
+	fma.rn.f32 	%f1955, %f1954, %f3424, %f1952;
+	ld.const.f32 	%f1956, [%r100];
+	neg.f32 	%f1957, %f1956;
+	fma.rn.f32 	%f1958, %f1957, %f3425, %f1955;
+	ld.const.f32 	%f1959, [%r101];
+	neg.f32 	%f1960, %f1959;
+	fma.rn.f32 	%f1961, %f1960, %f3426, %f1958;
+	ld.const.f32 	%f1962, [%r102];
+	neg.f32 	%f1963, %f1962;
+	fma.rn.f32 	%f1964, %f1963, %f3427, %f1961;
+	ld.const.f32 	%f1965, [%r103];
+	neg.f32 	%f1966, %f1965;
+	fma.rn.f32 	%f1967, %f1966, %f3428, %f1964;
+	ld.const.f32 	%f1968, [%r104];
+	neg.f32 	%f1969, %f1968;
+	fma.rn.f32 	%f1970, %f1969, %f3429, %f1967;
+	ld.const.f32 	%f1971, [%r105];
+	neg.f32 	%f1972, %f1971;
+	fma.rn.f32 	%f1973, %f1972, %f3430, %f1970;
+	ld.const.f32 	%f1974, [%r106];
+	neg.f32 	%f1975, %f1974;
+	fma.rn.f32 	%f1976, %f1975, %f3431, %f1973;
+	ld.const.f32 	%f1977, [%r107];
+	neg.f32 	%f1978, %f1977;
+	fma.rn.f32 	%f1979, %f1978, %f3432, %f1976;
+	ld.const.f32 	%f1980, [%r108];
+	neg.f32 	%f1981, %f1980;
+	fma.rn.f32 	%f1982, %f1981, %f3433, %f1979;
+	ld.const.f32 	%f1983, [%r109];
+	neg.f32 	%f1984, %f1983;
+	fma.rn.f32 	%f1985, %f1984, %f3434, %f1982;
+	ld.const.f32 	%f1986, [%r110];
+	neg.f32 	%f1987, %f1986;
+	fma.rn.f32 	%f1988, %f1987, %f3435, %f1985;
+	ld.const.f32 	%f1989, [%r111];
+	neg.f32 	%f1990, %f1989;
+	fma.rn.f32 	%f1991, %f1990, %f3436, %f1988;
+	ld.const.f32 	%f1992, [%r112];
+	neg.f32 	%f1993, %f1992;
+	fma.rn.f32 	%f1994, %f1993, %f3437, %f1991;
+	ld.const.f32 	%f1995, [%r113];
+	neg.f32 	%f1996, %f1995;
+	fma.rn.f32 	%f3442, %f1996, %f3438, %f1994;
+	bra.uni 	BB51_187;
+
+BB51_172:
+	ld.const.f32 	%f2065, [%r415];
+	neg.f32 	%f2066, %f2065;
+	fma.rn.f32 	%f2067, %f2066, %f3415, %f3442;
+	ld.const.f32 	%f2068, [%r91];
+	neg.f32 	%f2069, %f2068;
+	fma.rn.f32 	%f2070, %f2069, %f3416, %f2067;
+	ld.const.f32 	%f2071, [%r92];
+	neg.f32 	%f2072, %f2071;
+	fma.rn.f32 	%f2073, %f2072, %f3417, %f2070;
+	ld.const.f32 	%f2074, [%r93];
+	neg.f32 	%f2075, %f2074;
+	fma.rn.f32 	%f2076, %f2075, %f3418, %f2073;
+	ld.const.f32 	%f2077, [%r94];
+	neg.f32 	%f2078, %f2077;
+	fma.rn.f32 	%f2079, %f2078, %f3419, %f2076;
+	ld.const.f32 	%f2080, [%r95];
+	neg.f32 	%f2081, %f2080;
+	fma.rn.f32 	%f2082, %f2081, %f3420, %f2079;
+	ld.const.f32 	%f2083, [%r96];
+	neg.f32 	%f2084, %f2083;
+	fma.rn.f32 	%f2085, %f2084, %f3421, %f2082;
+	ld.const.f32 	%f2086, [%r97];
+	neg.f32 	%f2087, %f2086;
+	fma.rn.f32 	%f2088, %f2087, %f3422, %f2085;
+	ld.const.f32 	%f2089, [%r98];
+	neg.f32 	%f2090, %f2089;
+	fma.rn.f32 	%f2091, %f2090, %f3423, %f2088;
+	ld.const.f32 	%f2092, [%r99];
+	neg.f32 	%f2093, %f2092;
+	fma.rn.f32 	%f2094, %f2093, %f3424, %f2091;
+	ld.const.f32 	%f2095, [%r100];
+	neg.f32 	%f2096, %f2095;
+	fma.rn.f32 	%f2097, %f2096, %f3425, %f2094;
+	ld.const.f32 	%f2098, [%r101];
+	neg.f32 	%f2099, %f2098;
+	fma.rn.f32 	%f2100, %f2099, %f3426, %f2097;
+	ld.const.f32 	%f2101, [%r102];
+	neg.f32 	%f2102, %f2101;
+	fma.rn.f32 	%f2103, %f2102, %f3427, %f2100;
+	ld.const.f32 	%f2104, [%r103];
+	neg.f32 	%f2105, %f2104;
+	fma.rn.f32 	%f2106, %f2105, %f3428, %f2103;
+	ld.const.f32 	%f2107, [%r104];
+	neg.f32 	%f2108, %f2107;
+	fma.rn.f32 	%f2109, %f2108, %f3429, %f2106;
+	ld.const.f32 	%f2110, [%r105];
+	neg.f32 	%f2111, %f2110;
+	fma.rn.f32 	%f2112, %f2111, %f3430, %f2109;
+	ld.const.f32 	%f2113, [%r106];
+	neg.f32 	%f2114, %f2113;
+	fma.rn.f32 	%f2115, %f2114, %f3431, %f2112;
+	ld.const.f32 	%f2116, [%r107];
+	neg.f32 	%f2117, %f2116;
+	fma.rn.f32 	%f2118, %f2117, %f3432, %f2115;
+	ld.const.f32 	%f2119, [%r108];
+	neg.f32 	%f2120, %f2119;
+	fma.rn.f32 	%f2121, %f2120, %f3433, %f2118;
+	ld.const.f32 	%f2122, [%r109];
+	neg.f32 	%f2123, %f2122;
+	fma.rn.f32 	%f2124, %f2123, %f3434, %f2121;
+	ld.const.f32 	%f2125, [%r110];
+	neg.f32 	%f2126, %f2125;
+	fma.rn.f32 	%f2127, %f2126, %f3435, %f2124;
+	ld.const.f32 	%f2128, [%r111];
+	neg.f32 	%f2129, %f2128;
+	fma.rn.f32 	%f3442, %f2129, %f3436, %f2127;
+	bra.uni 	BB51_187;
+
+BB51_173:
+	ld.const.f32 	%f2192, [%r415];
+	neg.f32 	%f2193, %f2192;
+	fma.rn.f32 	%f2194, %f2193, %f3415, %f3442;
+	ld.const.f32 	%f2195, [%r91];
+	neg.f32 	%f2196, %f2195;
+	fma.rn.f32 	%f2197, %f2196, %f3416, %f2194;
+	ld.const.f32 	%f2198, [%r92];
+	neg.f32 	%f2199, %f2198;
+	fma.rn.f32 	%f2200, %f2199, %f3417, %f2197;
+	ld.const.f32 	%f2201, [%r93];
+	neg.f32 	%f2202, %f2201;
+	fma.rn.f32 	%f2203, %f2202, %f3418, %f2200;
+	ld.const.f32 	%f2204, [%r94];
+	neg.f32 	%f2205, %f2204;
+	fma.rn.f32 	%f2206, %f2205, %f3419, %f2203;
+	ld.const.f32 	%f2207, [%r95];
+	neg.f32 	%f2208, %f2207;
+	fma.rn.f32 	%f2209, %f2208, %f3420, %f2206;
+	ld.const.f32 	%f2210, [%r96];
+	neg.f32 	%f2211, %f2210;
+	fma.rn.f32 	%f2212, %f2211, %f3421, %f2209;
+	ld.const.f32 	%f2213, [%r97];
+	neg.f32 	%f2214, %f2213;
+	fma.rn.f32 	%f2215, %f2214, %f3422, %f2212;
+	ld.const.f32 	%f2216, [%r98];
+	neg.f32 	%f2217, %f2216;
+	fma.rn.f32 	%f2218, %f2217, %f3423, %f2215;
+	ld.const.f32 	%f2219, [%r99];
+	neg.f32 	%f2220, %f2219;
+	fma.rn.f32 	%f2221, %f2220, %f3424, %f2218;
+	ld.const.f32 	%f2222, [%r100];
+	neg.f32 	%f2223, %f2222;
+	fma.rn.f32 	%f2224, %f2223, %f3425, %f2221;
+	ld.const.f32 	%f2225, [%r101];
+	neg.f32 	%f2226, %f2225;
+	fma.rn.f32 	%f2227, %f2226, %f3426, %f2224;
+	ld.const.f32 	%f2228, [%r102];
+	neg.f32 	%f2229, %f2228;
+	fma.rn.f32 	%f2230, %f2229, %f3427, %f2227;
+	ld.const.f32 	%f2231, [%r103];
+	neg.f32 	%f2232, %f2231;
+	fma.rn.f32 	%f2233, %f2232, %f3428, %f2230;
+	ld.const.f32 	%f2234, [%r104];
+	neg.f32 	%f2235, %f2234;
+	fma.rn.f32 	%f2236, %f2235, %f3429, %f2233;
+	ld.const.f32 	%f2237, [%r105];
+	neg.f32 	%f2238, %f2237;
+	fma.rn.f32 	%f2239, %f2238, %f3430, %f2236;
+	ld.const.f32 	%f2240, [%r106];
+	neg.f32 	%f2241, %f2240;
+	fma.rn.f32 	%f2242, %f2241, %f3431, %f2239;
+	ld.const.f32 	%f2243, [%r107];
+	neg.f32 	%f2244, %f2243;
+	fma.rn.f32 	%f2245, %f2244, %f3432, %f2242;
+	ld.const.f32 	%f2246, [%r108];
+	neg.f32 	%f2247, %f2246;
+	fma.rn.f32 	%f2248, %f2247, %f3433, %f2245;
+	ld.const.f32 	%f2249, [%r109];
+	neg.f32 	%f2250, %f2249;
+	fma.rn.f32 	%f3442, %f2250, %f3434, %f2248;
+	bra.uni 	BB51_187;
+
+BB51_174:
+	ld.const.f32 	%f2251, [%r415];
+	neg.f32 	%f2252, %f2251;
+	fma.rn.f32 	%f2253, %f2252, %f3415, %f3442;
+	ld.const.f32 	%f2254, [%r91];
+	neg.f32 	%f2255, %f2254;
+	fma.rn.f32 	%f2256, %f2255, %f3416, %f2253;
+	ld.const.f32 	%f2257, [%r92];
+	neg.f32 	%f2258, %f2257;
+	fma.rn.f32 	%f2259, %f2258, %f3417, %f2256;
+	ld.const.f32 	%f2260, [%r93];
+	neg.f32 	%f2261, %f2260;
+	fma.rn.f32 	%f2262, %f2261, %f3418, %f2259;
+	ld.const.f32 	%f2263, [%r94];
+	neg.f32 	%f2264, %f2263;
+	fma.rn.f32 	%f2265, %f2264, %f3419, %f2262;
+	ld.const.f32 	%f2266, [%r95];
+	neg.f32 	%f2267, %f2266;
+	fma.rn.f32 	%f2268, %f2267, %f3420, %f2265;
+	ld.const.f32 	%f2269, [%r96];
+	neg.f32 	%f2270, %f2269;
+	fma.rn.f32 	%f2271, %f2270, %f3421, %f2268;
+	ld.const.f32 	%f2272, [%r97];
+	neg.f32 	%f2273, %f2272;
+	fma.rn.f32 	%f2274, %f2273, %f3422, %f2271;
+	ld.const.f32 	%f2275, [%r98];
+	neg.f32 	%f2276, %f2275;
+	fma.rn.f32 	%f2277, %f2276, %f3423, %f2274;
+	ld.const.f32 	%f2278, [%r99];
+	neg.f32 	%f2279, %f2278;
+	fma.rn.f32 	%f2280, %f2279, %f3424, %f2277;
+	ld.const.f32 	%f2281, [%r100];
+	neg.f32 	%f2282, %f2281;
+	fma.rn.f32 	%f2283, %f2282, %f3425, %f2280;
+	ld.const.f32 	%f2284, [%r101];
+	neg.f32 	%f2285, %f2284;
+	fma.rn.f32 	%f2286, %f2285, %f3426, %f2283;
+	ld.const.f32 	%f2287, [%r102];
+	neg.f32 	%f2288, %f2287;
+	fma.rn.f32 	%f2289, %f2288, %f3427, %f2286;
+	ld.const.f32 	%f2290, [%r103];
+	neg.f32 	%f2291, %f2290;
+	fma.rn.f32 	%f2292, %f2291, %f3428, %f2289;
+	ld.const.f32 	%f2293, [%r104];
+	neg.f32 	%f2294, %f2293;
+	fma.rn.f32 	%f2295, %f2294, %f3429, %f2292;
+	ld.const.f32 	%f2296, [%r105];
+	neg.f32 	%f2297, %f2296;
+	fma.rn.f32 	%f2298, %f2297, %f3430, %f2295;
+	ld.const.f32 	%f2299, [%r106];
+	neg.f32 	%f2300, %f2299;
+	fma.rn.f32 	%f2301, %f2300, %f3431, %f2298;
+	ld.const.f32 	%f2302, [%r107];
+	neg.f32 	%f2303, %f2302;
+	fma.rn.f32 	%f2304, %f2303, %f3432, %f2301;
+	ld.const.f32 	%f2305, [%r108];
+	neg.f32 	%f2306, %f2305;
+	fma.rn.f32 	%f3442, %f2306, %f3433, %f2304;
+	bra.uni 	BB51_187;
+
+BB51_175:
+	ld.const.f32 	%f2360, [%r415];
+	neg.f32 	%f2361, %f2360;
+	fma.rn.f32 	%f2362, %f2361, %f3415, %f3442;
+	ld.const.f32 	%f2363, [%r91];
+	neg.f32 	%f2364, %f2363;
+	fma.rn.f32 	%f2365, %f2364, %f3416, %f2362;
+	ld.const.f32 	%f2366, [%r92];
+	neg.f32 	%f2367, %f2366;
+	fma.rn.f32 	%f2368, %f2367, %f3417, %f2365;
+	ld.const.f32 	%f2369, [%r93];
+	neg.f32 	%f2370, %f2369;
+	fma.rn.f32 	%f2371, %f2370, %f3418, %f2368;
+	ld.const.f32 	%f2372, [%r94];
+	neg.f32 	%f2373, %f2372;
+	fma.rn.f32 	%f2374, %f2373, %f3419, %f2371;
+	ld.const.f32 	%f2375, [%r95];
+	neg.f32 	%f2376, %f2375;
+	fma.rn.f32 	%f2377, %f2376, %f3420, %f2374;
+	ld.const.f32 	%f2378, [%r96];
+	neg.f32 	%f2379, %f2378;
+	fma.rn.f32 	%f2380, %f2379, %f3421, %f2377;
+	ld.const.f32 	%f2381, [%r97];
+	neg.f32 	%f2382, %f2381;
+	fma.rn.f32 	%f2383, %f2382, %f3422, %f2380;
+	ld.const.f32 	%f2384, [%r98];
+	neg.f32 	%f2385, %f2384;
+	fma.rn.f32 	%f2386, %f2385, %f3423, %f2383;
+	ld.const.f32 	%f2387, [%r99];
+	neg.f32 	%f2388, %f2387;
+	fma.rn.f32 	%f2389, %f2388, %f3424, %f2386;
+	ld.const.f32 	%f2390, [%r100];
+	neg.f32 	%f2391, %f2390;
+	fma.rn.f32 	%f2392, %f2391, %f3425, %f2389;
+	ld.const.f32 	%f2393, [%r101];
+	neg.f32 	%f2394, %f2393;
+	fma.rn.f32 	%f2395, %f2394, %f3426, %f2392;
+	ld.const.f32 	%f2396, [%r102];
+	neg.f32 	%f2397, %f2396;
+	fma.rn.f32 	%f2398, %f2397, %f3427, %f2395;
+	ld.const.f32 	%f2399, [%r103];
+	neg.f32 	%f2400, %f2399;
+	fma.rn.f32 	%f2401, %f2400, %f3428, %f2398;
+	ld.const.f32 	%f2402, [%r104];
+	neg.f32 	%f2403, %f2402;
+	fma.rn.f32 	%f2404, %f2403, %f3429, %f2401;
+	ld.const.f32 	%f2405, [%r105];
+	neg.f32 	%f2406, %f2405;
+	fma.rn.f32 	%f2407, %f2406, %f3430, %f2404;
+	ld.const.f32 	%f2408, [%r106];
+	neg.f32 	%f2409, %f2408;
+	fma.rn.f32 	%f3442, %f2409, %f3431, %f2407;
+	bra.uni 	BB51_187;
+
+BB51_176:
+	ld.const.f32 	%f2410, [%r415];
+	neg.f32 	%f2411, %f2410;
+	fma.rn.f32 	%f2412, %f2411, %f3415, %f3442;
+	ld.const.f32 	%f2413, [%r91];
+	neg.f32 	%f2414, %f2413;
+	fma.rn.f32 	%f2415, %f2414, %f3416, %f2412;
+	ld.const.f32 	%f2416, [%r92];
+	neg.f32 	%f2417, %f2416;
+	fma.rn.f32 	%f2418, %f2417, %f3417, %f2415;
+	ld.const.f32 	%f2419, [%r93];
+	neg.f32 	%f2420, %f2419;
+	fma.rn.f32 	%f2421, %f2420, %f3418, %f2418;
+	ld.const.f32 	%f2422, [%r94];
+	neg.f32 	%f2423, %f2422;
+	fma.rn.f32 	%f2424, %f2423, %f3419, %f2421;
+	ld.const.f32 	%f2425, [%r95];
+	neg.f32 	%f2426, %f2425;
+	fma.rn.f32 	%f2427, %f2426, %f3420, %f2424;
+	ld.const.f32 	%f2428, [%r96];
+	neg.f32 	%f2429, %f2428;
+	fma.rn.f32 	%f2430, %f2429, %f3421, %f2427;
+	ld.const.f32 	%f2431, [%r97];
+	neg.f32 	%f2432, %f2431;
+	fma.rn.f32 	%f2433, %f2432, %f3422, %f2430;
+	ld.const.f32 	%f2434, [%r98];
+	neg.f32 	%f2435, %f2434;
+	fma.rn.f32 	%f2436, %f2435, %f3423, %f2433;
+	ld.const.f32 	%f2437, [%r99];
+	neg.f32 	%f2438, %f2437;
+	fma.rn.f32 	%f2439, %f2438, %f3424, %f2436;
+	ld.const.f32 	%f2440, [%r100];
+	neg.f32 	%f2441, %f2440;
+	fma.rn.f32 	%f2442, %f2441, %f3425, %f2439;
+	ld.const.f32 	%f2443, [%r101];
+	neg.f32 	%f2444, %f2443;
+	fma.rn.f32 	%f2445, %f2444, %f3426, %f2442;
+	ld.const.f32 	%f2446, [%r102];
+	neg.f32 	%f2447, %f2446;
+	fma.rn.f32 	%f2448, %f2447, %f3427, %f2445;
+	ld.const.f32 	%f2449, [%r103];
+	neg.f32 	%f2450, %f2449;
+	fma.rn.f32 	%f2451, %f2450, %f3428, %f2448;
+	ld.const.f32 	%f2452, [%r104];
+	neg.f32 	%f2453, %f2452;
+	fma.rn.f32 	%f2454, %f2453, %f3429, %f2451;
+	ld.const.f32 	%f2455, [%r105];
+	neg.f32 	%f2456, %f2455;
+	fma.rn.f32 	%f3442, %f2456, %f3430, %f2454;
+	bra.uni 	BB51_187;
+
+BB51_177:
+	ld.const.f32 	%f2501, [%r415];
+	neg.f32 	%f2502, %f2501;
+	fma.rn.f32 	%f2503, %f2502, %f3415, %f3442;
+	ld.const.f32 	%f2504, [%r91];
+	neg.f32 	%f2505, %f2504;
+	fma.rn.f32 	%f2506, %f2505, %f3416, %f2503;
+	ld.const.f32 	%f2507, [%r92];
+	neg.f32 	%f2508, %f2507;
+	fma.rn.f32 	%f2509, %f2508, %f3417, %f2506;
+	ld.const.f32 	%f2510, [%r93];
+	neg.f32 	%f2511, %f2510;
+	fma.rn.f32 	%f2512, %f2511, %f3418, %f2509;
+	ld.const.f32 	%f2513, [%r94];
+	neg.f32 	%f2514, %f2513;
+	fma.rn.f32 	%f2515, %f2514, %f3419, %f2512;
+	ld.const.f32 	%f2516, [%r95];
+	neg.f32 	%f2517, %f2516;
+	fma.rn.f32 	%f2518, %f2517, %f3420, %f2515;
+	ld.const.f32 	%f2519, [%r96];
+	neg.f32 	%f2520, %f2519;
+	fma.rn.f32 	%f2521, %f2520, %f3421, %f2518;
+	ld.const.f32 	%f2522, [%r97];
+	neg.f32 	%f2523, %f2522;
+	fma.rn.f32 	%f2524, %f2523, %f3422, %f2521;
+	ld.const.f32 	%f2525, [%r98];
+	neg.f32 	%f2526, %f2525;
+	fma.rn.f32 	%f2527, %f2526, %f3423, %f2524;
+	ld.const.f32 	%f2528, [%r99];
+	neg.f32 	%f2529, %f2528;
+	fma.rn.f32 	%f2530, %f2529, %f3424, %f2527;
+	ld.const.f32 	%f2531, [%r100];
+	neg.f32 	%f2532, %f2531;
+	fma.rn.f32 	%f2533, %f2532, %f3425, %f2530;
+	ld.const.f32 	%f2534, [%r101];
+	neg.f32 	%f2535, %f2534;
+	fma.rn.f32 	%f2536, %f2535, %f3426, %f2533;
+	ld.const.f32 	%f2537, [%r102];
+	neg.f32 	%f2538, %f2537;
+	fma.rn.f32 	%f2539, %f2538, %f3427, %f2536;
+	ld.const.f32 	%f2540, [%r103];
+	neg.f32 	%f2541, %f2540;
+	fma.rn.f32 	%f3442, %f2541, %f3428, %f2539;
+	bra.uni 	BB51_187;
+
+BB51_178:
+	ld.const.f32 	%f2542, [%r415];
+	neg.f32 	%f2543, %f2542;
+	fma.rn.f32 	%f2544, %f2543, %f3415, %f3442;
+	ld.const.f32 	%f2545, [%r91];
+	neg.f32 	%f2546, %f2545;
+	fma.rn.f32 	%f2547, %f2546, %f3416, %f2544;
+	ld.const.f32 	%f2548, [%r92];
+	neg.f32 	%f2549, %f2548;
+	fma.rn.f32 	%f2550, %f2549, %f3417, %f2547;
+	ld.const.f32 	%f2551, [%r93];
+	neg.f32 	%f2552, %f2551;
+	fma.rn.f32 	%f2553, %f2552, %f3418, %f2550;
+	ld.const.f32 	%f2554, [%r94];
+	neg.f32 	%f2555, %f2554;
+	fma.rn.f32 	%f2556, %f2555, %f3419, %f2553;
+	ld.const.f32 	%f2557, [%r95];
+	neg.f32 	%f2558, %f2557;
+	fma.rn.f32 	%f2559, %f2558, %f3420, %f2556;
+	ld.const.f32 	%f2560, [%r96];
+	neg.f32 	%f2561, %f2560;
+	fma.rn.f32 	%f2562, %f2561, %f3421, %f2559;
+	ld.const.f32 	%f2563, [%r97];
+	neg.f32 	%f2564, %f2563;
+	fma.rn.f32 	%f2565, %f2564, %f3422, %f2562;
+	ld.const.f32 	%f2566, [%r98];
+	neg.f32 	%f2567, %f2566;
+	fma.rn.f32 	%f2568, %f2567, %f3423, %f2565;
+	ld.const.f32 	%f2569, [%r99];
+	neg.f32 	%f2570, %f2569;
+	fma.rn.f32 	%f2571, %f2570, %f3424, %f2568;
+	ld.const.f32 	%f2572, [%r100];
+	neg.f32 	%f2573, %f2572;
+	fma.rn.f32 	%f2574, %f2573, %f3425, %f2571;
+	ld.const.f32 	%f2575, [%r101];
+	neg.f32 	%f2576, %f2575;
+	fma.rn.f32 	%f2577, %f2576, %f3426, %f2574;
+	ld.const.f32 	%f2578, [%r102];
+	neg.f32 	%f2579, %f2578;
+	fma.rn.f32 	%f3442, %f2579, %f3427, %f2577;
+	bra.uni 	BB51_187;
+
+BB51_179:
+	ld.const.f32 	%f2615, [%r415];
+	neg.f32 	%f2616, %f2615;
+	fma.rn.f32 	%f2617, %f2616, %f3415, %f3442;
+	ld.const.f32 	%f2618, [%r91];
+	neg.f32 	%f2619, %f2618;
+	fma.rn.f32 	%f2620, %f2619, %f3416, %f2617;
+	ld.const.f32 	%f2621, [%r92];
+	neg.f32 	%f2622, %f2621;
+	fma.rn.f32 	%f2623, %f2622, %f3417, %f2620;
+	ld.const.f32 	%f2624, [%r93];
+	neg.f32 	%f2625, %f2624;
+	fma.rn.f32 	%f2626, %f2625, %f3418, %f2623;
+	ld.const.f32 	%f2627, [%r94];
+	neg.f32 	%f2628, %f2627;
+	fma.rn.f32 	%f2629, %f2628, %f3419, %f2626;
+	ld.const.f32 	%f2630, [%r95];
+	neg.f32 	%f2631, %f2630;
+	fma.rn.f32 	%f2632, %f2631, %f3420, %f2629;
+	ld.const.f32 	%f2633, [%r96];
+	neg.f32 	%f2634, %f2633;
+	fma.rn.f32 	%f2635, %f2634, %f3421, %f2632;
+	ld.const.f32 	%f2636, [%r97];
+	neg.f32 	%f2637, %f2636;
+	fma.rn.f32 	%f2638, %f2637, %f3422, %f2635;
+	ld.const.f32 	%f2639, [%r98];
+	neg.f32 	%f2640, %f2639;
+	fma.rn.f32 	%f2641, %f2640, %f3423, %f2638;
+	ld.const.f32 	%f2642, [%r99];
+	neg.f32 	%f2643, %f2642;
+	fma.rn.f32 	%f2644, %f2643, %f3424, %f2641;
+	ld.const.f32 	%f2645, [%r100];
+	neg.f32 	%f2646, %f2645;
+	fma.rn.f32 	%f3442, %f2646, %f3425, %f2644;
+	bra.uni 	BB51_187;
+
+BB51_180:
+	ld.const.f32 	%f2647, [%r415];
+	neg.f32 	%f2648, %f2647;
+	fma.rn.f32 	%f2649, %f2648, %f3415, %f3442;
+	ld.const.f32 	%f2650, [%r91];
+	neg.f32 	%f2651, %f2650;
+	fma.rn.f32 	%f2652, %f2651, %f3416, %f2649;
+	ld.const.f32 	%f2653, [%r92];
+	neg.f32 	%f2654, %f2653;
+	fma.rn.f32 	%f2655, %f2654, %f3417, %f2652;
+	ld.const.f32 	%f2656, [%r93];
+	neg.f32 	%f2657, %f2656;
+	fma.rn.f32 	%f2658, %f2657, %f3418, %f2655;
+	ld.const.f32 	%f2659, [%r94];
+	neg.f32 	%f2660, %f2659;
+	fma.rn.f32 	%f2661, %f2660, %f3419, %f2658;
+	ld.const.f32 	%f2662, [%r95];
+	neg.f32 	%f2663, %f2662;
+	fma.rn.f32 	%f2664, %f2663, %f3420, %f2661;
+	ld.const.f32 	%f2665, [%r96];
+	neg.f32 	%f2666, %f2665;
+	fma.rn.f32 	%f2667, %f2666, %f3421, %f2664;
+	ld.const.f32 	%f2668, [%r97];
+	neg.f32 	%f2669, %f2668;
+	fma.rn.f32 	%f2670, %f2669, %f3422, %f2667;
+	ld.const.f32 	%f2671, [%r98];
+	neg.f32 	%f2672, %f2671;
+	fma.rn.f32 	%f2673, %f2672, %f3423, %f2670;
+	ld.const.f32 	%f2674, [%r99];
+	neg.f32 	%f2675, %f2674;
+	fma.rn.f32 	%f3442, %f2675, %f3424, %f2673;
+	bra.uni 	BB51_187;
+
+BB51_181:
+	ld.const.f32 	%f2702, [%r415];
+	neg.f32 	%f2703, %f2702;
+	fma.rn.f32 	%f2704, %f2703, %f3415, %f3442;
+	ld.const.f32 	%f2705, [%r91];
+	neg.f32 	%f2706, %f2705;
+	fma.rn.f32 	%f2707, %f2706, %f3416, %f2704;
+	ld.const.f32 	%f2708, [%r92];
+	neg.f32 	%f2709, %f2708;
+	fma.rn.f32 	%f2710, %f2709, %f3417, %f2707;
+	ld.const.f32 	%f2711, [%r93];
+	neg.f32 	%f2712, %f2711;
+	fma.rn.f32 	%f2713, %f2712, %f3418, %f2710;
+	ld.const.f32 	%f2714, [%r94];
+	neg.f32 	%f2715, %f2714;
+	fma.rn.f32 	%f2716, %f2715, %f3419, %f2713;
+	ld.const.f32 	%f2717, [%r95];
+	neg.f32 	%f2718, %f2717;
+	fma.rn.f32 	%f2719, %f2718, %f3420, %f2716;
+	ld.const.f32 	%f2720, [%r96];
+	neg.f32 	%f2721, %f2720;
+	fma.rn.f32 	%f2722, %f2721, %f3421, %f2719;
+	ld.const.f32 	%f2723, [%r97];
+	neg.f32 	%f2724, %f2723;
+	fma.rn.f32 	%f3442, %f2724, %f3422, %f2722;
+	bra.uni 	BB51_187;
+
+BB51_182:
+	ld.const.f32 	%f2725, [%r415];
+	neg.f32 	%f2726, %f2725;
+	fma.rn.f32 	%f2727, %f2726, %f3415, %f3442;
+	ld.const.f32 	%f2728, [%r91];
+	neg.f32 	%f2729, %f2728;
+	fma.rn.f32 	%f2730, %f2729, %f3416, %f2727;
+	ld.const.f32 	%f2731, [%r92];
+	neg.f32 	%f2732, %f2731;
+	fma.rn.f32 	%f2733, %f2732, %f3417, %f2730;
+	ld.const.f32 	%f2734, [%r93];
+	neg.f32 	%f2735, %f2734;
+	fma.rn.f32 	%f2736, %f2735, %f3418, %f2733;
+	ld.const.f32 	%f2737, [%r94];
+	neg.f32 	%f2738, %f2737;
+	fma.rn.f32 	%f2739, %f2738, %f3419, %f2736;
+	ld.const.f32 	%f2740, [%r95];
+	neg.f32 	%f2741, %f2740;
+	fma.rn.f32 	%f2742, %f2741, %f3420, %f2739;
+	ld.const.f32 	%f2743, [%r96];
+	neg.f32 	%f2744, %f2743;
+	fma.rn.f32 	%f3442, %f2744, %f3421, %f2742;
+	bra.uni 	BB51_187;
+
+BB51_183:
+	ld.const.f32 	%f2762, [%r415];
+	neg.f32 	%f2763, %f2762;
+	fma.rn.f32 	%f2764, %f2763, %f3415, %f3442;
+	ld.const.f32 	%f2765, [%r91];
+	neg.f32 	%f2766, %f2765;
+	fma.rn.f32 	%f2767, %f2766, %f3416, %f2764;
+	ld.const.f32 	%f2768, [%r92];
+	neg.f32 	%f2769, %f2768;
+	fma.rn.f32 	%f2770, %f2769, %f3417, %f2767;
+	ld.const.f32 	%f2771, [%r93];
+	neg.f32 	%f2772, %f2771;
+	fma.rn.f32 	%f2773, %f2772, %f3418, %f2770;
+	ld.const.f32 	%f2774, [%r94];
+	neg.f32 	%f2775, %f2774;
+	fma.rn.f32 	%f3442, %f2775, %f3419, %f2773;
+	bra.uni 	BB51_187;
+
+BB51_184:
+	ld.const.f32 	%f2776, [%r415];
+	neg.f32 	%f2777, %f2776;
+	fma.rn.f32 	%f2778, %f2777, %f3415, %f3442;
+	ld.const.f32 	%f2779, [%r91];
+	neg.f32 	%f2780, %f2779;
+	fma.rn.f32 	%f2781, %f2780, %f3416, %f2778;
+	ld.const.f32 	%f2782, [%r92];
+	neg.f32 	%f2783, %f2782;
+	fma.rn.f32 	%f2784, %f2783, %f3417, %f2781;
+	ld.const.f32 	%f2785, [%r93];
+	neg.f32 	%f2786, %f2785;
+	fma.rn.f32 	%f3442, %f2786, %f3418, %f2784;
+	bra.uni 	BB51_187;
+
+BB51_185:
+	ld.const.f32 	%f2795, [%r415];
+	neg.f32 	%f2796, %f2795;
+	fma.rn.f32 	%f2797, %f2796, %f3415, %f3442;
+	ld.const.f32 	%f2798, [%r91];
+	neg.f32 	%f2799, %f2798;
+	fma.rn.f32 	%f3442, %f2799, %f3416, %f2797;
+	bra.uni 	BB51_187;
+
+BB51_186:
+	ld.const.f32 	%f2800, [%r415];
+	neg.f32 	%f2801, %f2800;
+	fma.rn.f32 	%f3442, %f2801, %f3415, %f3442;
+
+BB51_187:
+	sub.f32 	%f2802, %f3442, %f433;
+	fma.rn.f32 	%f3443, %f2802, %f2802, %f3443;
+	add.s32 	%r416, %r416, 2;
+	add.s32 	%r415, %r415, 4;
+	add.s32 	%r417, %r417, 1;
+	ld.param.u32 	%r260, [CalculateStatisticalMapsGLMTTestPermutation_param_11];
+	setp.lt.s32 	%p111, %r417, %r260;
+	@%p111 bra 	BB51_129;
+
+BB51_188:
+	add.f32 	%f2803, %f432, 0fBF800000;
+	div.full.f32 	%f464, %f3443, %f2803;
+	ld.param.u32 	%r408, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
+	setp.lt.s32 	%p112, %r408, 1;
+	@%p112 bra 	BB51_251;
+
+	ld.param.u32 	%r251, [CalculateStatisticalMapsGLMTTestPermutation_param_9];
+	mad.lo.s32 	%r225, %r251, %r29, %r24;
+	ld.param.u32 	%r246, [CalculateStatisticalMapsGLMTTestPermutation_param_8];
+	mad.lo.s32 	%r226, %r246, %r225, %r19;
+	shl.b32 	%r227, %r226, 2;
+	ld.param.u32 	%r232, [CalculateStatisticalMapsGLMTTestPermutation_param_0];
+	add.s32 	%r420, %r232, %r227;
+	ld.param.u32 	%r256, [CalculateStatisticalMapsGLMTTestPermutation_param_10];
+	mul.lo.s32 	%r228, %r256, %r251;
+	mul.lo.s32 	%r229, %r228, %r246;
+	shl.b32 	%r118, %r229, 2;
+	ld.param.u32 	%r307, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	shl.b32 	%r119, %r307, 2;
+	mov.u32 	%r421, 0;
+	mov.u32 	%r424, %r421;
+	ld.param.u32 	%r418, [CalculateStatisticalMapsGLMTTestPermutation_param_5];
+	ld.param.u32 	%r419, [CalculateStatisticalMapsGLMTTestPermutation_param_6];
+
+BB51_190:
+	mov.u32 	%r422, %r424;
+	mov.u32 	%r120, %r422;
+	ld.param.u32 	%r306, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p113, %r306, 12;
+	@%p113 bra 	BB51_210;
+
+	ld.param.u32 	%r288, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p131, %r288, 6;
+	@%p131 bra 	BB51_201;
+
+	ld.param.u32 	%r280, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p139, %r280, 3;
+	@%p139 bra 	BB51_197;
+
+	ld.param.u32 	%r276, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p143, %r276, 1;
+	@%p143 bra 	BB51_248;
+
+	ld.param.u32 	%r275, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p144, %r275, 2;
+	@%p144 bra 	BB51_247;
+
+	ld.param.u32 	%r274, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p145, %r274, 3;
+	@%p145 bra 	BB51_196;
+	bra.uni 	BB51_249;
+
+BB51_196:
+	ld.const.f32 	%f3401, [%r418];
+	fma.rn.f32 	%f3402, %f3401, %f3415, 0f00000000;
+	ld.const.f32 	%f3403, [%r418+4];
+	fma.rn.f32 	%f3404, %f3403, %f3416, %f3402;
+	ld.const.f32 	%f3405, [%r418+8];
+	fma.rn.f32 	%f3455, %f3405, %f3417, %f3404;
+	bra.uni 	BB51_250;
+
+BB51_197:
+	ld.param.u32 	%r279, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p140, %r279, 4;
+	@%p140 bra 	BB51_246;
+
+	ld.param.u32 	%r278, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p141, %r278, 5;
+	@%p141 bra 	BB51_245;
+
+	ld.param.u32 	%r277, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p142, %r277, 6;
+	@%p142 bra 	BB51_200;
+	bra.uni 	BB51_249;
+
+BB51_200:
+	ld.const.f32 	%f3374, [%r418];
+	fma.rn.f32 	%f3375, %f3374, %f3415, 0f00000000;
+	ld.const.f32 	%f3376, [%r418+4];
+	fma.rn.f32 	%f3377, %f3376, %f3416, %f3375;
+	ld.const.f32 	%f3378, [%r418+8];
+	fma.rn.f32 	%f3379, %f3378, %f3417, %f3377;
+	ld.const.f32 	%f3380, [%r418+12];
+	fma.rn.f32 	%f3381, %f3380, %f3418, %f3379;
+	ld.const.f32 	%f3382, [%r418+16];
+	fma.rn.f32 	%f3383, %f3382, %f3419, %f3381;
+	ld.const.f32 	%f3384, [%r418+20];
+	fma.rn.f32 	%f3455, %f3384, %f3420, %f3383;
+	bra.uni 	BB51_250;
+
+BB51_201:
+	ld.param.u32 	%r287, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p132, %r287, 9;
+	@%p132 bra 	BB51_206;
+
+	ld.param.u32 	%r283, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p136, %r283, 7;
+	@%p136 bra 	BB51_244;
+
+	ld.param.u32 	%r282, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p137, %r282, 8;
+	@%p137 bra 	BB51_243;
+
+	ld.param.u32 	%r281, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p138, %r281, 9;
+	@%p138 bra 	BB51_205;
+	bra.uni 	BB51_249;
+
+BB51_205:
+	ld.const.f32 	%f3329, [%r418];
+	fma.rn.f32 	%f3330, %f3329, %f3415, 0f00000000;
+	ld.const.f32 	%f3331, [%r418+4];
+	fma.rn.f32 	%f3332, %f3331, %f3416, %f3330;
+	ld.const.f32 	%f3333, [%r418+8];
+	fma.rn.f32 	%f3334, %f3333, %f3417, %f3332;
+	ld.const.f32 	%f3335, [%r418+12];
+	fma.rn.f32 	%f3336, %f3335, %f3418, %f3334;
+	ld.const.f32 	%f3337, [%r418+16];
+	fma.rn.f32 	%f3338, %f3337, %f3419, %f3336;
+	ld.const.f32 	%f3339, [%r418+20];
+	fma.rn.f32 	%f3340, %f3339, %f3420, %f3338;
+	ld.const.f32 	%f3341, [%r418+24];
+	fma.rn.f32 	%f3342, %f3341, %f3421, %f3340;
+	ld.const.f32 	%f3343, [%r418+28];
+	fma.rn.f32 	%f3344, %f3343, %f3422, %f3342;
+	ld.const.f32 	%f3345, [%r418+32];
+	fma.rn.f32 	%f3455, %f3345, %f3423, %f3344;
+	bra.uni 	BB51_250;
+
+BB51_206:
+	ld.param.u32 	%r286, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p133, %r286, 10;
+	@%p133 bra 	BB51_241;
+
+	ld.param.u32 	%r285, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p134, %r285, 11;
+	@%p134 bra 	BB51_240;
+
+	ld.param.u32 	%r284, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p135, %r284, 12;
+	@%p135 bra 	BB51_209;
+	bra.uni 	BB51_249;
+
+BB51_209:
+	ld.const.f32 	%f3285, [%r418];
+	fma.rn.f32 	%f3286, %f3285, %f3415, 0f00000000;
+	ld.const.f32 	%f3287, [%r418+4];
+	fma.rn.f32 	%f3288, %f3287, %f3416, %f3286;
+	ld.const.f32 	%f3289, [%r418+8];
+	fma.rn.f32 	%f3290, %f3289, %f3417, %f3288;
+	ld.const.f32 	%f3291, [%r418+12];
+	fma.rn.f32 	%f3292, %f3291, %f3418, %f3290;
+	ld.const.f32 	%f3293, [%r418+16];
+	fma.rn.f32 	%f3294, %f3293, %f3419, %f3292;
+	ld.const.f32 	%f3295, [%r418+20];
+	fma.rn.f32 	%f3296, %f3295, %f3420, %f3294;
+	ld.const.f32 	%f3297, [%r418+24];
+	fma.rn.f32 	%f3298, %f3297, %f3421, %f3296;
+	ld.const.f32 	%f3299, [%r418+28];
+	fma.rn.f32 	%f3300, %f3299, %f3422, %f3298;
+	ld.const.f32 	%f3301, [%r418+32];
+	fma.rn.f32 	%f3302, %f3301, %f3423, %f3300;
+	ld.const.f32 	%f3303, [%r418+36];
+	fma.rn.f32 	%f3304, %f3303, %f3424, %f3302;
+	ld.const.f32 	%f3305, [%r418+40];
+	fma.rn.f32 	%f3306, %f3305, %f3425, %f3304;
+	ld.const.f32 	%f3307, [%r418+44];
+	fma.rn.f32 	%f3455, %f3307, %f3426, %f3306;
+	bra.uni 	BB51_250;
+
+BB51_210:
+	ld.param.u32 	%r305, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p114, %r305, 18;
+	@%p114 bra 	BB51_220;
+
+	ld.param.u32 	%r295, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p124, %r295, 15;
+	@%p124 bra 	BB51_216;
+
+	ld.param.u32 	%r291, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p128, %r291, 13;
+	@%p128 bra 	BB51_239;
+
+	ld.param.u32 	%r290, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p129, %r290, 14;
+	@%p129 bra 	BB51_238;
+
+	ld.param.u32 	%r289, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p130, %r289, 15;
+	@%p130 bra 	BB51_215;
+	bra.uni 	BB51_249;
+
+BB51_215:
+	ld.const.f32 	%f3204, [%r418];
+	fma.rn.f32 	%f3205, %f3204, %f3415, 0f00000000;
+	ld.const.f32 	%f3206, [%r418+4];
+	fma.rn.f32 	%f3207, %f3206, %f3416, %f3205;
+	ld.const.f32 	%f3208, [%r418+8];
+	fma.rn.f32 	%f3209, %f3208, %f3417, %f3207;
+	ld.const.f32 	%f3210, [%r418+12];
+	fma.rn.f32 	%f3211, %f3210, %f3418, %f3209;
+	ld.const.f32 	%f3212, [%r418+16];
+	fma.rn.f32 	%f3213, %f3212, %f3419, %f3211;
+	ld.const.f32 	%f3214, [%r418+20];
+	fma.rn.f32 	%f3215, %f3214, %f3420, %f3213;
+	ld.const.f32 	%f3216, [%r418+24];
+	fma.rn.f32 	%f3217, %f3216, %f3421, %f3215;
+	ld.const.f32 	%f3218, [%r418+28];
+	fma.rn.f32 	%f3219, %f3218, %f3422, %f3217;
+	ld.const.f32 	%f3220, [%r418+32];
+	fma.rn.f32 	%f3221, %f3220, %f3423, %f3219;
+	ld.const.f32 	%f3222, [%r418+36];
+	fma.rn.f32 	%f3223, %f3222, %f3424, %f3221;
+	ld.const.f32 	%f3224, [%r418+40];
+	fma.rn.f32 	%f3225, %f3224, %f3425, %f3223;
+	ld.const.f32 	%f3226, [%r418+44];
+	fma.rn.f32 	%f3227, %f3226, %f3426, %f3225;
+	ld.const.f32 	%f3228, [%r418+48];
+	fma.rn.f32 	%f3229, %f3228, %f3427, %f3227;
+	ld.const.f32 	%f3230, [%r418+52];
+	fma.rn.f32 	%f3231, %f3230, %f3428, %f3229;
+	ld.const.f32 	%f3232, [%r418+56];
+	fma.rn.f32 	%f3455, %f3232, %f3429, %f3231;
+	bra.uni 	BB51_250;
+
+BB51_216:
+	ld.param.u32 	%r294, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p125, %r294, 16;
+	@%p125 bra 	BB51_237;
+
+	ld.param.u32 	%r293, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p126, %r293, 17;
+	@%p126 bra 	BB51_236;
+
+	ld.param.u32 	%r292, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p127, %r292, 18;
+	@%p127 bra 	BB51_219;
+	bra.uni 	BB51_249;
+
+BB51_219:
+	ld.const.f32 	%f3105, [%r418];
+	fma.rn.f32 	%f3106, %f3105, %f3415, 0f00000000;
+	ld.const.f32 	%f3107, [%r418+4];
+	fma.rn.f32 	%f3108, %f3107, %f3416, %f3106;
+	ld.const.f32 	%f3109, [%r418+8];
+	fma.rn.f32 	%f3110, %f3109, %f3417, %f3108;
+	ld.const.f32 	%f3111, [%r418+12];
+	fma.rn.f32 	%f3112, %f3111, %f3418, %f3110;
+	ld.const.f32 	%f3113, [%r418+16];
+	fma.rn.f32 	%f3114, %f3113, %f3419, %f3112;
+	ld.const.f32 	%f3115, [%r418+20];
+	fma.rn.f32 	%f3116, %f3115, %f3420, %f3114;
+	ld.const.f32 	%f3117, [%r418+24];
+	fma.rn.f32 	%f3118, %f3117, %f3421, %f3116;
+	ld.const.f32 	%f3119, [%r418+28];
+	fma.rn.f32 	%f3120, %f3119, %f3422, %f3118;
+	ld.const.f32 	%f3121, [%r418+32];
+	fma.rn.f32 	%f3122, %f3121, %f3423, %f3120;
+	ld.const.f32 	%f3123, [%r418+36];
+	fma.rn.f32 	%f3124, %f3123, %f3424, %f3122;
+	ld.const.f32 	%f3125, [%r418+40];
+	fma.rn.f32 	%f3126, %f3125, %f3425, %f3124;
+	ld.const.f32 	%f3127, [%r418+44];
+	fma.rn.f32 	%f3128, %f3127, %f3426, %f3126;
+	ld.const.f32 	%f3129, [%r418+48];
+	fma.rn.f32 	%f3130, %f3129, %f3427, %f3128;
+	ld.const.f32 	%f3131, [%r418+52];
+	fma.rn.f32 	%f3132, %f3131, %f3428, %f3130;
+	ld.const.f32 	%f3133, [%r418+56];
+	fma.rn.f32 	%f3134, %f3133, %f3429, %f3132;
+	ld.const.f32 	%f3135, [%r418+60];
+	fma.rn.f32 	%f3136, %f3135, %f3430, %f3134;
+	ld.const.f32 	%f3137, [%r418+64];
+	fma.rn.f32 	%f3138, %f3137, %f3431, %f3136;
+	ld.const.f32 	%f3139, [%r418+68];
+	fma.rn.f32 	%f3455, %f3139, %f3432, %f3138;
+	bra.uni 	BB51_250;
+
+BB51_220:
+	ld.param.u32 	%r304, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p115, %r304, 21;
+	@%p115 bra 	BB51_225;
+
+	ld.param.u32 	%r298, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p121, %r298, 19;
+	@%p121 bra 	BB51_235;
+
+	ld.param.u32 	%r297, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p122, %r297, 20;
+	@%p122 bra 	BB51_234;
+
+	ld.param.u32 	%r296, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p123, %r296, 21;
+	@%p123 bra 	BB51_224;
+	bra.uni 	BB51_249;
+
+BB51_224:
+	ld.const.f32 	%f2988, [%r418];
+	fma.rn.f32 	%f2989, %f2988, %f3415, 0f00000000;
+	ld.const.f32 	%f2990, [%r418+4];
+	fma.rn.f32 	%f2991, %f2990, %f3416, %f2989;
+	ld.const.f32 	%f2992, [%r418+8];
+	fma.rn.f32 	%f2993, %f2992, %f3417, %f2991;
+	ld.const.f32 	%f2994, [%r418+12];
+	fma.rn.f32 	%f2995, %f2994, %f3418, %f2993;
+	ld.const.f32 	%f2996, [%r418+16];
+	fma.rn.f32 	%f2997, %f2996, %f3419, %f2995;
+	ld.const.f32 	%f2998, [%r418+20];
+	fma.rn.f32 	%f2999, %f2998, %f3420, %f2997;
+	ld.const.f32 	%f3000, [%r418+24];
+	fma.rn.f32 	%f3001, %f3000, %f3421, %f2999;
+	ld.const.f32 	%f3002, [%r418+28];
+	fma.rn.f32 	%f3003, %f3002, %f3422, %f3001;
+	ld.const.f32 	%f3004, [%r418+32];
+	fma.rn.f32 	%f3005, %f3004, %f3423, %f3003;
+	ld.const.f32 	%f3006, [%r418+36];
+	fma.rn.f32 	%f3007, %f3006, %f3424, %f3005;
+	ld.const.f32 	%f3008, [%r418+40];
+	fma.rn.f32 	%f3009, %f3008, %f3425, %f3007;
+	ld.const.f32 	%f3010, [%r418+44];
+	fma.rn.f32 	%f3011, %f3010, %f3426, %f3009;
+	ld.const.f32 	%f3012, [%r418+48];
+	fma.rn.f32 	%f3013, %f3012, %f3427, %f3011;
+	ld.const.f32 	%f3014, [%r418+52];
+	fma.rn.f32 	%f3015, %f3014, %f3428, %f3013;
+	ld.const.f32 	%f3016, [%r418+56];
+	fma.rn.f32 	%f3017, %f3016, %f3429, %f3015;
+	ld.const.f32 	%f3018, [%r418+60];
+	fma.rn.f32 	%f3019, %f3018, %f3430, %f3017;
+	ld.const.f32 	%f3020, [%r418+64];
+	fma.rn.f32 	%f3021, %f3020, %f3431, %f3019;
+	ld.const.f32 	%f3022, [%r418+68];
+	fma.rn.f32 	%f3023, %f3022, %f3432, %f3021;
+	ld.const.f32 	%f3024, [%r418+72];
+	fma.rn.f32 	%f3025, %f3024, %f3433, %f3023;
+	ld.const.f32 	%f3026, [%r418+76];
+	fma.rn.f32 	%f3027, %f3026, %f3434, %f3025;
+	ld.const.f32 	%f3028, [%r418+80];
+	fma.rn.f32 	%f3455, %f3028, %f3435, %f3027;
+	bra.uni 	BB51_250;
+
+BB51_225:
+	ld.param.u32 	%r303, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.gt.s32 	%p116, %r303, 23;
+	@%p116 bra 	BB51_229;
+
+	ld.param.u32 	%r300, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p119, %r300, 22;
+	@%p119 bra 	BB51_233;
+
+	ld.param.u32 	%r299, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p120, %r299, 23;
+	@%p120 bra 	BB51_228;
+	bra.uni 	BB51_249;
+
+BB51_228:
+	ld.const.f32 	%f2900, [%r418];
+	fma.rn.f32 	%f2901, %f2900, %f3415, 0f00000000;
+	ld.const.f32 	%f2902, [%r418+4];
+	fma.rn.f32 	%f2903, %f2902, %f3416, %f2901;
+	ld.const.f32 	%f2904, [%r418+8];
+	fma.rn.f32 	%f2905, %f2904, %f3417, %f2903;
+	ld.const.f32 	%f2906, [%r418+12];
+	fma.rn.f32 	%f2907, %f2906, %f3418, %f2905;
+	ld.const.f32 	%f2908, [%r418+16];
+	fma.rn.f32 	%f2909, %f2908, %f3419, %f2907;
+	ld.const.f32 	%f2910, [%r418+20];
+	fma.rn.f32 	%f2911, %f2910, %f3420, %f2909;
+	ld.const.f32 	%f2912, [%r418+24];
+	fma.rn.f32 	%f2913, %f2912, %f3421, %f2911;
+	ld.const.f32 	%f2914, [%r418+28];
+	fma.rn.f32 	%f2915, %f2914, %f3422, %f2913;
+	ld.const.f32 	%f2916, [%r418+32];
+	fma.rn.f32 	%f2917, %f2916, %f3423, %f2915;
+	ld.const.f32 	%f2918, [%r418+36];
+	fma.rn.f32 	%f2919, %f2918, %f3424, %f2917;
+	ld.const.f32 	%f2920, [%r418+40];
+	fma.rn.f32 	%f2921, %f2920, %f3425, %f2919;
+	ld.const.f32 	%f2922, [%r418+44];
+	fma.rn.f32 	%f2923, %f2922, %f3426, %f2921;
+	ld.const.f32 	%f2924, [%r418+48];
+	fma.rn.f32 	%f2925, %f2924, %f3427, %f2923;
+	ld.const.f32 	%f2926, [%r418+52];
+	fma.rn.f32 	%f2927, %f2926, %f3428, %f2925;
+	ld.const.f32 	%f2928, [%r418+56];
+	fma.rn.f32 	%f2929, %f2928, %f3429, %f2927;
+	ld.const.f32 	%f2930, [%r418+60];
+	fma.rn.f32 	%f2931, %f2930, %f3430, %f2929;
+	ld.const.f32 	%f2932, [%r418+64];
+	fma.rn.f32 	%f2933, %f2932, %f3431, %f2931;
+	ld.const.f32 	%f2934, [%r418+68];
+	fma.rn.f32 	%f2935, %f2934, %f3432, %f2933;
+	ld.const.f32 	%f2936, [%r418+72];
+	fma.rn.f32 	%f2937, %f2936, %f3433, %f2935;
+	ld.const.f32 	%f2938, [%r418+76];
+	fma.rn.f32 	%f2939, %f2938, %f3434, %f2937;
+	ld.const.f32 	%f2940, [%r418+80];
+	fma.rn.f32 	%f2941, %f2940, %f3435, %f2939;
+	ld.const.f32 	%f2942, [%r418+84];
+	fma.rn.f32 	%f2943, %f2942, %f3436, %f2941;
+	ld.const.f32 	%f2944, [%r418+88];
+	fma.rn.f32 	%f3455, %f2944, %f3437, %f2943;
+	bra.uni 	BB51_250;
+
+BB51_229:
+	ld.param.u32 	%r302, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.eq.s32 	%p117, %r302, 24;
+	@%p117 bra 	BB51_232;
+
+	ld.param.u32 	%r301, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	setp.ne.s32 	%p118, %r301, 25;
+	@%p118 bra 	BB51_249;
+
+	ld.const.f32 	%f2804, [%r418];
+	fma.rn.f32 	%f2805, %f2804, %f3415, 0f00000000;
+	ld.const.f32 	%f2806, [%r418+4];
+	fma.rn.f32 	%f2807, %f2806, %f3416, %f2805;
+	ld.const.f32 	%f2808, [%r418+8];
+	fma.rn.f32 	%f2809, %f2808, %f3417, %f2807;
+	ld.const.f32 	%f2810, [%r418+12];
+	fma.rn.f32 	%f2811, %f2810, %f3418, %f2809;
+	ld.const.f32 	%f2812, [%r418+16];
+	fma.rn.f32 	%f2813, %f2812, %f3419, %f2811;
+	ld.const.f32 	%f2814, [%r418+20];
+	fma.rn.f32 	%f2815, %f2814, %f3420, %f2813;
+	ld.const.f32 	%f2816, [%r418+24];
+	fma.rn.f32 	%f2817, %f2816, %f3421, %f2815;
+	ld.const.f32 	%f2818, [%r418+28];
+	fma.rn.f32 	%f2819, %f2818, %f3422, %f2817;
+	ld.const.f32 	%f2820, [%r418+32];
+	fma.rn.f32 	%f2821, %f2820, %f3423, %f2819;
+	ld.const.f32 	%f2822, [%r418+36];
+	fma.rn.f32 	%f2823, %f2822, %f3424, %f2821;
+	ld.const.f32 	%f2824, [%r418+40];
+	fma.rn.f32 	%f2825, %f2824, %f3425, %f2823;
+	ld.const.f32 	%f2826, [%r418+44];
+	fma.rn.f32 	%f2827, %f2826, %f3426, %f2825;
+	ld.const.f32 	%f2828, [%r418+48];
+	fma.rn.f32 	%f2829, %f2828, %f3427, %f2827;
+	ld.const.f32 	%f2830, [%r418+52];
+	fma.rn.f32 	%f2831, %f2830, %f3428, %f2829;
+	ld.const.f32 	%f2832, [%r418+56];
+	fma.rn.f32 	%f2833, %f2832, %f3429, %f2831;
+	ld.const.f32 	%f2834, [%r418+60];
+	fma.rn.f32 	%f2835, %f2834, %f3430, %f2833;
+	ld.const.f32 	%f2836, [%r418+64];
+	fma.rn.f32 	%f2837, %f2836, %f3431, %f2835;
+	ld.const.f32 	%f2838, [%r418+68];
+	fma.rn.f32 	%f2839, %f2838, %f3432, %f2837;
+	ld.const.f32 	%f2840, [%r418+72];
+	fma.rn.f32 	%f2841, %f2840, %f3433, %f2839;
+	ld.const.f32 	%f2842, [%r418+76];
+	fma.rn.f32 	%f2843, %f2842, %f3434, %f2841;
+	ld.const.f32 	%f2844, [%r418+80];
+	fma.rn.f32 	%f2845, %f2844, %f3435, %f2843;
+	ld.const.f32 	%f2846, [%r418+84];
+	fma.rn.f32 	%f2847, %f2846, %f3436, %f2845;
+	ld.const.f32 	%f2848, [%r418+88];
+	fma.rn.f32 	%f2849, %f2848, %f3437, %f2847;
+	ld.const.f32 	%f2850, [%r418+92];
+	fma.rn.f32 	%f2851, %f2850, %f3438, %f2849;
+	ld.const.f32 	%f2852, [%r418+96];
+	fma.rn.f32 	%f3455, %f2852, %f3439, %f2851;
+	bra.uni 	BB51_250;
+
+BB51_232:
+	ld.const.f32 	%f2853, [%r418];
+	fma.rn.f32 	%f2854, %f2853, %f3415, 0f00000000;
+	ld.const.f32 	%f2855, [%r418+4];
+	fma.rn.f32 	%f2856, %f2855, %f3416, %f2854;
+	ld.const.f32 	%f2857, [%r418+8];
+	fma.rn.f32 	%f2858, %f2857, %f3417, %f2856;
+	ld.const.f32 	%f2859, [%r418+12];
+	fma.rn.f32 	%f2860, %f2859, %f3418, %f2858;
+	ld.const.f32 	%f2861, [%r418+16];
+	fma.rn.f32 	%f2862, %f2861, %f3419, %f2860;
+	ld.const.f32 	%f2863, [%r418+20];
+	fma.rn.f32 	%f2864, %f2863, %f3420, %f2862;
+	ld.const.f32 	%f2865, [%r418+24];
+	fma.rn.f32 	%f2866, %f2865, %f3421, %f2864;
+	ld.const.f32 	%f2867, [%r418+28];
+	fma.rn.f32 	%f2868, %f2867, %f3422, %f2866;
+	ld.const.f32 	%f2869, [%r418+32];
+	fma.rn.f32 	%f2870, %f2869, %f3423, %f2868;
+	ld.const.f32 	%f2871, [%r418+36];
+	fma.rn.f32 	%f2872, %f2871, %f3424, %f2870;
+	ld.const.f32 	%f2873, [%r418+40];
+	fma.rn.f32 	%f2874, %f2873, %f3425, %f2872;
+	ld.const.f32 	%f2875, [%r418+44];
+	fma.rn.f32 	%f2876, %f2875, %f3426, %f2874;
+	ld.const.f32 	%f2877, [%r418+48];
+	fma.rn.f32 	%f2878, %f2877, %f3427, %f2876;
+	ld.const.f32 	%f2879, [%r418+52];
+	fma.rn.f32 	%f2880, %f2879, %f3428, %f2878;
+	ld.const.f32 	%f2881, [%r418+56];
+	fma.rn.f32 	%f2882, %f2881, %f3429, %f2880;
+	ld.const.f32 	%f2883, [%r418+60];
+	fma.rn.f32 	%f2884, %f2883, %f3430, %f2882;
+	ld.const.f32 	%f2885, [%r418+64];
+	fma.rn.f32 	%f2886, %f2885, %f3431, %f2884;
+	ld.const.f32 	%f2887, [%r418+68];
+	fma.rn.f32 	%f2888, %f2887, %f3432, %f2886;
+	ld.const.f32 	%f2889, [%r418+72];
+	fma.rn.f32 	%f2890, %f2889, %f3433, %f2888;
+	ld.const.f32 	%f2891, [%r418+76];
+	fma.rn.f32 	%f2892, %f2891, %f3434, %f2890;
+	ld.const.f32 	%f2893, [%r418+80];
+	fma.rn.f32 	%f2894, %f2893, %f3435, %f2892;
+	ld.const.f32 	%f2895, [%r418+84];
+	fma.rn.f32 	%f2896, %f2895, %f3436, %f2894;
+	ld.const.f32 	%f2897, [%r418+88];
+	fma.rn.f32 	%f2898, %f2897, %f3437, %f2896;
+	ld.const.f32 	%f2899, [%r418+92];
+	fma.rn.f32 	%f3455, %f2899, %f3438, %f2898;
+	bra.uni 	BB51_250;
+
+BB51_233:
+	ld.const.f32 	%f2945, [%r418];
+	fma.rn.f32 	%f2946, %f2945, %f3415, 0f00000000;
+	ld.const.f32 	%f2947, [%r418+4];
+	fma.rn.f32 	%f2948, %f2947, %f3416, %f2946;
+	ld.const.f32 	%f2949, [%r418+8];
+	fma.rn.f32 	%f2950, %f2949, %f3417, %f2948;
+	ld.const.f32 	%f2951, [%r418+12];
+	fma.rn.f32 	%f2952, %f2951, %f3418, %f2950;
+	ld.const.f32 	%f2953, [%r418+16];
+	fma.rn.f32 	%f2954, %f2953, %f3419, %f2952;
+	ld.const.f32 	%f2955, [%r418+20];
+	fma.rn.f32 	%f2956, %f2955, %f3420, %f2954;
+	ld.const.f32 	%f2957, [%r418+24];
+	fma.rn.f32 	%f2958, %f2957, %f3421, %f2956;
+	ld.const.f32 	%f2959, [%r418+28];
+	fma.rn.f32 	%f2960, %f2959, %f3422, %f2958;
+	ld.const.f32 	%f2961, [%r418+32];
+	fma.rn.f32 	%f2962, %f2961, %f3423, %f2960;
+	ld.const.f32 	%f2963, [%r418+36];
+	fma.rn.f32 	%f2964, %f2963, %f3424, %f2962;
+	ld.const.f32 	%f2965, [%r418+40];
+	fma.rn.f32 	%f2966, %f2965, %f3425, %f2964;
+	ld.const.f32 	%f2967, [%r418+44];
+	fma.rn.f32 	%f2968, %f2967, %f3426, %f2966;
+	ld.const.f32 	%f2969, [%r418+48];
+	fma.rn.f32 	%f2970, %f2969, %f3427, %f2968;
+	ld.const.f32 	%f2971, [%r418+52];
+	fma.rn.f32 	%f2972, %f2971, %f3428, %f2970;
+	ld.const.f32 	%f2973, [%r418+56];
+	fma.rn.f32 	%f2974, %f2973, %f3429, %f2972;
+	ld.const.f32 	%f2975, [%r418+60];
+	fma.rn.f32 	%f2976, %f2975, %f3430, %f2974;
+	ld.const.f32 	%f2977, [%r418+64];
+	fma.rn.f32 	%f2978, %f2977, %f3431, %f2976;
+	ld.const.f32 	%f2979, [%r418+68];
+	fma.rn.f32 	%f2980, %f2979, %f3432, %f2978;
+	ld.const.f32 	%f2981, [%r418+72];
+	fma.rn.f32 	%f2982, %f2981, %f3433, %f2980;
+	ld.const.f32 	%f2983, [%r418+76];
+	fma.rn.f32 	%f2984, %f2983, %f3434, %f2982;
+	ld.const.f32 	%f2985, [%r418+80];
+	fma.rn.f32 	%f2986, %f2985, %f3435, %f2984;
+	ld.const.f32 	%f2987, [%r418+84];
+	fma.rn.f32 	%f3455, %f2987, %f3436, %f2986;
+	bra.uni 	BB51_250;
+
+BB51_234:
+	ld.const.f32 	%f3029, [%r418];
+	fma.rn.f32 	%f3030, %f3029, %f3415, 0f00000000;
+	ld.const.f32 	%f3031, [%r418+4];
+	fma.rn.f32 	%f3032, %f3031, %f3416, %f3030;
+	ld.const.f32 	%f3033, [%r418+8];
+	fma.rn.f32 	%f3034, %f3033, %f3417, %f3032;
+	ld.const.f32 	%f3035, [%r418+12];
+	fma.rn.f32 	%f3036, %f3035, %f3418, %f3034;
+	ld.const.f32 	%f3037, [%r418+16];
+	fma.rn.f32 	%f3038, %f3037, %f3419, %f3036;
+	ld.const.f32 	%f3039, [%r418+20];
+	fma.rn.f32 	%f3040, %f3039, %f3420, %f3038;
+	ld.const.f32 	%f3041, [%r418+24];
+	fma.rn.f32 	%f3042, %f3041, %f3421, %f3040;
+	ld.const.f32 	%f3043, [%r418+28];
+	fma.rn.f32 	%f3044, %f3043, %f3422, %f3042;
+	ld.const.f32 	%f3045, [%r418+32];
+	fma.rn.f32 	%f3046, %f3045, %f3423, %f3044;
+	ld.const.f32 	%f3047, [%r418+36];
+	fma.rn.f32 	%f3048, %f3047, %f3424, %f3046;
+	ld.const.f32 	%f3049, [%r418+40];
+	fma.rn.f32 	%f3050, %f3049, %f3425, %f3048;
+	ld.const.f32 	%f3051, [%r418+44];
+	fma.rn.f32 	%f3052, %f3051, %f3426, %f3050;
+	ld.const.f32 	%f3053, [%r418+48];
+	fma.rn.f32 	%f3054, %f3053, %f3427, %f3052;
+	ld.const.f32 	%f3055, [%r418+52];
+	fma.rn.f32 	%f3056, %f3055, %f3428, %f3054;
+	ld.const.f32 	%f3057, [%r418+56];
+	fma.rn.f32 	%f3058, %f3057, %f3429, %f3056;
+	ld.const.f32 	%f3059, [%r418+60];
+	fma.rn.f32 	%f3060, %f3059, %f3430, %f3058;
+	ld.const.f32 	%f3061, [%r418+64];
+	fma.rn.f32 	%f3062, %f3061, %f3431, %f3060;
+	ld.const.f32 	%f3063, [%r418+68];
+	fma.rn.f32 	%f3064, %f3063, %f3432, %f3062;
+	ld.const.f32 	%f3065, [%r418+72];
+	fma.rn.f32 	%f3066, %f3065, %f3433, %f3064;
+	ld.const.f32 	%f3067, [%r418+76];
+	fma.rn.f32 	%f3455, %f3067, %f3434, %f3066;
+	bra.uni 	BB51_250;
+
+BB51_235:
+	ld.const.f32 	%f3068, [%r418];
+	fma.rn.f32 	%f3069, %f3068, %f3415, 0f00000000;
+	ld.const.f32 	%f3070, [%r418+4];
+	fma.rn.f32 	%f3071, %f3070, %f3416, %f3069;
+	ld.const.f32 	%f3072, [%r418+8];
+	fma.rn.f32 	%f3073, %f3072, %f3417, %f3071;
+	ld.const.f32 	%f3074, [%r418+12];
+	fma.rn.f32 	%f3075, %f3074, %f3418, %f3073;
+	ld.const.f32 	%f3076, [%r418+16];
+	fma.rn.f32 	%f3077, %f3076, %f3419, %f3075;
+	ld.const.f32 	%f3078, [%r418+20];
+	fma.rn.f32 	%f3079, %f3078, %f3420, %f3077;
+	ld.const.f32 	%f3080, [%r418+24];
+	fma.rn.f32 	%f3081, %f3080, %f3421, %f3079;
+	ld.const.f32 	%f3082, [%r418+28];
+	fma.rn.f32 	%f3083, %f3082, %f3422, %f3081;
+	ld.const.f32 	%f3084, [%r418+32];
+	fma.rn.f32 	%f3085, %f3084, %f3423, %f3083;
+	ld.const.f32 	%f3086, [%r418+36];
+	fma.rn.f32 	%f3087, %f3086, %f3424, %f3085;
+	ld.const.f32 	%f3088, [%r418+40];
+	fma.rn.f32 	%f3089, %f3088, %f3425, %f3087;
+	ld.const.f32 	%f3090, [%r418+44];
+	fma.rn.f32 	%f3091, %f3090, %f3426, %f3089;
+	ld.const.f32 	%f3092, [%r418+48];
+	fma.rn.f32 	%f3093, %f3092, %f3427, %f3091;
+	ld.const.f32 	%f3094, [%r418+52];
+	fma.rn.f32 	%f3095, %f3094, %f3428, %f3093;
+	ld.const.f32 	%f3096, [%r418+56];
+	fma.rn.f32 	%f3097, %f3096, %f3429, %f3095;
+	ld.const.f32 	%f3098, [%r418+60];
+	fma.rn.f32 	%f3099, %f3098, %f3430, %f3097;
+	ld.const.f32 	%f3100, [%r418+64];
+	fma.rn.f32 	%f3101, %f3100, %f3431, %f3099;
+	ld.const.f32 	%f3102, [%r418+68];
+	fma.rn.f32 	%f3103, %f3102, %f3432, %f3101;
+	ld.const.f32 	%f3104, [%r418+72];
+	fma.rn.f32 	%f3455, %f3104, %f3433, %f3103;
+	bra.uni 	BB51_250;
+
+BB51_236:
+	ld.const.f32 	%f3140, [%r418];
+	fma.rn.f32 	%f3141, %f3140, %f3415, 0f00000000;
+	ld.const.f32 	%f3142, [%r418+4];
+	fma.rn.f32 	%f3143, %f3142, %f3416, %f3141;
+	ld.const.f32 	%f3144, [%r418+8];
+	fma.rn.f32 	%f3145, %f3144, %f3417, %f3143;
+	ld.const.f32 	%f3146, [%r418+12];
+	fma.rn.f32 	%f3147, %f3146, %f3418, %f3145;
+	ld.const.f32 	%f3148, [%r418+16];
+	fma.rn.f32 	%f3149, %f3148, %f3419, %f3147;
+	ld.const.f32 	%f3150, [%r418+20];
+	fma.rn.f32 	%f3151, %f3150, %f3420, %f3149;
+	ld.const.f32 	%f3152, [%r418+24];
+	fma.rn.f32 	%f3153, %f3152, %f3421, %f3151;
+	ld.const.f32 	%f3154, [%r418+28];
+	fma.rn.f32 	%f3155, %f3154, %f3422, %f3153;
+	ld.const.f32 	%f3156, [%r418+32];
+	fma.rn.f32 	%f3157, %f3156, %f3423, %f3155;
+	ld.const.f32 	%f3158, [%r418+36];
+	fma.rn.f32 	%f3159, %f3158, %f3424, %f3157;
+	ld.const.f32 	%f3160, [%r418+40];
+	fma.rn.f32 	%f3161, %f3160, %f3425, %f3159;
+	ld.const.f32 	%f3162, [%r418+44];
+	fma.rn.f32 	%f3163, %f3162, %f3426, %f3161;
+	ld.const.f32 	%f3164, [%r418+48];
+	fma.rn.f32 	%f3165, %f3164, %f3427, %f3163;
+	ld.const.f32 	%f3166, [%r418+52];
+	fma.rn.f32 	%f3167, %f3166, %f3428, %f3165;
+	ld.const.f32 	%f3168, [%r418+56];
+	fma.rn.f32 	%f3169, %f3168, %f3429, %f3167;
+	ld.const.f32 	%f3170, [%r418+60];
+	fma.rn.f32 	%f3171, %f3170, %f3430, %f3169;
+	ld.const.f32 	%f3172, [%r418+64];
+	fma.rn.f32 	%f3455, %f3172, %f3431, %f3171;
+	bra.uni 	BB51_250;
+
+BB51_237:
+	ld.const.f32 	%f3173, [%r418];
+	fma.rn.f32 	%f3174, %f3173, %f3415, 0f00000000;
+	ld.const.f32 	%f3175, [%r418+4];
+	fma.rn.f32 	%f3176, %f3175, %f3416, %f3174;
+	ld.const.f32 	%f3177, [%r418+8];
+	fma.rn.f32 	%f3178, %f3177, %f3417, %f3176;
+	ld.const.f32 	%f3179, [%r418+12];
+	fma.rn.f32 	%f3180, %f3179, %f3418, %f3178;
+	ld.const.f32 	%f3181, [%r418+16];
+	fma.rn.f32 	%f3182, %f3181, %f3419, %f3180;
+	ld.const.f32 	%f3183, [%r418+20];
+	fma.rn.f32 	%f3184, %f3183, %f3420, %f3182;
+	ld.const.f32 	%f3185, [%r418+24];
+	fma.rn.f32 	%f3186, %f3185, %f3421, %f3184;
+	ld.const.f32 	%f3187, [%r418+28];
+	fma.rn.f32 	%f3188, %f3187, %f3422, %f3186;
+	ld.const.f32 	%f3189, [%r418+32];
+	fma.rn.f32 	%f3190, %f3189, %f3423, %f3188;
+	ld.const.f32 	%f3191, [%r418+36];
+	fma.rn.f32 	%f3192, %f3191, %f3424, %f3190;
+	ld.const.f32 	%f3193, [%r418+40];
+	fma.rn.f32 	%f3194, %f3193, %f3425, %f3192;
+	ld.const.f32 	%f3195, [%r418+44];
+	fma.rn.f32 	%f3196, %f3195, %f3426, %f3194;
+	ld.const.f32 	%f3197, [%r418+48];
+	fma.rn.f32 	%f3198, %f3197, %f3427, %f3196;
+	ld.const.f32 	%f3199, [%r418+52];
+	fma.rn.f32 	%f3200, %f3199, %f3428, %f3198;
+	ld.const.f32 	%f3201, [%r418+56];
+	fma.rn.f32 	%f3202, %f3201, %f3429, %f3200;
+	ld.const.f32 	%f3203, [%r418+60];
+	fma.rn.f32 	%f3455, %f3203, %f3430, %f3202;
+	bra.uni 	BB51_250;
+
+BB51_238:
+	ld.const.f32 	%f3233, [%r418];
+	fma.rn.f32 	%f3234, %f3233, %f3415, 0f00000000;
+	ld.const.f32 	%f3235, [%r418+4];
+	fma.rn.f32 	%f3236, %f3235, %f3416, %f3234;
+	ld.const.f32 	%f3237, [%r418+8];
+	fma.rn.f32 	%f3238, %f3237, %f3417, %f3236;
+	ld.const.f32 	%f3239, [%r418+12];
+	fma.rn.f32 	%f3240, %f3239, %f3418, %f3238;
+	ld.const.f32 	%f3241, [%r418+16];
+	fma.rn.f32 	%f3242, %f3241, %f3419, %f3240;
+	ld.const.f32 	%f3243, [%r418+20];
+	fma.rn.f32 	%f3244, %f3243, %f3420, %f3242;
+	ld.const.f32 	%f3245, [%r418+24];
+	fma.rn.f32 	%f3246, %f3245, %f3421, %f3244;
+	ld.const.f32 	%f3247, [%r418+28];
+	fma.rn.f32 	%f3248, %f3247, %f3422, %f3246;
+	ld.const.f32 	%f3249, [%r418+32];
+	fma.rn.f32 	%f3250, %f3249, %f3423, %f3248;
+	ld.const.f32 	%f3251, [%r418+36];
+	fma.rn.f32 	%f3252, %f3251, %f3424, %f3250;
+	ld.const.f32 	%f3253, [%r418+40];
+	fma.rn.f32 	%f3254, %f3253, %f3425, %f3252;
+	ld.const.f32 	%f3255, [%r418+44];
+	fma.rn.f32 	%f3256, %f3255, %f3426, %f3254;
+	ld.const.f32 	%f3257, [%r418+48];
+	fma.rn.f32 	%f3258, %f3257, %f3427, %f3256;
+	ld.const.f32 	%f3259, [%r418+52];
+	fma.rn.f32 	%f3455, %f3259, %f3428, %f3258;
+	bra.uni 	BB51_250;
+
+BB51_239:
+	ld.const.f32 	%f3260, [%r418];
+	fma.rn.f32 	%f3261, %f3260, %f3415, 0f00000000;
+	ld.const.f32 	%f3262, [%r418+4];
+	fma.rn.f32 	%f3263, %f3262, %f3416, %f3261;
+	ld.const.f32 	%f3264, [%r418+8];
+	fma.rn.f32 	%f3265, %f3264, %f3417, %f3263;
+	ld.const.f32 	%f3266, [%r418+12];
+	fma.rn.f32 	%f3267, %f3266, %f3418, %f3265;
+	ld.const.f32 	%f3268, [%r418+16];
+	fma.rn.f32 	%f3269, %f3268, %f3419, %f3267;
+	ld.const.f32 	%f3270, [%r418+20];
+	fma.rn.f32 	%f3271, %f3270, %f3420, %f3269;
+	ld.const.f32 	%f3272, [%r418+24];
+	fma.rn.f32 	%f3273, %f3272, %f3421, %f3271;
+	ld.const.f32 	%f3274, [%r418+28];
+	fma.rn.f32 	%f3275, %f3274, %f3422, %f3273;
+	ld.const.f32 	%f3276, [%r418+32];
+	fma.rn.f32 	%f3277, %f3276, %f3423, %f3275;
+	ld.const.f32 	%f3278, [%r418+36];
+	fma.rn.f32 	%f3279, %f3278, %f3424, %f3277;
+	ld.const.f32 	%f3280, [%r418+40];
+	fma.rn.f32 	%f3281, %f3280, %f3425, %f3279;
+	ld.const.f32 	%f3282, [%r418+44];
+	fma.rn.f32 	%f3283, %f3282, %f3426, %f3281;
+	ld.const.f32 	%f3284, [%r418+48];
+	fma.rn.f32 	%f3455, %f3284, %f3427, %f3283;
+	bra.uni 	BB51_250;
+
+BB51_240:
+	ld.const.f32 	%f3453, [%r418];
+	ld.const.f32 	%f3452, [%r418+4];
+	ld.const.f32 	%f3451, [%r418+8];
+	ld.const.f32 	%f3450, [%r418+12];
+	ld.const.f32 	%f3449, [%r418+16];
+	ld.const.f32 	%f3448, [%r418+20];
+	ld.const.f32 	%f3447, [%r418+24];
+	ld.const.f32 	%f3446, [%r418+28];
+	ld.const.f32 	%f3445, [%r418+32];
+	ld.const.f32 	%f3444, [%r418+36];
+	mov.f32 	%f3454, 0f00000000;
+	mov.u32 	%r423, %r120;
+	bra.uni 	BB51_242;
+
+BB51_241:
+	ld.param.u32 	%r273, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	mul.lo.s32 	%r125, %r421, %r273;
+	ld.const.f32 	%f3453, [%r418];
+	fma.rn.f32 	%f3309, %f3453, %f3415, 0f00000000;
+	ld.const.f32 	%f3452, [%r418+4];
+	fma.rn.f32 	%f3310, %f3452, %f3416, %f3309;
+	ld.const.f32 	%f3451, [%r418+8];
+	fma.rn.f32 	%f3311, %f3451, %f3417, %f3310;
+	ld.const.f32 	%f3450, [%r418+12];
+	fma.rn.f32 	%f3312, %f3450, %f3418, %f3311;
+	ld.const.f32 	%f3449, [%r418+16];
+	fma.rn.f32 	%f3313, %f3449, %f3419, %f3312;
+	ld.const.f32 	%f3448, [%r418+20];
+	fma.rn.f32 	%f3314, %f3448, %f3420, %f3313;
+	ld.const.f32 	%f3447, [%r418+24];
+	fma.rn.f32 	%f3315, %f3447, %f3421, %f3314;
+	ld.const.f32 	%f3446, [%r418+28];
+	fma.rn.f32 	%f3316, %f3446, %f3422, %f3315;
+	ld.const.f32 	%f3445, [%r418+32];
+	fma.rn.f32 	%f3317, %f3445, %f3423, %f3316;
+	ld.const.f32 	%f3444, [%r418+36];
+	fma.rn.f32 	%f3454, %f3444, %f3424, %f3317;
+	mov.u32 	%r423, %r125;
+
+BB51_242:
+	mov.u32 	%r126, %r423;
+	fma.rn.f32 	%f3318, %f3453, %f3415, %f3454;
+	fma.rn.f32 	%f3319, %f3452, %f3416, %f3318;
+	fma.rn.f32 	%f3320, %f3451, %f3417, %f3319;
+	fma.rn.f32 	%f3321, %f3450, %f3418, %f3320;
+	fma.rn.f32 	%f3322, %f3449, %f3419, %f3321;
+	fma.rn.f32 	%f3323, %f3448, %f3420, %f3322;
+	fma.rn.f32 	%f3324, %f3447, %f3421, %f3323;
+	fma.rn.f32 	%f3325, %f3446, %f3422, %f3324;
+	fma.rn.f32 	%f3326, %f3445, %f3423, %f3325;
+	fma.rn.f32 	%f3327, %f3444, %f3424, %f3326;
+	shl.b32 	%r230, %r126, 2;
+	ld.param.u32 	%r241, [CalculateStatisticalMapsGLMTTestPermutation_param_5];
+	add.s32 	%r231, %r230, %r241;
+	ld.const.f32 	%f3328, [%r231+40];
+	fma.rn.f32 	%f3455, %f3328, %f3425, %f3327;
+	bra.uni 	BB51_250;
+
+BB51_243:
+	ld.const.f32 	%f3346, [%r418];
+	fma.rn.f32 	%f3347, %f3346, %f3415, 0f00000000;
+	ld.const.f32 	%f3348, [%r418+4];
+	fma.rn.f32 	%f3349, %f3348, %f3416, %f3347;
+	ld.const.f32 	%f3350, [%r418+8];
+	fma.rn.f32 	%f3351, %f3350, %f3417, %f3349;
+	ld.const.f32 	%f3352, [%r418+12];
+	fma.rn.f32 	%f3353, %f3352, %f3418, %f3351;
+	ld.const.f32 	%f3354, [%r418+16];
+	fma.rn.f32 	%f3355, %f3354, %f3419, %f3353;
+	ld.const.f32 	%f3356, [%r418+20];
+	fma.rn.f32 	%f3357, %f3356, %f3420, %f3355;
+	ld.const.f32 	%f3358, [%r418+24];
+	fma.rn.f32 	%f3359, %f3358, %f3421, %f3357;
+	ld.const.f32 	%f3360, [%r418+28];
+	fma.rn.f32 	%f3455, %f3360, %f3422, %f3359;
+	bra.uni 	BB51_250;
+
+BB51_244:
+	ld.const.f32 	%f3361, [%r418];
+	fma.rn.f32 	%f3362, %f3361, %f3415, 0f00000000;
+	ld.const.f32 	%f3363, [%r418+4];
+	fma.rn.f32 	%f3364, %f3363, %f3416, %f3362;
+	ld.const.f32 	%f3365, [%r418+8];
+	fma.rn.f32 	%f3366, %f3365, %f3417, %f3364;
+	ld.const.f32 	%f3367, [%r418+12];
+	fma.rn.f32 	%f3368, %f3367, %f3418, %f3366;
+	ld.const.f32 	%f3369, [%r418+16];
+	fma.rn.f32 	%f3370, %f3369, %f3419, %f3368;
+	ld.const.f32 	%f3371, [%r418+20];
+	fma.rn.f32 	%f3372, %f3371, %f3420, %f3370;
+	ld.const.f32 	%f3373, [%r418+24];
+	fma.rn.f32 	%f3455, %f3373, %f3421, %f3372;
+	bra.uni 	BB51_250;
+
+BB51_245:
+	ld.const.f32 	%f3385, [%r418];
+	fma.rn.f32 	%f3386, %f3385, %f3415, 0f00000000;
+	ld.const.f32 	%f3387, [%r418+4];
+	fma.rn.f32 	%f3388, %f3387, %f3416, %f3386;
+	ld.const.f32 	%f3389, [%r418+8];
+	fma.rn.f32 	%f3390, %f3389, %f3417, %f3388;
+	ld.const.f32 	%f3391, [%r418+12];
+	fma.rn.f32 	%f3392, %f3391, %f3418, %f3390;
+	ld.const.f32 	%f3393, [%r418+16];
+	fma.rn.f32 	%f3455, %f3393, %f3419, %f3392;
+	bra.uni 	BB51_250;
+
+BB51_246:
+	ld.const.f32 	%f3394, [%r418];
+	fma.rn.f32 	%f3395, %f3394, %f3415, 0f00000000;
+	ld.const.f32 	%f3396, [%r418+4];
+	fma.rn.f32 	%f3397, %f3396, %f3416, %f3395;
+	ld.const.f32 	%f3398, [%r418+8];
+	fma.rn.f32 	%f3399, %f3398, %f3417, %f3397;
+	ld.const.f32 	%f3400, [%r418+12];
+	fma.rn.f32 	%f3455, %f3400, %f3418, %f3399;
+	bra.uni 	BB51_250;
+
+BB51_247:
+	ld.const.f32 	%f3406, [%r418];
+	fma.rn.f32 	%f3407, %f3406, %f3415, 0f00000000;
+	ld.const.f32 	%f3408, [%r418+4];
+	fma.rn.f32 	%f3455, %f3408, %f3416, %f3407;
+	bra.uni 	BB51_250;
+
+BB51_248:
+	ld.const.f32 	%f3409, [%r418];
+	fma.rn.f32 	%f3455, %f3409, %f3415, 0f00000000;
+	bra.uni 	BB51_250;
+
+BB51_249:
+	mov.f32 	%f3455, 0f00000000;
+
+BB51_250:
+	ld.const.f32 	%f3413, [%r419];
+	mul.f32 	%f3412, %f464, %f3413;
+	// inline asm
+	rsqrt.approx.f32 	%f3411, %f3412;
+	// inline asm
+	mul.f32 	%f3414, %f3455, %f3411;
+	st.global.f32 	[%r420], %f3414;
+	add.s32 	%r420, %r420, %r118;
+	add.s32 	%r419, %r419, 4;
+	add.s32 	%r418, %r418, %r119;
+	ld.param.u32 	%r272, [CalculateStatisticalMapsGLMTTestPermutation_param_12];
+	add.s32 	%r130, %r120, %r272;
+	add.s32 	%r421, %r421, 1;
+	ld.param.u32 	%r407, [CalculateStatisticalMapsGLMTTestPermutation_param_13];
+	setp.lt.s32 	%p146, %r421, %r407;
+	mov.u32 	%r424, %r130;
+	@%p146 bra 	BB51_190;
+
+BB51_251:
 	ret;
 }
 
@@ -27529,7 +31675,7 @@ BB51_32:
 	.param .u32 CalculateStatisticalMapsGLMFTestPermutation_param_13
 )
 {
-	.local .align 4 .b8 	__local_depot52[240];
+	.local .align 4 .b8 	__local_depot52[200];
 	.reg .b32 	%SP;
 	.reg .f32 	%f<62>;
 	.reg .pred 	%p<26>;
@@ -27780,7 +31926,7 @@ BB52_21:
 	mov.u32 	%r63, %r243;
 	mov.u32 	%r64, %r242;
 	shl.b32 	%r151, %r64, 2;
-	add.u32 	%r152, %SP, 80;
+	add.u32 	%r152, %SP, 100;
 	add.s32 	%r65, %r152, %r151;
 	st.local.u32 	[%r65], %r150;
 	@!%p5 bra 	BB52_25;
@@ -27827,12 +31973,12 @@ BB52_28:
 	mov.u32 	%r249, %r251;
 	mov.u32 	%r75, %r249;
 	shl.b32 	%r159, %r248, 2;
-	add.u32 	%r160, %SP, 160;
+	add.u32 	%r160, %SP, 0;
 	add.s32 	%r77, %r160, %r159;
 	mov.u32 	%r253, 0;
 	st.local.u32 	[%r77], %r253;
 	mov.f32 	%f60, 0f00000000;
-	add.u32 	%r252, %SP, 80;
+	add.u32 	%r252, %SP, 100;
 	mov.u32 	%r250, %r75;
 
 BB52_29:
@@ -27866,8 +32012,8 @@ BB52_31:
 BB52_33:
 	mov.f32 	%f61, 0f00000000;
 	mov.u32 	%r256, 0;
-	add.u32 	%r255, %SP, 80;
-	add.u32 	%r254, %SP, 160;
+	add.u32 	%r255, %SP, 100;
+	add.u32 	%r254, %SP, 0;
 
 BB52_34:
 	ld.local.f32 	%f51, [%r254];
