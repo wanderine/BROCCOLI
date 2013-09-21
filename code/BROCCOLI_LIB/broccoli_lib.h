@@ -69,6 +69,7 @@ class BROCCOLI_LIB
 		void SetGLMScalars(float* ctxtxc);
 		void SetNumberOfPermutations(int);
 		void SetBetaSpace(int space);
+		void SetPermutationMatrix(unsigned short int*);
 
 
 		// Smoothing
@@ -420,6 +421,7 @@ class BROCCOLI_LIB
 		float CalculateSum(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateMax(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateMax(float *data, int N);
+		int   CalculateMax(int *data, int N);
 		float CalculateMin(float *data, int N);
 		void ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume, float threshold, int DATA_W, int DATA_H, int DATA_D);
 
@@ -931,6 +933,7 @@ class BROCCOLI_LIB
 		float		*h_AR3_Estimates;
 		float		*h_AR4_Estimates;
 		float		*h_Cluster_Indices;
+		int			*h_Cluster_Sizes;
 
 		// Random permutation pointers
 		uint16		*h_Permutation_Matrix;

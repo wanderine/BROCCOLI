@@ -1829,6 +1829,11 @@ void BROCCOLI_LIB::SetDesignMatrix(float* data1, float* data2)
 	h_xtxxt_GLM_In = data2;
 }
 
+void BROCCOLI_LIB::SetPermutationMatrix(unsigned short int* matrix)
+{
+	h_Permutation_Matrix = matrix;
+}
+
 void BROCCOLI_LIB::SetOutputDesignMatrix(float* data1, float* data2)
 {
 	h_X_GLM_Out = data1;
@@ -6391,7 +6396,7 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
 	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-	
+
 
 	c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), NULL, NULL);
 
@@ -6419,16 +6424,16 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
 	clFinish(commandQueue);
 
-	//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 	// Estimate null distribution
-	h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
+	//h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
 
 	CalculatePermutationTestThresholdSecondLevel();
 
 	clEnqueueReadBuffer(commandQueue, d_Permuted_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Permuted_First_Level_Results, 0, NULL, NULL);
 
-	free(h_Permutation_Matrix);
+	//free(h_Permutation_Matrix);
 
 	clReleaseMemObject(d_First_Level_Results);
 	clReleaseMemObject(d_Permuted_First_Level_Results);
@@ -6713,7 +6718,7 @@ float BROCCOLI_LIB::CalculateMax(cl_mem d_Volume, int DATA_W, int DATA_H, int DA
 
 	cl_mem d_Column_Maxs = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Maxs = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_D * sizeof(float), NULL, NULL);
-	
+
 	clSetKernelArg(CalculateColumnMaxsKernel, 0, sizeof(cl_mem), &d_Column_Maxs);
 	clSetKernelArg(CalculateColumnMaxsKernel, 1, sizeof(cl_mem), &d_Volume);
 	clSetKernelArg(CalculateColumnMaxsKernel, 2, sizeof(int), &DATA_W);
@@ -8380,7 +8385,8 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdFirstLevel(cl_mem d_fMRI_Vol
 // Calculates a significance threshold for a group of subjects
 void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
 {
-	GeneratePermutationMatrixSecondLevel();
+	//GeneratePermutationMatrixSecondLevel();
+
 
 	SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS);
 
@@ -8393,7 +8399,15 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
         //GeneratePermutedVolumesSecondLevel(d_Permuted_First_Level_Results, d_First_Level_Results, d_MNI_Brain_Mask, p);
         //CalculateStatisticalMapsGLMTTestSecondLevelPermutation(d_Permuted_First_Level_Results, d_MNI_Brain_Mask);
    		CalculateStatisticalMapsGLMTTestSecondLevelPermutation(d_First_Level_Results, d_MNI_Brain_Mask);
-        h_Permutation_Distribution[p] = CalculateMax(d_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+   		h_Permutation_Distribution[p] = CalculateMax(d_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+   		//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+   		//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 5.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+   		//h_Cluster_Sizes = (int*)malloc(NUMBER_OF_CLUSTERS * sizeof(int));
+   		//CalculateClusterSizes(h_Cluster_Sizes, h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+   		//h_Permutation_Distribution[p] = CalculateMax(h_Cluster_Sizes, NUMBER_OF_CLUSTERS);
+   		//free(h_Cluster_Sizes);
     }
 
     clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
@@ -8437,7 +8451,8 @@ void BROCCOLI_LIB::GeneratePermutationMatrixFirstLevel()
 		// Generate a random number and switch position of two existing numbers
         for (int i = 0; i < EPI_DATA_T; i++)
         {
-            int j = rand() % (EPI_DATA_T - i) + i;
+            //int j = rand() % (EPI_DATA_T - i) + i;
+        	int j = rand() % EPI_DATA_T;
             unsigned short int temp = h_Permutation_Matrix[j + p * EPI_DATA_T];
             h_Permutation_Matrix[j + p * EPI_DATA_T] = h_Permutation_Matrix[i + p * EPI_DATA_T];
             h_Permutation_Matrix[i + p * EPI_DATA_T] = temp;
@@ -8457,9 +8472,9 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevel()
         }
 
 		// Generate random number and switch position of existing numbers
-        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+        for (int i = 0; i < NUMBER_OF_SUBJECTS - 1; i++)
         {
-            int j = rand() % (NUMBER_OF_SUBJECTS - i) + i;
+            int j = i + rand() / (RAND_MAX / (NUMBER_OF_SUBJECTS-i)+1);
 
 			// Check if random permutation is valid?!
 
@@ -10008,10 +10023,14 @@ void BROCCOLI_LIB::CalculateClusterSizes(int* Cluster_Sizes, float* Cluster_Indi
 			{
 				if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
 				{
-					if ( Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 0.0f )
+					float cluster_index = Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+					if ( cluster_index != 0.0f )
 					{
-						// Increment number of voxels for current cluster
-						Cluster_Sizes[(int)Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]]++;
+						if ((int)cluster_index < NUMBER_OF_CLUSTERS)
+						{
+							// Increment number of voxels for current cluster
+							Cluster_Sizes[(int)cluster_index]++;
+						}
 					}
 				}
 			}
@@ -10208,7 +10227,7 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 		}
 	}
 
-	NUMBER_OF_CLUSTERS = (int)current_cluster; // Note that some clusters have 0 voxels after relabelling
+	//NUMBER_OF_CLUSTERS = (int)current_cluster; // Note that some clusters have 0 voxels after relabelling
 
 	// Perform backward and forward relabellings of cluster indices until no changes are made
 	int changed_labels = 1;
@@ -10218,10 +10237,24 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 		changed_labels += ForwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
 	}
 
+	NUMBER_OF_CLUSTERS = (int)CalculateMax(Cluster_Indices, DATA_W * DATA_H * DATA_D);
+
 	free(Thresholded);
 }
 
 
+int BROCCOLI_LIB::CalculateMax(int *data, int N)
+{
+    int max = -1000000;
+	for (int i = 0; i < N; i++)
+	{
+	    if (data[i] > max)
+		{
+			max = data[i];
+		}
+	}
+	return max;
+}
 
 float BROCCOLI_LIB::CalculateMax(float *data, int N)
 {

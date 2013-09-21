@@ -31,7 +31,7 @@ close all
 if ispc
     addpath('D:\nifti_matlab')    
     basepath = 'D:\OpenfMRI\';
-    opencl_platform = 0;
+    opencl_platform = 2;
     opencl_device = 0;
     mex ../code/Matlab_Wrapper/SecondLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
 elseif isunix
@@ -52,7 +52,7 @@ voxel_size = 2;
 %--------------------------------------------------------------------------------------
 
 regress_confounds = 0;
-number_of_permutations = 1000;
+number_of_permutations = 10000;
 
 %--------------------------------------------------------------------------------------
 % Load MNI templates
@@ -85,7 +85,7 @@ end
 % Create GLM regressors
 %--------------------------------------------------------------------------------------
 
-nr = 25;
+nr = 20;
 X_GLM = zeros(number_of_subjects,nr);
 
 for subject = 1:13
@@ -175,11 +175,28 @@ end
 %--------------------------------------------------------------------------------------
 % Run second level analysis
 %--------------------------------------------------------------------------------------
-
+fid = fopen([basepath 'RhymeJudgment/permtest__perm_tstat1.txt']);
+text = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f%f%f');
+fclose(fid);
+permutation_matrix = zeros(10000,13);
+permutation_matrix(:,1) = text{1};
+permutation_matrix(:,2) = text{2};
+permutation_matrix(:,3) = text{3};
+permutation_matrix(:,4) = text{4};
+permutation_matrix(:,5) = text{5};
+permutation_matrix(:,6) = text{6};
+permutation_matrix(:,7) = text{7};
+permutation_matrix(:,8) = text{8};
+permutation_matrix(:,9) = text{9};
+permutation_matrix(:,10) = text{10};
+permutation_matrix(:,11) = text{11};
+permutation_matrix(:,12) = text{12};
+permutation_matrix(:,13) = text{13};
+permutation_matrix = permutation_matrix - 1;
 
 tic
 [beta_volumes, residuals, residual_variances, statistical_maps, design_matrix1, design_matrix2, cluster_indices, null_distribution, permuted_first_level_results] = ... 
-SecondLevelAnalysis(first_level_results,MNI_brain_mask, X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM, confounds,regress_confounds, number_of_permutations, opencl_platform, opencl_device);
+SecondLevelAnalysis(first_level_results,MNI_brain_mask, X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM, confounds,regress_confounds, uint16(permutation_matrix'), number_of_permutations, opencl_platform, opencl_device);
 toc
 
 
@@ -224,5 +241,27 @@ s = sort(null_distribution);
 threshold = s(round(0.95*number_of_permutations))
 
 figure
-hist(null_distribution,100)
+hist(null_distribution,5:0.75:25)
+N_BROCCOLI = hist(null_distribution,5:0.75:25);
+
+fid = fopen([basepath 'RhymeJudgment/permtest__vox_corrp_tstat1.txt']);
+text = textscan(fid,'%f');
+fclose(fid);
+FSL_permutation_values = text{1};
+N_FSL = hist(FSL_permutation_values,5:0.75:25);
+
+figure
+plot(5:0.75:25,N_BROCCOLI/sum(N_BROCCOLI),'b')
+hold on
+plot(5:0.75:25,N_FSL/sum(N_FSL),'g')
+hold off
+
+legend('BROCCOLI null distribution','FSL null distribution')
+
+xlabel('Maximum t-value','FontSize',15)
+ylabel('Probability','FontSize',15)
+
+set(gca,'FontSize',15)
+
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/permutation_distributions.png
 

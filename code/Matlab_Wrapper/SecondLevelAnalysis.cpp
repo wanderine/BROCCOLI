@@ -33,6 +33,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double		    *h_First_Level_Results_double, *h_MNI_Brain_Mask_double;
     float           *h_First_Level_Results, *h_MNI_Brain_Mask; 
 
+    unsigned short int        *h_Permutation_Matrix;
     
     double		    *h_X_GLM_double, *h_xtxxt_GLM_double, *h_X_GLM_Confounds_double, *h_Contrasts_double, *h_ctxtxc_GLM_double;
     float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM;  
@@ -62,11 +63,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<11)
+    if(nrhs<12)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>11)
+    if(nrhs>12)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -93,10 +94,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_X_GLM_Confounds_double =  (double*)mxGetData(prhs[6]);
     REGRESS_CONFOUNDS = (int)mxGetScalar(prhs[7]);
     
-    NUMBER_OF_PERMUTATIONS = (int)mxGetScalar(prhs[8]);
+    h_Permutation_Matrix = (unsigned short int*)mxGetData(prhs[8]);
+    NUMBER_OF_PERMUTATIONS = (int)mxGetScalar(prhs[9]);
     
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[9]);
-    OPENCL_DEVICE = (int)mxGetScalar(prhs[10]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[10]);
+    OPENCL_DEVICE = (int)mxGetScalar(prhs[11]);
     
     const int *ARRAY_DIMENSIONS_FIRST_LEVEL_RESULTS = mxGetDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_MNI = mxGetDimensions(prhs[1]);
@@ -294,6 +296,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
     BROCCOLI.SetContrasts(h_Contrasts);
     BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
+    BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);
     BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
     BROCCOLI.SetOutputResiduals(h_Residuals);
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);

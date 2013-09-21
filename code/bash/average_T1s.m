@@ -10,11 +10,11 @@ elseif isunix
     addpath('/data/andek/MIToolbox/')
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath_FSL = '/data/andek/BROCCOLI_test_data/FSL';
-    basepath_AFNI = '/data/andek/BROCCOLI_test_data/AFNI';    
+    basepath_AFNI = '/data/andek/BROCCOLI_test_data/AFNI/old_results';    
     basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI';    
 end
 
-N = 35;
+N = 198;
 
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain.nii']);
 MNI = double(MNI_nii.img);
