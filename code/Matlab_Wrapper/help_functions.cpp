@@ -77,6 +77,22 @@ void unpack_float2double_volume(double* output_double, float* input_float, int D
     }
 }
 
+void unpack_int2int_volume(int* output_int, int* input_int, int DATA_W, int DATA_H, int DATA_D)
+{
+    int i = 0;
+    for (int z = 0; z < DATA_D ; z++)
+    {
+        for (int x = 0; x < DATA_W ; x++)
+        {
+            for (int y = 0; y < DATA_H ; y++)
+            {
+                output_int[i] = input_int[x + y * DATA_W + z * DATA_W * DATA_H];
+                i++;
+            }
+        }
+    }
+}
+
 
 void pack_double2float_volumes(float* output_float, double* input_double, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {

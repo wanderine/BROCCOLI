@@ -4607,9 +4607,9 @@ __kernel void CalculateDisplacementUpdate(__global float* DisplacementX,
 
 	float norm = 1.0f / (a11Temp * a22Temp * a33Temp - a11Temp * a23Temp * a23Temp - a12Temp * a12Temp * a33Temp + a12Temp * a23Temp * a13Temp + a13Temp * a12Temp * a23Temp - a13Temp * a22Temp * a13Temp + 1E-16f);
 		
-	DisplacementX[idx] = -norm * ((h3Temp * (a12Temp * a23Temp - a13Temp * a22Temp)) - (h2Temp * (a12Temp * a33Temp - a13Temp * a23Temp)) + (h1Temp * (a22Temp * a33Temp - a23Temp * a23Temp)));
-	DisplacementY[idx] = -norm * ((h2Temp * (a11Temp * a33Temp - a13Temp * a13Temp)) - (h3Temp * (a11Temp * a23Temp - a13Temp * a12Temp)) - (h1Temp * (a12Temp * a33Temp - a23Temp * a13Temp)));
-	DisplacementZ[idx] = -norm * ((h3Temp * (a11Temp * a22Temp - a12Temp * a12Temp)) - (h2Temp * (a11Temp * a23Temp - a12Temp * a13Temp)) + (h1Temp * (a12Temp * a23Temp - a22Temp * a13Temp)));
+	DisplacementX[idx] = norm * ((h3Temp * (a12Temp * a23Temp - a13Temp * a22Temp)) - (h2Temp * (a12Temp * a33Temp - a13Temp * a23Temp)) + (h1Temp * (a22Temp * a33Temp - a23Temp * a23Temp)));
+	DisplacementY[idx] = norm * ((h2Temp * (a11Temp * a33Temp - a13Temp * a13Temp)) - (h3Temp * (a11Temp * a23Temp - a13Temp * a12Temp)) - (h1Temp * (a12Temp * a33Temp - a23Temp * a13Temp)));
+	DisplacementZ[idx] = norm * ((h3Temp * (a11Temp * a22Temp - a12Temp * a12Temp)) - (h2Temp * (a11Temp * a23Temp - a12Temp * a13Temp)) + (h1Temp * (a12Temp * a23Temp - a22Temp * a13Temp)));
 }
 
 
@@ -4674,9 +4674,9 @@ __kernel void InterpolateVolumeNearestNonParametric(__global float* Volume,
 	int idx = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
 	float4 Motion_Vector;
 	
-	Motion_Vector.x = (float)x - d_Displacement_Field_X[idx] + 0.5f;
-	Motion_Vector.y = (float)y - d_Displacement_Field_Y[idx] + 0.5f;
-	Motion_Vector.z = (float)z - d_Displacement_Field_Z[idx] + 0.5f;
+	Motion_Vector.x = (float)x + d_Displacement_Field_X[idx] + 0.5f;
+	Motion_Vector.y = (float)y + d_Displacement_Field_Y[idx] + 0.5f;
+	Motion_Vector.z = (float)z + d_Displacement_Field_Z[idx] + 0.5f;
 	Motion_Vector.w = 0.0f;
 
 	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_nearest, Motion_Vector);
@@ -4753,26 +4753,13 @@ __kernel void InterpolateVolumeLinearNonParametric(__global float* Volume,
 
 	float4 Motion_Vector;
 	
-	if ( (myabs(d_Displacement_Field_X[idx3D]) < 100.0f) && (myabs(d_Displacement_Field_Y[idx3D]) < 100.0f) && (myabs(d_Displacement_Field_Z[idx3D]) < 100.0f) )
-	{
-		Motion_Vector.x = (float)x - d_Displacement_Field_X[idx3D] + 0.5f;
-		Motion_Vector.y = (float)y - d_Displacement_Field_Y[idx3D] + 0.5f;
-		Motion_Vector.z = (float)z - d_Displacement_Field_Z[idx3D] + 0.5f;
-		Motion_Vector.w = 0.0f;
+	Motion_Vector.x = (float)x + d_Displacement_Field_X[idx3D] + 0.5f;
+	Motion_Vector.y = (float)y + d_Displacement_Field_Y[idx3D] + 0.5f;
+	Motion_Vector.z = (float)z + d_Displacement_Field_Z[idx3D] + 0.5f;
+	Motion_Vector.w = 0.0f;
 
-		float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-		Volume[idx4D] = Interpolated_Value.x;
-	}
-	else
-	{
-		Motion_Vector.x = (float)x + 0.5f;
-		Motion_Vector.y = (float)y + 0.5f;
-		Motion_Vector.z = (float)z + 0.5f;
-		Motion_Vector.w = 0.0f;
-
-		float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-		Volume[idx4D] = Interpolated_Value.x;
-	}
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
+	Volume[idx4D] = Interpolated_Value.x;
 }
 
 float bspline(float t)
@@ -5099,6 +5086,38 @@ __kernel void CalculateRowMaxs(__global float* Maxs,
 	Maxs[z] = max;
 }
 
+__kernel void CalculateMaxAtomic(volatile __global int* max_value,
+	                             __global const float* Volume,
+								 __global const float* Mask,
+								 __private int DATA_W,
+								 __private int DATA_H,
+								 __private int DATA_D)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	int value = (int)(Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] * 10000.0f);
+	atomic_max(max_value, value);
+
+
+	/*
+	if ( value  > atomic_xchg(max_value, *max_value) )
+	{
+		atomic_xchg(max_value, value);
+	}
+	*/
+
+	//float value = Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];	
+	//atomic_xchg(max_value, mymax(*max_value,value));
+	
+}
 
 __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,
 		                        __global float* Interpolated_T1_Volume,
@@ -5465,6 +5484,119 @@ __kernel void MultiplyVolumesOverwrite(__global float* Volume1,
 	int idx4D = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
 
 	Volume1[idx4D] = Volume1[idx4D] * Volume2[idx3D];
+}
+
+// B(delta) = (1-delta)^3 * p0 + 3*(1-delta)^2 * delta * p1 + 3*(1-delta)* delta^2 * p2 + delta^3 * p3
+
+//float InterpolateCubic(float p0, float p1, float p2, float p3, float delta)
+//{
+//	return ( (1.0f - delta) * (1.0f - delta) * (1.0f - delta) * p0 + 3.0f * (1.0f - delta) * (1.0f - delta) * delta * p1 + 3.0f * (1.0f - delta) * delta * delta * p2 + delta * delta * delta * p3 );
+//}
+
+float InterpolateCubic(float p0, float p1, float p2, float p3, float delta)
+{
+   float a0,a1,a2,a3,delta2;
+
+   delta2 = delta * delta;
+   a0 = p3 - p2 - p0 + p1;
+   a1 = p0 - p1 - a0;
+   a2 = p2 - p0;
+   a3 = p1;
+
+   return(a0 * delta * delta2 + a1 * delta2 + a2 * delta + a3);
+}
+
+__kernel void SliceTimingCorrection(__global float* Corrected_Volumes, 
+                                    __global const float* Volumes, 									 
+									__constant float* c_Slice_Differences, 									 
+									__private int DATA_W, 
+									__private int DATA_H, 
+									__private int DATA_D, 
+									__private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	float delta = c_Slice_Differences[z];
+	float t0, t1, t2, t3;
+
+	// Forward interpolation
+	if (delta > 0.0f)
+	{
+		t0 = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+		t1 = t0;
+		t2 = Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+		t3 = Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over timepoints
+		for (int t = 0; t < DATA_T - 3; t++)
+		{
+			// Cubic interpolation in time
+			Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		
+			// Shift old values backwards
+			t0 = t1;
+			t1 = t2;
+			t2 = t3;
+
+			// Read one new value
+			t3 = Volumes[Calculate4DIndex(x,y,z,t+3,DATA_W,DATA_H,DATA_D)];
+		}
+
+		int t = DATA_T - 3;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	
+		t = DATA_T - 2;
+		t0 = t1;
+		t1 = t2;
+		t2 = t3;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+
+		t = DATA_T - 1;
+		t0 = t1;
+		t1 = t2;
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	}
+	// Backward interpolation
+	else
+	{
+		delta = 1.0f - (-delta);
+
+		t0 = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+		t1 = t0;
+		t2 = t0;
+		t3 = Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over timepoints
+		for (int t = 0; t < DATA_T - 2; t++)
+		{
+			// Cubic interpolation in time
+			Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		
+			// Shift old values backwards
+			t0 = t1;
+			t1 = t2;
+			t2 = t3;
+
+			// Read one new value
+			t3 = Volumes[Calculate4DIndex(x,y,z,t+2,DATA_W,DATA_H,DATA_D)];
+		}
+
+		int t = DATA_T - 2;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	
+		t = DATA_T - 1;
+		t0 = t1;
+		t1 = t2;
+		t2 = t3;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	}
 }
 
 // Statistical functions
@@ -7944,10 +8076,13 @@ __kernel void RemoveMean(__global float* Volumes,
 }
 
 
-/*
-__kernel void Clusterize(__global int* Cluster_Indices,
-						 __global const float* Data;
-						 __private float threshold;
+
+
+__kernel void Clusterize(volatile __global int* Cluster_Indices,
+						 volatile __global int* current_cluster,
+						 __global const float* Volume,
+						 __global const float* Mask,
+						 __private float threshold,
 					     __private int DATA_W, 
 						 __private int DATA_H, 
 						 __private int DATA_D)
@@ -7959,11 +8094,137 @@ __kernel void Clusterize(__global int* Cluster_Indices,
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	int x = get_group_id(0) * 32 + get_local_id(0);
+	int y = get_group_id(1) * 16 + get_local_id(1);
+	int z = get_group_id(2) * 16 + get_local_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+    
+    __local float l_Volume[16][16][32]; // z, y, x
+
+    // Reset shared memory
+    l_Volume[tIdx.z + 0][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 1][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 2][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 3][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 4][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 5][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 6][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 7][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 8][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 9][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 10][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 11][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 12][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 13][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 14][tIdx.y][tIdx.x]           = 0.0f;
+	l_Volume[tIdx.z + 15][tIdx.y][tIdx.x]           = 0.0f;
+	
+
+    // Read data into shared memory
+
+    if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H)  )   
+        l_Volume[tIdx.z + 0][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+0,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +1) < DATA_D) )   
+        l_Volume[tIdx.z + 1][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+1,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +2) < DATA_D) )   
+        l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+2,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +3) < DATA_D) )   
+        l_Volume[tIdx.z + 3][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+3,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +4) < DATA_D) )   
+        l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+4,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +5) < DATA_D) )   
+        l_Volume[tIdx.z + 5][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+5,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +6) < DATA_D) )   
+        l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+6,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +7) < DATA_D) )   
+        l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+7,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +8) < DATA_D) )   
+        l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+8,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +9) < DATA_D) )   
+        l_Volume[tIdx.z + 9][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+9,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +10) < DATA_D) )   
+        l_Volume[tIdx.z + 10][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+10,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +11) < DATA_D) )   
+        l_Volume[tIdx.z + 11][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+11,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +12) < DATA_D) )   
+        l_Volume[tIdx.z + 12][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+12,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +13) < DATA_D) )   
+        l_Volume[tIdx.z + 13][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+13,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +14) < DATA_D) )   
+        l_Volume[tIdx.z + 14][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+14,DATA_W,DATA_H)];
+
+	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +15) < DATA_D) )   
+        l_Volume[tIdx.z + 15][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+15,DATA_W,DATA_H)];
+
+
+
+        
+   	// Make sure all threads have written to local memory
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+
+
+
 	// Threshold data
 	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
 	{
-		
-		int cluster_index = 1;
+		int cluster_index = 0;
+
+		for (int zz = -1; zz < 2; zz++)
+		{
+			for (int yy = -1; yy < 2; yy++)
+			{
+				for (int xx = -1; xx < 2; xx++)
+				{
+					if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
+					{
+						cluster_index = mymax(Cluster_Indices[Calculate3DIndex(x+xx,y+yy,z+zz,DATA_W,DATA_H)],cluster_index);
+					}
+				}
+			}
+		}
+
+		// Use existing cluster index
+		if (cluster_index != 0)
+		{
+			//Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;
+			atomic_xchg(&Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)],cluster_index);
+		}
+		// Use new cluster index
+		else
+		{
+			atomic_inc(current_cluster);
+			atomic_xchg(&Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)],*current_cluster);
+		}		
+	}
+	else
+	{
+		Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0;
+	}
+}
+
+
+
+
+/*
 		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y,z-1,DATA_W,DATA_H)];
 		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y-1,z-1,DATA_W,DATA_H)];
 		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y,z-1,DATA_W,DATA_H)];
@@ -7984,28 +8245,6 @@ __kernel void Clusterize(__global int* Cluster_Indices,
 		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y,z+1,DATA_W,DATA_H)];
 		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y,z+1,DATA_W,DATA_H)];
 		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y+1,z+1,DATA_W,DATA_H)];
-		
-		// Check if neighbour has cluster index, then use that one and increment cluster size
-		if (cluster_index != 0)
-		{
-			Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;			
-		}
-		// Otherwise use new cluster index and increment atomic cluster index
-		else
-		{
-			cluster_index = atomic_inc(global_cluster_index);
-			Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;			
-		}
-
-
-		
-	}
-	else
-	{
-		Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
-	}
-
-}
-*/
+		*/
 
 

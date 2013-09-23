@@ -52,12 +52,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Permutation_Distribution_double;
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
     double          *h_Design_Matrix_double, *h_Design_Matrix2_double;
-    double          *h_Cluster_Indices_double;
+    int             *h_Cluster_Indices, *h_Cluster_Indices_Out;
     double          *h_Permuted_First_Level_Results_double;
     float           *h_Permutation_Distribution;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;    
     float           *h_Design_Matrix, *h_Design_Matrix2;
-    float           *h_Cluster_Indices;
     float           *h_Permuted_First_Level_Results;
     
     //---------------------
@@ -120,6 +119,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     int FIRST_LEVEL_RESULTS_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float);
     int MNI_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+    int MNI_DATA_SIZE_INT = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int);
         
     int GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     int CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
@@ -204,8 +204,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[1] = MNI_DATA_W;
     ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[2] = MNI_DATA_D;
     
-    plhs[6] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES,mxDOUBLE_CLASS, mxREAL);
-    h_Cluster_Indices_double = mxGetPr(plhs[6]);   
+    plhs[6] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES,mxINT32_CLASS, mxREAL);
+    h_Cluster_Indices_Out = (int*)mxGetData(plhs[6]);   
     
     NUMBER_OF_DIMENSIONS = 2;
     int ARRAY_DIMENSIONS_OUT_DISTRIBUTION[2];
@@ -233,7 +233,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
     
-    h_Cluster_Indices                   = (float *)mxMalloc(MNI_DATA_SIZE);
+    h_Cluster_Indices                   = (int *)mxMalloc(MNI_DATA_SIZE_INT);
             
     h_X_GLM                             = (float *)mxMalloc(GLM_SIZE);
     h_xtxxt_GLM                         = (float *)mxMalloc(GLM_SIZE);
@@ -296,7 +296,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
     BROCCOLI.SetContrasts(h_Contrasts);
     BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
-    BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);
+    //BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);
     BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
     BROCCOLI.SetOutputResiduals(h_Residuals);
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
@@ -370,7 +370,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS);
     unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS);            
     
-    unpack_float2double_volume(h_Cluster_Indices_double, h_Cluster_Indices, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    unpack_int2int_volume(h_Cluster_Indices_Out, h_Cluster_Indices, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     
     unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS);  
     unpack_float2double_volumes(h_Statistical_Maps_double, h_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);                

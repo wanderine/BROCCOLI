@@ -24,6 +24,7 @@
 */
 
 
+
 #include <Dense>
 #include <stdio.h>
 #include <math.h>
@@ -820,6 +821,8 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsAMD",&createKernelErrorSeparableConvolutionRods);
 												}
 
+												SliceTimingCorrectionKernel = clCreateKernel(program,"SliceTimingCorrection",&createKernelErrorSliceTimingCorrection);
+
 												// Kernels for parametric registration
 												CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
 												CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
@@ -844,6 +847,7 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 												CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);
 												CalculateColumnMaxsKernel = clCreateKernel(program,"CalculateColumnMaxs",&createKernelErrorCalculateColumnMaxs);
 												CalculateRowMaxsKernel = clCreateKernel(program,"CalculateRowMaxs",&createKernelErrorCalculateRowMaxs);
+												CalculateMaxAtomicKernel = clCreateKernel(program,"CalculateMaxAtomic",&createKernelErrorCalculateMaxAtomic);
 												ThresholdVolumeKernel = clCreateKernel(program,"ThresholdVolume",&createKernelErrorThresholdVolume);
 
 												InterpolateVolumeNearestParametricKernel = clCreateKernel(program,"InterpolateVolumeNearestParametric",&createKernelErrorInterpolateVolumeNearestParametric);
@@ -869,6 +873,7 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 												AddVolumesKernel = clCreateKernel(program,"AddVolumes",&createKernelErrorAddVolumes);
 												AddVolumesOverwriteKernel = clCreateKernel(program,"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
 												RemoveMeanKernel = clCreateKernel(program,"RemoveMean",&createKernelErrorRemoveMean);
+												ClusterizeKernel = clCreateKernel(program,"Clusterize",&createKernelErrorClusterize);
 
 												// Statistical kernels
 												CalculateBetaValuesGLMKernel = clCreateKernel(program,"CalculateBetaValuesGLM",&createKernelErrorCalculateBetaValuesGLM);
@@ -1407,75 +1412,37 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	SetGlobalAndLocalWorkSizesInterpolateVolume(DATA_W, DATA_H, DATA_D);
 }
 
-void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesRescaleVolume(int DATA_W, int DATA_H, int DATA_D)
-{
-	localWorkSizeRescaleVolumeLinear[0] = 16;
-	localWorkSizeRescaleVolumeLinear[1] = 16;
-	localWorkSizeRescaleVolumeLinear[2] = 1;
+void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesClusterize(int DATA_W, int DATA_H, int DATA_D)
+{		
+	localWorkSizeClusterize[0] = 16;
+	localWorkSizeClusterize[1] = 16;
+	localWorkSizeClusterize[2] = 1;
 
 	// Calculate how many blocks are required
-	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeRescaleVolumeLinear[0]);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeRescaleVolumeLinear[1]);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeRescaleVolumeLinear[2]);
+	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeClusterize[0]);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeClusterize[1]);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeClusterize[2]);
 
-	globalWorkSizeRescaleVolumeLinear[0] = xBlocks * localWorkSizeRescaleVolumeLinear[0];
-	globalWorkSizeRescaleVolumeLinear[1] = yBlocks * localWorkSizeRescaleVolumeLinear[1];
-	globalWorkSizeRescaleVolumeLinear[2] = zBlocks * localWorkSizeRescaleVolumeLinear[2];
-
-	localWorkSizeRescaleVolumeCubic[0] = 16;
-	localWorkSizeRescaleVolumeCubic[1] = 16;
-	localWorkSizeRescaleVolumeCubic[2] = 1;
-
-	// Calculate how many blocks are required
-	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeRescaleVolumeCubic[0]);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeRescaleVolumeCubic[1]);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeRescaleVolumeCubic[2]);
-
-	globalWorkSizeRescaleVolumeCubic[0] = xBlocks * localWorkSizeRescaleVolumeCubic[0];
-	globalWorkSizeRescaleVolumeCubic[1] = yBlocks * localWorkSizeRescaleVolumeCubic[1];
-	globalWorkSizeRescaleVolumeCubic[2] = zBlocks * localWorkSizeRescaleVolumeCubic[2];
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	globalWorkSizeClusterize[0] = xBlocks * localWorkSizeClusterize[0];
+	globalWorkSizeClusterize[1] = yBlocks * localWorkSizeClusterize[1];
+	globalWorkSizeClusterize[2] = zBlocks * localWorkSizeClusterize[2];
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeInterpolateVolumeNearest[0] = 16;
-	localWorkSizeInterpolateVolumeNearest[1] = 16;
-	localWorkSizeInterpolateVolumeNearest[2] = 1;
+	localWorkSizeInterpolateVolume[0] = 16;
+	localWorkSizeInterpolateVolume[1] = 16;
+	localWorkSizeInterpolateVolume[2] = 1;
 
 	// Calculate how many blocks are required
-	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeInterpolateVolumeNearest[0]);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeInterpolateVolumeNearest[1]);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeInterpolateVolumeNearest[2]);
+	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeInterpolateVolume[0]);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeInterpolateVolume[1]);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeInterpolateVolume[2]);
 
-	globalWorkSizeInterpolateVolumeNearest[0] = xBlocks * localWorkSizeInterpolateVolumeNearest[0];
-	globalWorkSizeInterpolateVolumeNearest[1] = yBlocks * localWorkSizeInterpolateVolumeNearest[1];
-	globalWorkSizeInterpolateVolumeNearest[2] = zBlocks * localWorkSizeInterpolateVolumeNearest[2];
-
-	localWorkSizeInterpolateVolumeLinear[0] = 16;
-	localWorkSizeInterpolateVolumeLinear[1] = 16;
-	localWorkSizeInterpolateVolumeLinear[2] = 1;
-
-	// Calculate how many blocks are required
-	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeInterpolateVolumeLinear[0]);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeInterpolateVolumeLinear[1]);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeInterpolateVolumeLinear[2]);
-
-	globalWorkSizeInterpolateVolumeLinear[0] = xBlocks * localWorkSizeInterpolateVolumeLinear[0];
-	globalWorkSizeInterpolateVolumeLinear[1] = yBlocks * localWorkSizeInterpolateVolumeLinear[1];
-	globalWorkSizeInterpolateVolumeLinear[2] = zBlocks * localWorkSizeInterpolateVolumeLinear[2];
-
-	localWorkSizeInterpolateVolumeCubic[0] = 16;
-	localWorkSizeInterpolateVolumeCubic[1] = 16;
-	localWorkSizeInterpolateVolumeCubic[2] = 1;
-
-	// Calculate how many blocks are required
-	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeInterpolateVolumeCubic[0]);
-	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeInterpolateVolumeCubic[1]);
-	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeInterpolateVolumeCubic[2]);
-
-	globalWorkSizeInterpolateVolumeCubic[0] = xBlocks * localWorkSizeInterpolateVolumeCubic[0];
-	globalWorkSizeInterpolateVolumeCubic[1] = yBlocks * localWorkSizeInterpolateVolumeCubic[1];
-	globalWorkSizeInterpolateVolumeCubic[2] = zBlocks * localWorkSizeInterpolateVolumeCubic[2];
+	globalWorkSizeInterpolateVolume[0] = xBlocks * localWorkSizeInterpolateVolume[0];
+	globalWorkSizeInterpolateVolume[1] = yBlocks * localWorkSizeInterpolateVolume[1];
+	globalWorkSizeInterpolateVolume[2] = zBlocks * localWorkSizeInterpolateVolume[2];
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DATA_H, int DATA_D)
@@ -1561,6 +1528,21 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateSum(int DATA_W, int DATA_H
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateMax(int DATA_W, int DATA_H, int DATA_D)
 {
+	localWorkSizeCalculateMaxAtomic[0] = 32;
+	localWorkSizeCalculateMaxAtomic[1] = 8;
+	localWorkSizeCalculateMaxAtomic[2] = 1;
+	
+	// Calculate how many blocks are required
+	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateMaxAtomic[0]);
+	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculateMaxAtomic[1]);
+	zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeCalculateMaxAtomic[2]);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	globalWorkSizeCalculateMaxAtomic[0] = xBlocks * localWorkSizeCalculateMaxAtomic[0];
+	globalWorkSizeCalculateMaxAtomic[1] = yBlocks * localWorkSizeCalculateMaxAtomic[1];
+	globalWorkSizeCalculateMaxAtomic[2] = zBlocks * localWorkSizeCalculateMaxAtomic[2];
+
+
 	localWorkSizeCalculateColumnMaxs[0] = 16;
 	localWorkSizeCalculateColumnMaxs[1] = 16;
 	localWorkSizeCalculateColumnMaxs[2] = 1;
@@ -1840,7 +1822,7 @@ void BROCCOLI_LIB::SetOutputDesignMatrix(float* data1, float* data2)
 	h_xtxxt_GLM_Out = data2;
 }
 
-void BROCCOLI_LIB::SetOutputClusterIndices(float* data)
+void BROCCOLI_LIB::SetOutputClusterIndices(int* data)
 {
 	h_Cluster_Indices = data;
 }
@@ -2311,6 +2293,13 @@ void BROCCOLI_LIB::SetOutputMotionCorrectedfMRIVolumes(float* motion_corrected)
 {
 	h_Motion_Corrected_fMRI_Volumes = motion_corrected;
 }
+
+
+void BROCCOLI_LIB::SetOutputSliceTimingCorrectedfMRIVolumes(float* slice_timing_corrected)
+{
+	h_Slice_Timing_Corrected_fMRI_Volumes = slice_timing_corrected;
+}
+
 
 void BROCCOLI_LIB::SetOutputSmoothedfMRIVolumes(float* smoothed)
 {
@@ -3344,7 +3333,7 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 		clEnqueueWriteBuffer(commandQueue, c_Registration_Parameters, CL_TRUE, 0, NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), h_Registration_Parameters_Align_Two_Volumes, 0, NULL, NULL);
 
 		// Interpolate to get the new volume
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 
 		clFinish(commandQueue);
 	}
@@ -3944,7 +3933,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 2, sizeof(cl_mem), &d_Update_Displacement_Field_X);
 		clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 3, sizeof(cl_mem), &d_Update_Displacement_Field_Y);
 		clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 4, sizeof(cl_mem), &d_Update_Displacement_Field_Z);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 
 	}
@@ -4138,7 +4127,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 	float VOXEL_DIFFERENCE_Y = (float)(ORIGINAL_DATA_H-1)/(float)(NEW_DATA_H-1);
 	float VOXEL_DIFFERENCE_Z = (float)(ORIGINAL_DATA_D-1)/(float)(NEW_DATA_D-1);
 
-	SetGlobalAndLocalWorkSizesRescaleVolume(NEW_DATA_W, NEW_DATA_H, NEW_DATA_D);
+	SetGlobalAndLocalWorkSizesInterpolateVolume(NEW_DATA_W, NEW_DATA_H, NEW_DATA_D);
 
 	if (INTERPOLATION_MODE == LINEAR)
 	{
@@ -4151,7 +4140,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 		clSetKernelArg(RescaleVolumeLinearKernel, 6, sizeof(int), &NEW_DATA_H);
 		clSetKernelArg(RescaleVolumeLinearKernel, 7, sizeof(int), &NEW_DATA_D);
 
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == CUBIC)
@@ -4165,7 +4154,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 		clSetKernelArg(RescaleVolumeCubicKernel, 6, sizeof(int), &NEW_DATA_H);
 		clSetKernelArg(RescaleVolumeCubicKernel, 7, sizeof(int), &NEW_DATA_D);
 
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
@@ -4193,7 +4182,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem& d_Original_Volume, int ORIGINAL_DATA
 	float VOXEL_DIFFERENCE_Y = (float)(ORIGINAL_DATA_H-1)/(float)(NEW_DATA_H-1);
 	float VOXEL_DIFFERENCE_Z = (float)(ORIGINAL_DATA_D-1)/(float)(NEW_DATA_D-1);
 
-	SetGlobalAndLocalWorkSizesRescaleVolume(NEW_DATA_W, NEW_DATA_H, NEW_DATA_D);
+	SetGlobalAndLocalWorkSizesInterpolateVolume(NEW_DATA_W, NEW_DATA_H, NEW_DATA_D);
 
 	if (INTERPOLATION_MODE == LINEAR)
 	{
@@ -4206,7 +4195,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem& d_Original_Volume, int ORIGINAL_DATA
 		clSetKernelArg(RescaleVolumeLinearKernel, 6, sizeof(int), &NEW_DATA_H);
 		clSetKernelArg(RescaleVolumeLinearKernel, 7, sizeof(int), &NEW_DATA_D);
 
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == CUBIC)
@@ -4220,7 +4209,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem& d_Original_Volume, int ORIGINAL_DATA
 		clSetKernelArg(RescaleVolumeCubicKernel, 6, sizeof(int), &NEW_DATA_H);
 		clSetKernelArg(RescaleVolumeCubicKernel, 7, sizeof(int), &NEW_DATA_D);
 
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
@@ -4306,12 +4295,12 @@ void BROCCOLI_LIB::AlignTwoVolumesParametricSeveralScales(float *h_Registration_
 			// Apply transformation to next scale
 			if (INTERPOLATION_MODE == LINEAR)
 			{
-				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 				clFinish(commandQueue);
 			}
 			else if (INTERPOLATION_MODE == CUBIC)
 			{
-				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 				clFinish(commandQueue);
 			}
 
@@ -4434,12 +4423,12 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Original_A
 				clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 2, sizeof(cl_mem), &d_Total_Displacement_Field_X);
 				clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 3, sizeof(cl_mem), &d_Total_Displacement_Field_Y);
 				clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 4, sizeof(cl_mem), &d_Total_Displacement_Field_Z);
-				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 				clFinish(commandQueue);
 			}
 			else if (INTERPOLATION_MODE == CUBIC)
 			{
-				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+				runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 				clFinish(commandQueue);
 			}
 
@@ -4591,7 +4580,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSizeWrapper()
 	float VOXEL_DIFFERENCE_Y = (float)(T1_DATA_H-1)/(float)(T1_DATA_H_INTERPOLATED-1);
 	float VOXEL_DIFFERENCE_Z = (float)(T1_DATA_D-1)/(float)(T1_DATA_D_INTERPOLATED-1);
 
-	SetGlobalAndLocalWorkSizesRescaleVolume(T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
+	SetGlobalAndLocalWorkSizesInterpolateVolume(T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
 
 	if (INTERPOLATION_MODE == LINEAR)
 	{
@@ -4605,7 +4594,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSizeWrapper()
 		clSetKernelArg(RescaleVolumeLinearKernel, 7, sizeof(int), &T1_DATA_D_INTERPOLATED);
 
 		// Interpolate T1 volume to the same voxel size as the MNI volume
-		error = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
+		error = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == CUBIC)
@@ -4619,7 +4608,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSizeWrapper()
 		clSetKernelArg(RescaleVolumeCubicKernel, 6, sizeof(int), &T1_DATA_H_INTERPOLATED);
 		clSetKernelArg(RescaleVolumeCubicKernel, 7, sizeof(int), &T1_DATA_D_INTERPOLATED);
 
-		error = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
+		error = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
@@ -4690,7 +4679,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	float VOXEL_DIFFERENCE_Y = (float)(T1_DATA_H-1)/(float)(T1_DATA_H_INTERPOLATED-1);
 	float VOXEL_DIFFERENCE_Z = (float)(T1_DATA_D-1)/(float)(T1_DATA_D_INTERPOLATED-1);
 
-	SetGlobalAndLocalWorkSizesRescaleVolume(T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
+	SetGlobalAndLocalWorkSizesInterpolateVolume(T1_DATA_W_INTERPOLATED, T1_DATA_H_INTERPOLATED, T1_DATA_D_INTERPOLATED);
 
 	if (INTERPOLATION_MODE == LINEAR)
 	{
@@ -4704,7 +4693,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 		clSetKernelArg(RescaleVolumeLinearKernel, 7, sizeof(int), &T1_DATA_D_INTERPOLATED);
 
 		// Interpolate T1 volume to the same voxel size as the MNI volume
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == CUBIC)
@@ -4719,7 +4708,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 		clSetKernelArg(RescaleVolumeCubicKernel, 7, sizeof(int), &T1_DATA_D_INTERPOLATED);
 
 		// Interpolate T1 volume to the same voxel size as the MNI volume
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
@@ -4938,7 +4927,7 @@ void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_m
 	float VOXEL_DIFFERENCE_Y = (float)(EPI_DATA_H-1)/(float)(EPI_DATA_H_INTERPOLATED-1);
 	float VOXEL_DIFFERENCE_Z = (float)(EPI_DATA_D-1)/(float)(EPI_DATA_D_INTERPOLATED-1);
 
-	SetGlobalAndLocalWorkSizesRescaleVolume(EPI_DATA_W_INTERPOLATED, EPI_DATA_H_INTERPOLATED, EPI_DATA_D_INTERPOLATED);
+	SetGlobalAndLocalWorkSizesInterpolateVolume(EPI_DATA_W_INTERPOLATED, EPI_DATA_H_INTERPOLATED, EPI_DATA_D_INTERPOLATED);
 
 	if (INTERPOLATION_MODE == LINEAR)
 	{
@@ -4952,7 +4941,7 @@ void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_m
 		clSetKernelArg(RescaleVolumeLinearKernel, 7, sizeof(int), &EPI_DATA_D_INTERPOLATED);
 
 		// Interpolate EPI volume to the same voxel size as the new volume
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == CUBIC)
@@ -4967,7 +4956,7 @@ void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_m
 		clSetKernelArg(RescaleVolumeCubicKernel, 7, sizeof(int), &EPI_DATA_D_INTERPOLATED);
 
 		// Interpolate EPI volume to the same voxel size as the new volume
-		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
+		runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
@@ -5022,7 +5011,7 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d
 	float VOXEL_DIFFERENCE_Y = (float)(DATA_H-1)/(float)(DATA_H_INTERPOLATED-1);
 	float VOXEL_DIFFERENCE_Z = (float)(DATA_D-1)/(float)(DATA_D_INTERPOLATED-1);
 
-	SetGlobalAndLocalWorkSizesRescaleVolume(DATA_W_INTERPOLATED, DATA_H_INTERPOLATED, DATA_D_INTERPOLATED);
+	SetGlobalAndLocalWorkSizesInterpolateVolume(DATA_W_INTERPOLATED, DATA_H_INTERPOLATED, DATA_D_INTERPOLATED);
 
 	SetGlobalAndLocalWorkSizesCopyVolumeToNew(mymax(NEW_DATA_W,DATA_W_INTERPOLATED),mymax(NEW_DATA_H,DATA_H_INTERPOLATED),mymax(NEW_DATA_D,DATA_D_INTERPOLATED));
 
@@ -5082,12 +5071,12 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d
 		// Rescale current volume to the same voxel size as the new volume
 		if (INTERPOLATION_MODE == LINEAR)
 		{
-			runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeRescaleVolumeLinear, localWorkSizeRescaleVolumeLinear, 0, NULL, NULL);
+			runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeLinearKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 		else if (INTERPOLATION_MODE == CUBIC)
 		{
-			runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeRescaleVolumeCubic, localWorkSizeRescaleVolumeCubic, 0, NULL, NULL);
+			runKernelErrorRescaleVolume = clEnqueueNDRangeKernel(commandQueue, RescaleVolumeCubicKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 
@@ -5874,7 +5863,7 @@ void BROCCOLI_LIB::TransformVolumeParametric(cl_mem d_Volume, float* h_Registrat
 		clSetKernelArg(InterpolateVolumeLinearParametricKernel, 4, sizeof(int), &DATA_H);
 		clSetKernelArg(InterpolateVolumeLinearParametricKernel, 5, sizeof(int), &DATA_D);
 		clSetKernelArg(InterpolateVolumeLinearParametricKernel, 6, sizeof(int), &volume);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == CUBIC)
@@ -5886,7 +5875,7 @@ void BROCCOLI_LIB::TransformVolumeParametric(cl_mem d_Volume, float* h_Registrat
 		clSetKernelArg(InterpolateVolumeCubicParametricKernel, 4, sizeof(int), &DATA_H);
 		clSetKernelArg(InterpolateVolumeCubicParametricKernel, 5, sizeof(int), &DATA_D);
 		clSetKernelArg(InterpolateVolumeCubicParametricKernel, 6, sizeof(int), &volume);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == NEAREST)
@@ -5898,7 +5887,7 @@ void BROCCOLI_LIB::TransformVolumeParametric(cl_mem d_Volume, float* h_Registrat
 		clSetKernelArg(InterpolateVolumeNearestParametricKernel, 4, sizeof(int), &DATA_H);
 		clSetKernelArg(InterpolateVolumeNearestParametricKernel, 5, sizeof(int), &DATA_D);
 		clSetKernelArg(InterpolateVolumeNearestParametricKernel, 6, sizeof(int), &volume);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeNearest, localWorkSizeInterpolateVolumeNearest, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
@@ -5939,7 +5928,7 @@ void BROCCOLI_LIB::TransformVolumesParametric(cl_mem d_Volumes, float* h_Registr
 			clSetKernelArg(InterpolateVolumeLinearParametricKernel, 4, sizeof(int), &DATA_H);
 			clSetKernelArg(InterpolateVolumeLinearParametricKernel, 5, sizeof(int), &DATA_D);
 			clSetKernelArg(InterpolateVolumeLinearParametricKernel, 6, sizeof(int), &volume);
-			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 		else if (INTERPOLATION_MODE == CUBIC)
@@ -5951,7 +5940,7 @@ void BROCCOLI_LIB::TransformVolumesParametric(cl_mem d_Volumes, float* h_Registr
 			clSetKernelArg(InterpolateVolumeCubicParametricKernel, 4, sizeof(int), &DATA_H);
 			clSetKernelArg(InterpolateVolumeCubicParametricKernel, 5, sizeof(int), &DATA_D);
 			clSetKernelArg(InterpolateVolumeCubicParametricKernel, 6, sizeof(int), &volume);
-			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 		else if (INTERPOLATION_MODE == NEAREST)
@@ -5963,7 +5952,7 @@ void BROCCOLI_LIB::TransformVolumesParametric(cl_mem d_Volumes, float* h_Registr
 			clSetKernelArg(InterpolateVolumeNearestParametricKernel, 4, sizeof(int), &DATA_H);
 			clSetKernelArg(InterpolateVolumeNearestParametricKernel, 5, sizeof(int), &DATA_D);
 			clSetKernelArg(InterpolateVolumeNearestParametricKernel, 6, sizeof(int), &volume);
-			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeNearest, localWorkSizeInterpolateVolumeNearest, 0, NULL, NULL);
+			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 	}
@@ -6001,7 +5990,7 @@ void BROCCOLI_LIB::TransformVolumeNonParametric(cl_mem d_Volume, cl_mem d_Displa
 		clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 6, sizeof(int), &DATA_H);
 		clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 7, sizeof(int), &DATA_D);
 		clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 8, sizeof(int), &volume);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == CUBIC)
@@ -6015,7 +6004,7 @@ void BROCCOLI_LIB::TransformVolumeNonParametric(cl_mem d_Volume, cl_mem d_Displa
 		clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 6, sizeof(int), &DATA_H);
 		clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 7, sizeof(int), &DATA_D);
 		clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 8, sizeof(int), &volume);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 	else if (INTERPOLATION_MODE == NEAREST)
@@ -6029,7 +6018,7 @@ void BROCCOLI_LIB::TransformVolumeNonParametric(cl_mem d_Volume, cl_mem d_Displa
 		clSetKernelArg(InterpolateVolumeNearestNonParametricKernel, 6, sizeof(int), &DATA_H);
 		clSetKernelArg(InterpolateVolumeNearestNonParametricKernel, 7, sizeof(int), &DATA_D);
 		clSetKernelArg(InterpolateVolumeNearestNonParametricKernel, 8, sizeof(int), &volume);
-		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeNearest, localWorkSizeInterpolateVolumeNearest, 0, NULL, NULL);
+		runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
@@ -6068,7 +6057,7 @@ void BROCCOLI_LIB::TransformVolumesNonParametric(cl_mem d_Volumes, cl_mem d_Disp
 			clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 6, sizeof(int), &DATA_H);
 			clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 7, sizeof(int), &DATA_D);
 			clSetKernelArg(InterpolateVolumeLinearNonParametricKernel, 8, sizeof(int), &volume);
-			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeLinear, localWorkSizeInterpolateVolumeLinear, 0, NULL, NULL);
+			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeLinearNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 		else if (INTERPOLATION_MODE == CUBIC)
@@ -6082,7 +6071,7 @@ void BROCCOLI_LIB::TransformVolumesNonParametric(cl_mem d_Volumes, cl_mem d_Disp
 			clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 6, sizeof(int), &DATA_H);
 			clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 7, sizeof(int), &DATA_D);
 			clSetKernelArg(InterpolateVolumeCubicNonParametricKernel, 8, sizeof(int), &volume);
-			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeCubic, localWorkSizeInterpolateVolumeCubic, 0, NULL, NULL);
+			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeCubicNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 		else if (INTERPOLATION_MODE == NEAREST)
@@ -6096,7 +6085,7 @@ void BROCCOLI_LIB::TransformVolumesNonParametric(cl_mem d_Volumes, cl_mem d_Disp
 			clSetKernelArg(InterpolateVolumeNearestNonParametricKernel, 6, sizeof(int), &DATA_H);
 			clSetKernelArg(InterpolateVolumeNearestNonParametricKernel, 7, sizeof(int), &DATA_D);
 			clSetKernelArg(InterpolateVolumeNearestNonParametricKernel, 8, sizeof(int), &volume);
-			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolumeNearest, localWorkSizeInterpolateVolumeNearest, 0, NULL, NULL);
+			runKernelErrorInterpolateVolume = clEnqueueNDRangeKernel(commandQueue, InterpolateVolumeNearestNonParametricKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 			clFinish(commandQueue);
 		}
 	}
@@ -6424,16 +6413,23 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
 	clFinish(commandQueue);
 
-	Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
+
+	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);		
+	ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	clEnqueueReadBuffer(commandQueue, d_Cluster_Indices, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), h_Cluster_Indices, 0, NULL, NULL);
+	
 	// Estimate null distribution
-	//h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
+	h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
 
 	CalculatePermutationTestThresholdSecondLevel();
 
+	clReleaseMemObject(d_Cluster_Indices);
+
 	clEnqueueReadBuffer(commandQueue, d_Permuted_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Permuted_First_Level_Results, 0, NULL, NULL);
 
-	//free(h_Permutation_Matrix);
+	free(h_Permutation_Matrix);
 
 	clReleaseMemObject(d_First_Level_Results);
 	clReleaseMemObject(d_Permuted_First_Level_Results);
@@ -6475,7 +6471,85 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 // Performs slice timing correction of an fMRI dataset
 void BROCCOLI_LIB::PerformSliceTimingCorrection()
 {
+	SetGlobalAndLocalWorkSizesInterpolateVolume(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
+	// Allocate memory for slice differences
+	c_Slice_Differences = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	h_Slice_Differences = (float*)malloc(EPI_DATA_D * sizeof(float));
+
+	// Calculate middle slice
+	float middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+	
+	for (int z = 0; z < EPI_DATA_D; z++)
+	{
+		h_Slice_Differences[z] = ((float)z - middle_slice)/((float)EPI_DATA_D);
+	}
+
+	// Copy slice differences to device
+	clEnqueueWriteBuffer(commandQueue, c_Slice_Differences, CL_TRUE, 0, EPI_DATA_D * sizeof(float), h_Slice_Differences, 0, NULL, NULL);
+
+	clSetKernelArg(SliceTimingCorrectionKernel, 0, sizeof(cl_mem), &d_Slice_Timing_Corrected_fMRI_Volumes);
+	clSetKernelArg(SliceTimingCorrectionKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
+	clSetKernelArg(SliceTimingCorrectionKernel, 2, sizeof(cl_mem), &c_Slice_Differences);
+	clSetKernelArg(SliceTimingCorrectionKernel, 3, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SliceTimingCorrectionKernel, 4, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SliceTimingCorrectionKernel, 5, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SliceTimingCorrectionKernel, 6, sizeof(int), &EPI_DATA_T);
+
+	runKernelErrorSliceTimingCorrection = clEnqueueNDRangeKernel(commandQueue, SliceTimingCorrectionKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	clReleaseMemObject(c_Slice_Differences);
+	free(h_Slice_Differences);
+}
+
+void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
+{
+	SetGlobalAndLocalWorkSizesInterpolateVolume(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+	// Allocate memory for volumes
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+	d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	// Allocate memory for slice differences
+	c_Slice_Differences = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy volumes to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+
+	h_Slice_Differences = (float*)malloc(EPI_DATA_D * sizeof(float));
+
+	// Calculate middle slice
+	float middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+	
+	for (int z = 0; z < EPI_DATA_D; z++)
+	{
+		h_Slice_Differences[z] = ((float)z - middle_slice)/((float)EPI_DATA_D);
+	}
+
+	// Copy slice differences to device
+	clEnqueueWriteBuffer(commandQueue, c_Slice_Differences, CL_TRUE, 0, EPI_DATA_D * sizeof(float), h_Slice_Differences, 0, NULL, NULL);
+
+	clSetKernelArg(SliceTimingCorrectionKernel, 0, sizeof(cl_mem), &d_Slice_Timing_Corrected_fMRI_Volumes);
+	clSetKernelArg(SliceTimingCorrectionKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
+	clSetKernelArg(SliceTimingCorrectionKernel, 2, sizeof(cl_mem), &c_Slice_Differences);
+	clSetKernelArg(SliceTimingCorrectionKernel, 3, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SliceTimingCorrectionKernel, 4, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SliceTimingCorrectionKernel, 5, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SliceTimingCorrectionKernel, 6, sizeof(int), &EPI_DATA_T);
+
+	runKernelErrorSliceTimingCorrection = clEnqueueNDRangeKernel(commandQueue, SliceTimingCorrectionKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+
+	// Copy all corrected volumes to host
+	clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);
+	
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
+	clReleaseMemObject(c_Slice_Differences);
+	free(h_Slice_Differences);
 }
 
 
@@ -6752,6 +6826,42 @@ float BROCCOLI_LIB::CalculateMax(cl_mem d_Volume, int DATA_W, int DATA_H, int DA
 
 	return max;
 }
+
+
+
+
+
+float BROCCOLI_LIB::CalculateMaxAtomic(cl_mem d_Volume, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D)
+{
+	SetGlobalAndLocalWorkSizesCalculateMax(DATA_W, DATA_H, DATA_D);
+
+	//cl_mem d_Max_Value = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
+	cl_mem d_Max_Value = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
+
+	//SetMemory(d_Max_Value, -10000.0f, 1);
+	SetMemory(d_Max_Value, -1000000, 1);
+
+	clSetKernelArg(CalculateMaxAtomicKernel, 0, sizeof(cl_mem), &d_Max_Value);
+	clSetKernelArg(CalculateMaxAtomicKernel, 1, sizeof(cl_mem), &d_Volume);
+	clSetKernelArg(CalculateMaxAtomicKernel, 2, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateMaxAtomicKernel, 3, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateMaxAtomicKernel, 4, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateMaxAtomicKernel, 5, sizeof(int), &DATA_D);
+
+	runKernelErrorCalculateMaxAtomic = clEnqueueNDRangeKernel(commandQueue, CalculateMaxAtomicKernel, 3, NULL, globalWorkSizeCalculateMaxAtomic, localWorkSizeCalculateMaxAtomic, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	//float max;
+	//clEnqueueReadBuffer(commandQueue, d_Max_Value, CL_TRUE, 0, sizeof(float), &max, 0, NULL, NULL);
+
+	int max;
+	clEnqueueReadBuffer(commandQueue, d_Max_Value, CL_TRUE, 0, sizeof(int), &max, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Max_Value);
+	
+	return (float)((float)max/10000.0f);
+}
+
 
 void BROCCOLI_LIB::ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume, float threshold, int DATA_W, int DATA_H, int DATA_D)
 {
@@ -8385,7 +8495,7 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdFirstLevel(cl_mem d_fMRI_Vol
 // Calculates a significance threshold for a group of subjects
 void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
 {
-	//GeneratePermutationMatrixSecondLevel();
+	GeneratePermutationMatrixSecondLevel();
 
 
 	SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS);
@@ -8400,7 +8510,8 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
         //CalculateStatisticalMapsGLMTTestSecondLevelPermutation(d_Permuted_First_Level_Results, d_MNI_Brain_Mask);
    		CalculateStatisticalMapsGLMTTestSecondLevelPermutation(d_First_Level_Results, d_MNI_Brain_Mask);
 
-   		h_Permutation_Distribution[p] = CalculateMax(d_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+   		//h_Permutation_Distribution[p] = CalculateMax(d_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+		//h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
    		//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
    		//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 5.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
@@ -8408,6 +8519,9 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
    		//CalculateClusterSizes(h_Cluster_Sizes, h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
    		//h_Permutation_Distribution[p] = CalculateMax(h_Cluster_Sizes, NUMBER_OF_CLUSTERS);
    		//free(h_Cluster_Sizes);
+
+		ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
     }
 
     clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
@@ -10007,7 +10121,7 @@ int BROCCOLI_LIB::Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H)
 	return x + y * DATA_W + z * DATA_W * DATA_H;
 }
 
-void BROCCOLI_LIB::CalculateClusterSizes(int* Cluster_Sizes, float* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D)
+void BROCCOLI_LIB::CalculateClusterSizes(int* Cluster_Sizes, int* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D)
 {
 	for (int c = 0; c < NUMBER_OF_CLUSTERS; c++)
 	{
@@ -10023,13 +10137,13 @@ void BROCCOLI_LIB::CalculateClusterSizes(int* Cluster_Sizes, float* Cluster_Indi
 			{
 				if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
 				{
-					float cluster_index = Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
-					if ( cluster_index != 0.0f )
+					int cluster_index = Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+					if ( cluster_index != 0 )
 					{
-						if ((int)cluster_index < NUMBER_OF_CLUSTERS)
+						if (cluster_index < NUMBER_OF_CLUSTERS)
 						{
 							// Increment number of voxels for current cluster
-							Cluster_Sizes[(int)cluster_index]++;
+							Cluster_Sizes[cluster_index]++;
 						}
 					}
 				}
@@ -10042,7 +10156,7 @@ void BROCCOLI_LIB::CalculateClusterSizes(int* Cluster_Sizes, float* Cluster_Indi
 
 
 // Forward relabelling of cluster indices
-int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
+int ForwardScan(int* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
 {
 	int changed = 0;
 
@@ -10057,7 +10171,7 @@ int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA
 				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
 				{
 					// Find the local maximal cluster index
-					float cluster_index = 0;
+					int cluster_index = 0;
 					for (int zz = -1; zz < 2; zz++)
 					{
 						for (int yy = -1; yy < 2; yy++)
@@ -10083,7 +10197,7 @@ int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA
 					}
 
 					// Check if the local maxima exists
-					if (cluster_index != 0.0f)
+					if (cluster_index != 0)
 					{
 						// Check if local maxima is different compared to current index, then increase number of changed labels
 						if (Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] != cluster_index)
@@ -10100,7 +10214,7 @@ int ForwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA
 }
 
 // Backward relabelling of cluster indices
-int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
+int BackwardScan(int* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
 {
 	int changed = 0;
 
@@ -10115,7 +10229,7 @@ int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DAT
 				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
 				{
 					// Find the local maximal cluster index
-					float cluster_index = 0;
+					int cluster_index = 0;
 					for (int zz = -1; zz < 2; zz++)
 					{
 						for (int yy = -1; yy < 2; yy++)
@@ -10141,7 +10255,7 @@ int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DAT
 					}
 
 					// Check if the local maxima exists
-					if (cluster_index != 0.0f)
+					if (cluster_index != 0)
 					{
 						// Check if local maxima is different compared to current index, then increase number of changed labels
 						if (Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] != cluster_index)
@@ -10158,7 +10272,7 @@ int BackwardScan(float* Cluster_Indices, float* Thresholded, int DATA_W, int DAT
 }
 
 
-void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D)
+void BROCCOLI_LIB::Clusterize(int* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D)
 {
 	float* Thresholded = (float*)malloc(DATA_W * DATA_H * DATA_W * sizeof(float));
 
@@ -10171,7 +10285,7 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 		{
 			for (int x = 0; x < DATA_W; x++)
 			{
-				Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+				Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0;
 
 				if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > Threshold )
 				{
@@ -10193,7 +10307,7 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 					if ( Thresholded[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
 					{
 						// Check if neighbour already has a cluster index
-						float cluster_index = 0.0f;
+						int cluster_index = 0;
 
 						for (int zz = -1; zz < 2; zz++)
 						{
@@ -10210,14 +10324,14 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 						}
 
 						// Use existing cluster index
-						if (cluster_index != 0.0f)
+						if (cluster_index != 0)
 						{
 							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;
 						}
 						// Use new cluster index
 						else
 						{
-							current_cluster += 1.0f;
+							current_cluster++;
 							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = current_cluster;
 						}
 
@@ -10237,9 +10351,40 @@ void BROCCOLI_LIB::Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, f
 		changed_labels += ForwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
 	}
 
-	NUMBER_OF_CLUSTERS = (int)CalculateMax(Cluster_Indices, DATA_W * DATA_H * DATA_D);
+	//NUMBER_OF_CLUSTERS = (int)CalculateMax(Cluster_Indices, DATA_W * DATA_H * DATA_D);
+	NUMBER_OF_CLUSTERS = current_cluster;
 
 	free(Thresholded);
+}
+
+
+
+void BROCCOLI_LIB::ClusterizeOpenCL(cl_mem d_Cluster_Indices, int& NUMBER_OF_CLUSTERS, cl_mem d_Data, float Threshold, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D)
+{
+	SetGlobalAndLocalWorkSizesClusterize(DATA_W, DATA_H, DATA_D);
+
+	SetMemory(d_Cluster_Indices, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+
+	cl_mem d_Current_Cluster = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
+
+	SetMemory(d_Current_Cluster, 0, 1);
+
+	clSetKernelArg(ClusterizeKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(ClusterizeKernel, 1, sizeof(cl_mem), &d_Current_Cluster);
+	clSetKernelArg(ClusterizeKernel, 2, sizeof(cl_mem), &d_Data);
+	clSetKernelArg(ClusterizeKernel, 3, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(ClusterizeKernel, 4, sizeof(float), &Threshold);	
+	clSetKernelArg(ClusterizeKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(ClusterizeKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(ClusterizeKernel, 7, sizeof(int), &DATA_D);
+
+	runKernelErrorClusterize = clEnqueueNDRangeKernel(commandQueue, ClusterizeKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	clEnqueueReadBuffer(commandQueue, d_Current_Cluster, CL_TRUE, 0, sizeof(int), &NUMBER_OF_CLUSTERS, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Current_Cluster);
+
 }
 
 

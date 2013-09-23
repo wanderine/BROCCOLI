@@ -142,7 +142,7 @@ class BROCCOLI_LIB
 		void SetOutputResidualVariances(float* output);
 		void SetOutputStatisticalMaps(float* output);
 		void SetOutputEPIMask(float*);
-		void SetOutputClusterIndices(float*);
+		void SetOutputClusterIndices(int*);
 		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 
 		// Output image registration
@@ -165,7 +165,7 @@ class BROCCOLI_LIB
 		void SetOutputInterpolatedEPIVolume(float*);
 		void SetOutputDownsampledVolume(float*);
 		void SetOutputMotionCorrectedfMRIVolumes(float*);
-
+		void SetOutputSliceTimingCorrectedfMRIVolumes(float*);
 
 		void SetOutputSmoothedfMRIVolumes(float*);
 		void SetOutputDetrendedfMRIVolumes(float*);
@@ -321,8 +321,10 @@ class BROCCOLI_LIB
 	private:
 
 		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
-		void Clusterize(float* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D);
-		void CalculateClusterSizes(int* Cluster_Sizes, float* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D);
+		void Clusterize(int* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D);
+		void ClusterizeOpenCL(cl_mem Cluster_Indices, int& NUMBER_OF_CLUSTERS, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
+		void CalculateClusterSizes(int* Cluster_Sizes, int* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D);
+		void CalculateClusterSizesOpenCL(cl_mem Cluster_Sizes, cl_mem Cluster_Indices, int NUMBER_OF_CLUSTERS, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
 
 		//------------------------------------------------
 		// High level functions
@@ -420,6 +422,8 @@ class BROCCOLI_LIB
 		void AddVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateSum(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateMax(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
+		
+		float CalculateMaxAtomic(cl_mem Volume, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateMax(float *data, int N);
 		int   CalculateMax(int *data, int N);
 		float CalculateMin(float *data, int N);
@@ -463,7 +467,6 @@ class BROCCOLI_LIB
 		void SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D);
-		void SetGlobalAndLocalWorkSizesRescaleVolume(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesMemset(int N);
@@ -473,6 +476,7 @@ class BROCCOLI_LIB
 		void SetGlobalAndLocalWorkSizesCalculateMax(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesThresholdVolume(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesCalculateMagnitudes(int DATA_W, int DATA_H, int DATA_D);
+		void SetGlobalAndLocalWorkSizesClusterize(int DATA_W, int DATA_H, int DATA_D);
 
 		//------------------------------------------------
 		// Read functions
@@ -539,12 +543,16 @@ class BROCCOLI_LIB
 		cl_kernel AddVolumeKernel, AddVolumesKernel, AddVolumesOverwriteKernel;
 		cl_kernel CalculateColumnSumsKernel, CalculateRowSumsKernel;
 		cl_kernel CalculateColumnMaxsKernel, CalculateRowMaxsKernel;
+		cl_kernel CalculateMaxAtomicKernel;
 		cl_kernel ThresholdVolumeKernel;
 		cl_kernel RemoveMeanKernel;
+		cl_kernel ClusterizeKernel;
 
 		// Convolution kernels
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel;
 		cl_kernel NonseparableConvolution3DComplexThreeFiltersKernel;
+
+		cl_kernel SliceTimingCorrectionKernel;
 
 		// Image registration kernels
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
@@ -575,6 +583,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorAddVolumes;
 		cl_int createKernelErrorAddVolumesOverwrite;
 		cl_int createKernelErrorRemoveMean;
+		cl_int createKernelErrorClusterize;
 
 		// Convolution kernels
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods;
@@ -583,7 +592,10 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateRowSums;
 		cl_int createKernelErrorCalculateColumnMaxs;
 		cl_int createKernelErrorCalculateRowMaxs;
+		cl_int createKernelErrorCalculateMaxAtomic;
 		cl_int createKernelErrorThresholdVolume;
+
+		cl_int createKernelErrorSliceTimingCorrection;
 
 		// Image registration kernels
 		cl_int createKernelErrorCalculatePhaseDifferencesAndCertainties, createKernelErrorCalculatePhaseGradientsX, createKernelErrorCalculatePhaseGradientsY, createKernelErrorCalculatePhaseGradientsZ;
@@ -633,11 +645,15 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateRowSums;
 		cl_int runKernelErrorCalculateColumnMaxs;
 		cl_int runKernelErrorCalculateRowMaxs;
+		cl_int runKernelErrorCalculateMaxAtomic;
 		cl_int runKernelErrorThresholdVolume;
+		cl_int runKernelErrorClusterize;
 
 		// Convolution kernels
 		cl_int runKernelErrorSeparableConvolutionRows, runKernelErrorSeparableConvolutionColumns, runKernelErrorSeparableConvolutionRods;
 		cl_int runKernelErrorNonseparableConvolution3DComplexThreeFilters;
+
+		cl_int runKernelErrorSliceTimingCorrection;
 
 		// Image registration kernels
 		cl_int runKernelErrorCalculatePhaseDifferencesAndCertainties, runKernelErrorCalculatePhaseGradientsX, runKernelErrorCalculatePhaseGradientsY, runKernelErrorCalculatePhaseGradientsZ;
@@ -687,11 +703,7 @@ class BROCCOLI_LIB
 		size_t localWorkSizeResetAMatrix[3];
 		size_t localWorkSizeCalculateAMatrix[3];
 		size_t localWorkSizeCalculateHVector[3];
-		size_t localWorkSizeRescaleVolumeLinear[3];
-		size_t localWorkSizeRescaleVolumeCubic[3];
-		size_t localWorkSizeInterpolateVolumeNearest[3];
-		size_t localWorkSizeInterpolateVolumeLinear[3];
-		size_t localWorkSizeInterpolateVolumeCubic[3];
+		size_t localWorkSizeInterpolateVolume[3];
 		size_t localWorkSizeMultiplyVolumes[3];
 		size_t localWorkSizeAddVolumes[3];
 		size_t localWorkSizeCopyVolumeToNew[3];
@@ -700,6 +712,7 @@ class BROCCOLI_LIB
 		size_t localWorkSizeCalculateRowSums[3];
 		size_t localWorkSizeCalculateColumnMaxs[3];
 		size_t localWorkSizeCalculateRowMaxs[3];
+		size_t localWorkSizeCalculateMaxAtomic[3];
 		size_t localWorkSizeThresholdVolume[3];
 		size_t localWorkSizeCalculateBetaValuesGLM[3];
 		size_t localWorkSizeCalculateStatisticalMapsGLM[3];
@@ -711,6 +724,7 @@ class BROCCOLI_LIB
 		size_t localWorkSizeCalculateTensorNorms[3];
 		size_t localWorkSizeCalculateAMatricesAndHVectors[3];
 		size_t localWorkSizeCalculateDisplacementAndCertaintyUpdate[3];
+		size_t localWorkSizeClusterize[3];
 
 		// OpenCL global work sizes
 
@@ -729,11 +743,7 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeResetAMatrix[3];
 		size_t globalWorkSizeCalculateAMatrix[3];
 		size_t globalWorkSizeCalculateHVector[3];
-		size_t globalWorkSizeRescaleVolumeLinear[3];
-		size_t globalWorkSizeRescaleVolumeCubic[3];
-		size_t globalWorkSizeInterpolateVolumeNearest[3];
-		size_t globalWorkSizeInterpolateVolumeLinear[3];
-		size_t globalWorkSizeInterpolateVolumeCubic[3];
+		size_t globalWorkSizeInterpolateVolume[3];
 		size_t globalWorkSizeMultiplyVolumes[3];
 		size_t globalWorkSizeAddVolumes[3];
 		size_t globalWorkSizeCopyVolumeToNew[3];
@@ -742,6 +752,7 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeCalculateRowSums[3];
 		size_t globalWorkSizeCalculateColumnMaxs[3];
 		size_t globalWorkSizeCalculateRowMaxs[3];
+		size_t globalWorkSizeCalculateMaxAtomic[3];
 		size_t globalWorkSizeThresholdVolume[3];
 		size_t globalWorkSizeCalculateBetaValuesGLM[3];
 		size_t globalWorkSizeCalculateStatisticalMapsGLM[3];
@@ -753,6 +764,7 @@ class BROCCOLI_LIB
 		size_t globalWorkSizeCalculateTensorNorms[3];
 		size_t globalWorkSizeCalculateAMatricesAndHVectors[3];
 		size_t globalWorkSizeCalculateDisplacementAndCertaintyUpdate[3];
+		size_t globalWorkSizeClusterize[3];
 
 		//------------------------------------------------
 		// General variables
@@ -932,7 +944,8 @@ class BROCCOLI_LIB
 		float		*h_AR2_Estimates;
 		float		*h_AR3_Estimates;
 		float		*h_AR4_Estimates;
-		float		*h_Cluster_Indices;
+		int			*h_Cluster_Indices;
+		cl_mem		 d_Cluster_Indices;
 		int			*h_Cluster_Sizes;
 
 		// Random permutation pointers
@@ -951,8 +964,8 @@ class BROCCOLI_LIB
 		cl_mem		d_Group_Mask;
 
 		// Slice timing correction
-		cl_mem		d_fMRI_Volumes_Complex;
-		cl_mem		d_Shifters;
+		float*		h_Slice_Differences;		
+		cl_mem		c_Slice_Differences;		
 		cl_mem		d_Slice_Timing_Corrected_fMRI_Volumes;
 
 		// Image registration
