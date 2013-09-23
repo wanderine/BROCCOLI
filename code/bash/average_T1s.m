@@ -10,7 +10,7 @@ elseif isunix
     addpath('/data/andek/MIToolbox/')
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath_FSL = '/data/andek/BROCCOLI_test_data/FSL';
-    basepath_AFNI = '/data/andek/BROCCOLI_test_data/AFNI/old_results';    
+    basepath_AFNI = '/data/andek/BROCCOLI_test_data/AFNI';    
     basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI';    
 end
 
@@ -36,6 +36,7 @@ ssd_AFNI = zeros(N,1);
 
 mean_T1_volume_AFNI = zeros(182,218,182);
 for s = 1:N
+    s
     T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
@@ -50,6 +51,7 @@ mean_T1_volume_AFNI = mean_T1_volume_AFNI/N;
 
 std_T1_volume_AFNI = zeros(182,218,182);
 for s = 1:N
+    s
     T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
@@ -68,6 +70,7 @@ ssd_FSL = zeros(N,1);
 
 mean_T1_volume_FSL = zeros(182,218,182);
 for s = 1:N
+    s
     T1 = load_nii([basepath_FSL '/FSL_warped_'  num2str(s) '.nii.gz']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
@@ -82,6 +85,7 @@ mean_T1_volume_FSL = mean_T1_volume_FSL/N;
 
 std_T1_volume_FSL = zeros(182,218,182);
 for s = 1:N
+    s
     T1 = load_nii([basepath_FSL '/FSL_warped_'  num2str(s) '.nii.gz']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
@@ -100,6 +104,7 @@ ssd_BROCCOLI = zeros(N,1);
 
 mean_T1_volume_BROCCOLI = zeros(182,218,182);
 for s = 1:N
+    s
     load([basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s) '.mat']);    
     T1 = aligned_T1_nonparametric_opencl;
     T1 = T1/max(T1(:));
@@ -114,6 +119,7 @@ mean_T1_volume_BROCCOLI = mean_T1_volume_BROCCOLI/N;
 
 std_T1_volume_BROCCOLI = zeros(182,218,182);
 for s = 1:N
+    s
     load([basepath_BROCCOLI '/BROCCOLI_warped_subject'  num2str(s) '.mat']);    
     T1 = aligned_T1_nonparametric_opencl;
     T1 = T1/max(T1(:));
@@ -136,7 +142,7 @@ axis off
 figure
 imagesc([ std_T1_volume_FSL(:,:,85) std_T1_volume_AFNI(:,:,85)  std_T1_volume_BROCCOLI(:,:,85) ]); colormap gray
 axis off
-
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_std.png
 
 figure
 image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75  ]); colormap gray
@@ -147,13 +153,14 @@ axis off
 figure
 imagesc([ flipud(squeeze(std_T1_volume_FSL(85,:,:))') flipud(squeeze(std_T1_volume_AFNI(85,:,:))') flipud(squeeze(std_T1_volume_BROCCOLI(85,:,:))')  ]); colormap gray
 axis off
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_std.png
 
 % Calculate mean standard deviation from MNI template
-sum(std_T1_volume_AFNI(:)) / sum(MNI_mask(:))
+%sum(std_T1_volume_AFNI(:)) / sum(MNI_mask(:))
 
-sum(std_T1_volume_FSL(:)) / sum(MNI_mask(:))
+%sum(std_T1_volume_FSL(:)) / sum(MNI_mask(:))
 
-sum(std_T1_volume_BROCCOLI(:)) / sum(MNI_mask(:))
+%sum(std_T1_volume_BROCCOLI(:)) / sum(MNI_mask(:))
 
 
 mean(mutual_information_AFNI)

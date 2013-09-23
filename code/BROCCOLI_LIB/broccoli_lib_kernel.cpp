@@ -5741,7 +5741,8 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		}
 		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
 	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f); 
+	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
 	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
 	
 	// Loop over contrasts and calculate t-values
@@ -7492,12 +7493,14 @@ __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statis
 	vareps = vareps / (n - 1.0f);
 
 	// Loop over contrasts and calculate t-values
+
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		float contrast_value = 0.0f;
 		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
 	}
+
 
 	//int c = 0;
 	//float contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
@@ -8080,7 +8083,7 @@ __kernel void RemoveMean(__global float* Volumes,
 
 __kernel void Clusterize(volatile __global int* Cluster_Indices,
 						 volatile __global int* current_cluster,
-						 __global const float* Volume,
+						 __global const float* Data,
 						 __global const float* Mask,
 						 __private float threshold,
 					     __private int DATA_W, 
@@ -8096,92 +8099,6 @@ __kernel void Clusterize(volatile __global int* Cluster_Indices,
 
 	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 		return;
-
-	int x = get_group_id(0) * 32 + get_local_id(0);
-	int y = get_group_id(1) * 16 + get_local_id(1);
-	int z = get_group_id(2) * 16 + get_local_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-    
-    __local float l_Volume[16][16][32]; // z, y, x
-
-    // Reset shared memory
-    l_Volume[tIdx.z + 0][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 1][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 2][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 3][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 4][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 5][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 6][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 7][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 8][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 9][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 10][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 11][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 12][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 13][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 14][tIdx.y][tIdx.x]           = 0.0f;
-	l_Volume[tIdx.z + 15][tIdx.y][tIdx.x]           = 0.0f;
-	
-
-    // Read data into shared memory
-
-    if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H)  )   
-        l_Volume[tIdx.z + 0][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+0,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +1) < DATA_D) )   
-        l_Volume[tIdx.z + 1][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+1,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +2) < DATA_D) )   
-        l_Volume[tIdx.z + 2][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+2,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +3) < DATA_D) )   
-        l_Volume[tIdx.z + 3][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+3,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +4) < DATA_D) )   
-        l_Volume[tIdx.z + 4][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+4,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +5) < DATA_D) )   
-        l_Volume[tIdx.z + 5][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+5,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +6) < DATA_D) )   
-        l_Volume[tIdx.z + 6][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+6,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +7) < DATA_D) )   
-        l_Volume[tIdx.z + 7][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+7,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +8) < DATA_D) )   
-        l_Volume[tIdx.z + 8][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+8,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +9) < DATA_D) )   
-        l_Volume[tIdx.z + 9][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+9,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +10) < DATA_D) )   
-        l_Volume[tIdx.z + 10][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+10,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +11) < DATA_D) )   
-        l_Volume[tIdx.z + 11][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+11,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +12) < DATA_D) )   
-        l_Volume[tIdx.z + 12][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+12,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +13) < DATA_D) )   
-        l_Volume[tIdx.z + 13][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+13,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +14) < DATA_D) )   
-        l_Volume[tIdx.z + 14][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+14,DATA_W,DATA_H)];
-
-	if ( ((x-0) >= 0) && ((x-0) < DATA_W) && ((y-0) >= 0) && ((y-0) < DATA_H) && ((z +15) < DATA_D) )   
-        l_Volume[tIdx.z + 15][tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-0,y-0,z+15,DATA_W,DATA_H)];
-
-
-
-        
-   	// Make sure all threads have written to local memory
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-
-
 
 	// Threshold data
 	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )

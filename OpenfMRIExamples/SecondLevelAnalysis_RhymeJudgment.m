@@ -89,7 +89,7 @@ end
 nr = 1;
 X_GLM = zeros(number_of_subjects,nr);
 
-for subject = 1:13
+for subject = 1:number_of_subjects
    X_GLM(subject,1) = subject; 
    
    for r = 2:nr
@@ -125,15 +125,45 @@ confounds = 1;
 
 if nr == 1
     
-    contrasts = [1];
+    %contrasts = [1];
+    contrasts = [1; -1; 3; 8; 99];
     
 elseif nr == 2
     
     contrasts = [1 0];
     
     %contrasts = [1 0;
-    %             0 1]; 
-
+    %             0 1];
+    
+    
+elseif nr == 3
+    
+    contrasts = [1 0 0];
+    
+elseif nr == 4
+    
+    contrasts = [1 0 0 0];
+    
+elseif nr == 5
+    
+    contrasts = [1 0 0 0 0];
+    
+elseif nr == 6
+    
+    contrasts = [1 0 0 0 0 0];
+    
+elseif nr == 7
+    
+    contrasts = [1 0 0 0 0 0 0];
+    
+elseif nr == 8
+    
+    contrasts = [1 0 0 0 0 0 0 0];
+    
+elseif nr == 9
+    
+    contrasts = [1 0 0 0 0 0 0 0 0];
+    
 elseif nr == 10
     
     contrasts = [1 0 0 0 0 0 0 0 0 0];
@@ -141,27 +171,75 @@ elseif nr == 10
     %contrasts = [1 0 0 0 0 0 0 0 0 0;
     %             0 1 0 0 0 0 0 0 0 0]; 
 
+elseif nr == 11
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0];
+
+elseif nr == 12
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0];
+    
 elseif nr == 13
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0;
-                 0 1 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0;
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0]; 
 
+elseif nr == 14
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+elseif nr == 15
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+elseif nr == 16
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+elseif nr == 17
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+elseif nr == 18
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+elseif nr == 19
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
 elseif nr == 20
 
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
-                 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
              
              
 elseif nr == 21
 
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-                 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
-                          
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+elseif nr == 22
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
 elseif nr == 23
 
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-                 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
              
+elseif nr == 24
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
 elseif nr == 25
 
     %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
@@ -270,3 +348,5 @@ N_BROCCOLI = hist(null_distribution,5:0.75:25);
 
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/permutation_distributions.png
 
+
+close all

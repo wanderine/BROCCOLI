@@ -5741,7 +5741,8 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		}
 		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
 	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f); 
+	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
 	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
 	
 	// Loop over contrasts and calculate t-values
@@ -7492,12 +7493,14 @@ __kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statis
 	vareps = vareps / (n - 1.0f);
 
 	// Loop over contrasts and calculate t-values
+	
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		float contrast_value = 0.0f;
 		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
 	}
+	
 
 	//int c = 0;
 	//float contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);

@@ -91,11 +91,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double     		*h_Aligned_T1_Volume_double, *h_Aligned_T1_Volume_NonParametric_double, *h_Aligned_EPI_Volume_double;
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
     double          *h_Design_Matrix_double, *h_Design_Matrix2_double;
-    double          *h_Cluster_Indices_double;
+    int             *h_Cluster_Indices_Out, *h_Cluster_Indices;
     float           *h_Aligned_T1_Volume, *h_Aligned_T1_Volume_NonParametric, *h_Aligned_EPI_Volume;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;    
-    float           *h_Design_Matrix, *h_Design_Matrix2;
-    float           *h_Cluster_Indices;
+    float           *h_Design_Matrix, *h_Design_Matrix2;    
     float           *h_EPI_Mask;
     
     //---------------------
@@ -229,6 +228,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int MNI_DATA_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
     
     int EPI_VOLUME_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+    int EPI_VOLUME_SIZE_INT = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
     
     int QUADRATURE_FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
     
@@ -454,8 +454,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[1] = EPI_DATA_W;
     ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES[2] = EPI_DATA_D;
     
-    plhs[19] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES,mxDOUBLE_CLASS, mxREAL);
-    h_Cluster_Indices_double = mxGetPr(plhs[19]);   
+    plhs[19] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES,mxINT32_CLASS, mxREAL);
+    h_Cluster_Indices_Out = (int*)mxGetData(plhs[19]);   
     
     // ------------------------------------------------
     
@@ -467,7 +467,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
     
     h_EPI_Mask                          = (float *)mxMalloc(EPI_VOLUME_SIZE);
-    h_Cluster_Indices                   = (float *)mxMalloc(EPI_VOLUME_SIZE);
+    h_Cluster_Indices                   = (int *)mxMalloc(EPI_VOLUME_SIZE_INT);
     
     h_Aligned_T1_Volume                                 = (float *)mxMalloc(MNI_DATA_SIZE);
     h_Aligned_T1_Volume_NonParametric                   = (float *)mxMalloc(MNI_DATA_SIZE);
@@ -747,7 +747,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volumes(h_Motion_Corrected_fMRI_Volumes_double, h_Motion_Corrected_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     unpack_float2double_volumes(h_Smoothed_fMRI_Volumes_double, h_Smoothed_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     
-    unpack_float2double_volume(h_Cluster_Indices_double, h_Cluster_Indices, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+    unpack_int2int_volume(h_Cluster_Indices_Out, h_Cluster_Indices, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
     
     if (BETA_SPACE == MNI)
     {

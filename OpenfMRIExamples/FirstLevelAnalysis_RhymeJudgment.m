@@ -62,12 +62,12 @@ AR_smoothing_amount = 7.0;
 % Settings for image registration
 %--------------------------------------------------------------------------------------
 
-number_of_iterations_for_parametric_image_registration = 15;
+number_of_iterations_for_parametric_image_registration = 35;
 number_of_iterations_for_nonparametric_image_registration = 10;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 8/voxel_size;
-MM_T1_Z_CUT = 30;
+MM_T1_Z_CUT = 0;
 MM_EPI_Z_CUT = 0;
 
 load filters_for_parametric_registration.mat
@@ -362,4 +362,4 @@ title('Residual variances')
 
 
 
-
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/firstlevelmaps.png

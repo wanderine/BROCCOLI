@@ -422,7 +422,7 @@ class BROCCOLI_LIB
 		void AddVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateSum(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateMax(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
-		
+
 		float CalculateMaxAtomic(cl_mem Volume, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
 		float CalculateMax(float *data, int N);
 		int   CalculateMax(int *data, int N);
@@ -964,8 +964,8 @@ class BROCCOLI_LIB
 		cl_mem		d_Group_Mask;
 
 		// Slice timing correction
-		float*		h_Slice_Differences;		
-		cl_mem		c_Slice_Differences;		
+		float*		h_Slice_Differences;
+		cl_mem		c_Slice_Differences;
 		cl_mem		d_Slice_Timing_Corrected_fMRI_Volumes;
 
 		// Image registration

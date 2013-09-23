@@ -1413,7 +1413,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesClusterize(int DATA_W, int DATA_H, int DATA_D)
-{		
+{
 	localWorkSizeClusterize[0] = 16;
 	localWorkSizeClusterize[1] = 16;
 	localWorkSizeClusterize[2] = 1;
@@ -1531,7 +1531,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateMax(int DATA_W, int DATA_H
 	localWorkSizeCalculateMaxAtomic[0] = 32;
 	localWorkSizeCalculateMaxAtomic[1] = 8;
 	localWorkSizeCalculateMaxAtomic[2] = 1;
-	
+
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateMaxAtomic[0]);
 	yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculateMaxAtomic[1]);
@@ -6149,6 +6149,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	PerformRegistrationEPIT1();
 
 	TransformVolumeParametric(d_T1_EPI_Volume, h_Registration_Parameters_T1_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, INTERPOLATION_MODE);
+	TransformVolumeNonParametric(d_T1_EPI_Volume, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, INTERPOLATION_MODE);
 	clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume, 0, NULL, NULL);
 
 	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1[0];
@@ -6416,10 +6417,10 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 
-	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);		
-	ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);
+	//ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 	clEnqueueReadBuffer(commandQueue, d_Cluster_Indices, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), h_Cluster_Indices, 0, NULL, NULL);
-	
+
 	// Estimate null distribution
 	h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
 
@@ -6480,7 +6481,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 
 	// Calculate middle slice
 	float middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
-	
+
 	for (int z = 0; z < EPI_DATA_D; z++)
 	{
 		h_Slice_Differences[z] = ((float)z - middle_slice)/((float)EPI_DATA_D);
@@ -6522,7 +6523,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 
 	// Calculate middle slice
 	float middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
-	
+
 	for (int z = 0; z < EPI_DATA_D; z++)
 	{
 		h_Slice_Differences[z] = ((float)z - middle_slice)/((float)EPI_DATA_D);
@@ -6545,7 +6546,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 
 	// Copy all corrected volumes to host
 	clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);
-	
+
 	clReleaseMemObject(d_fMRI_Volumes);
 	clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
 	clReleaseMemObject(c_Slice_Differences);
@@ -6806,7 +6807,7 @@ float BROCCOLI_LIB::CalculateMax(cl_mem d_Volume, int DATA_W, int DATA_H, int DA
 	clSetKernelArg(CalculateRowMaxsKernel, 1, sizeof(cl_mem), &d_Column_Maxs);
 	clSetKernelArg(CalculateRowMaxsKernel, 2, sizeof(int), &DATA_H);
 	clSetKernelArg(CalculateRowMaxsKernel, 3, sizeof(int), &DATA_D);
-	
+
 	runKernelErrorCalculateRowMaxs = clEnqueueNDRangeKernel(commandQueue, CalculateRowMaxsKernel, 2, NULL, globalWorkSizeCalculateRowMaxs, localWorkSizeCalculateRowMaxs, 0, NULL, NULL);
 	clFinish(commandQueue);
 
@@ -6858,7 +6859,7 @@ float BROCCOLI_LIB::CalculateMaxAtomic(cl_mem d_Volume, cl_mem d_Mask, int DATA_
 	clEnqueueReadBuffer(commandQueue, d_Max_Value, CL_TRUE, 0, sizeof(int), &max, 0, NULL, NULL);
 
 	clReleaseMemObject(d_Max_Value);
-	
+
 	return (float)((float)max/10000.0f);
 }
 
@@ -8511,7 +8512,7 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
    		CalculateStatisticalMapsGLMTTestSecondLevelPermutation(d_First_Level_Results, d_MNI_Brain_Mask);
 
    		//h_Permutation_Distribution[p] = CalculateMax(d_Statistical_Maps, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-		//h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+		h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
    		//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
    		//Clusterize(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 5.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
@@ -8520,7 +8521,7 @@ void BROCCOLI_LIB::CalculatePermutationTestThresholdSecondLevel()
    		//h_Permutation_Distribution[p] = CalculateMax(h_Cluster_Sizes, NUMBER_OF_CLUSTERS);
    		//free(h_Cluster_Sizes);
 
-		ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+		//ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
     }
 
@@ -9991,8 +9992,8 @@ float BROCCOLI_LIB::Gpdf(double value, double shape, double scale)
 {
 	//return pow(value, shape - scale) * exp(-value / scale) / (pow(scale,shape) * gamma((int)shape));
 
-	//return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
-	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
+	return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - lgamma(shape) ));
+	//return (exp( (shape - 1.0) * log(value) + shape * log(scale) - scale * value - loggamma(shape) ));
 }
 
 
@@ -10373,7 +10374,7 @@ void BROCCOLI_LIB::ClusterizeOpenCL(cl_mem d_Cluster_Indices, int& NUMBER_OF_CLU
 	clSetKernelArg(ClusterizeKernel, 1, sizeof(cl_mem), &d_Current_Cluster);
 	clSetKernelArg(ClusterizeKernel, 2, sizeof(cl_mem), &d_Data);
 	clSetKernelArg(ClusterizeKernel, 3, sizeof(cl_mem), &d_Mask);
-	clSetKernelArg(ClusterizeKernel, 4, sizeof(float), &Threshold);	
+	clSetKernelArg(ClusterizeKernel, 4, sizeof(float), &Threshold);
 	clSetKernelArg(ClusterizeKernel, 5, sizeof(int), &DATA_W);
 	clSetKernelArg(ClusterizeKernel, 6, sizeof(int), &DATA_H);
 	clSetKernelArg(ClusterizeKernel, 7, sizeof(int), &DATA_D);
