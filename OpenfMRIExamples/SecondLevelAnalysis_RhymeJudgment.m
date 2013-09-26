@@ -29,7 +29,7 @@ clc
 close all
 
 if ispc
-    addpath('D:\nifti_matlab')    
+    addpath('D:\nifti_matlab')
     basepath = 'D:\OpenfMRI\';
     opencl_platform = 0;
     opencl_device = 0;
@@ -37,7 +37,7 @@ if ispc
     mex ../code/Matlab_Wrapper/SecondLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
-    basepath = '/data/andek/OpenfMRI/';    
+    basepath = '/data/andek/OpenfMRI/';
     opencl_platform = 2;
     opencl_device = 0;
     mex ../code/Matlab_Wrapper/SecondLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
@@ -52,8 +52,9 @@ voxel_size = 2;
 % Statistical settings
 %--------------------------------------------------------------------------------------
 
-regress_confounds = 0;
-number_of_permutations = 10000;
+number_of_permutations = 1000;
+inference_mode = 1; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
+cluster_defining_threshold = 5;
 
 %--------------------------------------------------------------------------------------
 % Load MNI templates
@@ -90,43 +91,35 @@ nr = 1;
 X_GLM = zeros(number_of_subjects,nr);
 
 for subject = 1:number_of_subjects
-   X_GLM(subject,1) = subject; 
-   
-   for r = 2:nr
-        X_GLM(subject,r) = randn; 
-   end
-   
+    X_GLM(subject,1) = subject;
+    
+    for r = 2:nr
+        X_GLM(subject,r) = randn;
+    end
+    
 end
 
 
 %for subject = 1:6
-%   X_GLM(subject,1) = 1; 
+%   X_GLM(subject,1) = 1;
 %end
 %for subject = 7:13
-%   X_GLM(subject,1) = -1; 
+%   X_GLM(subject,1) = -1;
 %end
 
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
-%--------------------------------------------------------------------------------------
-% Load confound regressors
-%--------------------------------------------------------------------------------------
 
-% Calculate number of confounds
-
-confounds = 1;
 
 
 %--------------------------------------------------------------------------------------
 % Setup contrasts
 %--------------------------------------------------------------------------------------
 
-% Contrasts for confounding regressors are automatically set to zeros by BROCCOLI 
-
 if nr == 1
     
-    %contrasts = [1];
-    contrasts = [1; -1; 3; 8; 99];
+    contrasts = [1];
+    %contrasts = [1; -1; 3; 8; 99];
     
 elseif nr == 2
     
@@ -169,83 +162,83 @@ elseif nr == 10
     contrasts = [1 0 0 0 0 0 0 0 0 0];
     
     %contrasts = [1 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0]; 
-
+    %             0 1 0 0 0 0 0 0 0 0];
+    
 elseif nr == 11
     
     contrasts = [1 0 0 0 0 0 0 0 0 0 0];
-
+    
 elseif nr == 12
     
     contrasts = [1 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 13
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0];
     
     %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0]; 
-
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0];
+    
 elseif nr == 14
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 15
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 16
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 17
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 18
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 19
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 20
-
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
     %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
-             
-             
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+    
+    
 elseif nr == 21
-
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
     %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 22
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 23
-
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
     %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
-             
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+    
 elseif nr == 24
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
     
 elseif nr == 25
-
-    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]; 
     
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] ;                 
+    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
+    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+    
+    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] ;
     
 end
 
@@ -278,8 +271,8 @@ permutation_matrix = zeros(10000,13);
 %permutation_matrix = permutation_matrix - 1;
 
 tic
-[beta_volumes, residuals, residual_variances, statistical_maps, design_matrix1, design_matrix2, cluster_indices, null_distribution, permuted_first_level_results] = ... 
-SecondLevelAnalysis(first_level_results,MNI_brain_mask, X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM, confounds,regress_confounds, uint16(permutation_matrix'), number_of_permutations, opencl_platform, opencl_device);
+[beta_volumes, residuals, residual_variances, statistical_maps, design_matrix1, design_matrix2, cluster_indices, null_distribution, permuted_first_level_results] = ...
+    SecondLevelAnalysis(first_level_results,MNI_brain_mask, X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM, uint16(permutation_matrix'), number_of_permutations, inference_mode, cluster_defining_threshold, opencl_platform, opencl_device);
 toc
 
 
@@ -299,8 +292,12 @@ imagesc(statistical_maps(:,:,slice,1)); colorbar
 title('t-values')
 
 figure
+imagesc(statistical_maps(:,:,slice,1) > cluster_defining_threshold); colorbar
+
+figure
 imagesc(cluster_indices(:,:,slice,1)); colorbar
 title('Cluster indices')
+
 
 
 slice = round(0.45*MNI_sz);
@@ -324,29 +321,84 @@ s = sort(null_distribution);
 threshold = s(round(0.95*number_of_permutations))
 
 figure
-hist(null_distribution,5:0.75:25)
-N_BROCCOLI = hist(null_distribution,5:0.75:25);
+hist(null_distribution,50)
+%hist(null_distribution,5:0.75:25)
+%N_BROCCOLI = hist(null_distribution,5:0.75:25);
 
 % fid = fopen([basepath 'RhymeJudgment/permtest__vox_corrp_tstat1.txt']);
 % text = textscan(fid,'%f');
 % fclose(fid);
 % FSL_permutation_values = text{1};
 % N_FSL = hist(FSL_permutation_values,5:0.75:25);
-% 
+%
 % figure
 % plot(5:0.75:25,N_BROCCOLI/sum(N_BROCCOLI),'b')
 % hold on
 % plot(5:0.75:25,N_FSL/sum(N_FSL),'g')
 % hold off
-% 
+%
 % legend('BROCCOLI null distribution','FSL null distribution')
-% 
+%
 % xlabel('Maximum t-value','FontSize',15)
 % ylabel('Probability','FontSize',15)
-% 
+%
 % set(gca,'FontSize',15)
 
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/permutation_distributions.png
 
 
-close all
+%close all
+
+if (inference_mode == 1)
+    
+    a = statistical_maps(:,:,:,1);
+    [labels,N] = bwlabeln(a > cluster_defining_threshold);
+    
+    matlab_sums = zeros(N,1);
+    for i = 1:N
+        matlab_sums(i) = sum(labels(:) == i);
+    end
+    
+    N = max(cluster_indices(:));
+    for i = 1:N
+        broccoli_sums(i) = sum(cluster_indices(:) == i);
+    end
+    
+    matlab_sums = sort(matlab_sums);
+    broccoli_sums = sort(broccoli_sums);
+    
+    
+    %[matlab_sums'; broccoli_sums]'
+    
+    sum(matlab_sums(:) - broccoli_sums(:))
+    
+    max(matlab_sums(:))
+    
+elseif (inference_mode == 2)
+
+    a = statistical_maps(:,:,:,1);
+    [labels,N] = bwlabeln(a > cluster_defining_threshold);
+    
+    matlab_sums = zeros(N,1);
+    for i = 1:N
+        matlab_sums(i) = sum(a(labels(:) == i));
+    end
+    
+    N = max(cluster_indices(:));
+    for i = 1:N
+        broccoli_sums(i) = sum(a(cluster_indices(:) == i));
+    end
+    
+    matlab_sums = sort(matlab_sums);
+    broccoli_sums = sort(broccoli_sums);
+    
+    
+    %[matlab_sums'; broccoli_sums]'
+    
+    sum(matlab_sums(:) - broccoli_sums(:))
+    
+    max(matlab_sums(:))
+
+
+end
+        

@@ -1,4 +1,4 @@
-%  	 BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many core CPUs and GPUS
+%  	 BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many core CPUs and GPU
 %    Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -44,9 +44,9 @@ elseif isunix
     mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
 end
 
-study = 'RhymeJudgment/ds003';
+study = 'MixedGamblesTask/ds005';
 
-subject = 13; %5 has bad skullstrip
+subject = 16;
 
 if subject < 10
     subject = ['/sub00' num2str(subject)];
@@ -54,7 +54,7 @@ else
     subject = ['/sub0' num2str(subject)];
 end
 
-voxel_size = 1;
+voxel_size = 2;
 beta_space = 1; % 0 = EPI, 1 = MNI
 
 %--------------------------------------------------------------------------------------
@@ -77,7 +77,7 @@ number_of_iterations_for_nonparametric_image_registration = 10;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
 coarsest_scale_EPI_T1 = 8/voxel_size;
-MM_T1_Z_CUT = 0;
+MM_T1_Z_CUT = -30;
 MM_EPI_Z_CUT = 0;
 
 load filters_for_parametric_registration.mat
@@ -106,6 +106,7 @@ EPI_nii = load_nii([basepath study subject '/BOLD/task001_run001/bold.nii.gz']);
 fMRI_volumes = double(EPI_nii.img);
 [sy sx sz st] = size(fMRI_volumes);
 
+%EPI = mean(fMRI_volumes,4);
 EPI = fMRI_volumes(:,:,:,1);
 EPI = EPI/max(EPI(:));
 
@@ -146,10 +147,10 @@ MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
 %--------------------------------------------------------------------------------------
 
 % Make high resolution regressors first
-X_GLM_highres = zeros(st*100000,2);
-X_GLM = zeros(st,2);
+X_GLM_highres = zeros(st*100000,4);
+X_GLM = zeros(st,4);
 
-for regressor = 1:2
+for regressor = 1:4
     
     fid = fopen([basepath study subject '/model/model001/onsets/task001_run001/cond00' num2str(regressor) '.txt']);
     text = textscan(fid,'%f%f%f');
@@ -174,10 +175,6 @@ for regressor = 1:2
     X_GLM(:,regressor) = temp(1:st);
 end
     
-xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
-
-%X_GLM(100,1) = 1;
-
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 %--------------------------------------------------------------------------------------
@@ -208,10 +205,10 @@ end
 %--------------------------------------------------------------------------------------
 
 % Contrasts for confounding regressors are automatically set to zeros by BROCCOLI 
-contrasts = [1  0; 
-             0  1; 
-             1  1; 
-             1 -1]; 
+contrasts = [1  0 0 0; 
+             0  1 0 0; 
+             0  0 1 0; 
+             0  0 0 1]; 
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
@@ -289,9 +286,6 @@ end
 %figure
 %imagesc(motion_corrected_volumes_opencl(:,:,20,10)); colorbar
 
-
-figure
-imagesc(smoothed_volumes_opencl(:,:,20,10)); colorbar
 
 
 figure

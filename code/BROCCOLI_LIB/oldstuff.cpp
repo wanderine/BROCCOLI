@@ -1194,3 +1194,1584 @@ clSetKernelArg(CalculatePhaseDifferencesCertaintiesAndTensorComponentsKernel, 18
 		//host_pointers_static[QF3]	 = (void*)h_Quadrature_Filter_3;
 		*/
 	}
+
+
+
+	
+
+// Read functions, public
+
+
+/*
+void BROCCOLI_LIB::ReadfMRIDataNIFTI()
+{
+	nifti_data = new nifti_image;
+	// Read nifti data
+	nifti_data = nifti_image_read(filename_fMRI_data_nifti.c_str(), 1);
+
+	if (nifti_data->datatype == DT_SIGNED_SHORT)
+	{
+		DATA_TYPE = INT16;
+	}
+	else if (nifti_data->datatype == DT_SIGNED_INT)
+	{
+		DATA_TYPE = INT32;
+	}
+	else if (nifti_data->datatype == DT_FLOAT)
+	{
+		DATA_TYPE = FLOAT;
+	}
+	else if (nifti_data->datatype == DT_DOUBLE)
+	{
+		DATA_TYPE = DOUBLE;
+	}
+	else if (nifti_data->datatype == DT_UNSIGNED_CHAR)
+	{
+		DATA_TYPE = UINT8;
+	}
+
+	// Get number of data points in each direction
+	DATA_W = nifti_data->nx;
+	DATA_H = nifti_data->ny;
+	DATA_D = nifti_data->nz;
+	DATA_T = nifti_data->nt;
+
+	FMRI_VOXEL_SIZE_X = nifti_data->dx;
+	FMRI_VOXEL_SIZE_Y = nifti_data->dy;
+	FMRI_VOXEL_SIZE_Z = nifti_data->dz;
+	TR = nifti_data->dt;
+
+	SetupParametersReadData();
+
+
+	// Get data from nifti image
+	if (DATA_TYPE == FLOAT)
+	{
+		float* data = (float*)nifti_data->data;
+		for (int i = 0; i < (DATA_W * DATA_H * DATA_D * DATA_T); i++)
+		{
+			h_fMRI_Volumes[i] = data[i];
+		}
+	}
+	else if (DATA_TYPE == INT32)
+	{
+		int* data = (int*)nifti_data->data;
+		for (int i = 0; i < (DATA_W * DATA_H * DATA_D * DATA_T); i++)
+		{
+			h_fMRI_Volumes[i] = (float)data[i];
+		}
+	}
+	else if (DATA_TYPE == INT16)
+	{
+		short int* data = (short int*)nifti_data->data;
+		for (int i = 0; i < (DATA_W * DATA_H * DATA_D * DATA_T); i++)
+		{
+			h_fMRI_Volumes[i] = (float)data[i];
+		}
+	}
+	else if (DATA_TYPE == DOUBLE)
+	{
+		double* data = (double*)nifti_data->data;
+		for (int i = 0; i < (DATA_W * DATA_H * DATA_D * DATA_T); i++)
+		{
+			h_fMRI_Volumes[i] = (float)data[i];
+		}
+	}
+	else if (DATA_TYPE == UINT8)
+	{
+		unsigned char* data = (unsigned char*)nifti_data->data;
+		for (int i = 0; i < (DATA_W * DATA_H * DATA_D * DATA_T); i++)
+		{
+			h_fMRI_Volumes[i] = (float)data[i];
+		}
+	}
+
+	// Scale if necessary
+	if (nifti_data->scl_slope != 0.0f)
+	{
+		for (int i = 0; i < (DATA_W * DATA_H * DATA_D * DATA_T); i++)
+		{
+			h_fMRI_Volumes[i] = h_fMRI_Volumes[i] * nifti_data->scl_slope + nifti_data->scl_inter;
+		}
+	}
+
+	delete nifti_data;
+
+	// Copy fMRI volumes to global memory, as floats
+	//cudaMemcpy(d_fMRI_Volumes, h_fMRI_Volumes, sizeof(float) * DATA_W * DATA_H * DATA_D * DATA_T, cudaMemcpyHostToDevice);
+
+	for (int i = 0; i < DATA_T; i++)
+	{
+		plot_values_x[i] = (double)i * (double)TR;
+	}
+
+	SegmentBrainData();
+
+	SetupStatisticalAnalysisBasisFunctions();
+	SetupDetrendingBasisFunctions();
+
+	CalculateSlicesfMRIData();
+}
+*/
+
+/*
+
+void BROCCOLI_LIB::ReadNIFTIHeader()
+{
+	// Read nifti header only
+	nifti_data = nifti_image_read(filename_fMRI_data_nifti.c_str(), 0);
+
+	// Get dimensions
+	DATA_W = nifti_data->nx;
+	DATA_H = nifti_data->ny;
+	DATA_D = nifti_data->nz;
+	DATA_T = nifti_data->nt;
+
+	FMRI_VOXEL_SIZE_X = nifti_data->dx;
+	FMRI_VOXEL_SIZE_Y = nifti_data->dy;
+	FMRI_VOXEL_SIZE_Z = nifti_data->dz;
+	TR = nifti_data->dt;
+}
+
+*/
+
+// Read functions, private
+
+void BROCCOLI_LIB::ReadRealDataInt32(int* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::in | std::ios::binary);
+	int current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+void BROCCOLI_LIB::ReadRealDataInt16(short int* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::in | std::ios::binary);
+	short int current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+void BROCCOLI_LIB::ReadRealDataUint32(unsigned int* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::in | std::ios::binary);
+	unsigned int current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+void BROCCOLI_LIB::ReadRealDataUint16(unsigned short int* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::in | std::ios::binary);
+	unsigned short int current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+void BROCCOLI_LIB::ReadRealDataFloat(float* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::in | std::ios::binary);
+	float current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+void BROCCOLI_LIB::ReadRealDataDouble(double* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::in | std::ios::binary);
+	double current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+
+/*
+void BROCCOLI_LIB::ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
+{
+	std::fstream real_file(real_filename, std::ios::in | std::ios::binary);
+	std::fstream imag_file(imag_filename, std::ios::in | std::ios::binary);
+	float current_value;
+
+	if (real_file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			real_file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << real_filename << std::endl;
+	}
+
+	if (imag_file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			imag_file.read( (char*) &current_value, sizeof(current_value) );
+			data[i] = current_value;
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << imag_filename << std::endl;
+	}
+
+	real_file.close();
+	imag_file.close();
+}
+*/
+
+void BROCCOLI_LIB::ReadImageRegistrationFilters()
+{
+	// Read the quadrature filters from file
+	//ReadComplexData(h_Quadrature_Filter_1, filename_real_quadrature_filter_1, filename_imag_quadrature_filter_1, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
+	//ReadComplexData(h_Quadrature_Filter_2, filename_real_quadrature_filter_2, filename_imag_quadrature_filter_2, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
+	//ReadComplexData(h_Quadrature_Filter_3, filename_real_quadrature_filter_3, filename_imag_quadrature_filter_3, IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE);
+}
+
+/*
+void BROCCOLI_LIB::SetupParametersReadData()
+{
+	// Reset all pointers
+	
+	for (int i = 0; i < NUMBER_OF_HOST_POINTERS; i++)
+	{
+		void* pointer = host_pointers[i];
+		if (pointer != NULL)
+		{
+			free(pointer);
+			host_pointers[i] = NULL;
+		}
+	}
+
+	for (int i = 0; i < NUMBER_OF_DEVICE_POINTERS; i++)
+	{
+		float* pointer = device_pointers[i];
+		if (pointer != NULL)
+		{
+			//cudaFree(pointer);
+			device_pointers[i] = NULL;
+		}
+	}
+
+	MOTION_CORRECTED = false;
+
+	X_SLICE_LOCATION_fMRI_DATA = EPI_DATA_W / 2;
+	Y_SLICE_LOCATION_fMRI_DATA = EPI_DATA_H / 2;
+	Z_SLICE_LOCATION_fMRI_DATA = EPI_DATA_D / 2;
+	TIMEPOINT_fMRI_DATA = 0;
+
+	h_fMRI_Volumes = (float*)malloc(DATA_SIZE_FMRI_VOLUMES);
+	h_Motion_Corrected_fMRI_Volumes = (float*)malloc(DATA_SIZE_FMRI_VOLUMES);
+	h_Smoothed_fMRI_Volumes = (float*)malloc(DATA_SIZE_FMRI_VOLUMES);
+	h_Detrended_fMRI_Volumes = (float*)malloc(DATA_SIZE_FMRI_VOLUMES);
+
+	h_X_Detrend = (float*)malloc(DATA_SIZE_DETRENDING);
+	h_xtxxt_Detrend = (float*)malloc(DATA_SIZE_DETRENDING);
+
+	h_X_GLM = (float*)malloc(DATA_SIZE_TEMPORAL_BASIS_FUNCTIONS);
+	h_xtxxt_GLM = (float*)malloc(DATA_SIZE_TEMPORAL_BASIS_FUNCTIONS);
+	h_Contrasts = (float*)malloc(sizeof(float) * NUMBER_OF_STATISTICAL_BASIS_FUNCTIONS * NUMBER_OF_CONTRASTS);
+	
+	//h_Activity_Volume = (float*)malloc(DATA_SIZE_fMRI_VOLUME);
+	
+	host_pointers[fMRI_VOLUMES] = (void*)h_fMRI_Volumes;
+	host_pointers[MOTION_CORRECTED_VOLUMES] = (void*)h_Motion_Corrected_fMRI_Volumes;
+	host_pointers[SMOOTHED1] = (void*)h_Smoothed_fMRI_Volumes;
+	host_pointers[DETRENDED1] = (void*)h_Detrended_fMRI_Volumes;
+	host_pointers[XDETREND1] = (void*)h_X_Detrend;
+	host_pointers[XDETREND2] = (void*)h_xtxxt_Detrend;
+	host_pointers[XGLM1] = (void*)h_X_GLM;
+	host_pointers[XGLM2] = (void*)h_xtxxt_GLM;
+	host_pointers[CONTRAST_VECTOR] = (void*)h_Contrasts;
+	//host_pointers[ACTIVITY_VOLUME] = (void*)h_Activity_Volume;
+
+	x_slice_fMRI_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_H * DATA_D);
+	y_slice_fMRI_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_W * DATA_D);
+	z_slice_fMRI_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_W * DATA_H);
+
+	x_slice_preprocessed_fMRI_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_H * DATA_D);
+	y_slice_preprocessed_fMRI_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_W * DATA_D);
+	z_slice_preprocessed_fMRI_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_W * DATA_H);
+
+	x_slice_activity_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_H * DATA_D);
+	y_slice_activity_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_W * DATA_D);
+	z_slice_activity_data = (unsigned char*)malloc(sizeof(unsigned char) * DATA_W * DATA_H);
+
+	motion_parameters_x = (double*)malloc(sizeof(double) * DATA_T);
+	motion_parameters_y = (double*)malloc(sizeof(double) * DATA_T);
+	motion_parameters_z = (double*)malloc(sizeof(double) * DATA_T);
+	plot_values_x = (double*)malloc(sizeof(double) * DATA_T);
+	motion_corrected_curve = (double*)malloc(sizeof(double) * DATA_T);
+	smoothed_curve = (double*)malloc(sizeof(double) * DATA_T);
+	detrended_curve = (double*)malloc(sizeof(double) * DATA_T);
+
+	host_pointers[X_SLICE_fMRI] = (void*)x_slice_fMRI_data;
+	host_pointers[Y_SLICE_fMRI] = (void*)y_slice_fMRI_data;
+	host_pointers[Z_SLICE_fMRI] = (void*)z_slice_fMRI_data;
+	host_pointers[X_SLICE_PREPROCESSED_fMRI] = (void*)x_slice_preprocessed_fMRI_data;
+	host_pointers[Y_SLICE_PREPROCESSED_fMRI] = (void*)y_slice_preprocessed_fMRI_data;
+	host_pointers[Z_SLICE_PREPROCESSED_fMRI] = (void*)z_slice_preprocessed_fMRI_data;
+	host_pointers[X_SLICE_ACTIVITY] = (void*)x_slice_activity_data;
+	host_pointers[Y_SLICE_ACTIVITY] = (void*)y_slice_activity_data;
+	host_pointers[Z_SLICE_ACTIVITY] = (void*)z_slice_activity_data;
+	host_pointers[MOTION_PARAMETERS_X] = (void*)motion_parameters_x;
+	host_pointers[MOTION_PARAMETERS_Y] = (void*)motion_parameters_y;
+	host_pointers[MOTION_PARAMETERS_Z] = (void*)motion_parameters_z;
+	host_pointers[PLOT_VALUES_X] = (void*)plot_values_x;
+	host_pointers[MOTION_CORRECTED_CURVE] = (void*)motion_corrected_curve;
+	host_pointers[SMOOTHED_CURVE] = (void*)smoothed_curve;
+	host_pointers[DETRENDED_CURVE] = (void*)detrended_curve;
+
+
+	//device_pointers[fMRI_VOLUMES] = d_fMRI_Volumes;
+	//device_pointers[BRAIN_VOXELS] = d_Brain_Voxels;
+	//device_pointers[SMOOTHED_CERTAINTY] = d_Smoothed_Certainty;
+	//device_pointers[ACTIVITY_VOLUME] = d_Activity_Volume;
+}
+*/
+
+// Write functions, public
+
+void BROCCOLI_LIB::WritefMRIDataNIFTI()
+{
+
+
+}
+
+// Write functions, private
+
+void BROCCOLI_LIB::WriteRealDataUint16(unsigned short int* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::out | std::ios::binary);
+	unsigned short int current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			current_value = data[i];
+			file.write( (const char*) &current_value, sizeof(current_value) );
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+void BROCCOLI_LIB::WriteRealDataFloat(float* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::out | std::ios::binary);
+	float current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			current_value = data[i];
+			file.write( (const char*) &current_value, sizeof(current_value) );
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+void BROCCOLI_LIB::WriteRealDataDouble(double* data, std::string filename, int N)
+{
+	std::fstream file(filename.c_str(), std::ios::out | std::ios::binary);
+	double current_value;
+
+	if (file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			current_value = data[i];
+			file.write( (const char*) &current_value, sizeof(current_value) );
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << filename << std::endl;
+	}
+
+	file.close();
+}
+
+/*
+void BROCCOLI_LIB::WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N)
+{
+	std::fstream real_file(real_filename, std::ios::out | std::ios::binary);
+	std::fstream imag_file(imag_filename, std::ios::out | std::ios::binary);
+
+	float current_value;
+
+	if (real_file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			current_value = data[i];
+			real_file.write( (const char*) &current_value, sizeof(current_value) );
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << real_filename << std::endl;
+	}
+	real_file.close();
+
+	if (imag_file.good())
+	{
+		for (int i = 0; i < N ; i++)
+		{
+			current_value = data[i];
+			imag_file.write( (const char*) &current_value, sizeof(current_value) );
+		}
+	}
+	else
+	{
+		std::cout << "Could not find file " << imag_filename << std::endl;
+	}
+	imag_file.close();
+}
+*/
+
+
+
+
+// Help functions
+
+/*
+void BROCCOLI_LIB::CalculateSlicesActivityData()
+{
+	//float max = CalculateMax(h_Activity_Volume, DATA_W * DATA_H * DATA_D);
+	//float min = CalculateMin(h_Activity_Volume, DATA_W * DATA_H * DATA_D);
+	float adder = -min;
+	float multiplier = 255.0f / (max + adder);
+
+	for (int x = 0; x < DATA_W; x++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			if (THRESHOLD_ACTIVITY_MAP)
+			{
+				if (h_Activity_Volume[x + y * DATA_W + Z_SLICE_LOCATION_fMRI_DATA * DATA_W * DATA_H] >= ACTIVITY_THRESHOLD)
+				{
+					z_slice_activity_data[x + y * DATA_W] = (unsigned char)((h_Activity_Volume[x + y * DATA_W + Z_SLICE_LOCATION_fMRI_DATA * DATA_W * DATA_H] + adder) * multiplier);
+				}
+				else
+				{
+					z_slice_activity_data[x + y * DATA_W] = 0;
+				}
+			}
+			else
+			{
+				z_slice_activity_data[x + y * DATA_W] = (unsigned char)((h_Activity_Volume[x + y * DATA_W + Z_SLICE_LOCATION_fMRI_DATA * DATA_W * DATA_H] + adder) * multiplier);
+			}
+		}
+	}
+
+	for (int x = 0; x < DATA_W; x++)
+	{
+		for (int z = 0; z < DATA_D; z++)
+		{
+			int inv_z = DATA_D - 1 - z;
+			if (THRESHOLD_ACTIVITY_MAP)
+			{
+				if (h_Activity_Volume[x + Y_SLICE_LOCATION_fMRI_DATA * DATA_W + z * DATA_W * DATA_H] >= ACTIVITY_THRESHOLD)
+				{
+					y_slice_activity_data[x + inv_z * DATA_W] = (unsigned char)((h_Activity_Volume[x + Y_SLICE_LOCATION_fMRI_DATA * DATA_W + z * DATA_W * DATA_H] + adder) * multiplier);
+				}
+				else
+				{
+					y_slice_activity_data[x + inv_z * DATA_W] = 0;
+				}
+			}
+			else
+			{
+				y_slice_activity_data[x + inv_z * DATA_W] = (unsigned char)((h_Activity_Volume[x + Y_SLICE_LOCATION_fMRI_DATA * DATA_W + z * DATA_W * DATA_H] + adder) * multiplier);
+			}
+		}
+	}
+
+	for (int y = 0; y < DATA_H; y++)
+	{
+		for (int z = 0; z < DATA_D; z++)
+		{
+			int inv_z = DATA_D - 1 - z;
+			if (THRESHOLD_ACTIVITY_MAP)
+			{
+				if (h_Activity_Volume[X_SLICE_LOCATION_fMRI_DATA + y * DATA_W + z * DATA_W * DATA_H] >= ACTIVITY_THRESHOLD)
+				{
+					x_slice_activity_data[y + inv_z * DATA_H] = (unsigned char)((h_Activity_Volume[X_SLICE_LOCATION_fMRI_DATA + y * DATA_W + z * DATA_W * DATA_H] + adder) * multiplier);
+				}
+				else
+				{
+					x_slice_activity_data[y + inv_z * DATA_H] = 0;
+				}
+			}
+			else
+			{
+				x_slice_activity_data[y + inv_z * DATA_H] = (unsigned char)((h_Activity_Volume[X_SLICE_LOCATION_fMRI_DATA + y * DATA_W + z * DATA_W * DATA_H] + adder) * multiplier);
+			}
+		}
+	}
+}
+*/
+
+void BROCCOLI_LIB::CalculateSlicesfMRIData()
+{
+	float max = CalculateMax(h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
+	float min = CalculateMin(h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
+	float adder = -min;
+	float multiplier = 255.0f / (max + adder);
+
+	for (int x = 0; x < EPI_DATA_W; x++)
+	{
+		for (int y = 0; y < EPI_DATA_H; y++)
+		{
+			z_slice_fMRI_data[x + y * EPI_DATA_W] = (unsigned char)((h_fMRI_Volumes[x + y * EPI_DATA_W + Z_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W * EPI_DATA_H + TIMEPOINT_fMRI_DATA * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] + adder) * multiplier);
+		}
+	}
+
+	for (int x = 0; x < EPI_DATA_W; x++)
+	{
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			int inv_z = EPI_DATA_D - 1 - z;
+			y_slice_fMRI_data[x + inv_z * EPI_DATA_W] = (unsigned char)((h_fMRI_Volumes[x + Y_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + TIMEPOINT_fMRI_DATA * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] + adder) * multiplier);
+		}
+	}
+
+	for (int y = 0; y < EPI_DATA_H; y++)
+	{
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			int inv_z = EPI_DATA_D - 1 - z;
+			x_slice_fMRI_data[y + inv_z * EPI_DATA_H] = (unsigned char)((h_fMRI_Volumes[X_SLICE_LOCATION_fMRI_DATA + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + TIMEPOINT_fMRI_DATA * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] + adder) * multiplier);
+		}
+	}
+}
+
+void BROCCOLI_LIB::CalculateSlicesPreprocessedfMRIData()
+{
+	float* pointer = NULL;
+
+	/*
+	if (PREPROCESSED == MOTION_CORRECTION)
+	{
+		pointer = h_Motion_Corrected_fMRI_Volumes;
+	}
+	else if (PREPROCESSED == SMOOTHING)
+	{
+		pointer = h_Smoothed_fMRI_Volumes;
+	}
+	else if (PREPROCESSED == DETRENDING)
+	{
+		pointer = h_Detrended_fMRI_Volumes;
+	}
+	*/
+
+	float max = CalculateMax(pointer, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
+	float min = CalculateMin(pointer, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
+	float adder = -min;
+	float multiplier = 255.0f / (max + adder);
+
+
+	for (int x = 0; x < EPI_DATA_W; x++)
+	{
+		for (int y = 0; y < EPI_DATA_H; y++)
+		{
+			z_slice_preprocessed_fMRI_data[x + y * EPI_DATA_W] = (unsigned char)((pointer[x + y * EPI_DATA_W + Z_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W * EPI_DATA_H + TIMEPOINT_fMRI_DATA * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] + adder) * multiplier);
+		}
+	}
+
+	for (int x = 0; x < EPI_DATA_W; x++)
+	{
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			int inv_z = EPI_DATA_D - 1 - z;
+			y_slice_preprocessed_fMRI_data[x + inv_z * EPI_DATA_W] = (unsigned char)((pointer[x + Y_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + TIMEPOINT_fMRI_DATA * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] + adder) * multiplier);
+		}
+	}
+
+	for (int y = 0; y < EPI_DATA_H; y++)
+	{
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			int inv_z = EPI_DATA_D - 1 - z;
+			x_slice_preprocessed_fMRI_data[y + inv_z * EPI_DATA_H] = (unsigned char)((pointer[X_SLICE_LOCATION_fMRI_DATA + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + TIMEPOINT_fMRI_DATA * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] + adder) * multiplier);
+		}
+	}
+}
+
+/*
+void BROCCOLI_LIB::Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N)
+{
+	for (int i = 0; i < N; i++)
+	{
+		floats[i] = float_1[i];
+		floats[i] = float_2[i];
+		floats[i].z = float_3[i];
+		floats[i].w = float_4[i];
+	}
+}
+*/
+
+/*
+void BROCCOLI_LIB::Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N)
+{
+	for (int i = 0; i < N; i++)
+	{
+		floats[i] = float_1[i];
+		floats[i] = float_2[i];
+	}
+}
+*/
+
+/*
+void BROCCOLI_LIB::ConvertRealToComplex(Complex* complex_data, float* real_data, int N)
+{
+	for (int i = 0; i < N; i++)
+	{
+		complex_data[i] = real_data[i];
+		complex_data[i] = 0.0f;
+	}
+}
+*/
+
+/*
+void BROCCOLI_LIB::ExtractRealData(float* real_data, Complex* complex_data, int N)
+{
+	for (int i = 0; i < N; i++)
+	{
+		real_data[i] = complex_data[i];
+	}
+}
+*/
+
+
+
+
+
+
+
+void BROCCOLI_LIB::CalculateClusterSizes(int* Cluster_Sizes, int* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D)
+{
+	for (int c = 0; c < NUMBER_OF_CLUSTERS; c++)
+	{
+		Cluster_Sizes[c] = 0;
+	}
+
+	// Loop over clusters
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
+				{
+					int cluster_index = Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+					if ( cluster_index != 0 )
+					{
+						if (cluster_index < NUMBER_OF_CLUSTERS)
+						{
+							// Increment number of voxels for current cluster
+							Cluster_Sizes[cluster_index]++;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+
+
+
+// Forward relabelling of cluster indices
+int ForwardScan(int* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
+{
+	int changed = 0;
+
+	// Loop through voxels
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				// Only look at voxels that survived the threshold
+				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+				{
+					// Find the local maximal cluster index
+					int cluster_index = 0;
+					for (int zz = -1; zz < 2; zz++)
+					{
+						for (int yy = -1; yy < 2; yy++)
+						{
+							for (int xx = -1; xx < 2; xx++)
+							{
+								// Do not include center (current) voxel
+								int sum = abs(xx) + abs(yy) + abs(zz);
+								if (sum != 0)
+								{
+									// Do not read outside volume
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
+									{
+										// Only consider voxels that survived threshold (to avoid get a 0 cluster index)
+										if ( Thresholded[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H] == 1.0f )
+										{
+											cluster_index = mymax(Cluster_Indices[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H],cluster_index);
+										}
+									}
+								}
+							}
+						}
+					}
+
+					// Check if the local maxima exists
+					if (cluster_index != 0)
+					{
+						// Check if local maxima is different compared to current index, then increase number of changed labels
+						if (Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] != cluster_index)
+						{
+							changed++;
+							Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] = cluster_index;
+						}
+					}
+				}
+			}
+		}
+	}
+	return changed;
+}
+
+// Backward relabelling of cluster indices
+int BackwardScan(int* Cluster_Indices, float* Thresholded, int DATA_W, int DATA_H, int DATA_D)
+{
+	int changed = 0;
+
+	// Loop through voxels
+	for (int z = DATA_D-1; z >= 0; z--)
+	{
+		for (int y = DATA_H-1; y >= 0; y--)
+		{
+			for (int x = DATA_W-1; x >= 0; x--)
+			{
+				// Only look at voxels that survived the threshold
+				if ( Thresholded[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+				{
+					// Find the local maximal cluster index
+					int cluster_index = 0;
+					for (int zz = -1; zz < 2; zz++)
+					{
+						for (int yy = -1; yy < 2; yy++)
+						{
+							for (int xx = -1; xx < 2; xx++)
+							{
+								// Do not include center (current) voxel
+								int sum = abs(xx) + abs(yy) + abs(zz);
+								if (sum != 0)
+								{
+									// Do not read outside volume
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
+									{
+										// Only consider voxels that survived threshold (to avoid get a 0 cluster index)
+										if ( Thresholded[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H] == 1.0f )
+										{
+											cluster_index = mymax(Cluster_Indices[xx + x + (yy + y) * DATA_W + (zz + z) * DATA_W * DATA_H],cluster_index);
+										}
+									}
+								}
+							}
+						}
+					}
+
+					// Check if the local maxima exists
+					if (cluster_index != 0)
+					{
+						// Check if local maxima is different compared to current index, then increase number of changed labels
+						if (Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] != cluster_index)
+						{
+							changed++;
+							Cluster_Indices[x + y * DATA_W + z * DATA_W * DATA_H] = cluster_index;
+						}
+					}
+				}
+			}
+		}
+	}
+	return changed;
+}
+
+
+
+
+
+void BROCCOLI_LIB::ClusterizeOld(int* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D)
+{
+	float* Thresholded = (float*)malloc(DATA_W * DATA_H * DATA_W * sizeof(float));
+
+	int current_cluster = 0;
+
+	// Set all indices to 0
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0;
+
+				if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > Threshold )
+				{
+					Thresholded[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
+				}
+			}
+		}
+	}
+
+	// Make an initial labelling
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
+				{
+					if ( Thresholded[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f )
+					{
+						// Check if neighbour already has a cluster index
+						int cluster_index = 0;
+
+						for (int zz = -1; zz < 2; zz++)
+						{
+							for (int yy = -1; yy < 2; yy++)
+							{
+								for (int xx = -1; xx < 2; xx++)
+								{
+									if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
+									{
+										cluster_index = mymax(Cluster_Indices[Calculate3DIndex(x+xx,y+yy,z+zz,DATA_W,DATA_H)],cluster_index);
+									}
+								}
+							}
+						}
+
+						// Use existing cluster index
+						if (cluster_index != 0)
+						{
+							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;
+						}
+						// Use new cluster index
+						else
+						{
+							current_cluster++;
+							Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = current_cluster;
+						}
+
+					}
+				}
+			}
+		}
+	}
+
+	//NUMBER_OF_CLUSTERS = (int)current_cluster; // Note that some clusters have 0 voxels after relabelling
+
+	// Perform backward and forward relabellings of cluster indices until no changes are made
+	int changed_labels = 1;
+	while (changed_labels > 0)
+	{
+		changed_labels = BackwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
+		changed_labels += ForwardScan(Cluster_Indices, Thresholded, DATA_W, DATA_H, DATA_D);
+	}
+
+	//NUMBER_OF_CLUSTERS = (int)CalculateMax(Cluster_Indices, DATA_W * DATA_H * DATA_D);
+	NUMBER_OF_CLUSTERS = current_cluster;
+
+	free(Thresholded);
+}
+
+
+
+//h_Registration_Parameters_Align_Two_Volumes_Several_Scales = h_Registration_Parameters_Align_Two_Volumes_Several_Scales*2 + h_Registration_Parameters_Temp*2
+
+
+
+
+   		//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+   		//ClusterizeOld(h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 5.0f, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+   		//h_Cluster_Sizes = (int*)malloc(NUMBER_OF_CLUSTERS * sizeof(int));
+   		//CalculateClusterSizes(h_Cluster_Sizes, h_Cluster_Indices, NUMBER_OF_CLUSTERS, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+   		//h_Permutation_Distribution[p] = CalculateMax(h_Cluster_Sizes, NUMBER_OF_CLUSTERS);
+   		//free(h_Cluster_Sizes);
+
+
+
+#define QF1R 0
+#define QF1I 1
+#define QF2R 2
+#define QF2I 3
+#define QF3R 4
+#define QF3I 5
+#define QF1  6
+#define QF2  7
+#define QF3  8
+#define CCA3D1 14
+#define CCA3D2 15
+#define CCA3D 16
+#define fMRI_VOLUMES 17
+#define XDETREND1 18
+#define XDETREND2 19
+#define CXX 20
+#define SQRTINVCXX 21
+#define XGLM1 22
+#define XGLM2 23
+#define CONTRAST_VECTOR 24
+#define ACTIVITY_VOLUME 25
+#define BRAIN_VOXELS 26
+#define MOTION_CORRECTED_VOLUMES 27
+#define REGISTRATION_PARAMETERS 28
+#define SMOOTHED1 29
+#define SMOOTHED2 30
+#define SMOOTHED3 31
+#define SMOOTHED4 32
+#define DETRENDED1 33
+#define DETRENDED2 34
+#define DETRENDED3 35
+#define DETRENDED4 36
+#define X_SLICE_fMRI 37
+#define Y_SLICE_fMRI 38
+#define Z_SLICE_fMRI 39
+#define X_SLICE_PREPROCESSED_fMRI 40
+#define Y_SLICE_PREPROCESSED_fMRI 41
+#define Z_SLICE_PREPROCESSED_fMRI 42
+#define X_SLICE_ACTIVITY 43
+#define Y_SLICE_ACTIVITY 44
+#define Z_SLICE_ACTIVITY 45
+#define MOTION_PARAMETERS_X 46
+#define MOTION_PARAMETERS_Y 47
+#define MOTION_PARAMETERS_Z 48
+#define PLOT_VALUES_X 49
+#define MOTION_CORRECTED_CURVE 50
+#define SMOOTHED_CURVE 51
+#define DETRENDED_CURVE 52	
+#define ALPHAS1 53
+#define ALPHAS2 54
+#define ALPHAS3 55
+#define ALPHAS4 56
+#define SMOOTHED_ALPHAS1 57
+#define SMOOTHED_ALPHAS2 58
+#define SMOOTHED_ALPHAS3 59
+#define SMOOTHED_ALPHAS4 60
+#define SMOOTHED_CERTAINTY 61
+#define BOLD_REGRESSED_VOLUMES 62
+#define WHITENED_VOLUMES 63
+#define PERMUTED_VOLUMES 64
+#define MAXIMUM_TEST_VALUES 65
+#define PERMUTATION_MATRIX 66
+
+#define NUMBER_OF_HOST_POINTERS 100
+#define NUMBER_OF_DEVICE_POINTERS 100
+
+
+
+		unsigned char* GetZSlicefMRIData();
+		unsigned char* GetYSlicefMRIData();
+		unsigned char* GetXSlicefMRIData();
+		unsigned char* GetZSlicePreprocessedfMRIData();
+		unsigned char* GetYSlicePreprocessedfMRIData();
+		unsigned char* GetXSlicePreprocessedfMRIData();
+		unsigned char* GetZSliceActivityData();
+		unsigned char* GetYSliceActivityData();
+		unsigned char* GetXSliceActivityData();
+
+
+
+				double* GetMotionParametersX();
+		double* GetMotionParametersY();
+		double* GetMotionParametersZ();
+		double* GetPlotValuesX();
+
+		double* GetMotionCorrectedCurve();
+		double* GetSmoothedCurve();
+		double* GetDetrendedCurve();
+
+
+
+				//void ConvertRealToComplex(Complex* complex_data, float* real_data, int N);
+		//void ExtractRealData(float* real_data, Complex* complex_data, int N);
+		//void Convert4FloatToFloat4(float4* floats, float* float_1, float* float_2, float* float_3, float* float_4, int N);
+		//void Convert2FloatToFloat2(float2* floats, float* float_1, float* float_2, int N);
+
+
+
+
+		//------------------------------------------------
+		// Read functions
+		//------------------------------------------------
+		void ReadRealDataInt32(int* data, std::string filename, int N);
+		void ReadRealDataInt16(short int* data, std::string filename, int N);
+		void ReadRealDataUint32(unsigned int* data, std::string filename, int N);
+		void ReadRealDataUint16(unsigned short int* data, std::string filename, int N);
+		void ReadRealDataFloat(float* data, std::string filename, int N);
+		void ReadRealDataDouble(double* data, std::string filename, int N);
+		//void ReadComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
+		void ReadImageRegistrationFilters();
+		void SetupParametersReadData();
+
+
+
+
+		//------------------------------------------------
+		// Write functions
+		//------------------------------------------------
+		void WriteRealDataUint16(unsigned short int* data, std::string filename, int N);
+		void WriteRealDataFloat(float* data, std::string filename, int N);
+		void WriteRealDataDouble(double* data, std::string filename, int N);
+		//void WriteComplexData(Complex* data, std::string real_filename, std::string imag_filename, int N);
+
+
+
+		unsigned char* x_slice_fMRI_data;
+		unsigned char* y_slice_fMRI_data;
+		unsigned char* z_slice_fMRI_data;
+		unsigned char* x_slice_preprocessed_fMRI_data;
+		unsigned char* y_slice_preprocessed_fMRI_data;
+		unsigned char* z_slice_preprocessed_fMRI_data;
+		unsigned char* x_slice_activity_data;
+		unsigned char* y_slice_activity_data;
+		unsigned char* z_slice_activity_data;
+
+		double* plot_values_x;
+
+
+
+
+				double* smoothed_curve;
+
+
+		double* detrended_curve;
+
+		int X_SLICE_LOCATION_fMRI_DATA, Y_SLICE_LOCATION_fMRI_DATA, Z_SLICE_LOCATION_fMRI_DATA, TIMEPOINT_fMRI_DATA;
+
+
+void BROCCOLI_LIB::SetDataType(int type)
+{
+	DATA_TYPE = type;
+}
+
+void BROCCOLI_LIB::SetFileType(int type)
+{
+	FILE_TYPE = type;
+}
+
+void BROCCOLI_LIB::SetfMRIDataSliceLocationX(int location)
+{
+	X_SLICE_LOCATION_fMRI_DATA = location;
+}
+			
+void BROCCOLI_LIB::SetfMRIDataSliceLocationY(int location)
+{
+	Y_SLICE_LOCATION_fMRI_DATA = location;
+}
+		
+void BROCCOLI_LIB::SetfMRIDataSliceLocationZ(int location)
+{
+	Z_SLICE_LOCATION_fMRI_DATA = location;
+}
+
+void BROCCOLI_LIB::SetfMRIDataSliceTimepoint(int timepoint)
+{
+	TIMEPOINT_fMRI_DATA = timepoint;
+}
+
+
+void BROCCOLI_LIB::SetfMRIDataFilename(std::string filename)
+{
+	filename_fMRI_data_nifti = filename;
+}
+
+
+int BROCCOLI_LIB::GetfMRIDataSliceLocationX()
+{
+	return X_SLICE_LOCATION_fMRI_DATA;
+}
+			
+int BROCCOLI_LIB::GetfMRIDataSliceLocationY()
+{
+	return Y_SLICE_LOCATION_fMRI_DATA;
+}
+		
+int BROCCOLI_LIB::GetfMRIDataSliceLocationZ()
+{
+	return Z_SLICE_LOCATION_fMRI_DATA;
+}
+
+
+
+// Returns a z slice of the original fMRI data, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetZSlicefMRIData()
+{
+	return z_slice_fMRI_data;
+}
+
+// Returns a y slice of the original fMRI data, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetYSlicefMRIData()
+{
+	return y_slice_fMRI_data;
+}
+
+// Returns a x slice of the original fMRI data, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetXSlicefMRIData()
+{
+	return x_slice_fMRI_data;
+}
+
+// Returns a z slice of the preprocessed fMRI data, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetZSlicePreprocessedfMRIData()
+{
+	return z_slice_preprocessed_fMRI_data;
+}
+
+// Returns a y slice of the preprocessed fMRI data, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetYSlicePreprocessedfMRIData()
+{
+	return y_slice_preprocessed_fMRI_data;
+}
+
+// Returns a x slice of the preprocessed fMRI data, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetXSlicePreprocessedfMRIData()
+{
+	return x_slice_preprocessed_fMRI_data;
+}
+
+// Returns a z slice of the activity map, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetZSliceActivityData()
+{
+	return z_slice_activity_data;
+}
+
+// Returns a y slice of the activity map, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetYSliceActivityData()
+{
+	return y_slice_activity_data;
+}
+
+// Returns a x slice of the activity map, to be viewed in the GUI
+unsigned char* BROCCOLI_LIB::GetXSliceActivityData()
+{
+	return x_slice_activity_data;
+}
+
+// Returns estimated motion parameters in the x direction to be viewed in the GUI
+double* BROCCOLI_LIB::GetMotionParametersX()
+{
+	return motion_parameters_x;
+}
+
+// Returns estimated motion parameters in the y direction to be viewed in the GUI
+double* BROCCOLI_LIB::GetMotionParametersY()
+{
+	return motion_parameters_y;
+}
+
+// Returns estimated motion parameters in the z direction to be viewed in the GUI
+double* BROCCOLI_LIB::GetMotionParametersZ()
+{
+	return motion_parameters_z;
+}
+
+double* BROCCOLI_LIB::GetPlotValuesX()
+{
+	return plot_values_x;
+}
+
+// Returns the timeseries of the motion corrected data for the current mouse location in the GUI
+double* BROCCOLI_LIB::GetMotionCorrectedCurve()
+{
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		motion_corrected_curve[t] = (double)h_Motion_Corrected_fMRI_Volumes[X_SLICE_LOCATION_fMRI_DATA + Y_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W + Z_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+	}
+
+	return motion_corrected_curve;
+}
+
+// Returns the timeseries of the smoothed data for the current mouse location in the GUI
+double* BROCCOLI_LIB::GetSmoothedCurve()
+{
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		smoothed_curve[t] = (double)h_Smoothed_fMRI_Volumes[X_SLICE_LOCATION_fMRI_DATA + Y_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W + Z_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+	}
+
+	return smoothed_curve;
+}
+
+// Returns the timeseries of the detrended data for the current mouse location in the GUI
+double* BROCCOLI_LIB::GetDetrendedCurve()
+{
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		detrended_curve[t] = (double)h_Detrended_fMRI_Volumes[X_SLICE_LOCATION_fMRI_DATA + Y_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W + Z_SLICE_LOCATION_fMRI_DATA * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+	}
+
+	return detrended_curve;
+}
+
+// Returns the filename of the current fMRI dataset
+std::string BROCCOLI_LIB::GetfMRIDataFilename()
+{
+	return filename_fMRI_data_nifti;
+}
+
+
+
+
+
+filename_real_quadrature_filter_1 = "filters\\quadrature_filter_1_real.raw";
+	filename_real_quadrature_filter_2 = "filters\\quadrature_filter_2_real.raw";
+	filename_real_quadrature_filter_3 = "filters\\quadrature_filter_3_real.raw";
+	filename_imag_quadrature_filter_1 = "filters\\quadrature_filter_1_imag.raw";
+	filename_imag_quadrature_filter_2 = "filters\\quadrature_filter_2_imag.raw";
+	filename_imag_quadrature_filter_3 = "filters\\quadrature_filter_3_imag.raw";
+
+	filename_GLM_filter = "filters\\GLM_smoothing_filter";
+
+	filename_fMRI_data_raw = "fMRI_data.raw";
+	filename_slice_timing_corrected_fMRI_volumes_raw = "output\\slice_timing_corrected_fMRI_volumes.raw";
+	filename_registration_parameters_raw = "output\\registration_parameters.raw";
+	filename_motion_corrected_fMRI_volumes_raw = "output\\motion_compensated_fMRI_volumes.raw";
+	filename_smoothed_fMRI_volumes_raw = "output\\smoothed_fMRI_volumes_1.raw";
+	filename_detrended_fMRI_volumes_raw = "output\\detrended_fMRI_volumes_1.raw";
+	filename_activity_volume_raw = "output\\activity_volume.raw";
+	
+	filename_fMRI_data_nifti = "fMRI_data.nii";
+	filename_slice_timing_corrected_fMRI_volumes_nifti = "output\\slice_timing_corrected_fMRI_volumes.nii";
+	filename_registration_parameters_nifti = "output\\registration_parameters.nii";
+	filename_motion_corrected_fMRI_volumes_nifti = "output\\motion_compensated_fMRI_volumes.nii";
+	filename_smoothed_fMRI_volumes_nifti = "output\\smoothed_fMRI_volumes_1.nii";
+	filename_detrended_fMRI_volumes_nifti = "output\\detrended_fMRI_volumes_1.nii";
+	filename_activity_volume_nifti = "output\\activity_volume.nii";
+	
+
+
+			//--------------------------------------------------
+		// Filenames
+		//--------------------------------------------------
+
+		std::string		filename_real_quadrature_filter_1;
+		std::string		filename_real_quadrature_filter_2;
+		std::string		filename_real_quadrature_filter_3;
+		std::string		filename_imag_quadrature_filter_1;
+		std::string		filename_imag_quadrature_filter_2;
+		std::string		filename_imag_quadrature_filter_3;
+		std::string		filename_GLM_filter;
+
+		std::string		filename_fMRI_data_raw;
+		std::string		filename_slice_timing_corrected_fMRI_volumes_raw;
+		std::string		filename_registration_parameters_raw;
+		std::string		filename_motion_corrected_fMRI_volumes_raw;
+		std::string		filename_smoothed_fMRI_volumes_raw;
+		std::string		filename_detrended_fMRI_volumes_raw;
+		std::string		filename_activity_volume_raw;
+
+		std::string		filename_fMRI_data_nifti;
+		std::string		filename_slice_timing_corrected_fMRI_volumes_nifti;
+		std::string		filename_registration_parameters_nifti;
+		std::string		filename_motion_corrected_fMRI_volumes_nifti;
+		std::string		filename_smoothed_fMRI_volumes_nifti;
+		std::string		filename_detrended_fMRI_volumes_nifti;
+		std::string		filename_activity_volume_nifti;
+
+
+
+
+		/*
+__kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statistical_Maps,
+		                                       	   	   	  __global const float* Volumes,
+		                                       	   	   	  __global const float* Mask,
+		                                       	   	   	  __constant float* c_X_GLM,
+		                                       	   	   	  __constant float* c_xtxxt_GLM,
+		                                       	   	   	  __constant float* c_Contrasts,
+		                                       	   	   	  __constant float* c_ctxtxc_GLM,
+		                                       	   	   	  __constant unsigned short int* c_Permutation_Vector,
+		                                       	   	   	  __private int DATA_W,
+		                                       	   	   	  __private int DATA_H,
+		                                       	   	   	  __private int DATA_D,
+		                                       	   	   	  __private int NUMBER_OF_VOLUMES,
+		                                       	   	   	  __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   	  __private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		//for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		//{
+		//	Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		//}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
+
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//float value = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		// Loop over regressors
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+		//	beta[r] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]];
+		//}
+		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+	}
+
+	// Calculate the mean of the error eps
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+		//	eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
+		//}
+		eps = CalculateEps(eps, beta, c_X_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+		//meaneps += eps;
+		meaneps += eps / ((float)NUMBER_OF_VOLUMES);
+	}
+	//meaneps /= ((float)NUMBER_OF_VOLUMES);
+
+	// Now calculate the variance of eps
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		//eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+		//	eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
+		//}
+		eps = CalculateEps(eps, beta, c_X_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+		//vareps += (eps - meaneps) * (eps - meaneps);
+		vareps += (eps - meaneps) * (eps - meaneps) / ((float)NUMBER_OF_VOLUMES - 1.0f);
+	}
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+
+	// Loop over contrasts and calculate t-values
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		//{
+			//contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		//}
+		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
+	}
+}
+*/
+
+
+
+
+/*
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y-1,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y,z-1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y+1,z-1,DATA_W,DATA_H)];
+		
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y-1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y-1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y+1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y+1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y+1,z,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y-1,z,DATA_W,DATA_H)];
+
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x-1,y,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y-1,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x+1,y,z+1,DATA_W,DATA_H)];
+		cluster_index *= Cluster_Indices[Calculate3DIndex(x,y+1,z+1,DATA_W,DATA_H)];
+		*/
+
+
+
+
+
+	// Calculate matrix vector product C*beta (minus u)
+	float cbeta[25];
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		cbeta[c] = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+	}
+
+	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		beta[c] = 0.0f;
+		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+		{
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
+		}
+	}
+
+	// Finally calculate (C*beta)^T * temp
+	float scalar = 0.0f;
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		scalar += cbeta[c] * beta[c];
+	}
+
+
+
+		//clSetKernelArg(RemoveMeanKernel, 0, sizeof(cl_mem), &d_Volumes);
+	//clSetKernelArg(RemoveMeanKernel, 1, sizeof(int), &EPI_DATA_W);
+	//clSetKernelArg(RemoveMeanKernel, 2, sizeof(int), &EPI_DATA_H);
+	//clSetKernelArg(RemoveMeanKernel, 3, sizeof(int), &EPI_DATA_D);
+	//clSetKernelArg(RemoveMeanKernel, 4, sizeof(int), &EPI_DATA_T);
+	//clEnqueueNDRangeKernel(commandQueue, RemoveMeanKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+
+
