@@ -29,15 +29,17 @@ hold on
 
 beta
 r = 0;
-%Y = Y - mean(Y);
+
+Y = Y - mean(Y);
 Ywhitened = Y;
 Xwhitened = X;
+
 N = 1;
-%Y = Y - mean(Y);
+
 for i = 1:3
     
-   %betahat = pinv(X(N:end,:)) * Ywhitened(N:end,:)
-   betahat = pinv(Xwhitened(N:end,:)) * Ywhitened(N:end)   
+   betahat = pinv(X(N:end,:)) * Ywhitened(N:end,:)
+   %betahat = pinv(Xwhitened(N:end,:)) * Ywhitened(N:end)   
    eps = Y(N:end) - X(N:end,:)*betahat;
    %eps = Ywhitened(N:end) - Xwhitened(N:end,:)*betahat;
    

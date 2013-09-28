@@ -55,7 +55,7 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-for s = 1:198
+for s = 1:20
     
     number_of_iterations_for_motion_correction = 5;
     
@@ -172,7 +172,8 @@ for s = 1:198
     new_file.hdr.dime.bitpix = 16;
     new_file.img = single(generated_fMRI_volumes);    
     %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
-    filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
+    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
+    filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
     save_nii(new_file,filename);
     
     %%
@@ -191,15 +192,16 @@ for s = 1:198
     toc
         
     %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-    filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    save(filename,'motion_corrected_volumes_opencl');
+    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.mat'];
+    %save(filename,'motion_corrected_volumes_opencl');
     
     %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-    filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    save(filename,'motion_parameters_opencl');
+    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+    %save(filename,'motion_parameters_opencl');
     
     %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-    filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+    filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
     save(filename,'x_translations','y_translations','z_translations','x_rotations','y_rotations','z_rotations');
     
     
