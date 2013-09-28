@@ -5,24 +5,19 @@ clear
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion
 results_directory=/data/andek/BROCCOLI_test_data/AFNI
 
-subject=1
-
 date1=$(date +"%s")
 
-for file in ${data_directory}/*.nii
+for subject in {1..198}
 do
 
 	echo $subject
 
-	if [ "$subject" -lt "199" ]
-    then
+	3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii
 
-		3dvolreg -float -linear -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion.nii ${file}
+	#3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_1percent_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_1percent_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_1percent_noise.nii
+
+	#3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_1percent_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_1percent_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_1percent_noise.nii
 	
-	fi
-
-	subject=$((subject + 1))	
-
 done
 
 date2=$(date +"%s")

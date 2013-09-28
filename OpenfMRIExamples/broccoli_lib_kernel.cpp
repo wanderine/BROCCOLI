@@ -5602,7 +5602,6 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 }
 
 __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
-		                                       __global float* Beta_Contrasts,
 		                                       __global float* Residuals,
 		                                       __global float* Residual_Variances,
 		                                       __global const float* Volumes,
@@ -5636,7 +5635,6 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
 			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-			Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
 	
 		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
@@ -5694,8 +5692,7 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}	
-		Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
+		}
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
 	}
 }
@@ -5709,12 +5706,14 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 		                                       __constant float* c_X_GLM,
 		                                       __constant float* c_Contrasts,
 		                                       __constant float* c_ctxtxc_GLM,
+		                                       __constant float* c_Censored_Timepoints,
 		                                       __private int DATA_W,
 		                                       __private int DATA_H,
 		                                       __private int DATA_D,
 		                                       __private int NUMBER_OF_VOLUMES,
 		                                       __private int NUMBER_OF_REGRESSORS,
-		                                       __private int NUMBER_OF_CONTRASTS)
+		                                       __private int NUMBER_OF_CONTRASTS,
+		                                       __private int NUMBER_OF_CENSORED_TIMEPOINTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);

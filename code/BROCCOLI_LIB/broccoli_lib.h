@@ -44,37 +44,37 @@ struct float2 {float x; float y;};
 
 // Enumerated constants for axes
 enum { X, Y, Z };
- 
+
 // Simple 3D coordinates class
 class Coords3D
 {
 	public:
- 
-      // Default ctor
+
+      // Default constructor
       Coords3D() {}
- 
-      // Initializing ctor
+
+      // Initializing constructor
       Coords3D(int x,int y,int z)
       {
             coords_[X] = x;
             coords_[Y] = y;
             coords_[Z] = z;
       }
- 
+
       // Mutable access
       int& operator[](int i)
       { return coords_[i]; }
- 
+
       // Const access
       int const& operator[](int i) const
       { return coords_[i]; }
- 
+
 private:
- 
+
       // 3D coordinates
       int coords_[3];
 };
- 
+
 // Macro for 26-connected neighbors in 3D
 #define Neighbors3D26(n,p) Coords3D const n[26] =\
 {\
@@ -105,7 +105,7 @@ private:
       Coords3D((p)[X]    , (p)[Y] + 1, (p)[Z] + 1),\
       Coords3D((p)[X] + 1, (p)[Y] + 1, (p)[Z] + 1),\
 }
- 
+
 
 
 class BROCCOLI_LIB
@@ -136,6 +136,7 @@ class BROCCOLI_LIB
 		void SetGLMScalars(float* ctxtxc);
 		void SetNumberOfPermutations(int);
 		void SetBetaSpace(int space);
+		void SetStatisticalTest(int test);
 		void SetInferenceMode(int mode);
 		void SetClusterDefiningThreshold(float threshold);
 		void SetPermutationMatrix(unsigned short int*);
@@ -369,8 +370,8 @@ class BROCCOLI_LIB
 
 	private:
 
-		
-		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);		
+
+		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
 		void Clusterize(int* Cluster_Indices, int& MAX_CLUSTER_SIZE, float& MAX_CLUSTER_MASS, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D, int GET_VOXEL_LABELS, int GET_CLUSTER_MASS);
 		void ClusterizeOld(int* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D);
 		void ClusterizeOpenCL(cl_mem Cluster_Indices, int& NUMBER_OF_CLUSTERS, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
@@ -393,8 +394,8 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem Volumes);
 		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 		void CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem Volumes, cl_mem Mask);
-		
-		
+
+
 		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D);
 
 		void ApplyPermutationTestFirstLevel(cl_mem Volumes);
@@ -410,11 +411,11 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(cl_mem Volumes);
 		void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(cl_mem Volumes);
 
-		void WhitenDesignMatrices(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
+		void WhitenDesignMatrices(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
 
 		// Permutation second level
 		void SetupPermutationTestSecondLevel(cl_mem Volumes, cl_mem Mask);
-		void GeneratePermutationMatrixSecondLevel();		
+		void GeneratePermutationMatrixSecondLevel();
 		void CalculateStatisticalMapsSecondLevelPermutation(int permutation);
 		void CalculateStatisticalMapsGLMTTestSecondLevelPermutation();
 		void CalculateStatisticalMapsGLMFTestSecondLevelPermutation();
@@ -491,7 +492,7 @@ class BROCCOLI_LIB
 		void RemoveTransformationScaling(float* h_Registration_Parameters);
 
 		void SetupDetrendingRegressors(int N);
-		Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N);
+		Eigen::MatrixXd SetupGLMRegressorsFirstLevel(int N);
 		void SetupTTestFirstLevel(int N);
 		void SetupFTestFirstLevel(int N);
 		void DemeanRegressor(float* Regressor, int N);
@@ -523,8 +524,8 @@ class BROCCOLI_LIB
 		void SetGlobalAndLocalWorkSizesCalculateMagnitudes(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesClusterize(int DATA_W, int DATA_H, int DATA_D);
 
-		
-		
+
+
 		//------------------------------------------------
 		// OpenCL help functions
 		//------------------------------------------------
@@ -600,7 +601,10 @@ class BROCCOLI_LIB
 
 		// Statistical kernels
 		cl_kernel CalculateBetaWeightsGLMKernel, CalculateBetaWeightsGLMFirstLevelKernel;
-		cl_kernel CalculateStatisticalMapsGLMTTestFirstLevelKernel, CalculateStatisticalMapsGLMTTestKernel, CalculateStatisticalMapsGLMFTestKernel, CalculateStatisticalMapsGLMTTestPermutationKernel, CalculateStatisticalMapsGLMFTestPermutationKernel, RemoveLinearFitKernel;
+		cl_kernel CalculateStatisticalMapsGLMTTestKernel, CalculateStatisticalMapsGLMFTestKernel;
+		cl_kernel CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel,CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+		cl_kernel CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel,CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+		cl_kernel RemoveLinearFitKernel;
 		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedVolumesFirstLevelKernel;
 
 		// Create kernel errors
@@ -645,7 +649,9 @@ class BROCCOLI_LIB
 
 		// Statistical kernels
 		cl_int createKernelErrorCalculateBetaWeightsGLM,  createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-		cl_int createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel, createKernelErrorCalculateStatisticalMapsGLMTTest, createKernelErrorCalculateStatisticalMapsGLMFTest, createKernelErrorCalculateStatisticalMapsGLMTTestPermutation, createKernelErrorCalculateStatisticalMapsGLMFTestPermutation;
+		cl_int createKernelErrorCalculateStatisticalMapsGLMTTest, createKernelErrorCalculateStatisticalMapsGLMFTest;
+		cl_int createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation, createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+		cl_int createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation, createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
 		cl_int createKernelErrorEstimateAR4Models, createKernelErrorApplyWhiteningAR4;
 		cl_int createKernelErrorGeneratePermutedVolumesFirstLevel;
 		cl_int createKernelErrorRemoveLinearFit;
@@ -708,7 +714,9 @@ class BROCCOLI_LIB
 
 		// Statistical kernels
 		cl_int runKernelErrorCalculateBetaWeightsGLM, runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-		cl_int runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel, runKernelErrorCalculateStatisticalMapsGLMTTest, runKernelErrorCalculateStatisticalMapsGLMFTest, runKernelErrorCalculateStatisticalMapsGLMTTestPermutation, runKernelErrorCalculateStatisticalMapsGLMFTestPermutation;
+		cl_int runKernelErrorCalculateStatisticalMapsGLMTTest, runKernelErrorCalculateStatisticalMapsGLMFTest;
+		cl_int runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation, runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+		cl_int runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation, runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
 		cl_int runKernelErrorEstimateAR4Models, runKernelErrorApplyWhiteningAR4;
 		cl_int runKernelErrorGeneratePermutedVolumesFirstLevel;
 		cl_int runKernelErrorRemoveLinearFit;
@@ -811,7 +819,7 @@ class BROCCOLI_LIB
 		int T1_DATA_W, T1_DATA_H, T1_DATA_D;
 		int MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
 		int CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D;
-		
+
 		// Resolution variables
 		float EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
 		float TR;
@@ -820,7 +828,7 @@ class BROCCOLI_LIB
 
 		double processing_times[20];
 
-		
+
 		int SLICE_ORDER;
 
 		// Image registration variables
@@ -848,7 +856,7 @@ class BROCCOLI_LIB
 		double* motion_corrected_curve;
 		double relativeErrorEquationSystemSolution;
 
-		// Smoothing variables				
+		// Smoothing variables
 		int	SMOOTHING_FILTER_SIZE;
 		float EPI_Smoothing_FWHM;
 		float AR_Smoothing_FWHM;
@@ -1043,7 +1051,6 @@ class BROCCOLI_LIB
 		cl_mem		d_Statistical_Maps, d_Statistical_Maps_MNI;
 		cl_mem		c_Censor;
 		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrasts, c_ctxtxc_GLM;
-		cl_mem		d_Beta_Contrasts;
 		cl_mem		d_Residuals;
 		cl_mem		d_Residual_Variances, d_Residual_Variances_MNI;
 		cl_mem		c_Censored_Timepoints, c_Censored_Volumes;

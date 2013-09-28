@@ -46,7 +46,7 @@ end
 
 study = 'RhymeJudgment/ds003';
 
-subject = 13; %5 has bad skullstrip
+subject = 8; %5 has bad skullstrip
 
 if subject < 10
     subject = ['/sub00' num2str(subject)];
@@ -72,7 +72,7 @@ AR_smoothing_amount = 7.0;
 % Settings for image registration
 %--------------------------------------------------------------------------------------
 
-number_of_iterations_for_parametric_image_registration = 35;
+number_of_iterations_for_parametric_image_registration = 15;
 number_of_iterations_for_nonparametric_image_registration = 10;
 number_of_iterations_for_motion_correction = 3;
 coarsest_scale_T1_MNI = 8/voxel_size;
@@ -247,14 +247,20 @@ EPI_MNI_registration_parameters
 slice = round(0.55*MNI_sy);
 %figure; imagesc(flipud(squeeze(aligned_T1(slice,:,:))')); colormap gray
 figure; imagesc(flipud(squeeze(aligned_T1_nonparametric(slice,:,:))')); colormap gray
+title('Aligned T1')
 figure; imagesc(flipud(squeeze(aligned_EPI(slice,:,:))')); colormap gray
+title('Aligned EPI')
 figure; imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
-    
+title('MNI template')
+
 slice = round(0.47*MNI_sz);
 %figure; imagesc(aligned_T1(:,:,slice)); colormap gray
 figure; imagesc(aligned_T1_nonparametric(:,:,slice)); colormap gray
+title('Aligned T1')
 figure; imagesc(aligned_EPI(:,:,slice)); colormap gray
+title('Aligned EPI')
 figure; imagesc(MNI_brain(:,:,slice)); colormap gray
+title('MNI template')
 
 %figure; imagesc(flipud(squeeze(EPI(35,:,:))')); colormap gray
 
@@ -286,26 +292,22 @@ else
 end
 
 
+figure
+imagesc(MNI_brain(:,:,slice)); colormap gray; colorbar
+title('MNI template')
+
 %figure
-%imagesc(motion_corrected_volumes_opencl(:,:,20,10)); colorbar
-
-
-figure
-imagesc(smoothed_volumes_opencl(:,:,20,10)); colorbar
-
-
-figure
-imagesc(MNI(:,:,slice)); colormap gray; colorbar
-
-figure
-imagesc(beta_volumes(:,:,slice,1)); colormap gray;  colorbar
-title('Beta 1')
+%imagesc(beta_volumes(:,:,slice,1)); colormap gray;  colorbar
+%title('Beta 1')
 
 figure
 %imagesc(statistical_maps(20:end-19,20:end-19,slice,1)); colorbar
 %imagesc(statistical_maps(10:end-10,10:end-10,slice,4)); colorbar
 imagesc(statistical_maps(:,:,slice,1)); colorbar
 title('t-values')
+
+%figure
+%imagesc(ar1_estimates(:,:,20)); colorbar
 
 if beta_space == 1
     slice = round(0.45*MNI_sz);
@@ -314,15 +316,16 @@ else
 end
 
 figure
-imagesc(flipud(squeeze(MNI(slice,:,:))')); colormap gray; colorbar
+imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray; colorbar
+title('MNI template')
 
 %figure
 %imagesc(flipud(squeeze(fMRI_volumes(slice,:,:,2))')); colormap gray
 %title('fMRI')
 
-figure
-imagesc(flipud(squeeze(beta_volumes(slice,:,:,1))')); colorbar; colormap gray
-title('Beta 1')
+%figure
+%imagesc(flipud(squeeze(beta_volumes(slice,:,:,1))')); colorbar; colormap gray
+%title('Beta 1')
 
 
 figure
@@ -339,17 +342,16 @@ title('t-values')
 %imagesc(beta_volumes(:,:,slice,3)); colorbar
 %title('Beta 3')
 
+%figure
+%imagesc(flipud(squeeze(ar1_estimates(30,:,:,1))')); colorbar
+
+%figure
+%imagesc(residual_variances(:,:,slice)); colorbar
+%title('Residual variances')
+
 figure
-imagesc(residual_variances(:,:,slice)); colorbar
-title('Residual variances')
-
-
- 
-%figure
-%imagesc(ar1_estimates(:,:,16)); colorbar
-
-%figure
-%imagesc(flipud(squeeze(ar1_estimates(35,:,:,1))')); colorbar
+imagesc(design_matrix1); colormap gray
+title('Design matrix')
 
 %figure
 %imagesc(ar2_estimates(:,:,30)); colorbar
@@ -359,7 +361,6 @@ title('Residual variances')
  
 %figure
 %imagesc(ar4_estimates(:,:,30)); colorbar
-
 
 
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/firstlevelmaps.png

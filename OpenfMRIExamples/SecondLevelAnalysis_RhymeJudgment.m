@@ -38,7 +38,7 @@ if ispc
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/OpenfMRI/';
-    opencl_platform = 2;
+    opencl_platform = 0;
     opencl_device = 0;
     mex ../code/Matlab_Wrapper/SecondLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
 end
@@ -53,8 +53,9 @@ voxel_size = 2;
 %--------------------------------------------------------------------------------------
 
 number_of_permutations = 1000;
-inference_mode = 1; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
-cluster_defining_threshold = 5;
+inference_mode = 0; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
+cluster_defining_threshold = 2;
+statistical_test = 0; % 0 = t-test, 1 = F-test
 
 %--------------------------------------------------------------------------------------
 % Load MNI templates
@@ -272,7 +273,7 @@ permutation_matrix = zeros(10000,13);
 
 tic
 [beta_volumes, residuals, residual_variances, statistical_maps, design_matrix1, design_matrix2, cluster_indices, null_distribution, permuted_first_level_results] = ...
-    SecondLevelAnalysis(first_level_results,MNI_brain_mask, X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM, uint16(permutation_matrix'), number_of_permutations, inference_mode, cluster_defining_threshold, opencl_platform, opencl_device);
+    SecondLevelAnalysis(first_level_results,MNI_brain_mask, X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM, statistical_test, uint16(permutation_matrix'), number_of_permutations, inference_mode, cluster_defining_threshold, opencl_platform, opencl_device);
 toc
 
 
@@ -284,7 +285,7 @@ slice = round(0.5*MNI_sz);
 %imagesc(MNI(:,:,slice)); colormap gray
 
 figure
-imagesc(beta_volumes(:,:,slice,1)); colormap gray; colorbar
+imagesc(beta_volumes(:,:,slice)); colormap gray; colorbar
 title('Beta')
 
 figure

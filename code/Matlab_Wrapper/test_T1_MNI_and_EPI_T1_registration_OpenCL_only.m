@@ -111,7 +111,7 @@ dirs = dir([basepath study]);
 
 s = 4;
 
-for s = 9:length(dirs)
+for s = 3:length(dirs)
 %for s = 3:3
 %for s = 3:length(dirs)
 %for s = 13:length(dirs)

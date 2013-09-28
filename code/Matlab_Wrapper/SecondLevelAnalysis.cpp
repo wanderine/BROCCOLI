@@ -40,7 +40,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             
     int             MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS, NUMBER_OF_PERMUTATIONS; 
                     
-    int             NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_CONTRASTS, INFERENCE_MODE; 
+    int             NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_CONTRASTS, INFERENCE_MODE, STATISTICAL_TEST; 
     float           CLUSTER_DEFINING_THRESHOLD;
     
     int             OPENCL_PLATFORM, OPENCL_DEVICE;
@@ -63,11 +63,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<12)
+    if(nrhs<13)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>12)
+    if(nrhs>13)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -89,15 +89,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_X_GLM_double =  (double*)mxGetData(prhs[2]);    
     h_xtxxt_GLM_double =  (double*)mxGetData(prhs[3]);
     h_Contrasts_double = (double*)mxGetData(prhs[4]);
-    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[5]);
+    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[5]);    
+    STATISTICAL_TEST = (int)mxGetScalar(prhs[6]);    
     
-    h_Permutation_Matrix = (unsigned short int*)mxGetData(prhs[6]);
-    NUMBER_OF_PERMUTATIONS = (int)mxGetScalar(prhs[7]);    
-    INFERENCE_MODE = (int)mxGetScalar(prhs[8]);    
-    CLUSTER_DEFINING_THRESHOLD = (float)mxGetScalar(prhs[9]);    
+    h_Permutation_Matrix = (unsigned short int*)mxGetData(prhs[7]);
+    NUMBER_OF_PERMUTATIONS = (int)mxGetScalar(prhs[8]);    
+    INFERENCE_MODE = (int)mxGetScalar(prhs[9]);    
+    CLUSTER_DEFINING_THRESHOLD = (float)mxGetScalar(prhs[10]);    
     
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[10]);
-    OPENCL_DEVICE = (int)mxGetScalar(prhs[11]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[11]);
+    OPENCL_DEVICE = (int)mxGetScalar(prhs[12]);
     
     const int *ARRAY_DIMENSIONS_FIRST_LEVEL_RESULTS = mxGetDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_MNI = mxGetDimensions(prhs[1]);
@@ -262,6 +263,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetMNIWidth(MNI_DATA_W);
     BROCCOLI.SetMNIHeight(MNI_DATA_H);
     BROCCOLI.SetMNIDepth(MNI_DATA_D);        
+    BROCCOLI.SetStatisticalTest(STATISTICAL_TEST);
     BROCCOLI.SetInferenceMode(INFERENCE_MODE);
     BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
     BROCCOLI.SetNumberOfSubjects(NUMBER_OF_SUBJECTS);
@@ -304,7 +306,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
     int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 34; i++)
+    for (int i = 0; i < 59; i++)
     {
         if (createKernelErrors[i] != 0)
         {
@@ -322,7 +324,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
         
     int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 59; i++)
     {
         if (runKernelErrors[i] != 0)
         {

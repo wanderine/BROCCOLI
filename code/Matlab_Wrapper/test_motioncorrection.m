@@ -55,7 +55,7 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-for s = 50:51
+for s = 1:198
     
     number_of_iterations_for_motion_correction = 5;
     
@@ -94,9 +94,11 @@ for s = 50:51
     y_rotations = zeros(st,1);
     z_rotations = zeros(st,1);
     
-    %factor = 0.5;
-    factor = 0;
+    factor = 0.5;
+    %factor = 0;
     
+    [xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
+        
     for t = 2:st
         
         middle_x = (sx-1)/2;
@@ -122,24 +124,20 @@ for s = 50:51
         z_rotations(t) = z_rotation;
         
         R_x = [1                        0                           0;
-            0                        cos(x_rotation*pi/180)      -sin(x_rotation*pi/180);
-            0                        sin(x_rotation*pi/180)      cos(x_rotation*pi/180)];
+               0                        cos(x_rotation*pi/180)      -sin(x_rotation*pi/180);
+               0                        sin(x_rotation*pi/180)      cos(x_rotation*pi/180)];
         
         R_y = [cos(y_rotation*pi/180)   0                           sin(y_rotation*pi/180);
-            0                        1                           0;
-            -sin(y_rotation*pi/180)  0                           cos(y_rotation*pi/180)];
+               0                        1                           0;
+               -sin(y_rotation*pi/180)  0                           cos(y_rotation*pi/180)];
         
         R_z = [cos(z_rotation*pi/180)   -sin(z_rotation*pi/180)     0;
-            sin(z_rotation*pi/180)   cos(z_rotation*pi/180)      0;
-            0                        0                           1];
+               sin(z_rotation*pi/180)   cos(z_rotation*pi/180)      0;
+               0                        0                           1];
         
         Rotation_matrix = R_x * R_y * R_z;
         Rotation_matrix = Rotation_matrix(:);
-        
-        % Add rotation first
-        
-        [xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
-        
+                        
         rx_r = zeros(sy,sx,sz);
         ry_r = zeros(sy,sx,sz);
         rz_r = zeros(sy,sx,sz);
@@ -154,34 +152,32 @@ for s = 50:51
         
         rx_t(:) = x_translation;
         ry_t(:) = y_translation;
-        rz_t(:) = z_translation;
+        rz_t(:) = z_translation;                
         
-        %altered_volume = interp3(xi,yi,zi,original_volume,rx_r,ry_r,rz_r,'cubic');
+        % Add rotation and translation at the same time        
         altered_volume = interp3(xi,yi,zi,reference_volume,rx_r-rx_t,ry_r-ry_t,rz_r-rz_t,'cubic');
-        altered_volume(isnan(altered_volume)) = 0;
-        %altered_volume = altered_volume + 0.02*randn(size(altered_volume));
-        altered_volume = altered_volume + max(fMRI_volumes(:))*0.02*randn(size(altered_volume));
+        altered_volume(isnan(altered_volume)) = 0;        
         
-        % Then add translation
+        % Add noise
+        %altered_volume = altered_volume + max(fMRI_volumes(:))*0.02*randn(size(altered_volume));
+        %altered_volume = altered_volume + max(fMRI_volumes(:))*0.01*randn(size(altered_volume));
         
-        %[xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
-        
-        %altered_volume = interp3(xi,yi,zi,altered_volume,xi - rx_t,yi - ry_t,zi - rz_t,'cubic');
-        %altered_volume(isnan(altered_volume)) = 0;
-        
+                       
         generated_fMRI_volumes(:,:,:,t) = altered_volume;
     end
     
-    %new_file.hdr = EPI_nii.hdr;
-    %new_file.hdr.dime.datatype = 16;
-    %new_file.hdr.dime.bitpix = 16;
-    %new_file.img = single(generated_fMRI_volumes);
-    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_' subject '_with_random_motion.nii'];
-    %save_nii(new_file,filename);
+    % Save as nifti file
+    new_file.hdr = EPI_nii.hdr;
+    new_file.hdr.dime.datatype = 16;
+    new_file.hdr.dime.bitpix = 16;
+    new_file.img = single(generated_fMRI_volumes);    
+    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
+    filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
+    save_nii(new_file,filename);
     
     %%
     
-    %fMRI_volumes = generated_fMRI_volumes;
+    fMRI_volumes = generated_fMRI_volumes;
     
     %[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction);
     motion_parameters_cpu = zeros(st,12);
@@ -193,10 +189,19 @@ for s = 50:51
         phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
         MotionCorrection(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction,opencl_platform,opencl_device);
     toc
-    
-    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_' subject '_random_motion.mat'];
-    filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/original_motion/BROCCOLI_motion_corrected_rest_' subject '_original_motion.mat'];
+        
+    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+    filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.mat'];
     save(filename,'motion_corrected_volumes_opencl');
+    
+    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+    filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+    save(filename,'motion_parameters_opencl');
+    
+    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+    filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+    save(filename,'x_translations','y_translations','z_translations','x_rotations','y_rotations','z_rotations');
+    
     
     quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1_parametric_registration,'same');
     quadrature_filter_response_reference_2_cpu = convn(fMRI_volumes(:,:,:,1),f2_parametric_registration,'same');
@@ -272,63 +277,63 @@ for s = 50:51
     % phase_gradients_x_max_error = max(max(max(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
     
     
-    
-    figure
-    plot(x_translations,'g')
-    hold on
-    plot(motion_parameters_cpu(:,1),'r')
-    hold on
-    plot(motion_parameters_opencl(:,1),'b')
-    hold off
-    legend('Applied x translations','Estimated x translations CPU','Estimated x translations OpenCL')
-    
-    figure
-    plot(y_translations,'g')
-    hold on
-    plot(motion_parameters_cpu(:,2),'r')
-    hold on
-    plot(motion_parameters_opencl(:,2),'b')
-    hold off
-    legend('Applied y translations','Estimated y translations CPU','Estimated y translations OpenCL')
-    
-    figure
-    plot(z_translations,'g')
-    hold on
-    plot(motion_parameters_cpu(:,3),'r')
-    hold on
-    plot(motion_parameters_opencl(:,3),'b')
-    hold off
-    legend('Applied z translations','Estimated z translations CPU','Estimated z translations OpenCL')
-    
-    
-    figure
-    plot(x_rotations,'g')
-    hold on
-    plot(rotations_cpu(:,1),'r')
-    hold on
-    plot(motion_parameters_opencl(:,4),'b')
-    hold off
-    legend('Applied x rotations','Estimated x rotations CPU','Estimated x rotations OpenCL')
-    
-    
-    figure
-    plot(y_rotations,'g')
-    hold on
-    plot(rotations_cpu(:,2),'r')
-    hold on
-    plot(motion_parameters_opencl(:,5),'b')
-    hold off
-    legend('Applied y rotations','Estimated y rotations CPU','Estimated y rotations OpenCL')
-    
-    
-    figure
-    plot(z_rotations,'g')
-    hold on
-    plot(rotations_cpu(:,3),'r')
-    hold on
-    plot(motion_parameters_opencl(:,6),'b')
-    hold off
-    legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations OpenCL')
+%     
+%     figure
+%     plot(x_translations,'g')
+%     hold on
+%     plot(motion_parameters_cpu(:,1),'r')
+%     hold on
+%     plot(motion_parameters_opencl(:,1),'b')
+%     hold off
+%     legend('Applied x translations','Estimated x translations CPU','Estimated x translations OpenCL')
+%     
+%     figure
+%     plot(y_translations,'g')
+%     hold on
+%     plot(motion_parameters_cpu(:,2),'r')
+%     hold on
+%     plot(motion_parameters_opencl(:,2),'b')
+%     hold off
+%     legend('Applied y translations','Estimated y translations CPU','Estimated y translations OpenCL')
+%     
+%     figure
+%     plot(z_translations,'g')
+%     hold on
+%     plot(motion_parameters_cpu(:,3),'r')
+%     hold on
+%     plot(motion_parameters_opencl(:,3),'b')
+%     hold off
+%     legend('Applied z translations','Estimated z translations CPU','Estimated z translations OpenCL')
+%     
+%     
+%     figure
+%     plot(x_rotations,'g')
+%     hold on
+%     plot(rotations_cpu(:,1),'r')
+%     hold on
+%     plot(motion_parameters_opencl(:,4),'b')
+%     hold off
+%     legend('Applied x rotations','Estimated x rotations CPU','Estimated x rotations OpenCL')
+%     
+%     
+%     figure
+%     plot(y_rotations,'g')
+%     hold on
+%     plot(rotations_cpu(:,2),'r')
+%     hold on
+%     plot(motion_parameters_opencl(:,5),'b')
+%     hold off
+%     legend('Applied y rotations','Estimated y rotations CPU','Estimated y rotations OpenCL')
+%     
+%     
+%     figure
+%     plot(z_rotations,'g')
+%     hold on
+%     plot(rotations_cpu(:,3),'r')
+%     hold on
+%     plot(motion_parameters_opencl(:,6),'b')
+%     hold off
+%     legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations OpenCL')
     
     slice = 18;
     
@@ -340,26 +345,19 @@ for s = 50:51
     y_rotations_opencl = squeeze(motion_parameters_opencl(:,5));
     z_rotations_opencl = squeeze(motion_parameters_opencl(:,6));
     
-    max(abs(x_translations(:) - x_translations_opencl(:)))
-    max(abs(y_translations(:) - y_translations_opencl(:)))
-    max(abs(z_translations(:) - z_translations_opencl(:)))
+    mean(abs(x_translations(:) - x_translations_opencl(:)))
+    mean(abs(y_translations(:) - y_translations_opencl(:)))
+    mean(abs(z_translations(:) - z_translations_opencl(:)))
+      
+    mean(abs(x_rotations(:) - x_rotations_opencl(:)))
+    mean(abs(y_rotations(:) - y_rotations_opencl(:)))
+    mean(abs(z_rotations(:) - z_rotations_opencl(:)))
     
-    %mean(abs(x_translations(:) - x_translations_opencl(:)))
-    %mean(abs(y_translations(:) - y_translations_opencl(:)))
-    %mean(abs(z_translations(:) - z_translations_opencl(:)))
-    
-    max(abs(x_rotations(:) - x_rotations_opencl(:)))
-    max(abs(y_rotations(:) - y_rotations_opencl(:)))
-    max(abs(z_rotations(:) - z_rotations_opencl(:)))
-    
-    pause
+    %pause
     close all
     
 end
 
-%mean(abs(x_rotations(:) - x_rotations_opencl(:)))
-%mean(abs(y_rotations(:) - y_rotations_opencl(:)))
-%mean(abs(z_rotations(:) - z_rotations_opencl(:)))
 
 %figure
 %imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar

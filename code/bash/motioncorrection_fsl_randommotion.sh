@@ -5,24 +5,20 @@ clear
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion
 results_directory=/data/andek/BROCCOLI_test_data/FSL
 
-subject=1
-
 date1=$(date +"%s")
 
-for file in ${data_directory}/*.nii
+for subject in {1..198}
 do
 
 	echo $subject
 
-	if [ "$subject" -lt "199" ]
-    then
+	mcflirt -in ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii -refvol 0  -plots -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion_no_noise.nii
 
-		mcflirt -in ${file} -refvol 0  -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion.nii
+	#mcflirt -in ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_1percent_noise.nii -refvol 0  -plots -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion_1percent_noise.nii
+
+	#mcflirt -in ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion.nii -refvol 0  -plots -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion.nii
+
 	
-	fi
-
-	subject=$((subject + 1))	
-
 done
 
 date2=$(date +"%s")
