@@ -31,7 +31,7 @@ close all
 if ispc
     addpath('D:\nifti_matlab')
     basepath = 'D:\OpenfMRI\';
-    opencl_platform = 0;
+    opencl_platform = 0; % 0 Nvidia, 1 Intel, 2 AMD
     opencl_device = 0;
     %mex -g ../code/Matlab_Wrapper/SecondLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     mex ../code/Matlab_Wrapper/SecondLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
@@ -44,7 +44,7 @@ elseif isunix
 end
 
 study = 'RhymeJudgment/ds003_models';
-number_of_subjects = 13;
+number_of_subjects = 52;
 
 voxel_size = 2;
 
@@ -52,7 +52,7 @@ voxel_size = 2;
 % Statistical settings
 %--------------------------------------------------------------------------------------
 
-number_of_permutations = 1000;
+number_of_permutations = 10000;
 inference_mode = 0; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
 cluster_defining_threshold = 2;
 statistical_test = 0; % 0 = t-test, 1 = F-test
@@ -83,6 +83,9 @@ for subject = 1:13
     first_level_results(:,:,:,subject) = beta_volume;
 end
 
+first_level_results(:,:,:,14:26) = first_level_results(:,:,:,1:13);
+first_level_results(:,:,:,27:39) = first_level_results(:,:,:,1:13);
+first_level_results(:,:,:,40:52) = first_level_results(:,:,:,1:13);
 
 %--------------------------------------------------------------------------------------
 % Create GLM regressors
@@ -100,16 +103,25 @@ for subject = 1:number_of_subjects
     
 end
 
+% X_GLM(1:13,1:13) = eye(13);
+% for subject = 1:number_of_subjects
+%     
+%     for r = 14:nr
+%         X_GLM(subject,r) = 1;
+%     end        
+%     
+% end
+% 
+% subject = 1;
+% for r = 14:nr
+%     X_GLM(subject,r) = -1;
+%     subject = subject + 1;
+% end
 
-%for subject = 1:6
-%   X_GLM(subject,1) = 1;
-%end
-%for subject = 7:13
-%   X_GLM(subject,1) = -1;
-%end
 
-xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
+%xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
+xtxxt_GLM = pinv(X_GLM);
 
 
 
@@ -119,8 +131,8 @@ xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 if nr == 1
     
-    contrasts = [1];
-    %contrasts = [1; -1; 3; 8; 99];
+    %contrasts = [1];
+    contrasts = [1; -1; 3; 8; 99];
     
 elseif nr == 2
     
@@ -245,7 +257,8 @@ end
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
-    ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
+    %ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
+    ctxtxc_GLM(i) = 1;
 end
 
 

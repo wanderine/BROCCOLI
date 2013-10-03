@@ -43,8 +43,8 @@ elseif isunix
     %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
     mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     
-    opencl_platform = 2;
-    opencl_device = 1;
+    opencl_platform = 1;
+    opencl_device = 0;
 end
 
 
@@ -173,8 +173,8 @@ for s = 1:20
     new_file.img = single(generated_fMRI_volumes);    
     %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
     %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
-    filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
-    save_nii(new_file,filename);
+    %filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
+    %save_nii(new_file,filename);
     
     %%
     
@@ -201,8 +201,8 @@ for s = 1:20
     
     %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
     %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    save(filename,'x_translations','y_translations','z_translations','x_rotations','y_rotations','z_rotations');
+    %filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+    %save(filename,'x_translations','y_translations','z_translations','x_rotations','y_rotations','z_rotations');
     
     
     quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1_parametric_registration,'same');

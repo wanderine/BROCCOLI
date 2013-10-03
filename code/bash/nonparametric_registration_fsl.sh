@@ -3,7 +3,7 @@
 clear
 
 
-MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz
+MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz
 
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/
 results_directory=/data/andek/BROCCOLI_test_data/FSL
@@ -18,10 +18,10 @@ do
 	
 	rm anat_affine_fsl*
 
-	if [ "$subject" -gt "191" ]
+	if [ "$subject" -lt "11" ]
     then
-		flirt -in ${dir}/anat/mprage_skullstripped.nii.gz -ref ${MNI_TEMPLATE} -out anat_affine_fsl.nii
-		fnirt --ref=${MNI_TEMPLATE} --in=anat_affine_fsl.nii.gz --iout=${results_directory}/FSL_warped_${subject}.nii
+		time flirt -in ${dir}/anat/mprage_skullstripped.nii.gz -ref ${MNI_TEMPLATE} -out anat_affine_fsl.nii
+		time fnirt --ref=${MNI_TEMPLATE} --in=anat_affine_fsl.nii.gz --iout=${results_directory}/FSL_warped_${subject}_.nii
 	fi
 	
 	subject=$((subject + 1))
