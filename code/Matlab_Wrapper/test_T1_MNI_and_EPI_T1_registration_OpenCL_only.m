@@ -79,7 +79,7 @@ study = 'Cambridge';
 subject = 2;
 
 skullstripped = 1;
-voxel_size = 2;
+voxel_size = 1;
 
 
 number_of_iterations_for_parametric_image_registration = 5;
