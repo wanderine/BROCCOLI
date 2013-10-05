@@ -256,13 +256,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
        
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
     
-    BROCCOLI.SetInputFirstLevelResults(h_First_Level_Results);
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
+        
+    BROCCOLI.SetInputFirstLevelResults(h_First_Level_Results);        
     BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
     BROCCOLI.SetMNIWidth(MNI_DATA_W);
     BROCCOLI.SetMNIHeight(MNI_DATA_H);
-    BROCCOLI.SetMNIDepth(MNI_DATA_D);        
+    BROCCOLI.SetMNIDepth(MNI_DATA_D);                
     BROCCOLI.SetStatisticalTest(STATISTICAL_TEST);
     BROCCOLI.SetInferenceMode(INFERENCE_MODE);
     BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
@@ -271,22 +272,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
     BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
     BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
-    BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
+    BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);        
     BROCCOLI.SetContrasts(h_Contrasts);
     BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
-    //BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);
-    BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
-    BROCCOLI.SetOutputResiduals(h_Residuals);
-    BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
+    BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
+    BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);        
+    BROCCOLI.SetOutputResiduals(h_Residuals);        
+    BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);        
     BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
     BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
-    BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);
+    BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);       
     
-     /*
-     * Error checking     
-     */
-
+    
     int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
 	int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
 	int createContextError = BROCCOLI.GetOpenCLCreateContextError();
@@ -295,7 +293,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 	int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
 	int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
 	int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
-          
+    
+    
     mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
     mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
     mexPrintf("Create context error is %d \n",createContextError);
@@ -304,6 +303,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Create program error is %d \n",createProgramError);
     mexPrintf("Build program error is %d \n",buildProgramError);
     mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
+    
     
     int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
     for (int i = 0; i < 59; i++)
@@ -342,6 +342,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexPrintf("OPENCL error detected, aborting \n");
     }    
+     
+    
+    
     
     unpack_float2double_volumes(h_Permuted_First_Level_Results_double, h_Permuted_First_Level_Results, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);  
     
@@ -357,7 +360,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);        
         
     unpack_float2double(h_Permutation_Distribution_double, h_Permutation_Distribution, NUMBER_OF_PERMUTATIONS);  
-    
+            
     // Free all the allocated memory on the host
     
     mxFree(h_Design_Matrix);

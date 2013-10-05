@@ -47,8 +47,9 @@ fslmerge -t betas49.nii.gz /data/andek/OpenfMRI/RhymeJudgment/ds003_models/sub00
 						   /data/andek/OpenfMRI/RhymeJudgment/ds003_models/sub001/model/model001/task001.gfeat/cope1.feat/stats/cope1.nii.gz \
 						   /data/andek/OpenfMRI/RhymeJudgment/ds003_models/sub001/model/model001/task001.gfeat/cope1.feat/stats/cope1.nii.gz \
 						   /data/andek/OpenfMRI/RhymeJudgment/ds003_models/sub001/model/model001/task001.gfeat/cope1.feat/stats/cope1.nii.gz \
+						   
 
 
-time randomise -i betas49.nii.gz -d design17.mat -t design17.con -o permtest_c -n 1000  -m /home/andek/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz -N -x
+time randomise -i betas49.nii.gz -d design17.mat -t design17.con -o permtest_ -n 1000 -m /home/andek/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz -N -x -P
 
 

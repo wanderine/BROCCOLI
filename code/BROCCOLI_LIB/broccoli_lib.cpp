@@ -304,6 +304,7 @@ void BROCCOLI_LIB::SetStartValues()
 	buildProgramError = 0;
 	getProgramBuildInfoError = 0;
 
+	/*
 	OpenCLErrorDescriptions[0] = "CL_SUCCESS";
 	OpenCLErrorDescriptions[1] = "CL_DEVICE_NOT_FOUND";
 	OpenCLErrorDescriptions[2] = "CL_DEVICE_NOT_AVAILABLE";
@@ -352,7 +353,7 @@ void BROCCOLI_LIB::SetStartValues()
 	OpenCLErrorDescriptions[44] = "CL_INVALID_BUFFER_SIZE";
 	OpenCLErrorDescriptions[45] = "CL_INVALID_MIP_LEVEL";
 	OpenCLErrorDescriptions[46] = "CL_INVALID_GLOBAL_WORK_SIZE";
-
+	*/
 
 }
 
@@ -6201,7 +6202,6 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 
 	// Allocate memory on device
 	d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	d_Permuted_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
 	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy data to device
@@ -6244,7 +6244,7 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 	//clEnqueueReadBuffer(commandQueue, d_Cluster_Indices, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), h_Cluster_Indices, 0, NULL, NULL);
 
 	// Estimate null distribution
-	h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
+	//h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
 
 
 
@@ -6269,10 +6269,9 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 
 	clEnqueueReadBuffer(commandQueue, d_Permuted_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Permuted_First_Level_Results, 0, NULL, NULL);
 
-	free(h_Permutation_Matrix);
+	//free(h_Permutation_Matrix);
 
 	clReleaseMemObject(d_First_Level_Results);
-	clReleaseMemObject(d_Permuted_First_Level_Results);
 	clReleaseMemObject(d_MNI_Brain_Mask);
 
 	clReleaseMemObject(c_X_GLM);
@@ -8370,7 +8369,6 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 	}
 	else if (STATISTICAL_TEST == FTEST)
 	{
-		// Reset all statistical maps
 		SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
 
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
@@ -8684,7 +8682,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 	SetupPermutationTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
 
 	// Generate a random permutation matrix
-	GeneratePermutationMatrixSecondLevel();
+	//GeneratePermutationMatrixSecondLevel();
 
     // Loop over all the permutations, save the maximum test value from each permutation
 
