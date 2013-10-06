@@ -31,8 +31,8 @@ close all
 if ispc
     addpath('D:\nifti_matlab')    
     basepath = 'D:\OpenfMRI\';    
-    opencl_platform = 2; % 0 Nvidia, 1 Intel, 2 AMD
-    opencl_device = 1;
+    opencl_platform = 0; % 0 Nvidia, 1 Intel, 2 AMD
+    opencl_device = 0;
     %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
 elseif isunix
@@ -46,7 +46,7 @@ end
 
 study = 'RhymeJudgment/ds003';
 
-subject = 8; %5 has bad skullstrip
+subject = 4; %5 has bad skullstrip
 
 if subject < 10
     subject = ['/sub00' num2str(subject)];
@@ -54,8 +54,8 @@ else
     subject = ['/sub0' num2str(subject)];
 end
 
-voxel_size = 2;
-beta_space = 1; % 0 = EPI, 1 = MNI
+voxel_size = 1;
+beta_space = 0; % 0 = EPI, 1 = MNI
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
@@ -208,10 +208,12 @@ end
 %--------------------------------------------------------------------------------------
 
 % Contrasts for confounding regressors are automatically set to zeros by BROCCOLI 
-contrasts = [1  0; 
-             0  1; 
-             1  1; 
-             1 -1]; 
+contrasts = [1  0];
+    
+%contrasts = [1  0; 
+%             0  1; 
+%             1  1; 
+%             1 -1]; 
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
@@ -227,7 +229,7 @@ ctxtxc_GLM
 tic
 [beta_volumes, residuals, residual_variances, statistical_maps, T1_MNI_registration_parameters, EPI_T1_registration_parameters, ...
  EPI_MNI_registration_parameters, motion_parameters, motion_corrected_volumes_opencl, smoothed_volumes_opencl ...
- ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates, design_matrix1, design_matrix2, aligned_T1, aligned_T1_nonparametric, aligned_EPI, cluster_indices] = ... 
+ ar1_estimates, ar2_estimates, ar3_estimates, ar4_estimates, design_matrix1, design_matrix2, aligned_T1, aligned_T1_nonparametric, aligned_EPI, cluster_indices, whitened_models] = ... 
 FirstLevelAnalysis(fMRI_volumes,T1,MNI,MNI_brain,MNI_brain_mask,EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,T1_voxel_size_x,T1_voxel_size_y,T1_voxel_size_z,MNI_voxel_size_x,MNI_voxel_size_y,MNI_voxel_size_z, ...
 f1_parametric_registration,f2_parametric_registration,f3_parametric_registration, ...
 f1_nonparametric_registration, f2_nonparametric_registration, f3_nonparametric_registration, f4_nonparametric_registration, f5_nonparametric_registration, f6_nonparametric_registration, ...

@@ -5550,7 +5550,8 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 												__private int DATA_H, 
 												__private int DATA_D, 
 												__private int NUMBER_OF_VOLUMES, 
-												__private int NUMBER_OF_REGRESSORS)
+												__private int NUMBER_OF_REGRESSORS,
+												__private int NUMBER_OF_INVALID_TIMEPOINTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5584,9 +5585,9 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 
 	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
 	// Loop over volumes
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	for (int v = NUMBER_OF_INVALID_TIMEPOINTS; v < NUMBER_OF_VOLUMES; v++)
 	{
-		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] * c_Censored_Timepoints[v];
+		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		// Loop over regressors
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
@@ -9301,7 +9302,7 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 		// Loop over regressors
 	//	CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 	//}
-    
+
     // Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
 	// Loop over volumes
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
@@ -9315,8 +9316,8 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
             //beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
 		}
 	}
-    
-    
+
+
     // Calculate sigma squared
 	vareps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
@@ -9324,15 +9325,15 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
         //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{ 
+		{
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
             //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
 		}
-		vareps += eps*eps;		
+		vareps += eps*eps;
 	}
 	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
-  
-    
+
+
     /*
     // Calculate the mean of the error eps
 	meaneps = 0.0f;
@@ -9341,11 +9342,11 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
         //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{ 
+		{
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
             //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
 		}
-		meaneps += eps;		
+		meaneps += eps;
 	}
 	meaneps /= ((float)NUMBER_OF_VOLUMES);
 
@@ -9363,20 +9364,20 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 		vareps += (eps - meaneps) * (eps - meaneps);
 	}
 	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
-	
+
      */
 	// Loop over contrasts and calculate t-values
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{        
+	{
 		float contrast_value = 0.0f;
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}     
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		        
+		}
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
 	}
-    
-    
+
+
     /*
 	// Calculate the mean and variance of the error eps
 	meaneps = 0.0f;
@@ -9394,7 +9395,7 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 	}
 	vareps = vareps / (n - 1.0f);
     */
-    
+
 	// Loop over contrasts and calculate t-values
 
 	//for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
@@ -9403,8 +9404,8 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 	//	contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
 	//	Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
 	//}
-    
-          
+
+
 
 	//int c = 0;
 	//float contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);

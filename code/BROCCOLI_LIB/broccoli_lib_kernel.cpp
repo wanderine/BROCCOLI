@@ -5550,7 +5550,8 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 												__private int DATA_H, 
 												__private int DATA_D, 
 												__private int NUMBER_OF_VOLUMES, 
-												__private int NUMBER_OF_REGRESSORS)
+												__private int NUMBER_OF_REGRESSORS,
+												__private int NUMBER_OF_INVALID_TIMEPOINTS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -5584,9 +5585,9 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 
 	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
 	// Loop over volumes
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	for (int v = NUMBER_OF_INVALID_TIMEPOINTS; v < NUMBER_OF_VOLUMES; v++)
 	{
-		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] * c_Censored_Timepoints[v];
+		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		// Loop over regressors
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{

@@ -91,10 +91,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double     		*h_Aligned_T1_Volume_double, *h_Aligned_T1_Volume_NonParametric_double, *h_Aligned_EPI_Volume_double;
     double     		*h_Beta_Volumes_double, *h_Residuals_double, *h_Residual_Variances_double, *h_Statistical_Maps_double;
     double          *h_Design_Matrix_double, *h_Design_Matrix2_double;
+    double          *h_Whitened_Models_double;
     int             *h_Cluster_Indices_Out, *h_Cluster_Indices;
     float           *h_Aligned_T1_Volume, *h_Aligned_T1_Volume_NonParametric, *h_Aligned_EPI_Volume;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;    
     float           *h_Design_Matrix, *h_Design_Matrix2;    
+    float           *h_Whitened_Models;
     float           *h_EPI_Mask;
     
     //---------------------
@@ -108,11 +110,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<20)
+    if(nlhs<21)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>20)
+    if(nlhs>21)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -457,6 +459,18 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[19] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_CLUSTER_INDICES,mxINT32_CLASS, mxREAL);
     h_Cluster_Indices_Out = (int*)mxGetData(plhs[19]);   
     
+    NUMBER_OF_DIMENSIONS = 5;
+    int ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[5];
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[0] = EPI_DATA_H;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[1] = EPI_DATA_W;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[2] = EPI_DATA_D;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[3] = EPI_DATA_T;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+    
+    plhs[20] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_WHITENED_MODELS,mxDOUBLE_CLASS, mxREAL);
+    h_Whitened_Models_double = (double*)mxGetData(plhs[20]);   
+    
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
@@ -535,6 +549,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     h_Design_Matrix                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
     h_Design_Matrix2                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
+    
+    h_Whitened_Models                   = (float*)mxMalloc(EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
     
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
@@ -664,6 +680,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
     BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
     BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
+    BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
     
     BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
     BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric);
@@ -695,7 +712,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
     int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 34; i++)
+    for (int i = 0; i < 60; i++)
     {
         if (createKernelErrors[i] != 0)
         {
@@ -713,7 +730,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
         
     int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 20; i++)
+    for (int i = 0; i < 60; i++)
     {
         if (runKernelErrors[i] != 0)
         {
@@ -748,6 +765,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volumes(h_Smoothed_fMRI_Volumes_double, h_Smoothed_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
     
     unpack_int2int_volume(h_Cluster_Indices_Out, h_Cluster_Indices, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+    
+    for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+    {
+        unpack_float2double_volumes(&h_Whitened_Models_double[EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * r], &h_Whitened_Models[EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * r], EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+    }
     
     if (BETA_SPACE == MNI)
     {
@@ -847,6 +869,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_AR2_Estimates);
     mxFree(h_AR3_Estimates);
     mxFree(h_AR4_Estimates);
+    
+    mxFree(h_Whitened_Models);
     
     //mexAtExit(cleanUp);
     

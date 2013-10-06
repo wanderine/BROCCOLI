@@ -214,6 +214,7 @@ class BROCCOLI_LIB
 		void SetOutputEPIMask(float*);
 		void SetOutputClusterIndices(int*);
 		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
+		void SetOutputWhitenedModels(float* whitened_models);
 
 		// Output image registration
 		void SetOutputMotionParameters(float* output);
@@ -412,6 +413,8 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(cl_mem Volumes);
 
 		void WhitenDesignMatrices(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
+		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
+		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 
 		// Permutation second level
 		void SetupPermutationTestSecondLevel(cl_mem Volumes, cl_mem Mask);
@@ -977,6 +980,7 @@ class BROCCOLI_LIB
 		int			*h_Cluster_Indices;
 		cl_mem		 d_Cluster_Indices;
 		int			*h_Cluster_Sizes;
+		float		*h_Whitened_Models;
 
 		// Random permutation pointers
 		uint16		*h_Permutation_Matrix;
