@@ -10,18 +10,21 @@ if ispc
 elseif isunix
     addpath('/data/andek/spm8/')
     data_path = '/data/andek/BROCCOLI_test_data/Cambridge/';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalize/';
+    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalize/';
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/temp/';
 end
 
 try
     system(['rm' ' batch_preprocessing.mat']);
 end
-    
+
+voxel_size = 2;
+
 dirs = dir(data_path);
 
 % Loop over subjects
 tic
-for s = 1:198
+for s = 1:10
     
     
     %% Initialise SPM defaults
@@ -44,11 +47,11 @@ for s = 1:198
     pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.source = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/mprage_skullstripped.nii,1']};    
     pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.wtsrc = '';
     pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.resample = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/mprage_skullstripped.nii']};    
-    pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.template = {'/home/andek/fsl/data/standard/MNI152_T1_1mm_brain_.nii'};
+    pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.template = {['/home/andek/fsl/data/standard/MNI152_T1_' num2str(voxel_size) 'mm_brain_.nii']};
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.weight = '';
     %pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 8;
     % Try to match smoothness of T1 volume
-    pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 2; % 
+    pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 4; % 
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smoref = 0;
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.regtype = 'mni';
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.cutoff = 25;
@@ -61,10 +64,15 @@ for s = 1:198
     %                                                         78 76 85];
      
     % Make bigger bounding box to get same number of voxels as MNI template
-    pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.bb = [-91 -126 -72
-                                                             90 91 109];
+    if (voxel_size == 1)
+        pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.bb = [-91 -126 -72
+                                                                  90   91 109];
+    elseif (voxel_size == 2)
+        pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.bb = [-90 -126 -72
+                                                                  90   90 108];
+    end
 
-    pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.vox = [1 1 1];
+    pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.vox = [voxel_size voxel_size voxel_size];
     pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.interp = 1;
     pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.wrap = [0 0 0];
     pjobs{2}.spatial{1}.normalise{1}.estwrite.roptions.prefix = 'w';

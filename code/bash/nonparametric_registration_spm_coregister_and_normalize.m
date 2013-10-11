@@ -10,7 +10,7 @@ if ispc
 elseif isunix
     addpath('/data/andek/spm8/')
     data_path = '/data/andek/BROCCOLI_test_data/Cambridge/';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalize/';
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/coregister_normalize/';
 end
 
 try
@@ -61,7 +61,7 @@ for s = 1:198
     pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.template = {'/home/andek/fsl/data/standard/MNI152_T1_1mm_brain_.nii'};
     pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.weight = '';
     %pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 8;
-    pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 0;
+    pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 4;
     pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.smoref = 0;
     pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.regtype = 'mni';
     pjobs{3}.spatial{1}.normalise{1}.estwrite.eoptions.cutoff = 25;

@@ -77,7 +77,7 @@ for s = 1:N
     T1 = load_nii([basepath_SPM_Segment '/SPM_warped_subject_'  num2str(s) '.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
-    mean_T1_volume_SPM_Segment = mean_T1_volume_SPM + T1; 
+    mean_T1_volume_SPM_Segment = mean_T1_volume_SPM_Segment + T1; 
     T1_masked = T1(MNI_mask == 1);    
     correlation_SPM_Segment(s) = corr2(T1_masked(:),MNI_masked(:));
     ssd_SPM_Segment(s) = sum( (T1_masked(:) - MNI_masked(:)).^2 );
@@ -204,10 +204,10 @@ std_T1_volume_BROCCOLI = std_T1_volume_BROCCOLI / N;
 close all
 
 figure
-image([ MNI(:,:,85)*50  mean_T1_volume_SPM_Normalize(:,:,85)*75 mean_T1_volume_SPM_Segment(:,:,85)*75   ; mean_T1_volume_FSL(:,:,85)*75 mean_T1_volume_AFNI(:,:,85)*75  mean_T1_volume_BROCCOLI(:,:,85)*75 ]); colormap gray
+image([ MNI(:,:,85)'*50  mean_T1_volume_SPM_Normalize(:,:,85)'*75 mean_T1_volume_SPM_Segment(:,:,85)'*75   ; mean_T1_volume_FSL(:,:,85)'*75 mean_T1_volume_AFNI(:,:,85)'*75  mean_T1_volume_BROCCOLI(:,:,85)'*75 ]); colormap gray
 axis equal
 axis off
-%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial.png
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_.png
 
 %text(50,13,'MNI','FontSize',15,'Color','w')
 %text(270,13,'SPM','FontSize',15,'Color','w')
@@ -216,29 +216,38 @@ axis off
 %text(880,13,'BROCCOLI','FontSize',15,'Color','w')
 %
 
-figure
-imagesc([ std_T1_volume_SPM_Normalize(:,:,85) std_T1_volume_SPM_Segment(:,:,85) std_T1_volume_FSL(:,:,85) std_T1_volume_AFNI(:,:,85)  std_T1_volume_BROCCOLI(:,:,85) ]); colormap gray
-axis equal
-axis off
+%figure
+%imagesc([ std_T1_volume_SPM_Normalize(:,:,85) std_T1_volume_SPM_Segment(:,:,85) std_T1_volume_FSL(:,:,85) std_T1_volume_AFNI(:,:,85)  std_T1_volume_BROCCOLI(:,:,85) ]); colormap gray
+%axis equal
+%axis off
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_std.png
 
 figure
 image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 flipud(squeeze(mean_T1_volume_SPM_Segment(85,:,:))')*75    ; flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75  ]); colormap gray
 axis equal
 axis off
-%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal.png
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_.png
 
 
-figure
-imagesc([ flipud(squeeze(std_T1_volume_SPM_Normalize(85,:,:))') flipud(squeeze(std_T1_volume_SPM_Segment(85,:,:))') flipud(squeeze(std_T1_volume_FSL(85,:,:))') flipud(squeeze(std_T1_volume_AFNI(85,:,:))') flipud(squeeze(std_T1_volume_BROCCOLI(85,:,:))')  ]); colormap gray
-axis equal
-axis off
+%figure
+%imagesc([ flipud(squeeze(std_T1_volume_SPM_Normalize(85,:,:))') flipud(squeeze(std_T1_volume_SPM_Segment(85,:,:))') flipud(squeeze(std_T1_volume_FSL(85,:,:))') flipud(squeeze(std_T1_volume_AFNI(85,:,:))') flipud(squeeze(std_T1_volume_BROCCOLI(85,:,:))')  ]); colormap gray
+%axis equal
+%axis off
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_std.png
 
-% Calculate mean standard deviation from MNI template
-%sum(std_T1_volume_AFNI(:)) / sum(MNI_mask(:))
-%sum(std_T1_volume_FSL(:)) / sum(MNI_mask(:))
-%sum(std_T1_volume_BROCCOLI(:)) / sum(MNI_mask(:))
+
+
+mean(correlation_SPM_Normalize)
+mean(correlation_SPM_Segment)
+mean(correlation_FSL)
+mean(correlation_AFNI)
+mean(correlation_BROCCOLI)
+
+std(correlation_SPM_Normalize)
+std(correlation_SPM_Segment)
+std(correlation_FSL)
+std(correlation_AFNI)
+std(correlation_BROCCOLI)
 
 mean(mutual_information_SPM_Normalize)
 mean(mutual_information_SPM_Segment)
@@ -252,17 +261,6 @@ std(mutual_information_FSL)
 std(mutual_information_AFNI)
 std(mutual_information_BROCCOLI)
 
-mean(correlation_SPM_Normalize)
-mean(correlation_SPM_Segment)
-mean(correlation_FSL)
-mean(correlation_AFNI)
-mean(correlation_BROCCOLI)
-
-std(correlation_SPM_Normalize)
-std(correlation_SPM_Segment)
-std(correlation_FSL)
-std(correlation_AFNI)
-std(correlation_BROCCOLI)
 
 mean(ssd_SPM_Normalize)
 mean(ssd_SPM_Segment)

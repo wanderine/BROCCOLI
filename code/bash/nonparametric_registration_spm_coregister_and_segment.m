@@ -10,18 +10,20 @@ if ispc
 elseif isunix
     addpath('/data/andek/spm8/')
     data_path = '/data/andek/BROCCOLI_test_data/Cambridge/';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/segment/';
+    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/segment/';
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/temp/';
 end
 
 try
     system(['rm' ' batch_preprocessing.mat']);
 end
-    
+   
+voxel_size = 1;
 dirs = dir(data_path);
 
 % Loop over subjects
 tic
-for s = 1:198
+for s = 1:10
     
     
     %% Initialise SPM defaults
@@ -41,7 +43,7 @@ for s = 1:198
 
     %% Coregister settings
     
-    pjobs{2}.spatial{1}.coreg{1}.estwrite.ref = {'/home/andek/fsl/data/standard/MNI152_T1_1mm_brain_.nii,1'};
+    pjobs{2}.spatial{1}.coreg{1}.estwrite.ref = {['/home/andek/fsl/data/standard/MNI152_T1_' num2str(voxel_size) 'mm_brain_.nii,1']};
     pjobs{2}.spatial{1}.coreg{1}.estwrite.source = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/mprage_skullstripped.nii,1']};    
     pjobs{2}.spatial{1}.coreg{1}.estwrite.other = {''};
     pjobs{2}.spatial{1}.coreg{1}.estwrite.eoptions.cost_fun = 'nmi';
@@ -68,9 +70,9 @@ for s = 1:198
                                                '/home/andek/spm8/tpm/csf.nii'
                                                };
     pjobs{3}.spatial{1}.preproc.opts.ngaus = [2
-                                                 2
-                                                 2
-                                                 4];
+                                              2
+                                              2
+                                              4];
     pjobs{3}.spatial{1}.preproc.opts.regtype = 'mni';
     pjobs{3}.spatial{1}.preproc.opts.warpreg = 1;
     pjobs{3}.spatial{1}.preproc.opts.warpco = 25;
@@ -88,10 +90,16 @@ for s = 1:198
     pjobs{4}.spatial{1}.normalise{1}.write.roptions.preserve = 0;
     %pjobs{4}.spatial{1}.normalise{1}.write.roptions.bb = [-78 -112 -50
     %                                                      78 76 85];
-    % Make bigger bounding box to get same number of voxels as MNI template
-    pjobs{4}.spatial{1}.normalise{1}.write.roptions.bb = [-91 -126 -72
-                                                             90 91 109];                                                      
-    pjobs{4}.spatial{1}.normalise{1}.write.roptions.vox = [1 1 1];
+    % Make bigger bounding box to get same number of voxels as MNI template                                                       
+    if (voxel_size == 1)
+        pjobs{4}.spatial{1}.normalise{1}.write.roptions.bb = [-91 -126 -72
+                                                               90   91 109];
+    elseif (voxel_size == 2)
+        pjobs{4}.spatial{1}.normalise{1}.write.roptions.bb = [-90 -126 -72
+                                                               90   90 108];
+    end
+    
+    pjobs{4}.spatial{1}.normalise{1}.write.roptions.vox = [voxel_size voxel_size voxel_size];
     pjobs{4}.spatial{1}.normalise{1}.write.roptions.interp = 1;
     pjobs{4}.spatial{1}.normalise{1}.write.roptions.wrap = [0 0 0];
     pjobs{4}.spatial{1}.normalise{1}.write.roptions.prefix = 'w';

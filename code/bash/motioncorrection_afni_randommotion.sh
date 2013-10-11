@@ -12,16 +12,14 @@ do
 
 	echo $subject
 
-	3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise_temp.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii
+	3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii
 
-	#3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_1percent_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_1percent_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_1percent_noise.nii
+	#3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_1percent.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_1percent_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_1percent_noise.nii
 
-	#3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_1percent_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_1percent_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_1percent_noise.nii
-	
+	#3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion.nii
+
 done
 
 date2=$(date +"%s")
 diff=$(($date2-$date1))
 echo "$(($diff / 60)) minutes and $(($diff % 60)) seconds elapsed."
-
-
