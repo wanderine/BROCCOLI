@@ -30,7 +30,7 @@ close all
 
 % Set some paths, depending on Windows or Linux
 if ispc
-    addpath('D:\nifti_matlab') % Change to your folder for nifti matlab
+    addpath('C:\nifti_matlab') % Change to your folder for nifti matlab
     basepath = '../test_data/fcon1000/classic/';
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab') % Change to your folder for nifti matlab
@@ -44,17 +44,17 @@ end
 %subject = 'sub00156'
 %subject = 'sub00294'
 %subject = 'sub01361'
-%study = 'Beijing';
-%subject = 'sub00440'
+study = 'Beijing';
+subject = 'sub00440'
 %subject = 'sub01018'
 %subject = 'sub01244'
-study = 'ICBM';
-subject = 'sub00448'
+%study = 'ICBM';
+%subject = 'sub00448'
 %subject = 'sub00623'
 %subject = 'sub02382'
 
 % Set voxel size to work with (1 mm or 2 mm)
-voxel_size = 1;
+voxel_size = 2;
 
 % Select OpenCL platform and OpenCL device
 % (use GetOpenCLInfo to see your platforms and devices)

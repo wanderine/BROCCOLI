@@ -1,0 +1,14 @@
+
+temp = abs(100*randn(64,64,20));
+
+for x = 1:sx
+    for y = 1:sy
+        for z = 1:sz
+            
+            a = 16807.0;
+            m = 2147483647.0; //ie 2**31-1
+            double const reciprocal_m = 1.0/m;
+	double temp = (*seed) * a;
+	*seed = (int)(temp - m * floor(temp * reciprocal_m));
+
+	return ((double)(*seed) * reciprocal_m);

@@ -29,8 +29,9 @@ clc
 close all
 
 if ispc
-    addpath('D:\nifti_matlab')    
-    basepath = 'D:\OpenfMRI\';    
+    %addpath('D:\nifti_matlab')
+    addpath('C:\nifti_matlab')
+    basepath = 'C:\OpenfMRI\';    
     opencl_platform = 0; % 0 Nvidia, 1 Intel, 2 AMD
     opencl_device = 0;
     %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
@@ -46,7 +47,7 @@ end
 
 study = 'RhymeJudgment/ds003';
 
-subject = 4; %5 has bad skullstrip
+subject = 1; %5 has bad skullstrip
 
 if subject < 10
     subject = ['/sub00' num2str(subject)];
@@ -54,14 +55,14 @@ else
     subject = ['/sub0' num2str(subject)];
 end
 
-voxel_size = 1;
+voxel_size = 2;
 beta_space = 0; % 0 = EPI, 1 = MNI
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
 %--------------------------------------------------------------------------------------
 
-use_temporal_derivatives = 1;
+use_temporal_derivatives = 0;
 regress_motion = 1;
 regress_confounds = 0;
 
@@ -107,7 +108,6 @@ fMRI_volumes = double(EPI_nii.img);
 [sy sx sz st] = size(fMRI_volumes);
 
 EPI = fMRI_volumes(:,:,:,1);
-EPI = EPI/max(EPI(:));
 
 [EPI_sy EPI_sx EPI_sz] = size(EPI);
 [EPI_sy EPI_sx EPI_sz st]
@@ -208,12 +208,12 @@ end
 %--------------------------------------------------------------------------------------
 
 % Contrasts for confounding regressors are automatically set to zeros by BROCCOLI 
-contrasts = [1  0];
+%contrasts = [1  0];
     
-%contrasts = [1  0; 
-%             0  1; 
-%             1  1; 
-%             1 -1]; 
+contrasts = [1  0; 
+             0  1; 
+             1  1; 
+             1 -1]; 
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
@@ -366,3 +366,33 @@ title('Design matrix')
 
 
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/firstlevelmaps.png
+
+for slice = 1:33
+   statistical_maps_flipped(:,:,slice) = flipud(statistical_maps(:,:,slice));
+end
+
+new_file.hdr = EPI_nii.hdr;
+new_file.hdr.dime.dim = [3 64 64 33 1 1 1 1];
+new_file.hdr.dime.vox_offset = 352;
+new_file.hdr.scl_slope = 1;
+new_file.hdr.dime.cal_max = max(statistical_maps(:));
+new_file.hdr.dime.cal_min = min(statistical_maps(:));
+new_file.hdr.dime.gl_max = max(statistical_maps(:));
+new_file.hdr.dime.gl_min = min(statistical_maps(:));
+new_file.hdr.dime.datatype = 16;
+new_file.hdr.dime.bitpix = 32;
+
+new_file.original.hdr.dime.dim = [3 64 64 33 1 1 1 1];
+new_file.original.hdr.dime.vox_offset = 352;
+new_file.original.hdr.scl_slope = 1;
+new_file.original.hdr.dime.cal_max = max(statistical_maps(:));
+new_file.original.hdr.dime.cal_min = min(statistical_maps(:));
+new_file.original.hdr.dime.gl_max = max(statistical_maps(:));
+new_file.original.hdr.dime.gl_min = min(statistical_maps(:));
+new_file.original.hdr.dime.datatype = 16;
+new_file.original.hdr.dime.bitpix = 32;
+
+new_file.img = single(statistical_maps_flipped);    
+filename = ['BROCCOLI_statistical_map_whitening_.nii'];
+save_nii(new_file,filename);
+

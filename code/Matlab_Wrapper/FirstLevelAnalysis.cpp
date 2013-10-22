@@ -712,7 +712,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
     int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 60; i++)
+    for (int i = 0; i < 61; i++)
     {
         if (createKernelErrors[i] != 0)
         {
@@ -730,7 +730,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
         
     int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 60; i++)
+    for (int i = 0; i < 61; i++)
     {
         if (runKernelErrors[i] != 0)
         {
@@ -742,7 +742,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
     { 
-        BROCCOLI.PerformFirstLevelAnalysisWrapper();
+        //BROCCOLI.PerformFirstLevelAnalysisWrapper();
+        BROCCOLI.PerformFirstLevelAnalysisBayesianWrapper();
     }
     else
     {
