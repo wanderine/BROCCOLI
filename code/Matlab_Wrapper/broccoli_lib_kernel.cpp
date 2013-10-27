@@ -5886,7 +5886,7 @@ int Cholesky(float* cholA, float factor, __constant float* A, int N)
 	return 0;
 }
 
-int MultivariateRandom(float* random, float* mu, __constant float* Cov, float Sigma, int N, __private int* seed)
+int MultivariateRandomOld(float* random, float* mu, __constant float* Cov, float Sigma, int N, __private int* seed)
 {
 	float randvalues[2];
 	float cholCov[4];
@@ -5923,7 +5923,98 @@ int MultivariateRandom(float* random, float* mu, __constant float* Cov, float Si
 	return 0;
 }
 
+int Cholesky1(float* cholA, float factor, float A)
+{
+	*cholA = sqrt(factor * A);
 
+	return 0;
+}
+
+int Cholesky2(float cholA[2][2], float factor, float A[2][2])
+{
+	// i = 0, j = 0
+	cholA[0][0] = sqrt(factor * A[0][0]);
+
+	// i = 1, j = 0
+	cholA[1][0] = 1.0f / cholA[0][0] * (factor * A[1][0]);
+
+	// i = 0, j = 1
+	cholA[0][1] = 0.0f;
+
+	// i = 1, j = 1
+	cholA[1][1] = sqrt(factor * A[1][1] - cholA[0][1] * cholA[0][1] - cholA[1][0] * cholA[1][0] );
+
+	return 0;
+}
+
+/*
+int MultivariateRandom(float* random, float* mu, __private float* Cov, float Sigma, int N, __private int* seed)
+{
+	float randvalues[2];
+	float cholCov[4];
+			
+	switch(N)
+	{
+		case 1:
+			
+			randvalues[0] = normalrand(seed);
+			
+			Cholesky1(cholCov, Sigma, Cov);
+
+			random[0] = mu[0] + cholCov[0 + 0 * N] * randvalues[0];
+			
+			break;
+
+
+		case 2:
+			
+			randvalues[0] = normalrand(seed);
+			randvalues[1] = normalrand(seed);
+	
+			Cholesky2(cholCov, Sigma, Cov);
+
+			random[0] = mu[0] + cholCov[0 + 0 * N] * randvalues[0] + cholCov[1 + 0 * N] * randvalues[1];
+			random[1] = mu[1] + cholCov[0 + 1 * N] * randvalues[0] + cholCov[1 + 1 * N] * randvalues[1];
+		
+			break;
+
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+*/
+
+int MultivariateRandom1(float* random, float mu, __private float Cov, float Sigma, __private int* seed)
+{
+	float randvalues;
+	float cholCov;
+			
+	randvalues = normalrand(seed);		
+	Cholesky1(&cholCov, Sigma, Cov);
+	random[0] = mu + cholCov * randvalues;
+
+	return 0;
+}
+
+int MultivariateRandom2(float* random, float* mu, __private float Cov[2][2], float Sigma, __private int* seed)
+{
+	float randvalues[2];
+	float cholCov[2][2];
+			
+	randvalues[0] = normalrand(seed);
+	randvalues[1] = normalrand(seed);
+	
+	Cholesky2(cholCov, Sigma, Cov);
+
+	random[0] = mu[0] + cholCov[0][0] * randvalues[0] + cholCov[0][1] * randvalues[1];
+	random[1] = mu[1] + cholCov[0][1] * randvalues[0] + cholCov[1][1] * randvalues[1];
+	
+	return 0;
+}
 
 int CalculateBetaWeightsBayesian(__private float* beta,
 								 __private float value,
@@ -5972,7 +6063,8 @@ int CalculateBetaWeightsBayesian(__private float* beta,
 	return 0;
 }
 
-__kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Maps,
+/*
+__kernel void CalculateStatisticalMapsGLMBayesianOld(__global float* Statistical_Maps,
 		                                       __global const float* Volumes,
 		                                       __global const float* Mask,
 		                                       __constant float* c_X_GLM,
@@ -6109,6 +6201,325 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	//Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = chol[2];
 	//Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = chol[3];
 
+}
+*/
+
+float Determinant_4x4(float Cxx[4][4])
+{
+    return Cxx[0][3] * Cxx[1][2] * Cxx[2][1] * Cxx[3][0] - Cxx[0][2] * Cxx[1][3] * Cxx[2][1] * Cxx[3][0] - Cxx[0][3] * Cxx[1][1] * Cxx[2][2] * Cxx[3][0]
+         + Cxx[0][1] * Cxx[1][3] * Cxx[2][2] * Cxx[3][0] + Cxx[0][2] * Cxx[1][1] * Cxx[2][3] * Cxx[3][0] - Cxx[0][1] * Cxx[1][2] * Cxx[2][3] * Cxx[3][0]
+         - Cxx[0][3] * Cxx[1][2] * Cxx[2][0] * Cxx[3][1] + Cxx[0][2] * Cxx[1][3] * Cxx[2][0] * Cxx[3][1] + Cxx[0][3] * Cxx[1][0] * Cxx[2][2] * Cxx[3][1]
+         - Cxx[0][0] * Cxx[1][3] * Cxx[2][2] * Cxx[3][1] - Cxx[0][2] * Cxx[1][0] * Cxx[2][3] * Cxx[3][1] + Cxx[0][0] * Cxx[1][2] * Cxx[2][3] * Cxx[3][1]
+         + Cxx[0][3] * Cxx[1][1] * Cxx[2][0] * Cxx[3][2] - Cxx[0][1] * Cxx[1][3] * Cxx[2][0] * Cxx[3][2] - Cxx[0][3] * Cxx[1][0] * Cxx[2][1] * Cxx[3][2]
+         + Cxx[0][0] * Cxx[1][3] * Cxx[2][1] * Cxx[3][2] + Cxx[0][1] * Cxx[1][0] * Cxx[2][3] * Cxx[3][2] - Cxx[0][0] * Cxx[1][1] * Cxx[2][3] * Cxx[3][2]
+         - Cxx[0][2] * Cxx[1][1] * Cxx[2][0] * Cxx[3][3] + Cxx[0][1] * Cxx[1][2] * Cxx[2][0] * Cxx[3][3] + Cxx[0][2] * Cxx[1][0] * Cxx[2][1] * Cxx[3][3]
+		 - Cxx[0][0] * Cxx[1][2] * Cxx[2][1] * Cxx[3][3] - Cxx[0][1] * Cxx[1][0] * Cxx[2][2] * Cxx[3][3] + Cxx[0][0] * Cxx[1][1] * Cxx[2][2] * Cxx[3][3];
+}
+
+
+
+void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
+{
+	float determinant = Determinant_4x4(Cxx) + 0.001f;
+
+	inv_Cxx[0][0] = Cxx[1][2]*Cxx[2][3]*Cxx[3][1] - Cxx[1][3]*Cxx[2][2]*Cxx[3][1] + Cxx[1][3]*Cxx[2][1]*Cxx[3][2] - Cxx[1][1]*Cxx[2][3]*Cxx[3][2] - Cxx[1][2]*Cxx[2][1]*Cxx[3][3] + Cxx[1][1]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[0][1] = Cxx[0][3]*Cxx[2][2]*Cxx[3][1] - Cxx[0][2]*Cxx[2][3]*Cxx[3][1] - Cxx[0][3]*Cxx[2][1]*Cxx[3][2] + Cxx[0][1]*Cxx[2][3]*Cxx[3][2] + Cxx[0][2]*Cxx[2][1]*Cxx[3][3] - Cxx[0][1]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[0][2] = Cxx[0][2]*Cxx[1][3]*Cxx[3][1] - Cxx[0][3]*Cxx[1][2]*Cxx[3][1] + Cxx[0][3]*Cxx[1][1]*Cxx[3][2] - Cxx[0][1]*Cxx[1][3]*Cxx[3][2] - Cxx[0][2]*Cxx[1][1]*Cxx[3][3] + Cxx[0][1]*Cxx[1][2]*Cxx[3][3];
+	inv_Cxx[0][3] = Cxx[0][3]*Cxx[1][2]*Cxx[2][1] - Cxx[0][2]*Cxx[1][3]*Cxx[2][1] - Cxx[0][3]*Cxx[1][1]*Cxx[2][2] + Cxx[0][1]*Cxx[1][3]*Cxx[2][2] + Cxx[0][2]*Cxx[1][1]*Cxx[2][3] - Cxx[0][1]*Cxx[1][2]*Cxx[2][3];
+	inv_Cxx[1][0] = Cxx[1][3]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][0]*Cxx[3][2] + Cxx[1][0]*Cxx[2][3]*Cxx[3][2] + Cxx[1][2]*Cxx[2][0]*Cxx[3][3] - Cxx[1][0]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[1][1] = Cxx[0][2]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][2]*Cxx[3][0] + Cxx[0][3]*Cxx[2][0]*Cxx[3][2] - Cxx[0][0]*Cxx[2][3]*Cxx[3][2] - Cxx[0][2]*Cxx[2][0]*Cxx[3][3] + Cxx[0][0]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[1][2] = Cxx[0][3]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][0]*Cxx[3][2] + Cxx[0][0]*Cxx[1][3]*Cxx[3][2] + Cxx[0][2]*Cxx[1][0]*Cxx[3][3] - Cxx[0][0]*Cxx[1][2]*Cxx[3][3];
+	inv_Cxx[1][3] = Cxx[0][2]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][2]*Cxx[2][0] + Cxx[0][3]*Cxx[1][0]*Cxx[2][2] - Cxx[0][0]*Cxx[1][3]*Cxx[2][2] - Cxx[0][2]*Cxx[1][0]*Cxx[2][3] + Cxx[0][0]*Cxx[1][2]*Cxx[2][3];
+	inv_Cxx[2][0] = Cxx[1][1]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][1]*Cxx[3][0] + Cxx[1][3]*Cxx[2][0]*Cxx[3][1] - Cxx[1][0]*Cxx[2][3]*Cxx[3][1] - Cxx[1][1]*Cxx[2][0]*Cxx[3][3] + Cxx[1][0]*Cxx[2][1]*Cxx[3][3];
+	inv_Cxx[2][1] = Cxx[0][3]*Cxx[2][1]*Cxx[3][0] - Cxx[0][1]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][0]*Cxx[3][1] + Cxx[0][0]*Cxx[2][3]*Cxx[3][1] + Cxx[0][1]*Cxx[2][0]*Cxx[3][3] - Cxx[0][0]*Cxx[2][1]*Cxx[3][3];
+	inv_Cxx[2][2] = Cxx[0][1]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][1]*Cxx[3][0] + Cxx[0][3]*Cxx[1][0]*Cxx[3][1] - Cxx[0][0]*Cxx[1][3]*Cxx[3][1] - Cxx[0][1]*Cxx[1][0]*Cxx[3][3] + Cxx[0][0]*Cxx[1][1]*Cxx[3][3];
+	inv_Cxx[2][3] = Cxx[0][3]*Cxx[1][1]*Cxx[2][0] - Cxx[0][1]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][0]*Cxx[2][1] + Cxx[0][0]*Cxx[1][3]*Cxx[2][1] + Cxx[0][1]*Cxx[1][0]*Cxx[2][3] - Cxx[0][0]*Cxx[1][1]*Cxx[2][3];
+	inv_Cxx[3][0] = Cxx[1][2]*Cxx[2][1]*Cxx[3][0] - Cxx[1][1]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][0]*Cxx[3][1] + Cxx[1][0]*Cxx[2][2]*Cxx[3][1] + Cxx[1][1]*Cxx[2][0]*Cxx[3][2] - Cxx[1][0]*Cxx[2][1]*Cxx[3][2];
+	inv_Cxx[3][1] = Cxx[0][1]*Cxx[2][2]*Cxx[3][0] - Cxx[0][2]*Cxx[2][1]*Cxx[3][0] + Cxx[0][2]*Cxx[2][0]*Cxx[3][1] - Cxx[0][0]*Cxx[2][2]*Cxx[3][1] - Cxx[0][1]*Cxx[2][0]*Cxx[3][2] + Cxx[0][0]*Cxx[2][1]*Cxx[3][2];
+	inv_Cxx[3][2] = Cxx[0][2]*Cxx[1][1]*Cxx[3][0] - Cxx[0][1]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][0]*Cxx[3][1] + Cxx[0][0]*Cxx[1][2]*Cxx[3][1] + Cxx[0][1]*Cxx[1][0]*Cxx[3][2] - Cxx[0][0]*Cxx[1][1]*Cxx[3][2];
+	inv_Cxx[3][3] = Cxx[0][1]*Cxx[1][2]*Cxx[2][0] - Cxx[0][2]*Cxx[1][1]*Cxx[2][0] + Cxx[0][2]*Cxx[1][0]*Cxx[2][1] - Cxx[0][0]*Cxx[1][2]*Cxx[2][1] - Cxx[0][1]*Cxx[1][0]*Cxx[2][2] + Cxx[0][0]*Cxx[1][1]*Cxx[2][2];
+
+	inv_Cxx[0][0] /= determinant;
+	inv_Cxx[0][1] /= determinant;
+	inv_Cxx[0][2] /= determinant;
+	inv_Cxx[0][3] /= determinant;
+	inv_Cxx[1][0] /= determinant;
+	inv_Cxx[1][1] /= determinant;
+	inv_Cxx[1][2] /= determinant;
+	inv_Cxx[1][3] /= determinant;
+	inv_Cxx[2][0] /= determinant;
+	inv_Cxx[2][1] /= determinant;
+	inv_Cxx[2][2] /= determinant;
+	inv_Cxx[2][3] /= determinant;
+	inv_Cxx[3][0] /= determinant;
+	inv_Cxx[3][1] /= determinant;
+	inv_Cxx[3][2] /= determinant;
+	inv_Cxx[3][3] /= determinant;
+
+}
+
+float Determinant_2x2(float Cxx[2][2])
+{
+    return Cxx[0][0] * Cxx[1][1] - Cxx[0][1] * Cxx[1][0];
+}
+
+void Invert_2x2(float Cxx[2][2], float inv_Cxx[2][2])
+{
+	float determinant = Determinant_2x2(Cxx) + 0.001f;
+
+	inv_Cxx[0][0] = Cxx[1][1] / determinant;
+	inv_Cxx[0][1] = -Cxx[0][1] / determinant;
+	inv_Cxx[1][0] = -Cxx[1][0] / determinant;
+	inv_Cxx[1][1] = Cxx[0][0] / determinant;
+}
+
+
+
+__kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Maps,
+		                                          __global const float* Volumes,
+		                                          __global const float* Mask,
+		                                          __constant float* c_X_GLM,
+		                                          __constant float* c_InvOmega0,
+											      __constant float* c_S00,
+											      __constant float* c_S01,
+											      __constant float* c_S11,
+		                                          __private int DATA_W,
+		                                          __private int DATA_H,
+		                                          __private int DATA_D,
+		                                          __private int NUMBER_OF_VOLUMES,
+		                                          __private int NUMBER_OF_REGRESSORS,
+											      __private int NUMBER_OF_ITERATIONS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = 0.0f;
+
+		return;
+	}
+
+	int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
+
+	// Prior options
+	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
+	float r = 0.5f;                    // Prior mean on rho1
+	float c = 0.3f;                    // Prior standard deviation on first lag.
+	float a0 = 0.01f;                  // First parameter in IG prior for sigma^2
+	float b0 = 0.01f;                  // Second parameter in IG prior for sigma^2
+
+	float InvA0 = c * c;
+
+	// Algorithmic options
+	float prcBurnin = 10.0f;             // Percentage of nIter used for burnin. Note: effective number of iter is nIter.
+
+	float beta[2];
+	float betaT[2];
+
+	int nBurnin = (int)round((float)NUMBER_OF_ITERATIONS*(prcBurnin/100.0f));
+	int probability = 0;
+	
+	float m00[2];
+	float m01[2];
+	float m10[2];
+	float m11[2];
+
+	m00[0] = 0.0f;
+	m00[1] = 0.0f;
+
+	m01[0] = 0.0f;
+	m01[1] = 0.0f;
+
+	m10[0] = 0.0f;
+	m10[1] = 0.0f;
+
+	m11[0] = 0.0f;
+	m11[1] = 0.0f;
+
+	float g00 = 0.0f;
+	float g01 = 0.0f;
+	float g11 = 0.0f;
+
+	float old_value = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+
+	m00[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + 0] * old_value;
+	m00[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + 0] * old_value;
+
+	g00 += old_value * old_value;
+
+	for (int v = 1; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		m00[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * value;
+		m00[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * value;
+
+		m01[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * old_value;
+		m01[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * old_value;
+
+		m10[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + (v - 1)] * value;
+		m10[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + (v - 1)] * value;
+
+		m11[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + (v - 1)] * old_value;
+		m11[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + (v - 1)] * old_value;
+
+		g00 += value * value;
+		g01 += value * old_value;
+		g11 += old_value * old_value;
+
+		old_value = value;
+	}
+	
+	float InvOmegaT[2][2];
+	float OmegaT[2][2];
+	float Xtildesquared[2][2];
+	float XtildeYtilde[2];
+	float Ytildesquared;
+
+	Xtildesquared[0][0] = c_S00[0 + 0*2];
+	Xtildesquared[0][1] = c_S00[0 + 1*2];
+	Xtildesquared[1][0] = c_S00[1 + 0*2];
+	Xtildesquared[1][1] = c_S00[1 + 1*2];
+		
+	XtildeYtilde[0] = m00[0];
+	XtildeYtilde[1] = m00[1];
+
+	Ytildesquared = g00;
+
+	float sigma2;
+	float rho, rhoT, rhoProp, bT;
+
+	rho = 0.0f;
+
+	// Loop over iterations
+	for (int i = 0; i < (nBurnin + NUMBER_OF_ITERATIONS); i++)
+	//for (int i = 0; i < 100; i++)
+	{
+		InvOmegaT[0][0] = c_InvOmega0[0 + 0 * NUMBER_OF_REGRESSORS] + Xtildesquared[0][0];
+		InvOmegaT[0][1] = c_InvOmega0[0 + 1 * NUMBER_OF_REGRESSORS] + Xtildesquared[0][1];
+		InvOmegaT[1][0] = c_InvOmega0[1 + 0 * NUMBER_OF_REGRESSORS] + Xtildesquared[1][0];
+		InvOmegaT[1][1] = c_InvOmega0[1 + 1 * NUMBER_OF_REGRESSORS] + Xtildesquared[1][1];
+		Invert_2x2(InvOmegaT, OmegaT);
+
+		betaT[0] = OmegaT[0][0] * XtildeYtilde[0] + OmegaT[0][1] * XtildeYtilde[1];
+		betaT[1] = OmegaT[1][0] * XtildeYtilde[0] + OmegaT[1][1] * XtildeYtilde[1];
+
+		float aT = a0 + (float)NUMBER_OF_VOLUMES/2.0f;
+		float temp[2];
+		temp[0] = InvOmegaT[0][0] * betaT[0] + InvOmegaT[0][1] * betaT[1];
+		temp[1] = InvOmegaT[1][0] * betaT[0] + InvOmegaT[1][1] * betaT[1];
+		bT = b0 + 0.5f * (Ytildesquared - betaT[0] * temp[0] - betaT[1] * temp[1]);
+
+		// Block 1 - Step 1a. Update sigma2
+		sigma2 = gamrnd(aT,bT,&seed);
+		
+		// Block 1 - Step 1b. Update beta | sigma2
+		MultivariateRandom2(beta,betaT,OmegaT,sigma2,&seed);
+		
+		if (i > nBurnin)
+		{
+			if (beta[0] > 0.0f)
+			{
+				probability++;
+			}
+		}  
+
+		// Block 2, update rho
+		float zsquared = 0.0f;
+		float zu = 0.0f;
+		float old_eps = 0.0f;
+
+		// Calculate residuals
+		for (int v = 1; v < NUMBER_OF_VOLUMES; v++)
+		{
+			float eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+
+			zsquared += eps * eps;
+			zu += eps * old_eps;
+
+			old_eps = eps;
+		}
+
+		// Generate rho
+		float InvAT = InvA0 + zsquared / sigma2;
+		float AT = 1.0f / InvAT;
+		rhoT = AT * zu / sigma2;
+		MultivariateRandom1(&rhoProp,rhoT,AT,sigma2,&seed);
+
+		if (myabs(rhoProp) < 1.0f)
+		{
+			rho = rhoProp;
+		}
+
+		// Prewhitening of regressors and data
+		Xtildesquared[0][0] = c_S00[0 + 0*2] - 2.0f * rho * c_S01[0 + 0*2] + rho * rho * c_S11[0 + 0*2];
+		Xtildesquared[0][1] = c_S00[0 + 1*2] - 2.0f * rho * c_S01[0 + 1*2] + rho * rho * c_S11[0 + 1*2];
+		Xtildesquared[1][0] = c_S00[1 + 0*2] - 2.0f * rho * c_S01[1 + 0*2] + rho * rho * c_S11[1 + 0*2];
+		Xtildesquared[1][1] = c_S00[1 + 1*2] - 2.0f * rho * c_S01[1 + 1*2] + rho * rho * c_S11[1 + 1*2];
+		
+		XtildeYtilde[0] = m00[0] - rho * (m01[0] + m10[0]) + rho * rho * m11[0];
+		XtildeYtilde[1] = m00[1] - rho * (m01[1] + m10[1]) + rho * rho * m11[1];
+
+		Ytildesquared = g00 - 2.0f * rho * g01 + rho * rho * g11;
+	}
+	
+	//Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+
+	/*
+	float Sigma = 1.0f;
+	float Cov[2][2];
+	float cholCov[2][2];
+
+	Cov[0][0] = 1.0f;
+	Cov[0][1] = 2.0f;
+	Cov[1][0] = 2.0f;
+	Cov[1][1] = 15.0f;
+
+	Cholesky2(cholCov, Sigma, Cov);
+
+	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = cholCov[0][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = cholCov[0][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = cholCov[1][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = cholCov[1][1];
+	*/
+
+	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = beta[0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = betaT[0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = betaT[1];
+	
+	Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = rhoT;
+	Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = rho;
+	Statistical_Maps[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)] = bT;
+	Statistical_Maps[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)] = InvOmegaT[0][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)] = InvOmegaT[1][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)] = InvOmegaT[1][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)] = OmegaT[0][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = OmegaT[0][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = OmegaT[1][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
 }
 
 
@@ -9818,57 +10229,7 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 
 
 
-float Determinant_(float Cxx[4][4])
-{
-    return Cxx[0][3] * Cxx[1][2] * Cxx[2][1] * Cxx[3][0] - Cxx[0][2] * Cxx[1][3] * Cxx[2][1] * Cxx[3][0] - Cxx[0][3] * Cxx[1][1] * Cxx[2][2] * Cxx[3][0]
-         + Cxx[0][1] * Cxx[1][3] * Cxx[2][2] * Cxx[3][0] + Cxx[0][2] * Cxx[1][1] * Cxx[2][3] * Cxx[3][0] - Cxx[0][1] * Cxx[1][2] * Cxx[2][3] * Cxx[3][0]
-         - Cxx[0][3] * Cxx[1][2] * Cxx[2][0] * Cxx[3][1] + Cxx[0][2] * Cxx[1][3] * Cxx[2][0] * Cxx[3][1] + Cxx[0][3] * Cxx[1][0] * Cxx[2][2] * Cxx[3][1]
-         - Cxx[0][0] * Cxx[1][3] * Cxx[2][2] * Cxx[3][1] - Cxx[0][2] * Cxx[1][0] * Cxx[2][3] * Cxx[3][1] + Cxx[0][0] * Cxx[1][2] * Cxx[2][3] * Cxx[3][1]
-         + Cxx[0][3] * Cxx[1][1] * Cxx[2][0] * Cxx[3][2] - Cxx[0][1] * Cxx[1][3] * Cxx[2][0] * Cxx[3][2] - Cxx[0][3] * Cxx[1][0] * Cxx[2][1] * Cxx[3][2]
-         + Cxx[0][0] * Cxx[1][3] * Cxx[2][1] * Cxx[3][2] + Cxx[0][1] * Cxx[1][0] * Cxx[2][3] * Cxx[3][2] - Cxx[0][0] * Cxx[1][1] * Cxx[2][3] * Cxx[3][2]
-         - Cxx[0][2] * Cxx[1][1] * Cxx[2][0] * Cxx[3][3] + Cxx[0][1] * Cxx[1][2] * Cxx[2][0] * Cxx[3][3] + Cxx[0][2] * Cxx[1][0] * Cxx[2][1] * Cxx[3][3]
-		 - Cxx[0][0] * Cxx[1][2] * Cxx[2][1] * Cxx[3][3] - Cxx[0][1] * Cxx[1][0] * Cxx[2][2] * Cxx[3][3] + Cxx[0][0] * Cxx[1][1] * Cxx[2][2] * Cxx[3][3];
-}
 
-void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
-{
-	float determinant = Determinant_(Cxx) + 0.001f;
-
-	inv_Cxx[0][0] = Cxx[1][2]*Cxx[2][3]*Cxx[3][1] - Cxx[1][3]*Cxx[2][2]*Cxx[3][1] + Cxx[1][3]*Cxx[2][1]*Cxx[3][2] - Cxx[1][1]*Cxx[2][3]*Cxx[3][2] - Cxx[1][2]*Cxx[2][1]*Cxx[3][3] + Cxx[1][1]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[0][1] = Cxx[0][3]*Cxx[2][2]*Cxx[3][1] - Cxx[0][2]*Cxx[2][3]*Cxx[3][1] - Cxx[0][3]*Cxx[2][1]*Cxx[3][2] + Cxx[0][1]*Cxx[2][3]*Cxx[3][2] + Cxx[0][2]*Cxx[2][1]*Cxx[3][3] - Cxx[0][1]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[0][2] = Cxx[0][2]*Cxx[1][3]*Cxx[3][1] - Cxx[0][3]*Cxx[1][2]*Cxx[3][1] + Cxx[0][3]*Cxx[1][1]*Cxx[3][2] - Cxx[0][1]*Cxx[1][3]*Cxx[3][2] - Cxx[0][2]*Cxx[1][1]*Cxx[3][3] + Cxx[0][1]*Cxx[1][2]*Cxx[3][3];
-	inv_Cxx[0][3] = Cxx[0][3]*Cxx[1][2]*Cxx[2][1] - Cxx[0][2]*Cxx[1][3]*Cxx[2][1] - Cxx[0][3]*Cxx[1][1]*Cxx[2][2] + Cxx[0][1]*Cxx[1][3]*Cxx[2][2] + Cxx[0][2]*Cxx[1][1]*Cxx[2][3] - Cxx[0][1]*Cxx[1][2]*Cxx[2][3];
-	inv_Cxx[1][0] = Cxx[1][3]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][0]*Cxx[3][2] + Cxx[1][0]*Cxx[2][3]*Cxx[3][2] + Cxx[1][2]*Cxx[2][0]*Cxx[3][3] - Cxx[1][0]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[1][1] = Cxx[0][2]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][2]*Cxx[3][0] + Cxx[0][3]*Cxx[2][0]*Cxx[3][2] - Cxx[0][0]*Cxx[2][3]*Cxx[3][2] - Cxx[0][2]*Cxx[2][0]*Cxx[3][3] + Cxx[0][0]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[1][2] = Cxx[0][3]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][0]*Cxx[3][2] + Cxx[0][0]*Cxx[1][3]*Cxx[3][2] + Cxx[0][2]*Cxx[1][0]*Cxx[3][3] - Cxx[0][0]*Cxx[1][2]*Cxx[3][3];
-	inv_Cxx[1][3] = Cxx[0][2]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][2]*Cxx[2][0] + Cxx[0][3]*Cxx[1][0]*Cxx[2][2] - Cxx[0][0]*Cxx[1][3]*Cxx[2][2] - Cxx[0][2]*Cxx[1][0]*Cxx[2][3] + Cxx[0][0]*Cxx[1][2]*Cxx[2][3];
-	inv_Cxx[2][0] = Cxx[1][1]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][1]*Cxx[3][0] + Cxx[1][3]*Cxx[2][0]*Cxx[3][1] - Cxx[1][0]*Cxx[2][3]*Cxx[3][1] - Cxx[1][1]*Cxx[2][0]*Cxx[3][3] + Cxx[1][0]*Cxx[2][1]*Cxx[3][3];
-	inv_Cxx[2][1] = Cxx[0][3]*Cxx[2][1]*Cxx[3][0] - Cxx[0][1]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][0]*Cxx[3][1] + Cxx[0][0]*Cxx[2][3]*Cxx[3][1] + Cxx[0][1]*Cxx[2][0]*Cxx[3][3] - Cxx[0][0]*Cxx[2][1]*Cxx[3][3];
-	inv_Cxx[2][2] = Cxx[0][1]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][1]*Cxx[3][0] + Cxx[0][3]*Cxx[1][0]*Cxx[3][1] - Cxx[0][0]*Cxx[1][3]*Cxx[3][1] - Cxx[0][1]*Cxx[1][0]*Cxx[3][3] + Cxx[0][0]*Cxx[1][1]*Cxx[3][3];
-	inv_Cxx[2][3] = Cxx[0][3]*Cxx[1][1]*Cxx[2][0] - Cxx[0][1]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][0]*Cxx[2][1] + Cxx[0][0]*Cxx[1][3]*Cxx[2][1] + Cxx[0][1]*Cxx[1][0]*Cxx[2][3] - Cxx[0][0]*Cxx[1][1]*Cxx[2][3];
-	inv_Cxx[3][0] = Cxx[1][2]*Cxx[2][1]*Cxx[3][0] - Cxx[1][1]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][0]*Cxx[3][1] + Cxx[1][0]*Cxx[2][2]*Cxx[3][1] + Cxx[1][1]*Cxx[2][0]*Cxx[3][2] - Cxx[1][0]*Cxx[2][1]*Cxx[3][2];
-	inv_Cxx[3][1] = Cxx[0][1]*Cxx[2][2]*Cxx[3][0] - Cxx[0][2]*Cxx[2][1]*Cxx[3][0] + Cxx[0][2]*Cxx[2][0]*Cxx[3][1] - Cxx[0][0]*Cxx[2][2]*Cxx[3][1] - Cxx[0][1]*Cxx[2][0]*Cxx[3][2] + Cxx[0][0]*Cxx[2][1]*Cxx[3][2];
-	inv_Cxx[3][2] = Cxx[0][2]*Cxx[1][1]*Cxx[3][0] - Cxx[0][1]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][0]*Cxx[3][1] + Cxx[0][0]*Cxx[1][2]*Cxx[3][1] + Cxx[0][1]*Cxx[1][0]*Cxx[3][2] - Cxx[0][0]*Cxx[1][1]*Cxx[3][2];
-	inv_Cxx[3][3] = Cxx[0][1]*Cxx[1][2]*Cxx[2][0] - Cxx[0][2]*Cxx[1][1]*Cxx[2][0] + Cxx[0][2]*Cxx[1][0]*Cxx[2][1] - Cxx[0][0]*Cxx[1][2]*Cxx[2][1] - Cxx[0][1]*Cxx[1][0]*Cxx[2][2] + Cxx[0][0]*Cxx[1][1]*Cxx[2][2];
-
-	inv_Cxx[0][0] /= determinant;
-	inv_Cxx[0][1] /= determinant;
-	inv_Cxx[0][2] /= determinant;
-	inv_Cxx[0][3] /= determinant;
-	inv_Cxx[1][0] /= determinant;
-	inv_Cxx[1][1] /= determinant;
-	inv_Cxx[1][2] /= determinant;
-	inv_Cxx[1][3] /= determinant;
-	inv_Cxx[2][0] /= determinant;
-	inv_Cxx[2][1] /= determinant;
-	inv_Cxx[2][2] /= determinant;
-	inv_Cxx[2][3] /= determinant;
-	inv_Cxx[3][0] /= determinant;
-	inv_Cxx[3][1] /= determinant;
-	inv_Cxx[3][2] /= determinant;
-	inv_Cxx[3][3] /= determinant;
-
-}
 
 
 	

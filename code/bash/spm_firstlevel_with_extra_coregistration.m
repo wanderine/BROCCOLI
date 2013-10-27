@@ -225,43 +225,48 @@ jobs{3}.temporal{1}.st.so = 33:-1:1;
 jobs{3}.temporal{1}.st.refslice = 17;
 jobs{3}.temporal{1}.st.prefix = 'a';
 
+%% COREGISTRATION, T1 and T1 template
+%--------------------------------------------------------------------------
+
+filename = ['C:/spm8/templates/T1.nii'];
+jobs{4}.spatial{1}.coreg{1}.estwrite.ref = {[filename ',1']};
+filename = [data_path 'anatomy/mprage_defaced.nii'];
+jobs{4}.spatial{1}.coreg{1}.estwrite.source = {[filename ',1']};
+
 %% COREGISTRATION, fMRI and T1
 %--------------------------------------------------------------------------
 
 filename = [data_path 'BOLD/task001_run001/meanbold.nii'];
-jobs{4}.spatial{1}.coreg{1}.estimate.ref = {[filename ',1']};
-filename = [data_path 'anatomy/mprage_defaced.nii'];
-jobs{4}.spatial{1}.coreg{1}.estimate.source = {[filename ',1']};
-
-%% COREGISTRATION, 
-%--------------------------------------------------------------------------
+jobs{5}.spatial{1}.coreg{1}.estimate.ref = {[filename ',1']};
+filename = [data_path 'anatomy/rmprage_defaced.nii'];
+jobs{5}.spatial{1}.coreg{1}.estimate.source = {[filename ',1']};
 
 
 %% SEGMENT
 %--------------------------------------------------------------------------
 
-filename = [data_path 'anatomy/mprage_defaced.nii'];
-jobs{5}.spatial{1}.preproc.data = {[filename ',1']};
+filename = [data_path 'anatomy/rmprage_defaced.nii'];
+jobs{6}.spatial{1}.preproc.data = {[filename ',1']};
 
 
 %% NORMALIZE (using transformation from segment)
 %--------------------------------------------------------------------------
 
-job = 6;
-matname = [data_path 'anatomy/mprage_defaced_seg_sn.mat'];
+job = 7;
+matname = [data_path 'anatomy/rmprage_defaced_seg_sn.mat'];
 jobs{job}.spatial{1}.normalise{1}.write.subj.matname  = cellstr(matname);
 filename = [[data_path 'BOLD/task001_run001/arbold.nii']];
 jobs{job}.spatial{1}.normalise{1}.write.subj.resample = cellstr(filename);
 jobs{job}.spatial{1}.normalise{1}.write.roptions.vox  = [3 3 3];
 
-matname = [data_path 'anatomy/mprage_defaced_seg_sn.mat'];
+matname = [data_path 'anatomy/rmprage_defaced_seg_sn.mat'];
 jobs{job}.spatial{1}.normalise{2}.write.subj.matname  = cellstr(matname);
 filename = [data_path 'BOLD/task001_run001/meanbold.nii'];
 jobs{job}.spatial{1}.normalise{2}.write.subj.resample = cellstr(filename);
 jobs{job}.spatial{1}.normalise{2}.write.roptions.vox  = [3 3 3];
 
 jobs{job}.spatial{1}.normalise{3}.write.subj.matname  = cellstr(matname);
-filename = [data_path 'anatomy/mmprage_defaced.nii'];
+filename = [data_path 'anatomy/mrmprage_defaced.nii'];
 jobs{job}.spatial{1}.normalise{3}.write.subj.resample = cellstr(filename)
 jobs{job}.spatial{1}.normalise{3}.write.roptions.vox  = [1 1 1];
 
@@ -269,7 +274,7 @@ jobs{job}.spatial{1}.normalise{3}.write.roptions.vox  = [1 1 1];
 %% SMOOTHING
 %--------------------------------------------------------------------------
 
-job = 7;
+job = 8;
 filename = [data_path 'BOLD/task001_run001/warbold.nii'];
 jobs{job}.spatial{1}.smooth.data = cellstr(filename);
 jobs{job}.spatial{1}.smooth.fwhm = [6 6 6];
@@ -495,7 +500,7 @@ filename = [data_path 'SPM.mat'];
 jobs{2}.stats{4}.results.spmmat = cellstr(filename);
 jobs{2}.stats{4}.results.conspec.contrasts = Inf;
 jobs{2}.stats{4}.results.conspec.threshdesc = 'none';
-jobs{2}.stats{4}.results.conspec.thresh = 1e-6; % for cluster based threshold
+jobs{2}.stats{4}.results.conspec.thresh = 1e-2; % for cluster based threshold
 jobs{2}.stats{4}.results.conspec.extent = 0;
 
 save('batch_analysis.mat','jobs');

@@ -355,6 +355,7 @@ class BROCCOLI_LIB
 		void PerformMotionCorrectionWrapper();
 		void PerformMotionCorrectionWrapperSeveralScales();
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
+		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
 		void PerformGLMTTestWrapper();
 		void PerformGLMFTestWrapper();
@@ -497,6 +498,7 @@ class BROCCOLI_LIB
 		void RemoveTransformationScaling(float* h_Registration_Parameters);
 
 		void SetupDetrendingRegressors(int N);
+		void SetupDetrendingAndMotionRegressors(int N);
 		Eigen::MatrixXd SetupGLMRegressorsFirstLevel(int N);
 		void SetupTTestFirstLevel(int N);
 		void SetupFTestFirstLevel(int N);

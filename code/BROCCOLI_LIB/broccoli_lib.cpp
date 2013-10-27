@@ -848,7 +848,14 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 											// First try to compile from binary file for the selected device
 											createProgramError = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryFilename);
 											//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
-											buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+											if (VENDOR == NVIDIA)
+											{
+												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
+											}
+											else
+											{
+												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+											}
 
 											// Otherwise compile from source code
 											if (buildProgramError != SUCCESS)
@@ -863,7 +870,14 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 												// Create program and build the code for the selected device
 												program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);
 												//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
-												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+												if (VENDOR == NVIDIA)
+												{
+													buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
+												}
+												else
+												{
+													buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+												}
 
 												// If successful build, save to binary file
 												if (buildProgramError == SUCCESS)
@@ -7583,6 +7597,78 @@ void BROCCOLI_LIB::PerformDetrending(cl_mem d_Detrended_Volumes, cl_mem d_Volume
 	clReleaseMemObject(c_xtxxt_Detrend);
 }
 
+void BROCCOLI_LIB::PerformDetrendingAndMotionRegression(cl_mem d_Regressed_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+{
+	int NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS = 10;
+
+	// Allocate host memory
+	h_X_Detrend = (float*)malloc(NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float));
+	h_xtxxt_Detrend = (float*)malloc(NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float));
+
+	// Setup regressors for mean, linear, quadratic and cubic trends
+	SetupDetrendingAndMotionRegressors(DATA_T);
+
+	// Allocate constant memory on device
+	c_X_Detrend = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);
+	c_xtxxt_Detrend = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy data to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_X_Detrend, CL_TRUE, 0, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), h_X_Detrend , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_Detrend, CL_TRUE, 0, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), h_xtxxt_Detrend , 0, NULL, NULL);
+
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(DATA_W, DATA_H, DATA_D);
+
+	h_Censored_Timepoints = (float*)malloc(EPI_DATA_T * sizeof(float));
+	c_Censored_Timepoints = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		h_Censored_Timepoints[t] = 1.0f;
+	}
+	clEnqueueWriteBuffer(commandQueue, c_Censored_Timepoints, CL_TRUE, 0, EPI_DATA_T * sizeof(float), h_Censored_Timepoints , 0, NULL, NULL);
+
+
+	// Estimate beta weights
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_Detrend);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 4, sizeof(cl_mem), &c_Censored_Timepoints);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 8, sizeof(int), &DATA_T);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 9, sizeof(int), &NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS);
+
+	runKernelErrorCalculateBetaWeightsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Remove linear fit
+	clSetKernelArg(RemoveLinearFitKernel, 0, sizeof(cl_mem), &d_Regressed_Volumes);
+	clSetKernelArg(RemoveLinearFitKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(RemoveLinearFitKernel, 2, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(RemoveLinearFitKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(RemoveLinearFitKernel, 4, sizeof(cl_mem), &c_X_Detrend);
+	clSetKernelArg(RemoveLinearFitKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(RemoveLinearFitKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(RemoveLinearFitKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(RemoveLinearFitKernel, 8, sizeof(int), &DATA_T);
+	clSetKernelArg(RemoveLinearFitKernel, 9, sizeof(int), &NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS);
+
+	runKernelErrorRemoveLinearFit = clEnqueueNDRangeKernel(commandQueue, RemoveLinearFitKernel, 3, NULL, globalWorkSizeRemoveLinearFit, localWorkSizeRemoveLinearFit, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Free host memory
+	free(h_Censored_Timepoints);
+	free(h_X_Detrend);
+	free(h_xtxxt_Detrend);
+
+	// Free constant memory
+	clReleaseMemObject(c_Censored_Timepoints);
+	clReleaseMemObject(c_X_Detrend);
+	clReleaseMemObject(c_xtxxt_Detrend);
+}
+
 // Processing
 
 // Runs all the preprocessing steps and the statistical analysis for one subject
@@ -8199,7 +8285,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Whitened_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
 	
 	// Cochrane-Orcutt procedure, iterate
-	for (int it = 0; it < 10; it++)
+	for (int it = 0; it < 3; it++)
 	{		
 		// Calculate beta values, using whitened data and the whitened voxel-specific models
 		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
@@ -8433,6 +8519,8 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes)
 
 void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volumes)
 {
+	cl_mem d_Regressed_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = 2;
 
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
@@ -8446,9 +8534,16 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volume
 	clEnqueueNDRangeKernel(commandQueue, RemoveMeanKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
 	*/
 
+	PerformDetrendingAndMotionRegression(d_Regressed_Volumes, d_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+
 	float* h_X_GLM_ = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
-	float* h_OmegaT = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
-	float* h_InvOmegaT = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
+	float* h_S00 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
+	float* h_S01 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
+	float* h_S11 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
+
+
+	float* h_InvOmega0 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
 
 	Eigen::MatrixXd X(EPI_DATA_T,NUMBER_OF_TOTAL_GLM_REGRESSORS);
 
@@ -8456,33 +8551,34 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volume
 	{
 		int r = 0;
 		X(i,r) = (double)h_X_GLM[i + r * EPI_DATA_T];
-		h_X_GLM_[i + r * EPI_DATA_T] = h_X_GLM[i + r * EPI_DATA_T];
+		h_X_GLM_[i + 0 * EPI_DATA_T] = h_X_GLM[i + r * EPI_DATA_T];
 
-		r = 2;
+		r = 1;
 		X(i,1) = (double)h_X_GLM[i + r * EPI_DATA_T];
 		h_X_GLM_[i + 1 * EPI_DATA_T] = h_X_GLM[i + r * EPI_DATA_T];
-
-		/*
-		for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
-		{
-			X(i,r) = (double)h_X_GLM[i + r * EPI_DATA_T];
-			h_X_GLM_[i + r * EPI_DATA_T] = h_X_GLM[i + r * EPI_DATA_T];
-		}
-		*/
 	}
 	
-	double tau = 10;
+	double tau = 100;
 	Eigen::MatrixXd Omega0 = tau * tau * (X.transpose() * X).inverse();
 	Eigen::MatrixXd InvOmega0 = Omega0.inverse();
-	Eigen::MatrixXd InvOmegaT = InvOmega0 + X.transpose() * X;
-	Eigen::MatrixXd OmegaT = InvOmegaT.inverse();
-
+	
 	for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 	{
 		for (int j = 0; j < NUMBER_OF_TOTAL_GLM_REGRESSORS; j++)
 		{
-			h_OmegaT[i + j * NUMBER_OF_TOTAL_GLM_REGRESSORS] = (float)OmegaT(i,j);
-			h_InvOmegaT[i + j * NUMBER_OF_TOTAL_GLM_REGRESSORS] = (float)InvOmegaT(i,j);
+			h_InvOmega0[i + j * NUMBER_OF_TOTAL_GLM_REGRESSORS] = (float)InvOmega0(i,j);
+
+			h_S00[i + j*NUMBER_OF_TOTAL_GLM_REGRESSORS] = 0.0f;
+			h_S01[i + j*NUMBER_OF_TOTAL_GLM_REGRESSORS] = 0.0f;
+			h_S11[i + j*NUMBER_OF_TOTAL_GLM_REGRESSORS] = 0.0f;
+
+			h_S00[i + j*NUMBER_OF_TOTAL_GLM_REGRESSORS] += h_X_GLM_[0 + i * EPI_DATA_T] * h_X_GLM_[0 + j * EPI_DATA_T];
+			for (int t = 1; t < EPI_DATA_T; t++)
+			{
+				h_S00[i + j*NUMBER_OF_TOTAL_GLM_REGRESSORS] += h_X_GLM_[t + i * EPI_DATA_T] * h_X_GLM_[t + j * EPI_DATA_T];
+				h_S01[i + j*NUMBER_OF_TOTAL_GLM_REGRESSORS] += h_X_GLM_[t + i * EPI_DATA_T] * h_X_GLM_[(t - 1) + j * EPI_DATA_T];
+				h_S11[i + j*NUMBER_OF_TOTAL_GLM_REGRESSORS] += h_X_GLM_[(t - 1) + i * EPI_DATA_T] * h_X_GLM_[(t - 1) + j * EPI_DATA_T];
+			}
 		}
 	}
 
@@ -8493,39 +8589,49 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volume
 	h_OmegaT[3] = 13.0f;
 	*/
 
-	cl_mem c_OmegaT = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
-	cl_mem c_InvOmegaT = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	cl_mem c_InvOmega0 = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	cl_mem c_S00 = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	cl_mem c_S01 = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	cl_mem c_S11 = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 	
 	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_OmegaT, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_OmegaT, 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_InvOmegaT, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_InvOmegaT, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_S00, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_S00, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_S01, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_S01, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_S11, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_S11, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_InvOmega0, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_InvOmega0, 0, NULL, NULL);
 	clFinish(commandQueue);
 
-	int NUMBER_OF_ITERATIONS = 100;
+	int NUMBER_OF_ITERATIONS = 1000;
 
 	// Calculate t-values and residuals, using original data and the original model
 	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 1, sizeof(cl_mem), &d_Regressed_Volumes);
 	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
 	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 3, sizeof(cl_mem), &c_X_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 4, sizeof(cl_mem), &c_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 5, sizeof(cl_mem), &c_OmegaT);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 6, sizeof(cl_mem), &c_InvOmegaT);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 7, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 8, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 9, sizeof(int),    &EPI_DATA_D);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 10, sizeof(int),   &EPI_DATA_T);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 11, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 12, sizeof(int),   &NUMBER_OF_ITERATIONS);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 4, sizeof(cl_mem), &c_InvOmega0);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 5, sizeof(cl_mem), &c_S00);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 6, sizeof(cl_mem), &c_S01);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 7, sizeof(cl_mem), &c_S11);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 8, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 9, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 10, sizeof(int),   &EPI_DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 11, sizeof(int),   &EPI_DATA_T);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 12, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 13, sizeof(int),   &NUMBER_OF_ITERATIONS);
 	runKernelErrorCalculateStatisticalMapsGLMBayesian = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMBayesianKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 
 	free(h_X_GLM_);
-	free(h_OmegaT);
-	free(h_InvOmegaT);
+	free(h_S00);
+	free(h_S01);
+	free(h_S11);
+	free(h_InvOmega0);
 
-	clReleaseMemObject(c_OmegaT);
-	clReleaseMemObject(c_InvOmegaT);
+	clReleaseMemObject(d_Regressed_Volumes);
+	clReleaseMemObject(c_InvOmega0);
+	clReleaseMemObject(c_S00);
+	clReleaseMemObject(c_S01);
+	clReleaseMemObject(c_S11);
 }
 
 void BROCCOLI_LIB::PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS)
@@ -9395,6 +9501,97 @@ void BROCCOLI_LIB::SetupDetrendingRegressors(int N)
 		h_xtxxt_Detrend[i + 1 * N] = (float)xtxxt(1,i);
 		h_xtxxt_Detrend[i + 2 * N] = (float)xtxxt(2,i);
 		h_xtxxt_Detrend[i + 3 * N] = (float)xtxxt(3,i);
+	}
+}
+
+void BROCCOLI_LIB::SetupDetrendingAndMotionRegressors(int N)
+{
+	Eigen::VectorXd Ones(N,1);
+	Eigen::VectorXd Linear(N,1);
+	Eigen::VectorXd Quadratic(N,1);
+	Eigen::VectorXd Cubic(N,1);
+
+	// Ones and linear trend
+	double offset = -((double)N - 1.0)/2.0;
+	for (int t = 0; t < N; t++)
+	{
+		Ones(t) = 1.0;
+		Linear(t) = offset + (double)t;
+	}
+
+	// Calculate quadratic and cubic trends
+	Quadratic = Linear.cwiseProduct(Linear);
+	Cubic = Linear.cwiseProduct(Linear);
+	Cubic = Cubic.cwiseProduct(Linear);
+
+	// Normalize
+	Linear = Linear / Linear.maxCoeff();
+	Quadratic = Quadratic / Quadratic.maxCoeff();
+	Cubic = Cubic / Cubic.maxCoeff();
+
+	// Setup total detrending design matrix
+	Eigen::MatrixXd X(N,10);
+	for (int i = 0; i < N; i++)
+	{
+		X(i,0) = Ones(i);
+		X(i,1) = Linear(i);
+		X(i,2) = Quadratic(i);
+		X(i,3) = Cubic(i);
+
+		X(i,4) = h_Motion_Parameters[i + 0 * N];
+		X(i,5) = h_Motion_Parameters[i + 1 * N];
+		X(i,6) = h_Motion_Parameters[i + 2 * N];
+		X(i,7) = h_Motion_Parameters[i + 3 * N];
+		X(i,8) = h_Motion_Parameters[i + 4 * N];
+		X(i,9) = h_Motion_Parameters[i + 5 * N];
+	}
+
+	int MEAN_REGRESSOR = 0;
+
+	// Demean regressors
+	for (int r = 0; r < 10; r++)
+	{
+		if (r != MEAN_REGRESSOR)
+		{
+			Eigen::VectorXd regressor = X.block(0,r,N,1);
+			DemeanRegressor(regressor,N);
+			X.block(0,r,N,1) = regressor;
+		}
+	}
+
+	// Calculate pseudo inverse (could be done with SVD instead, or QR)
+	Eigen::MatrixXd xtx(10,10);
+	xtx = X.transpose() * X;
+	Eigen::MatrixXd inv_xtx = xtx.inverse();
+	Eigen::MatrixXd xtxxt = inv_xtx * X.transpose();
+
+	// Finally store regressors in ordinary arrays
+	for (int i = 0; i < N; i++)
+	{
+		h_X_Detrend[i + 0 * N] = (float)X(i,0);
+		h_X_Detrend[i + 1 * N] = (float)X(i,1);
+		h_X_Detrend[i + 2 * N] = (float)X(i,2);
+		h_X_Detrend[i + 3 * N] = (float)X(i,3);
+
+		h_X_Detrend[i + 4 * N] = (float)X(i,4);
+		h_X_Detrend[i + 5 * N] = (float)X(i,5);
+		h_X_Detrend[i + 6 * N] = (float)X(i,6);
+		h_X_Detrend[i + 7 * N] = (float)X(i,7);
+		h_X_Detrend[i + 8 * N] = (float)X(i,8);
+		h_X_Detrend[i + 9 * N] = (float)X(i,9);
+
+		h_xtxxt_Detrend[i + 0 * N] = (float)xtxxt(0,i);
+		h_xtxxt_Detrend[i + 1 * N] = (float)xtxxt(1,i);
+		h_xtxxt_Detrend[i + 2 * N] = (float)xtxxt(2,i);
+		h_xtxxt_Detrend[i + 3 * N] = (float)xtxxt(3,i);
+
+		h_xtxxt_Detrend[i + 4 * N] = (float)xtxxt(4,i);
+		h_xtxxt_Detrend[i + 5 * N] = (float)xtxxt(5,i);
+		h_xtxxt_Detrend[i + 6 * N] = (float)xtxxt(6,i);
+		h_xtxxt_Detrend[i + 7 * N] = (float)xtxxt(7,i);
+		h_xtxxt_Detrend[i + 8 * N] = (float)xtxxt(8,i);
+		h_xtxxt_Detrend[i + 9 * N] = (float)xtxxt(9,i);
+
 	}
 }
 
