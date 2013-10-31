@@ -6,7 +6,7 @@ clear
 MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz
 
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/
-results_directory=/data/andek/BROCCOLI_test_data/FSL
+results_directory=/data/andek/BROCCOLI_test_data/FSL/normalization
 
 subject=1
 
@@ -21,7 +21,7 @@ do
 	if [ "$subject" -lt "11" ]
     then
 		time flirt -in ${dir}/anat/mprage_skullstripped.nii.gz -ref ${MNI_TEMPLATE} -out anat_affine_fsl.nii
-		time fnirt --ref=${MNI_TEMPLATE} --in=anat_affine_fsl.nii.gz --iout=${results_directory}/FSL_warped_${subject}_.nii
+		time fnirt --ref=${MNI_TEMPLATE} --in=anat_affine_fsl.nii.gz --iout=${results_directory}/FSL_warped_subject${subject}_.nii
 	fi
 	
 	subject=$((subject + 1))

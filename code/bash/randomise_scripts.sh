@@ -50,12 +50,12 @@
 						   
 
 
-#time randomise -i betas49.nii.gz -d design1.mat -t design1.con -o permtest_ -n 990 -m /home/andek/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz -N -x -P
+time randomise -i betas49.nii.gz -d design1.mat -t design1.con -o permtest_ -n 990 -m /home/andek/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz -N -x -P
 
 #time fsl_sub randomise -i betas49.nii.gz -d design1.mat -t design1.con -o permtest_ -n 100 -m /home/andek/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz -N -x -P
 
 #export FSLPARALLEL=condor
-time randomise_parallel -i betas49.nii.gz -d design1.mat -t design1.con -o permtest_ -n 10 -m /home/andek/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz -N -x -P
+#time randomise_parallel -i betas49.nii.gz -d design1.mat -t design1.con -o permtest_ -n 10 -m /home/andek/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz -N -x -P
 
 
 

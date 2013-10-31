@@ -6,16 +6,16 @@ close all
 if ispc
     addpath('D:/spm8')
     data_path = 'D:/BROCCOLI_test_data/Cambridge/with_random_motion';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/';    
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/motion_correction/';    
 elseif isunix
     addpath('/data/andek/spm8/')
     data_path = '/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/';
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/motion_correction/';
 end
 
-noise_level = '_1percent_noise';
-%noise_level = '_no_noise';
-%noise_level = '';
+noise_level = '_no_noise';
+%noise_level = '_1percent_noise';
+%noise_level = '_2percent_noise';
 
 try
     system(['rm' ' batch_preprocessing.mat']);
@@ -23,8 +23,10 @@ end
     
 % Loop over subjects
 
+motion_correction_times = zeros(198,1);
+
 tic
-for s = 1:10
+for s = 1:198
     
     
     %% Initialise SPM defaults
@@ -63,7 +65,9 @@ for s = 1:10
     error1 = 0;
     try        
         % Run preprocessing
+        start = clock;
         spm_jobman('run',pjobs);        
+        motion_correction_times(s) = etime(clock,start)
     catch err
         err
         error1 = 1;

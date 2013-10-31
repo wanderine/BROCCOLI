@@ -24,10 +24,13 @@
 % https://forums.geforce.com/default/topic/503962/tdr-fix-here-for-nvidia-driver-crashing-randomly-in-firefox/
 %---------------------------------------------------------------------------------------------------------------------
 
+
+
 clear all
 clc
 close all
 
+% Compile the Matlab wrapper to get a mex-file
 if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
@@ -55,10 +58,22 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-for s = 1:20
+noise_level = 0.02; % 0.01, 0.02           % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
+save_test_dataset = 1;                  % Save testing data as a nifti file or not
+save_motion_corrected_data = 0;         % Save motion corrected data as a Matlab file or not
+plot_results = 0;                       % Plot true and estimated motion parameters or not
+save_estimated_motion_parameters = 1;   % Save estimated motion parameters as a Matlab file or not
+save_true_motion_parameters = 1;        % Save true motion parameters as a Matlab file or not
+
+
+% Loop over subjects
+for s = 1:198
+    
+    s
     
     number_of_iterations_for_motion_correction = 5;
     
+    % Load fMRI data
     if ispc
         if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
             EPI_nii = load_nii([basepath study '/rest' num2str(s) '.nii.gz']);
@@ -67,7 +82,7 @@ for s = 1:20
         end
     elseif isunix
         dirs = dir([basepath study]);
-        subject = dirs(s+2).name
+        subject = dirs(s+3).name % Skip . , .. and SPM 'folders'
         EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);
     end
     
@@ -76,11 +91,9 @@ for s = 1:20
     [sy sx sz st] = size(fMRI_volumes)
     
     load filters_for_parametric_registration.mat
-    
-    
-    
+            
     %%
-    % Create random translations, for testing
+    % Create random transformations, for testing
     
     generated_fMRI_volumes = zeros(size(fMRI_volumes));
     generated_fMRI_volumes(:,:,:,1) = fMRI_volumes(:,:,:,1);
@@ -94,11 +107,11 @@ for s = 1:20
     y_rotations = zeros(st,1);
     z_rotations = zeros(st,1);
     
-    factor = 0.5;
-    %factor = 0;
+    factor = 0.5; % standard deviation for random translations and rotations    
     
     [xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
         
+    % Loop over timepoints
     for t = 2:st
         
         middle_x = (sx-1)/2;
@@ -106,9 +119,9 @@ for s = 1:20
         middle_z = (sz-1)/2;
         
         % Translation in 3 directions
-        x_translation = factor*randn;
-        y_translation = factor*randn;
-        z_translation = factor*randn;
+        x_translation = factor*randn; % voxels
+        y_translation = factor*randn; % voxels
+        z_translation = factor*randn; % voxels
         
         x_translations(t) = x_translation;
         y_translations(t) = y_translation;
@@ -122,6 +135,8 @@ for s = 1:20
         x_rotations(t) = x_rotation;
         y_rotations(t) = y_rotation;
         z_rotations(t) = z_rotation;
+        
+        % Create rotation matrices around the three axes
         
         R_x = [1                        0                           0;
                0                        cos(x_rotation*pi/180)      -sin(x_rotation*pi/180);
@@ -156,189 +171,155 @@ for s = 1:20
         
         % Add rotation and translation at the same time        
         altered_volume = interp3(xi,yi,zi,reference_volume,rx_r-rx_t,ry_r-ry_t,rz_r-rz_t,'cubic');
+        % Remove 'not are numbers' from interpolation
         altered_volume(isnan(altered_volume)) = 0;        
         
         % Add noise
-        %altered_volume = altered_volume + max(fMRI_volumes(:))*0.02*randn(size(altered_volume));
-        %altered_volume = altered_volume + max(fMRI_volumes(:))*0.01*randn(size(altered_volume));
-        
-                       
+        altered_volume = altered_volume + max(fMRI_volumes(:)) * noise_level * randn(size(altered_volume));
+                                       
         generated_fMRI_volumes(:,:,:,t) = altered_volume;
+        
     end
     
-    % Save as nifti file
-    new_file.hdr = EPI_nii.hdr;
-    new_file.hdr.dime.datatype = 16;
-    new_file.hdr.dime.bitpix = 16;
-    new_file.img = single(generated_fMRI_volumes);    
-    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
-    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
-    %filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
-    %save_nii(new_file,filename);
+    % Save testing dataset as nifti file
+    if save_test_dataset == 1
+        new_file.hdr = EPI_nii.hdr;
+        new_file.hdr.dime.datatype = 16;
+        new_file.hdr.dime.bitpix = 16;
+        new_file.img = single(generated_fMRI_volumes);    
+        
+        if noise_level == 0
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
+        elseif noise_level == 0.01
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
+        elseif noise_level == 0.02
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_2percent_noise.nii'];
+        end
+            
+        save_nii(new_file,filename);
+    end
     
     %%
     
     fMRI_volumes = generated_fMRI_volumes;
     
+    % Do motion correction on CPU, as comparison
     %[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction);
     motion_parameters_cpu = zeros(st,12);
     rotations_cpu = zeros(st,3);
     
-    number_of_iterations_for_motion_correction
+    % Do motion correction on OpenCL device
     tic
     [motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, ...
         phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
         MotionCorrection(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction,opencl_platform,opencl_device);
     toc
         
-    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    %save(filename,'motion_corrected_volumes_opencl');
+    % Save motion corrected data as Matlab file
+    if save_motion_corrected_data == 1        
+        if noise_level == 0
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.mat'];
+        elseif noise_level == 0.01
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+        elseif noise_level == 0.02
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+        end
+        
+        save(filename,'motion_corrected_volumes_opencl');
+    end
     
-    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-    %filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/random_motion/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    %save(filename,'motion_parameters_opencl');
+    % Save estimated motion parameters as Matlab file
+    if save_estimated_motion_parameters == 1    
+        if noise_level == 0
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+        elseif noise_level == 0.01
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+        elseif noise_level == 0.02
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+        end
+        
+        save(filename,'motion_parameters_opencl');
+    end
     
-    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-    %filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    %filename = ['D:/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-    %save(filename,'x_translations','y_translations','z_translations','x_rotations','y_rotations','z_rotations');
+    % Save true motion parameters as Matlab file
+    if save_true_motion_parameters == 1        
+        if noise_level == 0
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+        elseif noise_level == 0.01
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+        elseif noise_level == 0.02
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+        end
+        
+        save(filename,'x_translations','y_translations','z_translations','x_rotations','y_rotations','z_rotations');
+    end        
     
+    if plot_results == 1
+        
+        % Plot true and estimated translations in the x-direction
+        figure
+        plot(x_translations,'g')
+        hold on
+        plot(motion_parameters_cpu(:,1),'r')
+        hold on
+        plot(motion_parameters_opencl(:,1),'b')
+        hold off
+        legend('Applied x translations','Estimated x translations CPU','Estimated x translations OpenCL')
     
-    quadrature_filter_response_reference_1_cpu = convn(fMRI_volumes(:,:,:,1),f1_parametric_registration,'same');
-    quadrature_filter_response_reference_2_cpu = convn(fMRI_volumes(:,:,:,1),f2_parametric_registration,'same');
-    quadrature_filter_response_reference_3_cpu = convn(fMRI_volumes(:,:,:,1),f3_parametric_registration,'same');
+        % Plot true and estimated translations in the y-direction
+        figure
+        plot(y_translations,'g')
+        hold on
+        plot(motion_parameters_cpu(:,2),'r')
+        hold on
+        plot(motion_parameters_opencl(:,2),'b')
+        hold off
+        legend('Applied y translations','Estimated y translations CPU','Estimated y translations OpenCL')
     
-    quadrature_filter_response_aligned_1_cpu = convn(fMRI_volumes(:,:,:,end),f1_parametric_registration,'same');
-    quadrature_filter_response_aligned_2_cpu = convn(fMRI_volumes(:,:,:,end),f2_parametric_registration,'same');
-    quadrature_filter_response_aligned_3_cpu = convn(fMRI_volumes(:,:,:,end),f3_parametric_registration,'same');
+        % Plot true and estimated translations in the z-direction
+        figure
+        plot(z_translations,'g')
+        hold on
+        plot(motion_parameters_cpu(:,3),'r')
+        hold on
+        plot(motion_parameters_opencl(:,3),'b')
+        hold off
+        legend('Applied z translations','Estimated z translations CPU','Estimated z translations OpenCL')
+        
+        % Plot true and estimated rotations in the x-direction
+        figure
+        plot(x_rotations,'g')
+        hold on
+        plot(rotations_cpu(:,1),'r')
+        hold on
+        plot(motion_parameters_opencl(:,4),'b')
+        hold off
+        legend('Applied x rotations','Estimated x rotations CPU','Estimated x rotations OpenCL')
+      
+        % Plot true and estimated rotations in the y-direction
+        figure
+        plot(y_rotations,'g')
+        hold on
+        plot(rotations_cpu(:,2),'r')
+        hold on
+        plot(motion_parameters_opencl(:,5),'b')
+        hold off
+        legend('Applied y rotations','Estimated y rotations CPU','Estimated y rotations OpenCL')
+        
+        % Plot true and estimated rotations in the z-direction
+        figure
+        plot(z_rotations,'g')
+        hold on
+        plot(rotations_cpu(:,3),'r')
+        hold on
+        plot(motion_parameters_opencl(:,6),'b')
+        hold off
+        legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations OpenCL')
     
-    phase_differences_x_cpu = angle(quadrature_filter_response_reference_1_cpu .* conj(quadrature_filter_response_aligned_1_cpu));
+    end   
     
-    phase_certainties_x_cpu = abs(quadrature_filter_response_reference_1_cpu .* quadrature_filter_response_aligned_1_cpu) .* ((cos(phase_differences_x_cpu/2)).^2);
-    
-    phase_gradients_x_cpu = zeros(sy,sx,sz);
-    phase_gradients_x_cpu(:,2:end-1,:) = angle(quadrature_filter_response_reference_1_cpu(:,3:end,:).*conj(quadrature_filter_response_reference_1_cpu(:,2:end-1,:)) + quadrature_filter_response_reference_1_cpu(:,2:end-1,:).*conj(quadrature_filter_response_reference_1_cpu(:,1:end-2,:)) + ...
-        quadrature_filter_response_aligned_1_cpu(:,3:end,:).*conj(quadrature_filter_response_aligned_1_cpu(:,2:end-1,:)) + quadrature_filter_response_aligned_1_cpu(:,2:end-1,:).*conj(quadrature_filter_response_aligned_1_cpu(:,1:end-2,:)));
-    
-    %
-    
-    
-    slice = 4;
-    %
-    % figure
-    % imagesc( [real(quadrature_filter_response_aligned_1_cpu(:,:,slice)) real(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
-    % figure
-    % imagesc( [real(quadrature_filter_response_aligned_2_cpu(:,:,slice)) real(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
-    % figure
-    % imagesc( [real(quadrature_filter_response_aligned_3_cpu(:,:,slice)) real(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
-    %
-    % figure
-    % imagesc( [imag(quadrature_filter_response_aligned_1_cpu(:,:,slice)) imag(quadrature_filter_response_1_opencl(:,:,slice)) ] ); colorbar
-    % figure
-    % imagesc( [imag(quadrature_filter_response_aligned_2_cpu(:,:,slice)) imag(quadrature_filter_response_2_opencl(:,:,slice)) ] ); colorbar
-    % figure
-    % imagesc( [imag(quadrature_filter_response_aligned_3_cpu(:,:,slice)) imag(quadrature_filter_response_3_opencl(:,:,slice)) ] ); colorbar
-    %
-    % figure
-    % imagesc( [phase_differences_x_cpu(:,:,slice) phase_differences_x_opencl(:,:,slice) ] ); colorbar
-    % figure
-    % imagesc( [phase_certainties_x_cpu(:,:,slice) phase_certainties_x_opencl(:,:,slice) ] ); colorbar
-    % %figure
-    % %imagesc( [phase_certainties_x_cpu(:,:,slice) - phase_certainties_x_opencl(:,:,slice) ] ); colorbar
-    % figure
-    % imagesc( [phase_gradients_x_cpu(:,:,slice) phase_gradients_x_opencl(:,:,slice) ] ); colorbar
-    % figure
-    % imagesc( [phase_gradients_x_cpu(2:end-1,2:end-1,slice) - phase_gradients_x_opencl(2:end-1,2:end-1,slice) ] ); colorbar
-    %
-    %
-    %
-    %
-    % filter_response_1_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_1_cpu(:)) - real(quadrature_filter_response_1_opencl(:))))
-    % filter_response_1_real_max_error = max(abs(real(quadrature_filter_response_aligned_1_cpu(:)) - real(quadrature_filter_response_1_opencl(:))))
-    % filter_response_1_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_1_cpu(:)) - imag(quadrature_filter_response_1_opencl(:))))
-    % filter_response_1_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_1_cpu(:)) - imag(quadrature_filter_response_1_opencl(:))))
-    %
-    % filter_response_2_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_2_cpu(:)) - real(quadrature_filter_response_2_opencl(:))))
-    % filter_response_2_real_max_error = max(abs(real(quadrature_filter_response_aligned_2_cpu(:)) - real(quadrature_filter_response_2_opencl(:))))
-    % filter_response_2_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_2_cpu(:)) - imag(quadrature_filter_response_2_opencl(:))))
-    % filter_response_2_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_2_cpu(:)) - imag(quadrature_filter_response_2_opencl(:))))
-    %
-    % filter_response_3_real_tot_error = sum(abs(real(quadrature_filter_response_aligned_3_cpu(:)) - real(quadrature_filter_response_3_opencl(:))))
-    % filter_response_3_real_max_error = max(abs(real(quadrature_filter_response_aligned_3_cpu(:)) - real(quadrature_filter_response_3_opencl(:))))
-    % filter_response_3_imag_tot_error = sum(abs(imag(quadrature_filter_response_aligned_3_cpu(:)) - imag(quadrature_filter_response_3_opencl(:))))
-    % filter_response_3_imag_max_error = max(abs(imag(quadrature_filter_response_aligned_3_cpu(:)) - imag(quadrature_filter_response_3_opencl(:))))
-    %
-    % phase_differences_x_tot_error = sum(abs(phase_differences_x_cpu(:) - phase_differences_x_opencl(:)))
-    % phase_differences_x_max_error = max(abs(phase_differences_x_cpu(:) - phase_differences_x_opencl(:)))
-    %
-    % phase_certainties_x_tot_error = sum(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
-    % phase_certainties_x_max_error = max(abs(phase_certainties_x_cpu(:) - phase_certainties_x_opencl(:)))
-    %
-    % phase_gradients_x_tot_error = sum(sum(sum(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
-    % phase_gradients_x_max_error = max(max(max(abs(phase_gradients_x_cpu(:,2:end-1,:) - phase_gradients_x_opencl(:,2:end-1,:)))))
-    
-    
-%     
-%     figure
-%     plot(x_translations,'g')
-%     hold on
-%     plot(motion_parameters_cpu(:,1),'r')
-%     hold on
-%     plot(motion_parameters_opencl(:,1),'b')
-%     hold off
-%     legend('Applied x translations','Estimated x translations CPU','Estimated x translations OpenCL')
-%     
-%     figure
-%     plot(y_translations,'g')
-%     hold on
-%     plot(motion_parameters_cpu(:,2),'r')
-%     hold on
-%     plot(motion_parameters_opencl(:,2),'b')
-%     hold off
-%     legend('Applied y translations','Estimated y translations CPU','Estimated y translations OpenCL')
-%     
-%     figure
-%     plot(z_translations,'g')
-%     hold on
-%     plot(motion_parameters_cpu(:,3),'r')
-%     hold on
-%     plot(motion_parameters_opencl(:,3),'b')
-%     hold off
-%     legend('Applied z translations','Estimated z translations CPU','Estimated z translations OpenCL')
-%     
-%     
-%     figure
-%     plot(x_rotations,'g')
-%     hold on
-%     plot(rotations_cpu(:,1),'r')
-%     hold on
-%     plot(motion_parameters_opencl(:,4),'b')
-%     hold off
-%     legend('Applied x rotations','Estimated x rotations CPU','Estimated x rotations OpenCL')
-%     
-%     
-%     figure
-%     plot(y_rotations,'g')
-%     hold on
-%     plot(rotations_cpu(:,2),'r')
-%     hold on
-%     plot(motion_parameters_opencl(:,5),'b')
-%     hold off
-%     legend('Applied y rotations','Estimated y rotations CPU','Estimated y rotations OpenCL')
-%     
-%     
-%     figure
-%     plot(z_rotations,'g')
-%     hold on
-%     plot(rotations_cpu(:,3),'r')
-%     hold on
-%     plot(motion_parameters_opencl(:,6),'b')
-%     hold off
-%     legend('Applied z rotations','Estimated z rotations CPU','Estimated z rotations OpenCL')
-    
-    slice = 18;
-    
+    % Calculate differences between true parameters and estimated
+    % parameters
     x_translations_opencl = squeeze(motion_parameters_opencl(:,1));
     y_translations_opencl = squeeze(motion_parameters_opencl(:,2));
     z_translations_opencl = squeeze(motion_parameters_opencl(:,3));
@@ -359,16 +340,5 @@ for s = 1:20
     close all
     
 end
-
-
-%figure
-%imagesc([motion_corrected_volumes_cpu(:,:,slice,2) - motion_corrected_volumes_opencl(:,:,slice,2)]); colorbar
-%title('MC cpu - gpu')
-
-% for t = 1:st
-%    figure(5)
-%    imagesc([fMRI_volumes(:,:,18,t) motion_corrected_volumes_cpu(:,:,18,t)  motion_corrected_volumes_opencl(:,:,18,t) ])
-%    pause(0.1)
-% end
 
 
