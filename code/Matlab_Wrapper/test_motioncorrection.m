@@ -46,7 +46,7 @@ elseif isunix
     %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
     mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     
-    opencl_platform = 2;
+    opencl_platform = 1; % 0 Intel, 1 AMD, 2 Nvidia
     opencl_device = 0;
 end
 
@@ -58,13 +58,16 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-noise_level = 0.02; % 0.01, 0.02           % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
-save_test_dataset = 1;                  % Save testing data as a nifti file or not
+noise_level = 0.02; % 0.01, 0.02        % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
+save_test_dataset = 0;                  % Save testing data as a nifti file or not
 save_motion_corrected_data = 0;         % Save motion corrected data as a Matlab file or not
 plot_results = 0;                       % Plot true and estimated motion parameters or not
-save_estimated_motion_parameters = 1;   % Save estimated motion parameters as a Matlab file or not
-save_true_motion_parameters = 1;        % Save true motion parameters as a Matlab file or not
+save_estimated_motion_parameters = 0;   % Save estimated motion parameters as a Matlab file or not
+save_true_motion_parameters = 0;        % Save true motion parameters as a Matlab file or not
+add_shading = 0;                        % Add shading to each fMRI volume or not
+run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comparison to OpenCL algorithm
 
+motion_correction_times = zeros(198,1);
 
 % Loop over subjects
 for s = 1:198
@@ -174,6 +177,14 @@ for s = 1:198
         % Remove 'not are numbers' from interpolation
         altered_volume(isnan(altered_volume)) = 0;        
         
+        if add_shading == 1
+            % Shading in x direction, 1% of maximum intensity
+            shade = repmat(linspace(1,0.01*max(fMRI_volumes(:)),sx),sy,1);
+            for z = 1:sz
+                altered_volume(:,:,z) =  altered_volume(:,:,z) + shade;
+            end
+        end
+        
         % Add noise
         altered_volume = altered_volume + max(fMRI_volumes(:)) * noise_level * randn(size(altered_volume));
                                        
@@ -203,17 +214,20 @@ for s = 1:198
     
     fMRI_volumes = generated_fMRI_volumes;
     
-    % Do motion correction on CPU, as comparison
-    %[motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction);
-    motion_parameters_cpu = zeros(st,12);
-    rotations_cpu = zeros(st,3);
+    % Do motion correction with Matlab implementation, as comparison
+    if run_Matlab_equivalent == 1
+        [motion_corrected_volumes_cpu,motion_parameters_cpu, rotations_cpu, scalings_cpu, quadrature_filter_response_reference_1_cpu, quadrature_filter_response_reference_2_cpu, quadrature_filter_response_reference_3_cpu] = perform_fMRI_registration_CPU(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction);
+    else
+        motion_parameters_cpu = zeros(st,12);
+        rotations_cpu = zeros(st,3);
+    end
     
     % Do motion correction on OpenCL device
-    tic
+    start = clock;
     [motion_corrected_volumes_opencl,motion_parameters_opencl, quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, ...
         phase_differences_x_opencl, phase_certainties_x_opencl, phase_gradients_x_opencl] = ...
         MotionCorrection(fMRI_volumes,f1_parametric_registration,f2_parametric_registration,f3_parametric_registration,number_of_iterations_for_motion_correction,opencl_platform,opencl_device);
-    toc
+    motion_correction_times(s) = etime(clock,start);
         
     % Save motion corrected data as Matlab file
     if save_motion_corrected_data == 1        

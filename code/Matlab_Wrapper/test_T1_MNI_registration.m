@@ -33,8 +33,7 @@ if ispc
     addpath('D:\BROCCOLI_test_data')
     %basepath = 'D:\BROCCOLI_test_data\';
     basepath = 'D:\';
-    %basepath = '../../test_data/fcon1000/classic/';
-    
+        
     mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     %mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
       
@@ -43,14 +42,12 @@ if ispc
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/BROCCOLI_test_data/';
-    %basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';    
-    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/temp';    
-    %basepath = '../../test_data/fcon1000/classic/';
+    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';        
     
     %mex -g RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     
-    opencl_platform = 2;
+    opencl_platform = 1;  % 0 Intel, 1 AMD, 2 Nvidia
     opencl_device = 0;
 end
 
@@ -87,10 +84,13 @@ MNI_brain = double(MNI_brain_nii.img);
 MNI_brain_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
 MNI_brain_mask = double(MNI_brain_mask_nii.img);
     
+% Load quadrature filters
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
     
 dirs = dir([basepath study]);
+
+normalization_times = zeros(198,1);
 
 % Loop over subjects
 for s = 4:length(dirs) % Skip ., .. and SPM 'folders'
@@ -131,7 +131,7 @@ for s = 4:length(dirs) % Skip ., .. and SPM 'folders'
     MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);    
     
     % Run the registration with OpenCL           
-    tic
+    start = clock;
     [aligned_T1_opencl, aligned_T1_nonparametric_opencl, skullstripped_T1_opencl, interpolated_T1_opencl, registration_parameters_opencl, ...
         quadrature_filter_response_1_opencl, quadrature_filter_response_2_opencl, quadrature_filter_response_3_opencl, ...
         quadrature_filter_response_4_opencl, quadrature_filter_response_5_opencl, quadrature_filter_response_6_opencl, ...
@@ -145,7 +145,7 @@ for s = 4:length(dirs) % Skip ., .. and SPM 'folders'
         m1, m2, m3, m4, m5, m6, ...
         filter_directions_x, filter_directions_y, filter_directions_z, ...
         number_of_iterations_for_parametric_image_registration,number_of_iterations_for_nonparametric_image_registration,coarsest_scale,MM_T1_Z_CUT,opencl_platform, opencl_device);
-    toc
+    normalization_times(s-3) = etime(clock,start);
             
     registration_parameters_opencl
             
@@ -165,12 +165,13 @@ for s = 4:length(dirs) % Skip ., .. and SPM 'folders'
         figure; imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
     end
         
-    
+    % Save normalized volume as a Matlab file
     if save_warped_volume_matlab == 1
         filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-3) '.mat'];
         save(filename,'aligned_T1_nonparametric_opencl')
     end
     
+    % Save normalized volume as a nifti file
     if save_warped_volume_nifti == 1
         new_file.hdr = MNI_nii.hdr;
         new_file.hdr.dime.datatype = 16;

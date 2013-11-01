@@ -20,7 +20,7 @@ elseif isunix
     basepath_SPM_Segment = '/data/andek/BROCCOLI_test_data/SPM/normalization/segment';
     basepath_FSL = '/data/andek/BROCCOLI_test_data/FSL/normalization';
     basepath_AFNI = '/data/andek/BROCCOLI_test_data/AFNI/normalization';    
-    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/temp';    
+    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';    
 end
 
 N = 198;
@@ -302,17 +302,17 @@ std(mutual_information_AFNI)
 std(mutual_information_BROCCOLI)
 
 
-mean(ssd_SPM_Normalize)
-mean(ssd_SPM_Segment)
-mean(ssd_FSL)
-mean(ssd_AFNI)
-mean(ssd_BROCCOLI)
+mean(ssd_SPM_Normalize/100000)
+mean(ssd_SPM_Segment/100000)
+mean(ssd_FSL/100000)
+mean(ssd_AFNI/100000)
+mean(ssd_BROCCOLI/100000)
 
-std(ssd_SPM_Normalize)
-std(ssd_SPM_Segment)
-std(ssd_FSL)
-std(ssd_AFNI)
-std(ssd_BROCCOLI)
+std(ssd_SPM_Normalize/100000)
+std(ssd_SPM_Segment/100000)
+std(ssd_FSL/100000)
+std(ssd_AFNI/100000)
+std(ssd_BROCCOLI/100000)
 
 
 
