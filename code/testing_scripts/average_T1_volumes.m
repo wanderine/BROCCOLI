@@ -23,7 +23,7 @@ elseif isunix
     basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';    
 end
 
-N = 198;
+N = 198;    % Number of subjects
 
 calculate_std = 0;  % Calculate voxel-wise standard deviation or not
 
@@ -49,6 +49,8 @@ correlation_SPM_Normalize = zeros(N,1);
 ssd_SPM_Normalize = zeros(N,1);
 
 mean_T1_volume_SPM_Normalize = zeros(182,218,182);
+
+% Loop over subjects
 for s = 1:N
     s
     T1 = load_nii([basepath_SPM_Normalize '/SPM_warped_subject_'  num2str(s) '.nii']);
@@ -85,6 +87,8 @@ correlation_SPM_Segment = zeros(N,1);
 ssd_SPM_Segment = zeros(N,1);
 
 mean_T1_volume_SPM_Segment = zeros(182,218,182);
+
+% Loop over subjects
 for s = 1:N
     s
     T1 = load_nii([basepath_SPM_Segment '/SPM_warped_subject_'  num2str(s) '.nii']);
@@ -122,6 +126,8 @@ correlation_FSL = zeros(N,1);
 ssd_FSL = zeros(N,1);
 
 mean_T1_volume_FSL = zeros(182,218,182);
+
+% Loop over subjects
 for s = 1:N
     s
     T1 = load_nii([basepath_FSL '/FSL_warped_'  num2str(s) '.nii.gz']);
@@ -158,6 +164,8 @@ correlation_AFNI = zeros(N,1);
 ssd_AFNI = zeros(N,1);
 
 mean_T1_volume_AFNI = zeros(182,218,182);
+
+% Loop over subjects
 for s = 1:N
     s
     T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '.nii']);
@@ -194,10 +202,10 @@ correlation_BROCCOLI = zeros(N,1);
 ssd_BROCCOLI = zeros(N,1);
 
 mean_T1_volume_BROCCOLI = zeros(182,218,182);
+
+% Loop over subjects
 for s = 1:N
-    s
-    %load([basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s) '.mat']);    
-    %T1 = aligned_T1_nonparametric_opencl;
+    s    
     T1 = load_nii([basepath_BROCCOLI '/BROCCOLI_warped_subject'  num2str(s) '.nii']);
     T1 = double(T1.img);    
     T1 = T1/max(T1(:));
@@ -228,12 +236,11 @@ end
 %-------------------------------------------------------------------
 
 
-
 close all
 
 % Show average normalized T1 volumes
 figure(1)
-image([ flipud(MNI(:,:,85)')*50  flipud(mean_T1_volume_SPM_Normalize(:,:,85)')*75 flipud(mean_T1_volume_SPM_Segment(:,:,85)')*75   ; flipud(mean_T1_volume_FSL(:,:,85)')*75 flipud(mean_T1_volume_AFNI(:,:,85)')*75  flipud(mean_T1_volume_BROCCOLI(:,:,85)')*75 ]); colormap gray
+image([ flipud(MNI(:,:,85)')*50  flipud(mean_T1_volume_SPM_Normalize(:,:,85)')*75 flipud(mean_T1_volume_SPM_Segment(:,:,85)')*75   ; flipud(mean_T1_volume_FSL(:,:,85)')*75 flipud(mean_T1_volume_AFNI(:,:,85)')*75  flipud(mean_T1_volume_BROCCOLI(:,:,85)')*75 ; zeros(15,546) ]); colormap gray
 axis equal
 axis off
 text(10,25,'A','Color','White','FontSize',17)
@@ -242,6 +249,11 @@ text(380,25,'C','Color','White','FontSize',17)
 text(10,225,'D','Color','White','FontSize',17)
 text(200,225,'E','Color','White','FontSize',17)
 text(380,225,'F','Color','White','FontSize',17)
+
+text(5,120,'L','Color','White','FontSize',18)
+text(5,340,'L','Color','White','FontSize',18)
+text(460,430,'z = 13mm','Color','White','FontSize',18)
+
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_.png
 export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_.png -png -native
 
@@ -256,7 +268,7 @@ end
 
 % Show average normalized T1 volumes
 figure(3)
-image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 flipud(squeeze(mean_T1_volume_SPM_Segment(85,:,:))')*75    ; flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75  ]); colormap gray
+image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 flipud(squeeze(mean_T1_volume_SPM_Segment(85,:,:))')*75    ; flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75 ; zeros(30,654) ]); colormap gray
 axis equal
 axis off
 text(10,25,'A','Color','White','FontSize',18)
@@ -265,6 +277,9 @@ text(450,25,'C','Color','White','FontSize',18)
 text(10,225,'D','Color','White','FontSize',18)
 text(230,225,'E','Color','White','FontSize',18)
 text(450,225,'F','Color','White','FontSize',18)
+
+text(575,380,'x = 8mm','Color','White','FontSize',18)
+
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_.png
 export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_.png -png -native
 
@@ -277,6 +292,7 @@ if calculate_std == 1
     %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_std.png
 end
 
+% Calculate mean and standard deviation of correlation
 mean(correlation_SPM_Normalize)
 mean(correlation_SPM_Segment)
 mean(correlation_FSL)
@@ -289,6 +305,7 @@ std(correlation_FSL)
 std(correlation_AFNI)
 std(correlation_BROCCOLI)
 
+% Calculate mean and standard deviation of mutual information
 mean(mutual_information_SPM_Normalize)
 mean(mutual_information_SPM_Segment)
 mean(mutual_information_FSL)
@@ -301,7 +318,7 @@ std(mutual_information_FSL)
 std(mutual_information_AFNI)
 std(mutual_information_BROCCOLI)
 
-
+% Calculate mean and standard deviation of ssd
 mean(ssd_SPM_Normalize/100000)
 mean(ssd_SPM_Segment/100000)
 mean(ssd_FSL/100000)

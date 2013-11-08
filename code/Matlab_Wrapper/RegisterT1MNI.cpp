@@ -30,7 +30,7 @@ float round_( float d )
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     //-----------------------
-    // Input pointers
+    // Input pointers and other stuff
     
     double		    *h_T1_Volume_double, *h_MNI_Volume_double, *h_MNI_Brain_Volume_double, *h_MNI_Brain_Mask_double;
     double          *h_Quadrature_Filter_1_Parametric_Registration_Real_double, *h_Quadrature_Filter_2_Parametric_Registration_Real_double, *h_Quadrature_Filter_3_Parametric_Registration_Real_double, *h_Quadrature_Filter_1_Parametric_Registration_Imag_double, *h_Quadrature_Filter_2_Parametric_Registration_Imag_double, *h_Quadrature_Filter_3_Parametric_Registration_Imag_double;
@@ -363,26 +363,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Allocate memory on the host
     h_T1_Volume                                         = (float *)mxMalloc(T1_VOLUME_SIZE);
     h_MNI_Volume                                        = (float *)mxMalloc(MNI_VOLUME_SIZE);
-    h_MNI_Brain_Volume                                        = (float *)mxMalloc(MNI_VOLUME_SIZE);
+    h_MNI_Brain_Volume                                  = (float *)mxMalloc(MNI_VOLUME_SIZE);
     h_MNI_Brain_Mask                                    = (float *)mxMalloc(MNI_VOLUME_SIZE);
     h_Interpolated_T1_Volume                            = (float *)mxMalloc(MNI_VOLUME_SIZE);
     h_Downsampled_Volume                                = (float *)mxMalloc(DOWNSAMPLED_VOLUME_SIZE);
     
     h_A_Matrix                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));
     h_h_Vector                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));
-    
-    /*
-    h_Quadrature_Filter_1_Parametric_Registration       = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_2_Parametric_Registration       = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_3_Parametric_Registration       = (cl_float2 *)mxMalloc(FILTER_SIZE);    
-    h_Quadrature_Filter_1_NonParametric_Registration    = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_2_NonParametric_Registration    = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_3_NonParametric_Registration    = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_4_NonParametric_Registration    = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_5_NonParametric_Registration    = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    h_Quadrature_Filter_6_NonParametric_Registration    = (cl_float2 *)mxMalloc(FILTER_SIZE);
-    */
-    
+       
     h_Quadrature_Filter_1_Parametric_Registration_Real  = (float *)mxMalloc(FILTER_SIZE);
     h_Quadrature_Filter_2_Parametric_Registration_Real  = (float *)mxMalloc(FILTER_SIZE);
     h_Quadrature_Filter_3_Parametric_Registration_Real  = (float *)mxMalloc(FILTER_SIZE);    
@@ -442,6 +430,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Slice_Sums                                        = (float *)mxMalloc(MNI_DATA_D * sizeof(float));
     h_Top_Slice                                         = (float *)mxMalloc(1 * sizeof(float));
     
+    
     // Pack data (reorder from y,x,z to x,y,z and cast from double to float)
     pack_double2float_volume(h_T1_Volume, h_T1_Volume_double, T1_DATA_W, T1_DATA_H, T1_DATA_D);
     pack_double2float_volume(h_MNI_Volume, h_MNI_Volume_double, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
@@ -496,6 +485,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
       
+    // Something went wrong...
     if (BROCCOLI.GetOpenCLInitiated() == 0)
     {    
         int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
@@ -516,16 +506,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexPrintf("Build program error is %d \n",buildProgramError);
         mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
+        // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-        for (int i = 0; i < 46; i++)
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
             if (createKernelErrors[i] != 0)
             {
                 mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
             }
-        }
-        
-        mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
+        }                
         
         mexPrintf("OPENCL initialization failed, aborting \n");        
     }
@@ -585,8 +574,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         //BROCCOLI.PerformRegistrationT1MNIWrapper();
         BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper();
         
+        // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
-        for (int i = 0; i < 30; i++)
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
             if (createBufferErrors[i] != 0)
             {
@@ -594,8 +584,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             }
         }
         
+        // Print run kernel errors
         int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-        for (int i = 0; i < 20; i++)
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
             if (runKernelErrors[i] != 0)
             {
@@ -604,13 +595,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         } 
     }
         
+    // Print build info
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());
     
     // Unpack results to Matlab    
     unpack_float2double_image(h_A_Matrix_double, h_A_Matrix, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS);
     unpack_float2double(h_h_Vector_double, h_h_Vector, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS);
-    
-    
+        
     unpack_float2double_volume(h_Aligned_T1_Volume_double, h_Aligned_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Aligned_T1_Volume_NonParametric_double, h_Aligned_T1_Volume_NonParametric, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     unpack_float2double_volume(h_Skullstripped_T1_Volume_double, h_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
@@ -682,21 +673,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Quadrature_Filter_4_NonParametric_Registration_Imag);
     mxFree(h_Quadrature_Filter_5_NonParametric_Registration_Imag);
     mxFree(h_Quadrature_Filter_6_NonParametric_Registration_Imag);
-    
-    
-    /*
-    mxFree(h_Quadrature_Filter_1_Parametric_Registration);
-    mxFree(h_Quadrature_Filter_2_Parametric_Registration);
-    mxFree(h_Quadrature_Filter_3_Parametric_Registration);
-    
-    mxFree(h_Quadrature_Filter_1_NonParametric_Registration);
-    mxFree(h_Quadrature_Filter_2_NonParametric_Registration);
-    mxFree(h_Quadrature_Filter_3_NonParametric_Registration);
-    mxFree(h_Quadrature_Filter_4_NonParametric_Registration);
-    mxFree(h_Quadrature_Filter_5_NonParametric_Registration);
-    mxFree(h_Quadrature_Filter_6_NonParametric_Registration);
-    */
-    
+           
     mxFree(h_Quadrature_Filter_Response_1);
     mxFree(h_Quadrature_Filter_Response_2);
     mxFree(h_Quadrature_Filter_Response_3);
@@ -734,9 +711,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Skullstripped_T1_Volume); 
     mxFree(h_Registration_Parameters);
     mxFree(h_Slice_Sums);
-    mxFree(h_Top_Slice);
-    
-    //mexAtExit(cleanUp);
+    mxFree(h_Top_Slice);       
     
     return;
 }

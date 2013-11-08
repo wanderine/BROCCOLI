@@ -46,7 +46,7 @@ elseif isunix
     %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
     mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     
-    opencl_platform = 1; % 0 Intel, 1 AMD, 2 Nvidia
+    opencl_platform = 2; % 0 Intel, 1 AMD, 2 Nvidia
     opencl_device = 0;
 end
 
@@ -70,7 +70,7 @@ run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comp
 motion_correction_times = zeros(198,1);
 
 % Loop over subjects
-for s = 1:198
+for s = 1:1
     
     s
     
@@ -85,14 +85,14 @@ for s = 1:198
         end
     elseif isunix
         dirs = dir([basepath study]);
-        subject = dirs(s+3).name % Skip . , .. and SPM 'folders'
+        subject = dirs(s+2).name % Skip . and .. 'folders'
         EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);
     end
     
-    fMRI_volumes = double(EPI_nii.img);
-        
+    fMRI_volumes = double(EPI_nii.img);        
     [sy sx sz st] = size(fMRI_volumes)
     
+    % Load quadrature filters
     load filters_for_parametric_registration.mat
             
     %%
@@ -342,13 +342,13 @@ for s = 1:198
     y_rotations_opencl = squeeze(motion_parameters_opencl(:,5));
     z_rotations_opencl = squeeze(motion_parameters_opencl(:,6));
     
-    mean(abs(x_translations(:) - x_translations_opencl(:)))
-    mean(abs(y_translations(:) - y_translations_opencl(:)))
-    mean(abs(z_translations(:) - z_translations_opencl(:)))
+    mean_translation_error_x = mean(abs(x_translations(:) - x_translations_opencl(:)))
+    mean_translation_error_y = mean(abs(y_translations(:) - y_translations_opencl(:)))
+    mean_translation_error_z = mean(abs(z_translations(:) - z_translations_opencl(:)))
       
-    mean(abs(x_rotations(:) - x_rotations_opencl(:)))
-    mean(abs(y_rotations(:) - y_rotations_opencl(:)))
-    mean(abs(z_rotations(:) - z_rotations_opencl(:)))
+    mean_rotation_error_x = mean(abs(x_rotations(:) - x_rotations_opencl(:)))
+    mean_rotation_error_y = mean(abs(y_rotations(:) - y_rotations_opencl(:)))
+    mean_rotation_error_z = mean(abs(z_rotations(:) - z_rotations_opencl(:)))
     
     %pause
     close all

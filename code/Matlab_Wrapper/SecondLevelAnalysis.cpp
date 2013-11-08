@@ -20,10 +20,6 @@
 #include "help_functions.cpp"
 #include "broccoli_lib.h"
 
-void cleanUp()
-{
-    //cudaDeviceReset();
-}
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -259,93 +255,93 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
         
-    BROCCOLI.SetInputFirstLevelResults(h_First_Level_Results);        
-    BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
-    BROCCOLI.SetMNIWidth(MNI_DATA_W);
-    BROCCOLI.SetMNIHeight(MNI_DATA_H);
-    BROCCOLI.SetMNIDepth(MNI_DATA_D);                
-    BROCCOLI.SetStatisticalTest(STATISTICAL_TEST);
-    BROCCOLI.SetInferenceMode(INFERENCE_MODE);
-    BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
-    BROCCOLI.SetNumberOfSubjects(NUMBER_OF_SUBJECTS);
-    BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
-    BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
-    BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
-    BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
-    BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);        
-    BROCCOLI.SetContrasts(h_Contrasts);
-    BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
-    BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
-    BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);        
-    BROCCOLI.SetOutputResiduals(h_Residuals);        
-    BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
-    BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);        
-    BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
-    BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
-    BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);       
+    // Something went wrong...
+    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    {    
+        int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
+        int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
+        int createContextError = BROCCOLI.GetOpenCLCreateContextError();
+        int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
+        int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
+        int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
+        int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
+        int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
+          
+        mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
+        mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
+        mexPrintf("Create context error is %d \n",createContextError);
+        mexPrintf("Get create context info error is %d \n",getContextInfoError);
+        mexPrintf("Create command queue error is %d \n",createCommandQueueError);
+        mexPrintf("Create program error is %d \n",createProgramError);
+        mexPrintf("Build program error is %d \n",buildProgramError);
+        mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
-    
-    int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
-	int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
-	int createContextError = BROCCOLI.GetOpenCLCreateContextError();
-	int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
-	int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
-	int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
-	int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
-	int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
-    
-    
-    mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
-    mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
-    mexPrintf("Create context error is %d \n",createContextError);
-    mexPrintf("Get create context info error is %d \n",getContextInfoError);
-    mexPrintf("Create command queue error is %d \n",createCommandQueueError);
-    mexPrintf("Create program error is %d \n",createProgramError);
-    mexPrintf("Build program error is %d \n",buildProgramError);
-    mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
-    
-    
-    int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 59; i++)
-    {
-        if (createKernelErrors[i] != 0)
+        // Print create kernel errors
+        int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
-            mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
-        }
-    }
-    
-    int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
-    for (int i = 0; i < 30; i++)
-    {
-        if (createBufferErrors[i] != 0)
-        {
-            mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
-        }
-    }
+            if (createKernelErrors[i] != 0)
+            {
+                mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            }
+        }                
         
-    int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 59; i++)
-    {
-        if (runKernelErrors[i] != 0)
-        {
-            mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
-        }
-    } 
-    
-    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());     
-    
-    if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
-    { 
-        BROCCOLI.PerformSecondLevelAnalysisWrapper();
-    }
-    else
-    {
-        mexPrintf("OPENCL error detected, aborting \n");
+        mexPrintf("OPENCL initialization failed, aborting \n");        
     }    
-     
+    else if (BROCCOLI.GetOpenCLInitiated() == 1)
+    {     
+        BROCCOLI.SetInputFirstLevelResults(h_First_Level_Results);        
+        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
+        BROCCOLI.SetMNIWidth(MNI_DATA_W);
+        BROCCOLI.SetMNIHeight(MNI_DATA_H);
+        BROCCOLI.SetMNIDepth(MNI_DATA_D);                
+        BROCCOLI.SetStatisticalTest(STATISTICAL_TEST);
+        BROCCOLI.SetInferenceMode(INFERENCE_MODE);
+        BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
+        BROCCOLI.SetNumberOfSubjects(NUMBER_OF_SUBJECTS);
+        BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
+        BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
+        BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
+        BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
+        BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);        
+        BROCCOLI.SetContrasts(h_Contrasts);
+        BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
+        BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
+        BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);        
+        BROCCOLI.SetOutputResiduals(h_Residuals);        
+        BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
+        BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);        
+        BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
+        BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
+        BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);       
+
+        BROCCOLI.PerformSecondLevelAnalysisWrapper();
+                
+        // Print create buffer errors
+        int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (createBufferErrors[i] != 0)
+            {
+                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+            }
+        }
+        
+        // Print run kernel errors
+        int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (runKernelErrors[i] != 0)
+            {
+                mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+            }
+        } 
+    }
     
-    
-    
+    // Print build info
+    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());     
+          
+    // Unpack results to Matlab
     unpack_float2double_volumes(h_Permuted_First_Level_Results_double, h_Permuted_First_Level_Results, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);  
     
     unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_SUBJECTS);

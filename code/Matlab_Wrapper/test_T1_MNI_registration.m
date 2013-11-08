@@ -53,7 +53,7 @@ end
 
 %------------------------------------
 
-show_results = 0;                   % Show resulting registration or not
+show_results = 1;                   % Show resulting registration or not
 save_warped_volume_matlab = 0;      % Save warped volume as Matlab file or not
 save_warped_volume_nifti = 0;       % Save warped volume as nifti file or not
 
@@ -63,7 +63,7 @@ save_warped_volume_nifti = 0;       % Save warped volume as nifti file or not
 study = 'Cambridge';
 
 skullstripped = 1;
-voxel_size = 1;
+voxel_size = 2;
 
 number_of_iterations_for_parametric_image_registration = 10;
 number_of_iterations_for_nonparametric_image_registration = 15;
@@ -93,14 +93,14 @@ dirs = dir([basepath study]);
 normalization_times = zeros(198,1);
 
 % Loop over subjects
-for s = 4:length(dirs) % Skip ., .. and SPM 'folders'
-%for s = 4:4 % Skip ., .. and SPM 'folders'
+for s = 3:length(dirs) % Skip . and .. 'folders'
+%for s = 3:3 % Skip . and .. 'folders'
 
     subject = dirs(s).name
     
     s
     
-    close all
+    %close all
     
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  || (strcmp(study,'Baltimore')) ) 
         T1_nii = load_nii([basepath study '/' subject '/anat/mprage_skullstripped.nii.gz']);
@@ -145,29 +145,30 @@ for s = 4:length(dirs) % Skip ., .. and SPM 'folders'
         m1, m2, m3, m4, m5, m6, ...
         filter_directions_x, filter_directions_y, filter_directions_z, ...
         number_of_iterations_for_parametric_image_registration,number_of_iterations_for_nonparametric_image_registration,coarsest_scale,MM_T1_Z_CUT,opencl_platform, opencl_device);
-    normalization_times(s-3) = etime(clock,start);
+    normalization_times(s-2) = etime(clock,start);
             
     registration_parameters_opencl
             
+    % Show some nice results
     if show_results == 1
         slice = round(0.55*MNI_sy);
-        figure; imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray
+        figure(1); imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray
         %figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))')); colormap gray
-        figure; imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray    
-        figure; imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
-        figure; imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray
+        figure(2); imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray    
+        figure(3); imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
+        figure(4); imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray
     
         slice = round(0.47*MNI_sz);
-        figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
+        figure(5); imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
         %figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
-        figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray
-        figure; imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
-        figure; imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
+        figure(6); imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray
+        figure(7); imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
+        figure(8); imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
     end
         
     % Save normalized volume as a Matlab file
     if save_warped_volume_matlab == 1
-        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-3) '.mat'];
+        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-2) '.mat'];
         save(filename,'aligned_T1_nonparametric_opencl')
     end
     
@@ -178,7 +179,7 @@ for s = 4:length(dirs) % Skip ., .. and SPM 'folders'
         new_file.hdr.dime.bitpix = 16;
         new_file.img = single(aligned_T1_nonparametric_opencl);    
         
-        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-3) '.nii'];
+        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-2) '.nii'];
             
         save_nii(new_file,filename);
     end

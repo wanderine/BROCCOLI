@@ -76,7 +76,7 @@ study = 'Cambridge';
 %substudy = 'Mixed'; 
 %substudy = 'Balloon';
 
-subject = 2;
+subject = 3;
 
 skullstripped = 1;
 voxel_size = 1;
@@ -109,9 +109,9 @@ dirs = dir([basepath study]);
 
 %mean_T1_volume = zeros(size(MNI));
 
-s = 4;
+s = 5;
 
-for s = 3:length(dirs)
+for s = 4:length(dirs)
 %for s = 3:3
 %for s = 3:length(dirs)
 %for s = 13:length(dirs)

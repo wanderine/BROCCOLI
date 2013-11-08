@@ -9977,10 +9977,6 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 
 
 
-
-
-
-
 // Estimates voxel specific AR(4) models
 __kernel void EstimateAR4Models(__global float* AR1_Estimates, 
                                 __global float* AR2_Estimates, 

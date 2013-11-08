@@ -20,10 +20,6 @@
 #include "help_functions.cpp"
 #include "broccoli_lib.h"
 
-void cleanUp()
-{
-    //cudaDeviceReset();
-}
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -110,69 +106,75 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE);
     
-    BROCCOLI.SetEPIWidth(DATA_W);
-    BROCCOLI.SetEPIHeight(DATA_H);
-    BROCCOLI.SetEPIDepth(DATA_D);
-    BROCCOLI.SetEPITimepoints(DATA_T);   
-    BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
-    BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
-    
-    /*
-     * Error checking     
-     */
-
-    int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
-	int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
-	int createContextError = BROCCOLI.GetOpenCLCreateContextError();
-	int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
-	int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
-	int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
-	int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
-	int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
+    // Something went wrong...
+    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    {  
+        int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
+        int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
+        int createContextError = BROCCOLI.GetOpenCLCreateContextError();
+        int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
+        int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
+        int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
+        int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
+        int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
           
-    mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
-    mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
-    mexPrintf("Create context error is %d \n",createContextError);
-    mexPrintf("Get create context info error is %d \n",getContextInfoError);
-    mexPrintf("Create command queue error is %d \n",createCommandQueueError);
-    mexPrintf("Create program error is %d \n",createProgramError);
-    mexPrintf("Build program error is %d \n",buildProgramError);
-    mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
+        mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
+        mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
+        mexPrintf("Create context error is %d \n",createContextError);
+        mexPrintf("Get create context info error is %d \n",getContextInfoError);
+        mexPrintf("Create command queue error is %d \n",createCommandQueueError);
+        mexPrintf("Create program error is %d \n",createProgramError);
+        mexPrintf("Build program error is %d \n",buildProgramError);
+        mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
-    int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 34; i++)
-    {
-        if (createKernelErrors[i] != 0)
+        // Print create kernel errors
+        int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
-            mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            if (createKernelErrors[i] != 0)
+            {
+                mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            }
         }
-    }
-    
-    int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
-    for (int i = 0; i < 30; i++)
-    {
-        if (createBufferErrors[i] != 0)
-        {
-            mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
-        }
-    }
         
-    int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 20; i++)
+        mexPrintf("OPENCL initialization failed, aborting \n");        
+    }
+    else if (BROCCOLI.GetOpenCLInitiated() == 1)
     {
-        if (runKernelErrors[i] != 0)
-        {
-            mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
-        }
-    } 
+        BROCCOLI.SetEPIWidth(DATA_W);
+        BROCCOLI.SetEPIHeight(DATA_H);
+        BROCCOLI.SetEPIDepth(DATA_D);
+        BROCCOLI.SetEPITimepoints(DATA_T);   
+        BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
+        BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
     
+        BROCCOLI.PerformSliceTimingCorrectionWrapper();          
+    
+        // Print create buffer errors
+        int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (createBufferErrors[i] != 0)
+            {
+                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+            }
+        }
+        
+        // Print run kernel errors
+        int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (runKernelErrors[i] != 0)
+            {
+                mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+            }
+        } 
+    }
+    
+    // Print build info
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());  
     
-    if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
-    {
-        BROCCOLI.PerformSliceTimingCorrectionWrapper();      
-    }        
-    
+    // Unpack results to Matlab
     unpack_float2double_volumes(h_Slice_Timing_Corrected_fMRI_Volumes_double, h_Slice_Timing_Corrected_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
     
     // Free all the allocated memory on the host

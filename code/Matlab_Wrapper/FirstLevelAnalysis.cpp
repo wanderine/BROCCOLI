@@ -20,11 +20,6 @@
 #include "help_functions.cpp"
 #include "broccoli_lib.h"
 
-void cleanUp()
-{
-    //cudaDeviceReset();
-}
-
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     //-----------------------
@@ -605,151 +600,153 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
     
-    BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
-    BROCCOLI.SetInputT1Volume(h_T1_Volume);
-    BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
-    BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
-    BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
-    BROCCOLI.SetEPIWidth(EPI_DATA_W);
-    BROCCOLI.SetEPIHeight(EPI_DATA_H);
-    BROCCOLI.SetEPIDepth(EPI_DATA_D);
-    BROCCOLI.SetEPITimepoints(EPI_DATA_T);     
-    BROCCOLI.SetT1Width(T1_DATA_W);
-    BROCCOLI.SetT1Height(T1_DATA_H);
-    BROCCOLI.SetT1Depth(T1_DATA_D);
-    BROCCOLI.SetMNIWidth(MNI_DATA_W);
-    BROCCOLI.SetMNIHeight(MNI_DATA_H);
-    BROCCOLI.SetMNIDepth(MNI_DATA_D);
-    BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
-    BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
-    BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);       
-    BROCCOLI.SetT1VoxelSizeX(T1_VOXEL_SIZE_X);
-    BROCCOLI.SetT1VoxelSizeY(T1_VOXEL_SIZE_Y);
-    BROCCOLI.SetT1VoxelSizeZ(T1_VOXEL_SIZE_Z);   
-    BROCCOLI.SetMNIVoxelSizeX(MNI_VOXEL_SIZE_X);
-    BROCCOLI.SetMNIVoxelSizeY(MNI_VOXEL_SIZE_Y);
-    BROCCOLI.SetMNIVoxelSizeZ(MNI_VOXEL_SIZE_Z); 
-    BROCCOLI.SetInterpolationMode(LINEAR);
-    
-    BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION);
-    BROCCOLI.SetNumberOfIterationsForNonParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION);
-    BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);    
-    BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag);
-    BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag);    
-    BROCCOLI.SetProjectionTensorMatrixFirstFilter(h_Projection_Tensor_1[0],h_Projection_Tensor_1[1],h_Projection_Tensor_1[2],h_Projection_Tensor_1[3],h_Projection_Tensor_1[4],h_Projection_Tensor_1[5]);
-    BROCCOLI.SetProjectionTensorMatrixSecondFilter(h_Projection_Tensor_2[0],h_Projection_Tensor_2[1],h_Projection_Tensor_2[2],h_Projection_Tensor_2[3],h_Projection_Tensor_2[4],h_Projection_Tensor_2[5]);
-    BROCCOLI.SetProjectionTensorMatrixThirdFilter(h_Projection_Tensor_3[0],h_Projection_Tensor_3[1],h_Projection_Tensor_3[2],h_Projection_Tensor_3[3],h_Projection_Tensor_3[4],h_Projection_Tensor_3[5]);
-    BROCCOLI.SetProjectionTensorMatrixFourthFilter(h_Projection_Tensor_4[0],h_Projection_Tensor_4[1],h_Projection_Tensor_4[2],h_Projection_Tensor_4[3],h_Projection_Tensor_4[4],h_Projection_Tensor_4[5]);
-    BROCCOLI.SetProjectionTensorMatrixFifthFilter(h_Projection_Tensor_5[0],h_Projection_Tensor_5[1],h_Projection_Tensor_5[2],h_Projection_Tensor_5[3],h_Projection_Tensor_5[4],h_Projection_Tensor_5[5]);
-    BROCCOLI.SetProjectionTensorMatrixSixthFilter(h_Projection_Tensor_6[0],h_Projection_Tensor_6[1],h_Projection_Tensor_6[2],h_Projection_Tensor_6[3],h_Projection_Tensor_6[4],h_Projection_Tensor_6[5]);
-    BROCCOLI.SetFilterDirections(h_Filter_Directions_X, h_Filter_Directions_Y, h_Filter_Directions_Z);
-    
-    BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);    
-    BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE_T1_MNI);
-    BROCCOLI.SetCoarsestScaleEPIT1(COARSEST_SCALE_EPI_T1);
-    BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
-    BROCCOLI.SetMMEPIZCUT(MM_EPI_Z_CUT);   
-    BROCCOLI.SetOutputT1MNIRegistrationParameters(h_T1_MNI_Registration_Parameters);
-    BROCCOLI.SetOutputEPIT1RegistrationParameters(h_EPI_T1_Registration_Parameters);
-    BROCCOLI.SetOutputEPIMNIRegistrationParameters(h_EPI_MNI_Registration_Parameters);
-    BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
-    BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
-    BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
-    BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
-    BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
-    
-    BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
-    BROCCOLI.SetRegressMotion(REGRESS_MOTION);
-    BROCCOLI.SetRegressConfounds(REGRESS_CONFOUNDS);
-    BROCCOLI.SetBetaSpace(BETA_SPACE);
-    
-    if (REGRESS_CONFOUNDS == 1)
-    {
-        BROCCOLI.SetNumberOfConfoundRegressors(NUMBER_OF_CONFOUND_REGRESSORS);
-        BROCCOLI.SetConfoundRegressors(h_X_GLM_Confounds);
-    }
-    
-    BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
-    BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
-    BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
-    BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
-    BROCCOLI.SetContrasts(h_Contrasts);
-    BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
-    BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
-    BROCCOLI.SetOutputResiduals(h_Residuals);
-    BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
-    BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
-    BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
-    BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
-    
-    BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
-    BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric);
-    BROCCOLI.SetOutputAlignedEPIVolume(h_Aligned_EPI_Volume);
-    
-    BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
-    BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
-    
-     /*
-     * Error checking     
-     */
-
-    int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
-	int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
-	int createContextError = BROCCOLI.GetOpenCLCreateContextError();
-	int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
-	int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
-	int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
-	int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
-	int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
+    // Something went wrong...
+    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    {  
+        int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
+        int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
+        int createContextError = BROCCOLI.GetOpenCLCreateContextError();
+        int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
+        int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
+        int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
+        int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
+        int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
           
-    mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
-    mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
-    mexPrintf("Create context error is %d \n",createContextError);
-    mexPrintf("Get create context info error is %d \n",getContextInfoError);
-    mexPrintf("Create command queue error is %d \n",createCommandQueueError);
-    mexPrintf("Create program error is %d \n",createProgramError);
-    mexPrintf("Build program error is %d \n",buildProgramError);
-    mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
+        mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
+        mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
+        mexPrintf("Create context error is %d \n",createContextError);
+        mexPrintf("Get create context info error is %d \n",getContextInfoError);
+        mexPrintf("Create command queue error is %d \n",createCommandQueueError);
+        mexPrintf("Create program error is %d \n",createProgramError);
+        mexPrintf("Build program error is %d \n",buildProgramError);
+        mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
-    int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 61; i++)
-    {
-        if (createKernelErrors[i] != 0)
+        // Print create kernel errors
+        int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
-            mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            if (createKernelErrors[i] != 0)
+            {
+                mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            }
         }
-    }
-    
-    int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
-    for (int i = 0; i < 30; i++)
-    {
-        if (createBufferErrors[i] != 0)
-        {
-            mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
-        }
-    }
         
-    int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 61; i++)
+        mexPrintf("OPENCL initialization failed, aborting \n");        
+    }
+    else if (BROCCOLI.GetOpenCLInitiated() == 1)
     {
-        if (runKernelErrors[i] != 0)
+        BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
+        BROCCOLI.SetInputT1Volume(h_T1_Volume);
+        BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
+        BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
+        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
+        BROCCOLI.SetEPIWidth(EPI_DATA_W);
+        BROCCOLI.SetEPIHeight(EPI_DATA_H);
+        BROCCOLI.SetEPIDepth(EPI_DATA_D);
+        BROCCOLI.SetEPITimepoints(EPI_DATA_T);     
+        BROCCOLI.SetT1Width(T1_DATA_W);
+        BROCCOLI.SetT1Height(T1_DATA_H);
+        BROCCOLI.SetT1Depth(T1_DATA_D);
+        BROCCOLI.SetMNIWidth(MNI_DATA_W);
+        BROCCOLI.SetMNIHeight(MNI_DATA_H);
+        BROCCOLI.SetMNIDepth(MNI_DATA_D);
+        BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
+        BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
+        BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);       
+        BROCCOLI.SetT1VoxelSizeX(T1_VOXEL_SIZE_X);
+        BROCCOLI.SetT1VoxelSizeY(T1_VOXEL_SIZE_Y);
+        BROCCOLI.SetT1VoxelSizeZ(T1_VOXEL_SIZE_Z);   
+        BROCCOLI.SetMNIVoxelSizeX(MNI_VOXEL_SIZE_X);
+        BROCCOLI.SetMNIVoxelSizeY(MNI_VOXEL_SIZE_Y);
+        BROCCOLI.SetMNIVoxelSizeZ(MNI_VOXEL_SIZE_Z); 
+        BROCCOLI.SetInterpolationMode(LINEAR);
+    
+        BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION);
+        BROCCOLI.SetNumberOfIterationsForNonParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION);
+        BROCCOLI.SetImageRegistrationFilterSize(IMAGE_REGISTRATION_FILTER_SIZE);    
+        BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag);
+        BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_1_NonParametric_Registration_Real, h_Quadrature_Filter_1_NonParametric_Registration_Imag, h_Quadrature_Filter_2_NonParametric_Registration_Real, h_Quadrature_Filter_2_NonParametric_Registration_Imag, h_Quadrature_Filter_3_NonParametric_Registration_Real, h_Quadrature_Filter_3_NonParametric_Registration_Imag, h_Quadrature_Filter_4_NonParametric_Registration_Real, h_Quadrature_Filter_4_NonParametric_Registration_Imag, h_Quadrature_Filter_5_NonParametric_Registration_Real, h_Quadrature_Filter_5_NonParametric_Registration_Imag, h_Quadrature_Filter_6_NonParametric_Registration_Real, h_Quadrature_Filter_6_NonParametric_Registration_Imag);    
+        BROCCOLI.SetProjectionTensorMatrixFirstFilter(h_Projection_Tensor_1[0],h_Projection_Tensor_1[1],h_Projection_Tensor_1[2],h_Projection_Tensor_1[3],h_Projection_Tensor_1[4],h_Projection_Tensor_1[5]);
+        BROCCOLI.SetProjectionTensorMatrixSecondFilter(h_Projection_Tensor_2[0],h_Projection_Tensor_2[1],h_Projection_Tensor_2[2],h_Projection_Tensor_2[3],h_Projection_Tensor_2[4],h_Projection_Tensor_2[5]);
+        BROCCOLI.SetProjectionTensorMatrixThirdFilter(h_Projection_Tensor_3[0],h_Projection_Tensor_3[1],h_Projection_Tensor_3[2],h_Projection_Tensor_3[3],h_Projection_Tensor_3[4],h_Projection_Tensor_3[5]);
+        BROCCOLI.SetProjectionTensorMatrixFourthFilter(h_Projection_Tensor_4[0],h_Projection_Tensor_4[1],h_Projection_Tensor_4[2],h_Projection_Tensor_4[3],h_Projection_Tensor_4[4],h_Projection_Tensor_4[5]);
+        BROCCOLI.SetProjectionTensorMatrixFifthFilter(h_Projection_Tensor_5[0],h_Projection_Tensor_5[1],h_Projection_Tensor_5[2],h_Projection_Tensor_5[3],h_Projection_Tensor_5[4],h_Projection_Tensor_5[5]);
+        BROCCOLI.SetProjectionTensorMatrixSixthFilter(h_Projection_Tensor_6[0],h_Projection_Tensor_6[1],h_Projection_Tensor_6[2],h_Projection_Tensor_6[3],h_Projection_Tensor_6[4],h_Projection_Tensor_6[5]);
+        BROCCOLI.SetFilterDirections(h_Filter_Directions_X, h_Filter_Directions_Y, h_Filter_Directions_Z);
+    
+        BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);    
+        BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE_T1_MNI);
+        BROCCOLI.SetCoarsestScaleEPIT1(COARSEST_SCALE_EPI_T1);
+        BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
+        BROCCOLI.SetMMEPIZCUT(MM_EPI_Z_CUT);   
+        BROCCOLI.SetOutputT1MNIRegistrationParameters(h_T1_MNI_Registration_Parameters);
+        BROCCOLI.SetOutputEPIT1RegistrationParameters(h_EPI_T1_Registration_Parameters);
+        BROCCOLI.SetOutputEPIMNIRegistrationParameters(h_EPI_MNI_Registration_Parameters);
+        BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
+        BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
+        BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
+        BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
+        BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
+    
+        BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
+        BROCCOLI.SetRegressMotion(REGRESS_MOTION);
+        BROCCOLI.SetRegressConfounds(REGRESS_CONFOUNDS);
+        BROCCOLI.SetBetaSpace(BETA_SPACE);
+    
+        if (REGRESS_CONFOUNDS == 1)
         {
-            mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+            BROCCOLI.SetNumberOfConfoundRegressors(NUMBER_OF_CONFOUND_REGRESSORS);
+            BROCCOLI.SetConfoundRegressors(h_X_GLM_Confounds);
         }
-    } 
     
-    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());     
+        BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
+        BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
+        BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
+        BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
+        BROCCOLI.SetContrasts(h_Contrasts);
+        BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
+        BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
+        BROCCOLI.SetOutputResiduals(h_Residuals);
+        BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
+        BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
+        BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
+        BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
     
-    if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
-    { 
+        BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);
+        BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric);
+        BROCCOLI.SetOutputAlignedEPIVolume(h_Aligned_EPI_Volume);
+    
+        BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
+        BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
+
         //BROCCOLI.PerformFirstLevelAnalysisWrapper();
         BROCCOLI.PerformFirstLevelAnalysisBayesianWrapper();
+
+        // Print create buffer errors
+        int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (createBufferErrors[i] != 0)
+            {
+                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+            }
+        }
+        
+        // Print run kernel errors
+        int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (runKernelErrors[i] != 0)
+            {
+                mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+            }
+        } 
     }
-    else
-    {
-        mexPrintf("OPENCL error detected, aborting \n");
-    }    
     
+    // Print build info
+    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());     
+    
+    // Unpack results to Matlab
     unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T);
     unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T);
     
