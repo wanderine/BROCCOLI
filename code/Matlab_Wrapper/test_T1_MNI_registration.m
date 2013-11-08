@@ -60,7 +60,7 @@ save_warped_volume_nifti = 0;       % Save warped volume as nifti file or not
 %------------------------------------
 
 %study = 'Baltimore';
-study = 'Cambridge';
+study = 'Cambridge'; N = 198;
 
 skullstripped = 1;
 voxel_size = 2;
@@ -93,10 +93,9 @@ dirs = dir([basepath study]);
 normalization_times = zeros(198,1);
 
 % Loop over subjects
-for s = 3:length(dirs) % Skip . and .. 'folders'
-%for s = 3:3 % Skip . and .. 'folders'
+for s = 1:N
 
-    subject = dirs(s).name
+    subject = dirs(s+2).name % Skip . and .. 'folders'
     
     s
     
@@ -145,7 +144,7 @@ for s = 3:length(dirs) % Skip . and .. 'folders'
         m1, m2, m3, m4, m5, m6, ...
         filter_directions_x, filter_directions_y, filter_directions_z, ...
         number_of_iterations_for_parametric_image_registration,number_of_iterations_for_nonparametric_image_registration,coarsest_scale,MM_T1_Z_CUT,opencl_platform, opencl_device);
-    normalization_times(s-2) = etime(clock,start);
+    normalization_times(s) = etime(clock,start);
             
     registration_parameters_opencl
             
@@ -168,7 +167,7 @@ for s = 3:length(dirs) % Skip . and .. 'folders'
         
     % Save normalized volume as a Matlab file
     if save_warped_volume_matlab == 1
-        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-2) '.mat'];
+        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s) '.mat'];
         save(filename,'aligned_T1_nonparametric_opencl')
     end
     
@@ -179,7 +178,7 @@ for s = 3:length(dirs) % Skip . and .. 'folders'
         new_file.hdr.dime.bitpix = 16;
         new_file.img = single(aligned_T1_nonparametric_opencl);    
         
-        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s-2) '.nii'];
+        filename = [basepath_BROCCOLI '/BROCCOLI_warped_subject' num2str(s) '.nii'];
             
         save_nii(new_file,filename);
     end

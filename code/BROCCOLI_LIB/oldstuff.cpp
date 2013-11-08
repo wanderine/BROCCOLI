@@ -2879,3 +2879,308 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 }
 */
 
+
+
+	/*
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_1_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_1_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_1_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_1_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_2_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_2_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_2_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_2_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_3_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_3_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_3_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_3_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	*/
+
+	/*
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_1_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_1_Parametric_Registration_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_1_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_1_Parametric_Registration_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_2_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_2_Parametric_Registration_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_2_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_2_Parametric_Registration_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_3_Real, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_3_Parametric_Registration_Real[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Quadrature_Filter_3_Imag, CL_TRUE, 0, FILTER_SIZE * FILTER_SIZE * sizeof(float), &h_Quadrature_Filter_3_Parametric_Registration_Imag[z * FILTER_SIZE * FILTER_SIZE], 0, NULL, NULL);
+	*/
+
+
+
+	//clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_START, sizeof(time_start), &time_start, NULL);
+	//clGetEventProfilingInfo(event, CL_PROFILING_COMMAND_END, sizeof(time_end), &time_end, NULL);
+	//convolution_time += time_end - time_start;
+
+
+	int MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1);
+
+	// Demean regressors
+	for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+	{
+		if (r != MEAN_REGRESSOR)
+		{
+			Eigen::VectorXd regressor = X.block(NUMBER_OF_INVALID_TIMEPOINTS,r,DATA_T-NUMBER_OF_INVALID_TIMEPOINTS,1);
+			DemeanRegressor(regressor,DATA_T-NUMBER_OF_INVALID_TIMEPOINTS);
+			X.block(NUMBER_OF_INVALID_TIMEPOINTS,r,DATA_T-NUMBER_OF_INVALID_TIMEPOINTS,1) = regressor;
+		}
+	}
+
+
+
+
+	/*
+	__kernel void CalculateStatisticalMapsGLMBayesianOld(__global float* Statistical_Maps,
+			                                       __global const float* Volumes,
+			                                       __global const float* Mask,
+			                                       __constant float* c_X_GLM,
+			                                       __constant float* c_Contrasts,
+			                                       __constant float* c_OmegaT,
+												   __constant float* c_InvOmegaT,
+			                                       __private int DATA_W,
+			                                       __private int DATA_H,
+			                                       __private int DATA_D,
+			                                       __private int NUMBER_OF_VOLUMES,
+			                                       __private int NUMBER_OF_REGRESSORS,
+												   __private int NUMBER_OF_ITERATIONS)
+	{
+		int x = get_global_id(0);
+		int y = get_global_id(1);
+		int z = get_global_id(2);
+
+		int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+		if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+			return;
+
+		if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		{
+			Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+			return;
+		}
+
+		int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
+
+		// Prior options
+		float beta0 = 0.0f;                // Prior mean of beta. p-vector. Scalar value here will be replicated in the vector
+		float tau = 100.0f;                // Prior covariance matrix of beta is tau^2*(X'X)^-1
+		float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
+		float r = 0.5f;                    // Prior mean on rho1
+		float c = 0.3f;                    // Prior standard deviation on first lag.
+		float a0 = 0.01f;                  // First parameter in IG prior for sigma^2
+		float b0 = 0.01f;                  // Second parameter in IG prior for sigma^2
+
+		// Algorithmic options
+		float prcBurnin = 10.0f;             // Percentage of nIter used for burnin. Note: effective number of iter is nIter.
+
+		float beta[2];
+		float betaT[2];
+
+		betaT[0] = 0.0f;
+		betaT[1] = 0.0f;
+
+		beta[0] = 0.0f;
+		beta[1] = 0.0f;
+
+
+		float ysquared = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			//CalculateBetaWeightsBayesian(beta, value, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				betaT[r] += value * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
+			}
+
+			ysquared += value*value;
+		}
+
+		beta[0] = c_OmegaT[0 + 0 * NUMBER_OF_REGRESSORS] * betaT[0] + c_OmegaT[0 + 1 * NUMBER_OF_REGRESSORS] * betaT[1];
+		beta[1] = c_OmegaT[1 + 0 * NUMBER_OF_REGRESSORS] * betaT[0] + c_OmegaT[1 + 1 * NUMBER_OF_REGRESSORS] * betaT[1];
+
+		betaT[0] = beta[0];
+		betaT[1] = beta[1];
+
+		float aT = a0 + (float)NUMBER_OF_VOLUMES/2.0f;
+
+		float betaomega[2];
+		betaomega[0] = c_InvOmegaT[0 + 0 * NUMBER_OF_REGRESSORS] * betaT[0] + c_InvOmegaT[1 + 0 * NUMBER_OF_REGRESSORS] * betaT[1];
+		betaomega[1] = c_InvOmegaT[0 + 1 * NUMBER_OF_REGRESSORS] * betaT[0] + c_InvOmegaT[1 + 1 * NUMBER_OF_REGRESSORS] * betaT[1];
+		float scalar = betaomega[0] * betaT[0] + betaomega[1] * betaT[1];
+
+		float bT = b0 + 0.5f*(ysquared - scalar);
+
+		int nBurnin = (int)round((float)NUMBER_OF_ITERATIONS*(prcBurnin/100.0f));
+		int probability = 0;
+
+		float sigma2;
+
+
+		// Loop over iterations
+		for (int i = 0; i < (nBurnin + NUMBER_OF_ITERATIONS); i++)
+		//for (int i = 0; i < 100; i++)
+		{
+			// Block 1 - Step 1a. Update sigma2
+			sigma2 = gamrnd(aT,bT,&seed);
+
+			// Block 1 - Step 1b. Update beta | sigma2
+			MultivariateRandom(beta,betaT,c_OmegaT,sigma2,NUMBER_OF_REGRESSORS,&seed);
+
+			if (i > nBurnin)
+			{
+				//float contrast_value = 0.0f;
+				//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+				//{
+				//	contrast_value += c_Contrasts[r] * beta[r];
+				//}
+
+				if (beta[0] > 0.0f)
+				{
+					probability++;
+				}
+			}
+		}
+
+
+		//float chol[4];
+		//Cholesky(chol, 1.0f, c_OmegaT, NUMBER_OF_REGRESSORS);
+
+
+		Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+
+		//Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/100.0f;
+
+
+		//aT = 39.51;
+		//bT = 1216.9f;
+		//sigma2 = gamrnd(aT,bT,&seed);
+		//MultivariateRandom(beta,betaT,c_OmegaT,sigma2,NUMBER_OF_REGRESSORS,&seed);
+
+
+		//sigma2 = (float)unirand(&seed);
+		//Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = sigma2;
+		//Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = bT;
+		//Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
+		//Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = chol[2];
+		//Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = chol[3];
+
+	}
+	*/
+
+
+	/*
+	int MultivariateRandom(float* random, float* mu, __private float* Cov, float Sigma, int N, __private int* seed)
+	{
+		float randvalues[2];
+		float cholCov[4];
+
+		switch(N)
+		{
+			case 1:
+
+				randvalues[0] = normalrand(seed);
+
+				Cholesky1(cholCov, Sigma, Cov);
+
+				random[0] = mu[0] + cholCov[0 + 0 * N] * randvalues[0];
+
+				break;
+
+
+			case 2:
+
+				randvalues[0] = normalrand(seed);
+				randvalues[1] = normalrand(seed);
+
+				Cholesky2(cholCov, Sigma, Cov);
+
+				random[0] = mu[0] + cholCov[0 + 0 * N] * randvalues[0] + cholCov[1 + 0 * N] * randvalues[1];
+				random[1] = mu[1] + cholCov[0 + 1 * N] * randvalues[0] + cholCov[1 + 1 * N] * randvalues[1];
+
+				break;
+
+
+			default:
+				1;
+				break;
+		}
+
+		return 0;
+	}
+	*/
+
+
+
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+		// Loop over volumes
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+	        //float temp = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+			// Loop over regressors
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]];
+	            //beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+			}
+		}
+
+
+	    // Calculate sigma squared
+		vareps = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+	        //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
+	            //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+			vareps += eps*eps;
+		}
+		vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+
+
+	    /*
+	    // Calculate the mean of the error eps
+		meaneps = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+	        //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
+	            //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+			meaneps += eps;
+		}
+		meaneps /= ((float)NUMBER_OF_VOLUMES);
+
+		// Now calculate the variance of eps
+		vareps = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+	        //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
+	            //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+			vareps += (eps - meaneps) * (eps - meaneps);
+		}
+		vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+
+	     */
+		// Loop over contrasts and calculate t-values
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			float contrast_value = 0.0f;
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+			}
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
+		}
+
+
+

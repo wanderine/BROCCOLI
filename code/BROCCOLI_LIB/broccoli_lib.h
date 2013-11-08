@@ -144,6 +144,7 @@ class BROCCOLI_LIB
 
 		// Smoothing
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
+		void SetSmoothingType(int);
 		void SetEPISmoothingAmount(float);
 		void SetARSmoothingAmount(float);
 
@@ -265,6 +266,7 @@ class BROCCOLI_LIB
 		// Get functions for GUI / Wrappers
 
 		int GetOpenCLInitiated();
+		int GetNumberOfOpenCLKernels();
 
 		int GetfMRIDataSliceLocationX();
 		int GetfMRIDataSliceLocationY();
@@ -406,14 +408,12 @@ class BROCCOLI_LIB
 		void ApplyPermutationTestSecondLevel();
 
 		// Permutation first level
-		void SetupPermutationTestFirstLevel();
+		void SetupPermutationTestFirstLevel(cl_mem d_Volumes, cl_mem d_Mask);
 		void GeneratePermutationMatrixFirstLevel();
 		void PerformDetrendingPriorPermutation();
 		void PerformWhiteningPriorPermutations(cl_mem Whitened_volumes, cl_mem Volumes);
 		void GeneratePermutedVolumesFirstLevel(cl_mem Permuted_Volumes, cl_mem Whitened_Volumes, int permutation);
 		void CalculateStatisticalMapsFirstLevelPermutation(cl_mem Volumes);
-		void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(cl_mem Volumes);
-		void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(cl_mem Volumes);
 
 		void WhitenDesignMatrices(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
 		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
@@ -867,6 +867,7 @@ class BROCCOLI_LIB
 
 		// Smoothing variables
 		int	SMOOTHING_FILTER_SIZE;
+		int SMOOTHING_TYPE;
 		float EPI_Smoothing_FWHM;
 		float AR_Smoothing_FWHM;
 
