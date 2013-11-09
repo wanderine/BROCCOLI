@@ -1687,6 +1687,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response,
 
 typedef struct tag_float6 {float a; float b; float c; float d; float e; float f;} float6;
 
+// Non-separable 2D convolution for three complex valued 7 x 7 filters, unrolled for performance
 float6 Conv_2D_Unrolled_7x7_ThreeFilters(__local float image[64][96],
 	                                     int y, 
 										 int x, 
@@ -5086,6 +5087,7 @@ __kernel void CalculateRowMaxs(__global float* Maxs,
 	Maxs[z] = max;
 }
 
+// Ugly quick solution, since atomic max does not work for floats
 __kernel void CalculateMaxAtomic(volatile __global int* max_value,
 	                             __global const float* Volume,
 								 __global const float* Mask,
@@ -5105,18 +5107,6 @@ __kernel void CalculateMaxAtomic(volatile __global int* max_value,
 
 	int value = (int)(Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] * 10000.0f);
 	atomic_max(max_value, value);
-
-
-	/*
-	if ( value  > atomic_xchg(max_value, *max_value) )
-	{
-		atomic_xchg(max_value, value);
-	}
-	*/
-
-	//float value = Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];	
-	//atomic_xchg(max_value, mymax(*max_value,value));
-	
 }
 
 __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,
@@ -5481,7 +5471,8 @@ __kernel void SliceTimingCorrection(__global float* Corrected_Volumes,
 
 // Statistical functions
 
-// General function for calculating beta weights, all voxels use the same design matrix
+// General function for calculating beta weights, all voxels use the same design matrix, not optimized for speed
+
 __kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes, 
                                       __global const float* Volumes, 
 									  __global const float* Mask, 
@@ -5525,6 +5516,7 @@ __kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes,
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
 		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] * c_Censored_Timepoints[v];
+
 		// Loop over regressors
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
@@ -5539,7 +5531,8 @@ __kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes,
 	}
 }
 
-// Special function for calculating beta weights, all voxels use different design matrices
+// Special function for calculating beta weights, all voxels use different design matrices (needed for Cochrane-Orcutt procedure)
+
 __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes, 
 												__global const float* Volumes, 
 												__global const float* Mask, 
@@ -5588,6 +5581,7 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 	for (int v = NUMBER_OF_INVALID_TIMEPOINTS; v < NUMBER_OF_VOLUMES; v++)
 	{
 		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
 		// Loop over regressors
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
@@ -5601,6 +5595,8 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
 	}
 }
+
+// Unoptimized kernel for calculating t-values, not a problem for regular first and second level analysis
 
 __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		                                       __global float* Residuals,
@@ -5702,6 +5698,8 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
 	}
 }
+
+// Unoptimized kernel for calculating F-values, not a problem for regular first and second level analysis
 
 __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 		                                       __global float* Residuals,
@@ -5820,6 +5818,7 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 	
 #pragma OPENCL EXTENSION cl_khr_fp64: enable
 
+// Generate random uniform number by modulo operation
 double unirand(__private int* seed)
 {
 	double const a = 16807.0; //ie 7**5
@@ -5833,6 +5832,7 @@ double unirand(__private int* seed)
 
 #define pi 3.141592653589793
 
+// Generate random normal number by Box-Muller transform
 double normalrand(__private int* seed)
 {
 	double u = unirand(seed);
@@ -5841,7 +5841,7 @@ double normalrand(__private int* seed)
 	return sqrt(-2*log(u))*cos(2*pi*v);
 }
 
-
+// Generate inverse Gamma number
 double gamrnd(float a, float b, __private int* seed)
 {
 	double x = 0.0;
@@ -5854,6 +5854,7 @@ double gamrnd(float a, float b, __private int* seed)
 	return 2.0 * b / x;
 }
 
+// Cholesky factorization, not optimized
 int Cholesky(float* cholA, float factor, __constant float* A, int N)
 {
 	for (int i = 0; i < N; i++)
@@ -5947,46 +5948,7 @@ int Cholesky2(float cholA[2][2], float factor, float A[2][2])
 	return 0;
 }
 
-/*
-int MultivariateRandom(float* random, float* mu, __private float* Cov, float Sigma, int N, __private int* seed)
-{
-	float randvalues[2];
-	float cholCov[4];
-			
-	switch(N)
-	{
-		case 1:
-			
-			randvalues[0] = normalrand(seed);
-			
-			Cholesky1(cholCov, Sigma, Cov);
 
-			random[0] = mu[0] + cholCov[0 + 0 * N] * randvalues[0];
-			
-			break;
-
-
-		case 2:
-			
-			randvalues[0] = normalrand(seed);
-			randvalues[1] = normalrand(seed);
-	
-			Cholesky2(cholCov, Sigma, Cov);
-
-			random[0] = mu[0] + cholCov[0 + 0 * N] * randvalues[0] + cholCov[1 + 0 * N] * randvalues[1];
-			random[1] = mu[1] + cholCov[0 + 1 * N] * randvalues[0] + cholCov[1 + 1 * N] * randvalues[1];
-		
-			break;
-
-
-		default:
-			1;
-			break;
-	}
-
-	return 0;
-}
-*/
 
 int MultivariateRandom1(float* random, float mu, __private float Cov, float Sigma, __private int* seed)
 {
@@ -6063,146 +6025,7 @@ int CalculateBetaWeightsBayesian(__private float* beta,
 	return 0;
 }
 
-/*
-__kernel void CalculateStatisticalMapsGLMBayesianOld(__global float* Statistical_Maps,
-		                                       __global const float* Volumes,
-		                                       __global const float* Mask,
-		                                       __constant float* c_X_GLM,
-		                                       __constant float* c_Contrasts,
-		                                       __constant float* c_OmegaT,
-											   __constant float* c_InvOmegaT,
-		                                       __private int DATA_W,
-		                                       __private int DATA_H,
-		                                       __private int DATA_D,
-		                                       __private int NUMBER_OF_VOLUMES,
-		                                       __private int NUMBER_OF_REGRESSORS,
-											   __private int NUMBER_OF_ITERATIONS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
 
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
-		
-		return;
-	}
-
-	int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
-
-	// Prior options
-	float beta0 = 0.0f;                // Prior mean of beta. p-vector. Scalar value here will be replicated in the vector
-	float tau = 100.0f;                // Prior covariance matrix of beta is tau^2*(X'X)^-1
-	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
-	float r = 0.5f;                    // Prior mean on rho1
-	float c = 0.3f;                    // Prior standard deviation on first lag.
-	float a0 = 0.01f;                  // First parameter in IG prior for sigma^2
-	float b0 = 0.01f;                  // Second parameter in IG prior for sigma^2
-
-	// Algorithmic options
-	float prcBurnin = 10.0f;             // Percentage of nIter used for burnin. Note: effective number of iter is nIter.
-
-	float beta[2];
-	float betaT[2];
-
-	betaT[0] = 0.0f;
-	betaT[1] = 0.0f;
-	
-	beta[0] = 0.0f;
-	beta[1] = 0.0f;
-	
-
-	float ysquared = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		//CalculateBetaWeightsBayesian(beta, value, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-		
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			betaT[r] += value * c_X_GLM[NUMBER_OF_VOLUMES * r + v];
-		}
-		
-		ysquared += value*value;
-	}
-
-	beta[0] = c_OmegaT[0 + 0 * NUMBER_OF_REGRESSORS] * betaT[0] + c_OmegaT[0 + 1 * NUMBER_OF_REGRESSORS] * betaT[1];
-	beta[1] = c_OmegaT[1 + 0 * NUMBER_OF_REGRESSORS] * betaT[0] + c_OmegaT[1 + 1 * NUMBER_OF_REGRESSORS] * betaT[1];
-
-	betaT[0] = beta[0];
-	betaT[1] = beta[1];
-
-	float aT = a0 + (float)NUMBER_OF_VOLUMES/2.0f;
-
-	float betaomega[2];
-	betaomega[0] = c_InvOmegaT[0 + 0 * NUMBER_OF_REGRESSORS] * betaT[0] + c_InvOmegaT[1 + 0 * NUMBER_OF_REGRESSORS] * betaT[1];
-	betaomega[1] = c_InvOmegaT[0 + 1 * NUMBER_OF_REGRESSORS] * betaT[0] + c_InvOmegaT[1 + 1 * NUMBER_OF_REGRESSORS] * betaT[1];
-	float scalar = betaomega[0] * betaT[0] + betaomega[1] * betaT[1];  
-
-	float bT = b0 + 0.5f*(ysquared - scalar);
-
-	int nBurnin = (int)round((float)NUMBER_OF_ITERATIONS*(prcBurnin/100.0f));
-	int probability = 0;
-	
-	float sigma2;
-	
-	
-	// Loop over iterations
-	for (int i = 0; i < (nBurnin + NUMBER_OF_ITERATIONS); i++)
-	//for (int i = 0; i < 100; i++)
-	{
-		// Block 1 - Step 1a. Update sigma2
-		sigma2 = gamrnd(aT,bT,&seed);
-		
-		// Block 1 - Step 1b. Update beta | sigma2
-		MultivariateRandom(beta,betaT,c_OmegaT,sigma2,NUMBER_OF_REGRESSORS,&seed);
-		
-		if (i > nBurnin)
-		{
-			//float contrast_value = 0.0f;
-			//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-			//{
-			//	contrast_value += c_Contrasts[r] * beta[r];
-			//}
-
-			if (beta[0] > 0.0f)
-			{
-				probability++;
-			}
-		}   
-	}
-	
-
-	//float chol[4];
-	//Cholesky(chol, 1.0f, c_OmegaT, NUMBER_OF_REGRESSORS);
-
-		
-	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
-
-	//Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/100.0f;
-
-	
-	//aT = 39.51;
-	//bT = 1216.9f;
-	//sigma2 = gamrnd(aT,bT,&seed);
-	//MultivariateRandom(beta,betaT,c_OmegaT,sigma2,NUMBER_OF_REGRESSORS,&seed);
-	
-	
-	//sigma2 = (float)unirand(&seed);
-	//Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = sigma2;
-	//Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = bT;
-	//Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
-	//Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = chol[2];
-	//Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = chol[3];
-
-}
-*/
 
 float Determinant_4x4(float Cxx[4][4])
 {
@@ -6273,11 +6096,12 @@ void Invert_2x2(float Cxx[2][2], float inv_Cxx[2][2])
 	inv_Cxx[1][1] = Cxx[0][0] / determinant;
 }
 
-
+// Generates a posterior probability map (PPM) using Gibbs sampling
 
 __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Maps,
 		                                          __global const float* Volumes,
 		                                          __global const float* Mask,
+		                                          __global const int* Seeds,
 		                                          __constant float* c_X_GLM,
 		                                          __constant float* c_InvOmega0,
 											      __constant float* c_S00,
@@ -6302,6 +6126,8 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+
+		/*
 		Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
@@ -6315,11 +6141,13 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		*/
 
 		return;
 	}
 
-	int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
+	// Get seed from host
+	int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
 
 	// Prior options
 	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
@@ -6485,7 +6313,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		Ytildesquared = g00 - 2.0f * rho * g01 + rho * rho * g11;
 	}
 	
-	//Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
 
 	/*
 	float Sigma = 1.0f;
@@ -6505,6 +6333,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = cholCov[1][1];
 	*/
 
+	/*
 	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = beta[0];
 	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
 	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = betaT[0];
@@ -6520,6 +6349,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = OmegaT[0][1];
 	Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = OmegaT[1][0];
 	Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	*/
 }
 
 
@@ -7938,7 +7768,7 @@ float CalculateEpsFirstLevel(__private float eps,
 }
 
 
-// For second level, permutation of rows in design matrix
+// For second level, permutation of rows in design matrix (as in FSL)
 float CalculateEpsSecondLevel(__private float eps,
 							  __private float* beta,
 							  __constant float* c_X_GLM,
@@ -9816,7 +9646,7 @@ float CalculateFTestScalar(__private float* cbeta, __private float* beta, int NU
 	
 
 
-
+// Not used currently, since Cochrane-Orcutt procedure is slow anyway
 __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global float* Statistical_Maps,
 																    __global float* Residuals,
 																	__global const float* Volumes,
@@ -9876,6 +9706,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 	}
 }
 
+// Not used currently, since Cochrane-Orcutt procedure is slow anyway
 __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global float* Statistical_Maps,
 																    __global float* Residuals,
 					 		                                        __global const float* Volumes,
@@ -9944,6 +9775,7 @@ __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global flo
 	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
 }
 
+// Optimized kernel for calculating t-test values for permutations, second level
 
 __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global float* Statistical_Maps,
 		                                       	   	   				 __global const float* Volumes,
@@ -10006,89 +9838,14 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 
 	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
 	// Loop over volumes
-	//for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	//{
-	//	float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		// Loop over regressors
-	//	CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-	//}
-
-    // Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
-	// Loop over volumes
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-        //float temp = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
-		// Loop over regressors
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]];
-            //beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
-		}
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 	}
 
-
-    // Calculate sigma squared
-	vareps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-        //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
-            //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += eps*eps;
-	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
-
-
-    /*
-    // Calculate the mean of the error eps
-	meaneps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-        //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
-            //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		meaneps += eps;
-	}
-	meaneps /= ((float)NUMBER_OF_VOLUMES);
-
-	// Now calculate the variance of eps
-	vareps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-        //eps = Volumes[Calculate4DIndex(x,y,z,c_Permutation_Vector[v],DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + c_Permutation_Vector[v]] * beta[r];
-            //eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps);
-	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
-
-     */
-	// Loop over contrasts and calculate t-values
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		float contrast_value = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
-	}
-
-
-    /*
 	// Calculate the mean and variance of the error eps
 	meaneps = 0.0f;
 	vareps = 0.0f;
@@ -10096,6 +9853,8 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
 		eps = CalculateEpsSecondLevel(eps, beta, c_X_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 
 		n += 1.0f;
@@ -10104,25 +9863,19 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 		vareps += delta * (eps - meaneps);
 	}
 	vareps = vareps / (n - 1.0f);
-    */
 
 	// Loop over contrasts and calculate t-values
 
-	//for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	//{
-	//	float contrast_value = 0.0f;
-	//	contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
-	//	Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
-	//}
-
-
-
-	//int c = 0;
-	//float contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
-	//Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
+	}
 }
 
 
+// Optimized kernel for calculating F-test values for permutations, second level
 
 __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global float* Statistical_Maps,
 		                                       	   	   	             __global const float* Volumes,
@@ -10187,7 +9940,8 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
 		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		// Loop over regressors
+
+		// Loop over regressors using unrolled code for performance
 		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 	}
 
@@ -10198,6 +9952,8 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
 		eps = CalculateEpsSecondLevel(eps, beta, c_X_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 
 		n += 1.0f;
@@ -10228,11 +9984,7 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 
 
 
-
-
-
-
-	
+// Estimates voxel specific AR(4) models
 __kernel void EstimateAR4Models(__global float* AR1_Estimates, 
                                 __global float* AR2_Estimates, 
 								__global float* AR3_Estimates, 
@@ -10288,10 +10040,10 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
     // Estimate c0, c1, c2, c3, c4
     for (t = 4 + INVALID_TIMEPOINTS; t < DATA_T; t++)
     {
-        // Read data into shared memory
+        // Read data into register
         old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
         
-        // Sum and multiply the values in shared memory
+        // Sum and multiply the values in fast registers
         c0 += old_value_5 * old_value_5;
         c1 += old_value_5 * old_value_4;
         c2 += old_value_5 * old_value_3;
@@ -10482,7 +10234,7 @@ __kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Vo
 
 
 
-
+// Not working
 __kernel void Clusterize(volatile __global int* Cluster_Indices,
 						 volatile __global int* current_cluster,
 						 __global const float* Data,
@@ -10571,7 +10323,7 @@ __kernel void ThresholdVolume(__global float* Thresholded_Volume,
 	}
 }
 
-
+// Removes a linear fit estimated with CalculateGLMBetaWeights
 __kernel void RemoveLinearFit(__global float* Residual_Volumes, 
                               __global const float* Volumes, 
 							  __global const float* Beta_Volumes, 

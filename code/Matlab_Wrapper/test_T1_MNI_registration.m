@@ -60,10 +60,10 @@ save_warped_volume_nifti = 0;       % Save warped volume as nifti file or not
 %------------------------------------
 
 %study = 'Baltimore';
-study = 'Cambridge'; N = 198;
+study = 'Cambridge'; N = 10;
 
 skullstripped = 1;
-voxel_size = 2;
+voxel_size = 1;
 
 number_of_iterations_for_parametric_image_registration = 10;
 number_of_iterations_for_nonparametric_image_registration = 15;
@@ -90,7 +90,7 @@ load filters_for_nonparametric_registration.mat
     
 dirs = dir([basepath study]);
 
-normalization_times = zeros(198,1);
+normalization_times = zeros(N,1);
 
 % Loop over subjects
 for s = 1:N

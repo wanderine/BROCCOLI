@@ -3,7 +3,7 @@
 clear
 
 export OMP_NUM_THREADS=1
-MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz
+MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/
 results_directory=/data/andek/BROCCOLI_test_data/AFNI/temp

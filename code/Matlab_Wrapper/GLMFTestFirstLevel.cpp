@@ -20,18 +20,13 @@
 #include "help_functions.cpp"
 #include "broccoli_lib.h"
 
-void cleanUp()
-{
-    //cudaDeviceReset();
-}
-
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
     //-----------------------
     // Input pointers
     
-    double		    *h_fMRI_Volumes_double, *h_X_GLM_double, *h_xtxxt_GLM_double, *h_Contrasts_double, *h_ctxtxc_GLM_double;
-    float           *h_fMRI_Volumes, *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM;  
+    double		    *h_fMRI_Volumes_double, *h_X_GLM_double, *h_xtxxt_GLM_double, *h_Contrasts_double, *h_ctxtxc_GLM_double, *h_Whitened_Models_double;
+    float           *h_fMRI_Volumes, *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM, *h_Whitened_Models;  
     
     float           EPI_SMOOTHING_AMOUNT, AR_SMOOTHING_AMOUNT;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -60,11 +55,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many input arguments.");
     }
-    if(nlhs<10)
+    if(nlhs<11)
     {
         mexErrMsgTxt("Too few output arguments.");
     }
-    if(nlhs>10)
+    if(nlhs>11)
     {
         mexErrMsgTxt("Too many output arguments.");
     }
@@ -98,8 +93,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     DATA_T = ARRAY_DIMENSIONS_DATA[3];
     
     NUMBER_OF_REGRESSORS = ARRAY_DIMENSIONS_GLM[1];
-    NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_REGRESSORS;
-    //NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_REGRESSORS + 4 + 6;
+    NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_REGRESSORS;    
     NUMBER_OF_CONTRASTS = ARRAY_DIMENSIONS_CONTRAST[1];
                 
     int DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
@@ -187,6 +181,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[9] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_DESIGN_MATRIX,mxDOUBLE_CLASS, mxREAL);
     h_Design_Matrix2_double = mxGetPr(plhs[9]);  
     
+    NUMBER_OF_DIMENSIONS = 5;
+    int ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[5];
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[0] = DATA_H;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[1] = DATA_W;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[2] = DATA_D;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[3] = DATA_T;
+    ARRAY_DIMENSIONS_OUT_WHITENED_MODELS[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+    
+    plhs[10] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_WHITENED_MODELS,mxDOUBLE_CLASS, mxREAL);
+    h_Whitened_Models_double = (double*)mxGetData(plhs[10]);  
     
     // ------------------------------------------------
     
@@ -210,6 +214,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Design_Matrix                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
     h_Design_Matrix2                     = (float *)mxMalloc(DESIGN_MATRIX_SIZE);
     
+    h_Whitened_Models                   = (float*)mxMalloc(DATA_W * DATA_H * DATA_D * DATA_T * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
+    
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, DATA_W, DATA_H, DATA_D, DATA_T);
     pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);
@@ -221,90 +227,93 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE);
     
-    BROCCOLI.SetEPIWidth(DATA_W);
-    BROCCOLI.SetEPIHeight(DATA_H);
-    BROCCOLI.SetEPIDepth(DATA_D);
-    BROCCOLI.SetEPITimepoints(DATA_T);   
-    BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_REGRESSORS);
-    BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
-    BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
-    BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
-    BROCCOLI.SetContrasts(h_Contrasts);
-    BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
-    BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
-    BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
-    BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);  
-    BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
-    BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
-    BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
-    BROCCOLI.SetOutputResiduals(h_Residuals);
-    BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
-    BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
-    BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
-    BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
-  
-    /*
-     * Error checking     
-     */
-
-    int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
-	int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
-	int createContextError = BROCCOLI.GetOpenCLCreateContextError();
-	int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
-	int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
-	int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
-	int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
-	int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
+     // Something went wrong...
+    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    {  
+        int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
+        int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();                
+        int createContextError = BROCCOLI.GetOpenCLCreateContextError();
+        int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
+        int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
+        int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
+        int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
+        int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
           
-    mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
-    mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
-    mexPrintf("Create context error is %d \n",createContextError);
-    mexPrintf("Get create context info error is %d \n",getContextInfoError);
-    mexPrintf("Create command queue error is %d \n",createCommandQueueError);
-    mexPrintf("Create program error is %d \n",createProgramError);
-    mexPrintf("Build program error is %d \n",buildProgramError);
-    mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
+        mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
+        mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
+        mexPrintf("Create context error is %d \n",createContextError);
+        mexPrintf("Get create context info error is %d \n",getContextInfoError);
+        mexPrintf("Create command queue error is %d \n",createCommandQueueError);
+        mexPrintf("Create program error is %d \n",createProgramError);
+        mexPrintf("Build program error is %d \n",buildProgramError);
+        mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
     
-    int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-    for (int i = 0; i < 34; i++)
-    {
-        if (createKernelErrors[i] != 0)
+        // Print create kernel errors
+        int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
-            mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            if (createKernelErrors[i] != 0)
+            {
+                mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+            }
         }
-    }
-    
-    int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
-    for (int i = 0; i < 30; i++)
-    {
-        if (createBufferErrors[i] != 0)
-        {
-            mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
-        }
-    }
         
-    int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
-    for (int i = 0; i < 20; i++)
+        mexPrintf("OPENCL initialization failed, aborting \n");        
+    }
+    else if (BROCCOLI.GetOpenCLInitiated() == 1)
     {
-        if (runKernelErrors[i] != 0)
+        BROCCOLI.SetEPIWidth(DATA_W);
+        BROCCOLI.SetEPIHeight(DATA_H);
+        BROCCOLI.SetEPIDepth(DATA_D);
+        BROCCOLI.SetEPITimepoints(DATA_T);   
+        BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_REGRESSORS);
+        BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
+        BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
+        BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
+        BROCCOLI.SetContrasts(h_Contrasts);
+        BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
+        BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
+        BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
+        BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);  
+        BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
+        BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
+        
+        BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
+        BROCCOLI.SetOutputResiduals(h_Residuals);
+        BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
+        BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);
+        BROCCOLI.SetOutputAREstimates(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
+        BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
+        BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
+    
+        BROCCOLI.PerformGLMTTestFirstLevelWrapper();
+        
+        // Print create buffer errors
+        int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
-            mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+            if (createBufferErrors[i] != 0)
+            {
+                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+            }
         }
-    } 
-    
+        
+        // Print run kernel errors
+        int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (runKernelErrors[i] != 0)
+            {
+                mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+            }
+        } 
+    }
+
+        
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());  
-    
-    if ( (getPlatformIDsError + getDeviceIDsError + createContextError + getContextInfoError + createCommandQueueError + createProgramError + buildProgramError + getProgramBuildInfoError) == 0)
-    {        
-        BROCCOLI.PerformGLMTTestWrapper();
-    }
-    else
-    {
-        mexPrintf("OPENCL error detected, aborting \n");
-    }
-    
-    unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T);
-    unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T);
+        
+    //unpack_float2double(h_Design_Matrix_double, h_Design_Matrix, NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T);
+    //unpack_float2double(h_Design_Matrix2_double, h_Design_Matrix2, NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T);
     
     unpack_float2double_volumes(h_Beta_Volumes_double, h_Beta_Volumes, DATA_W, DATA_H, DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS);
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, DATA_W, DATA_H, DATA_D, DATA_T);
@@ -315,6 +324,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_AR3_Estimates_double, h_AR3_Estimates, DATA_W, DATA_H, DATA_D);
     unpack_float2double_volume(h_AR4_Estimates_double, h_AR4_Estimates, DATA_W, DATA_H, DATA_D);
         
+    for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+    {
+        unpack_float2double_volumes(&h_Whitened_Models_double[DATA_W * DATA_H * DATA_D * DATA_T * r], &h_Whitened_Models[DATA_W * DATA_H * DATA_D * DATA_T * r], DATA_W, DATA_H, DATA_D, DATA_T);
+    }
+    
     // Free all the allocated memory on the host
     
     mxFree(h_Design_Matrix);
@@ -335,6 +349,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_AR2_Estimates);
     mxFree(h_AR3_Estimates);
     mxFree(h_AR4_Estimates);
+    
+    mxFree(h_Whitened_Models);
     
     return;
 }

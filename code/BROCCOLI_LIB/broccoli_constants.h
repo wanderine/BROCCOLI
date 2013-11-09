@@ -95,6 +95,9 @@
 
 #define SUCCESS 0
 
+#define LOWPASS 0
+#define RANDOM 1
+
 #define NVIDIA 0
 #define INTEL 1
 #define AMD 2

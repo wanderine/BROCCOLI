@@ -9,9 +9,9 @@ if ispc
     results_directory = '/data/andek/BROCCOLI_test_data/SPM/';    
 elseif isunix
     addpath('/data/andek/spm8/')
-    data_path = '/data/andek/BROCCOLI_test_data/Cambridge/';
-    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalize/';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/temp/';
+    data_path = '/data/andek/BROCCOLI_test_data/Cambridge/wSPM/';
+    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/normalize/';
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/temp/';
 end
 
 try
@@ -22,9 +22,12 @@ voxel_size = 2;
 
 dirs = dir(data_path);
 
+N = 198;    % Number of subjects
+normalization_times = zeros(N,1);
+
 % Loop over subjects
 tic
-for s = 1:10
+for s = 1:N
     
     
     %% Initialise SPM defaults
@@ -33,7 +36,7 @@ for s = 1:10
     spm_jobman('initcfg'); % useful in SPM8 only
     
     
-    subject = dirs(s+2).name    
+    subject = dirs(s+2).name    % Skip . and .. 'folders'
     subject_path = [data_path subject '/anat/'];
     
     %% WORKING DIRECTORY (useful for .ps only)
@@ -44,13 +47,14 @@ for s = 1:10
 
     %% Normalize settings        
    
-    pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.source = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/mprage_skullstripped.nii,1']};    
+    pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.source = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/mprage_skullstripped.nii,1']};    
     pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.wtsrc = '';
-    pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.resample = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/mprage_skullstripped.nii']};    
+    pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.resample = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/mprage_skullstripped.nii']};    
+    % Use unpacked MNI template
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.template = {['/home/andek/fsl/data/standard/MNI152_T1_' num2str(voxel_size) 'mm_brain_.nii']};
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.weight = '';
     %pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 8;
-    % Try to match smoothness of T1 volume
+    % Try to match smoothness of MNI template
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 4; % 
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smoref = 0;
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.regtype = 'mni';
@@ -82,6 +86,7 @@ for s = 1:10
     
     
     error1 = 0;
+    start = clock;
     try        
         % Run processing
         spm_jobman('run',pjobs);        
@@ -89,6 +94,7 @@ for s = 1:10
         err
         error1 = 1;
     end
+    normalization_times(s) = etime(clock,start);
     
     
     % Move files to results directory 

@@ -9,9 +9,9 @@ if ispc
     results_directory = '/data/andek/BROCCOLI_test_data/SPM/';    
 elseif isunix
     addpath('/data/andek/spm8/')
-    data_path = '/data/andek/BROCCOLI_test_data/Cambridge/';
-    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/segment/';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/temp/';
+    data_path = '/data/andek/BROCCOLI_test_data/Cambridge/wSPM/';
+    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/segment/';
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/temp/';
 end
 
 try
@@ -21,18 +21,20 @@ end
 voxel_size = 1;
 dirs = dir(data_path);
 
+N = 198;    % Number of subjects
+normalization_times = zeros(N,1);
+
 % Loop over subjects
 tic
-for s = 1:10
+for s = 1:N
     
     
     %% Initialise SPM defaults
     %--------------------------------------------------------------------------
     spm('Defaults','fMRI');
     spm_jobman('initcfg'); % useful in SPM8 only
-    
-    
-    subject = dirs(s+2).name    
+        
+    subject = dirs(s+2).name    % Skip . and .. 'folders'
     subject_path = [data_path subject '/anat/'];
     
     %% WORKING DIRECTORY (useful for .ps only)
@@ -44,7 +46,7 @@ for s = 1:10
     %% Coregister settings
     
     pjobs{2}.spatial{1}.coreg{1}.estwrite.ref = {['/home/andek/fsl/data/standard/MNI152_T1_' num2str(voxel_size) 'mm_brain_.nii,1']};
-    pjobs{2}.spatial{1}.coreg{1}.estwrite.source = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/mprage_skullstripped.nii,1']};    
+    pjobs{2}.spatial{1}.coreg{1}.estwrite.source = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/mprage_skullstripped.nii,1']};    
     pjobs{2}.spatial{1}.coreg{1}.estwrite.other = {''};
     pjobs{2}.spatial{1}.coreg{1}.estwrite.eoptions.cost_fun = 'nmi';
     pjobs{2}.spatial{1}.coreg{1}.estwrite.eoptions.sep = [4 2];
@@ -58,7 +60,7 @@ for s = 1:10
     
     %% Segment settings        
 
-    pjobs{3}.spatial{1}.preproc.data = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/rmprage_skullstripped.nii,1']};
+    pjobs{3}.spatial{1}.preproc.data = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/rmprage_skullstripped.nii,1']};
     pjobs{3}.spatial{1}.preproc.output.GM = [0 0 1];
     pjobs{3}.spatial{1}.preproc.output.WM = [0 0 1];
     pjobs{3}.spatial{1}.preproc.output.CSF = [0 0 0];
@@ -85,8 +87,8 @@ for s = 1:10
     %% Normalize write settings
     
     % Transform T1 volume using estimated parameters
-    pjobs{4}.spatial{1}.normalise{1}.write.subj.matname = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/rmprage_skullstripped_seg_sn.mat']};
-    pjobs{4}.spatial{1}.normalise{1}.write.subj.resample = {['/data/andek/BROCCOLI_test_data/Cambridge/' subject '/anat/rmprage_skullstripped.nii,1']};
+    pjobs{4}.spatial{1}.normalise{1}.write.subj.matname = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/rmprage_skullstripped_seg_sn.mat']};
+    pjobs{4}.spatial{1}.normalise{1}.write.subj.resample = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/rmprage_skullstripped.nii,1']};
     pjobs{4}.spatial{1}.normalise{1}.write.roptions.preserve = 0;
     %pjobs{4}.spatial{1}.normalise{1}.write.roptions.bb = [-78 -112 -50
     %                                                      78 76 85];
@@ -108,6 +110,7 @@ for s = 1:10
     
     
     error1 = 0;
+    start = clock;
     try        
         % Run processing
         spm_jobman('run',pjobs);        
@@ -115,9 +118,9 @@ for s = 1:10
         err
         error1 = 1;
     end
+    normalization_times(s) = etime(clock,start);
     
-    
-    % Move files to results directory 
+        
     coregistered_data = ['rmprage_skullstripped.nii'];
     normalized_data = ['wrmprage_skullstripped.nii'];
     new_normalized_data = ['SPM_warped_subject_' num2str(s) '.nii'];
@@ -127,7 +130,10 @@ for s = 1:10
     c2 = 'c2rmprage_skullstripped.nii';
     m = ['mrmprage_skullstripped.nii'];
     
+    % Move files to results directory 
     system(['mv ' normalized_data ' ' results_directory new_normalized_data]);
+    
+    % Remove temporary data
     system(['rm ' coregistered_data]);
     system(['rm ' mat1]);
     system(['rm ' mat2]);

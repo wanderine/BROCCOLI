@@ -359,8 +359,11 @@ class BROCCOLI_LIB
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
 		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
-		void PerformGLMTTestWrapper();
-		void PerformGLMFTestWrapper();
+		void PerformGLMTTestFirstLevelWrapper();
+		void PerformGLMFTestFirstLevelWrapper();
+		void PerformGLMTTestSecondLevelWrapper();
+		void PerformGLMFTestSecondLevelWrapper();
+		void CalculateStatisticalMapsGLMBayesianFirstLevelWrapper();
 		void PerformFirstLevelAnalysisWrapper();
 		void PerformFirstLevelAnalysisBayesianWrapper();
 		void PerformSecondLevelAnalysisWrapper();
@@ -417,7 +420,7 @@ class BROCCOLI_LIB
 
 		void WhitenDesignMatrices(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
 		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
-		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
+		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 
 		// Permutation second level
 		void SetupPermutationTestSecondLevel(cl_mem Volumes, cl_mem Mask);

@@ -6101,6 +6101,7 @@ void Invert_2x2(float Cxx[2][2], float inv_Cxx[2][2])
 __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Maps,
 		                                          __global const float* Volumes,
 		                                          __global const float* Mask,
+		                                          __global const int* Seeds,
 		                                          __constant float* c_X_GLM,
 		                                          __constant float* c_InvOmega0,
 											      __constant float* c_S00,
@@ -6125,6 +6126,8 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+
+		/*
 		Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
@@ -6138,11 +6141,13 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		*/
 
 		return;
 	}
 
-	int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
+	// Get seed from host
+	int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
 
 	// Prior options
 	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
@@ -6308,7 +6313,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		Ytildesquared = g00 - 2.0f * rho * g01 + rho * rho * g11;
 	}
 	
-	//Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
 
 	/*
 	float Sigma = 1.0f;
@@ -6328,6 +6333,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = cholCov[1][1];
 	*/
 
+	/*
 	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = beta[0];
 	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
 	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = betaT[0];
@@ -6343,6 +6349,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = OmegaT[0][1];
 	Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = OmegaT[1][0];
 	Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	*/
 }
 
 
@@ -10033,10 +10040,10 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
     // Estimate c0, c1, c2, c3, c4
     for (t = 4 + INVALID_TIMEPOINTS; t < DATA_T; t++)
     {
-        // Read data into shared memory
+        // Read data into register
         old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
         
-        // Sum and multiply the values in shared memory
+        // Sum and multiply the values in fast registers
         c0 += old_value_5 * old_value_5;
         c1 += old_value_5 * old_value_4;
         c2 += old_value_5 * old_value_3;
