@@ -719,8 +719,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
         BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
 
-        //BROCCOLI.PerformFirstLevelAnalysisWrapper();
-        BROCCOLI.PerformFirstLevelAnalysisBayesianWrapper();
+        BROCCOLI.PerformFirstLevelAnalysisWrapper();
+        //BROCCOLI.PerformFirstLevelAnalysisBayesianWrapper();
 
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();

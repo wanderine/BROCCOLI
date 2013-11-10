@@ -120,7 +120,11 @@ class BROCCOLI_LIB
 		// Set functions for GUI / Wrappers
 
 		void SetOpenCLPlatform(int N);
+
+
 		void SetMask(float* input);
+		void SetEPIMask(float* input);
+		void SetSmoothedEPIMask(float* input);
 
 		// Statistics
 		void SetTemporalDerivatives(int TD);
@@ -910,6 +914,7 @@ class BROCCOLI_LIB
 		float		*h_MNI_Brain_Mask;
 		float		*h_Mask;
 		float		*h_EPI_Mask;
+		float		*h_Smoothed_EPI_Mask;
 		float		*h_T1_Volume;
 		float		*h_MNI_Volume;
 		float		*h_MNI_Brain_Volume;

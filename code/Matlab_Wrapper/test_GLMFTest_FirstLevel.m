@@ -32,20 +32,20 @@ close all
 if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
-    basepath = 'D:\BROCCOLI_test_data\';
+    basepath = 'D:\OpenfMRI\';
     opencl_platform = 0;
     opencl_device = 0;
     
-    %mex -g GLMTTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
-    %mex GLMTTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib
+    %mex -g GLMFTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+    mex GLMFTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab/')
     basepath = '/data/andek/OpenfMRI/';    
     opencl_platform = 2;
     opencl_device = 0;
     
-    %mex -g GLMTTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
-    mex GLMTTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+    %mex -g GLMFTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+    mex GLMFTestFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
 end
 
 study = 'RhymeJudgment/ds003';
@@ -246,17 +246,12 @@ xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 % Create contrasts
 %-----------------------------------------------------------------------
 
-contrasts = [1 0 0 0 0 0];
-%contrasts = zeros(size(X_GLM,2),3);
-%contrasts(1,:) = [1 0 0 0 0];
-%contrasts(2,:) = [0 1 -2 0 0];
-%contrasts(3,:) = [1 3 1 0 0];
+contrasts = zeros(3,size(X_GLM,2));
+contrasts(1,:) = [1 0 0 4 -3 0];
+contrasts(2,:) = [0 1 0 -2 0 0];
+contrasts(3,:) = [1 3 0 0 0 2];
 
-for i = 1:size(contrasts,1)
-    contrast = contrasts(i,:)';
-    ctxtxc_GLM(i) = contrast'*inv(X_GLM'*X_GLM)*contrast;
-end
-ctxtxc_GLM
+ctxtxc_GLM = inv(contrasts*inv(X_GLM'*X_GLM)*contrasts')
 
 %-----------------------------------------------------------------------
 % Calculate statistical maps
@@ -264,7 +259,7 @@ ctxtxc_GLM
 
 [sy sx sz st] = size(fMRI_volumes)
 
-statistical_maps_cpu = zeros(sy,sx,sz,size(contrasts,1));
+statistical_maps_cpu = zeros(sy,sx,sz);
 betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
 residuals_cpu = zeros(sy,sx,sz,st);
 residual_variances_cpu = zeros(sy,sx,sz);
@@ -290,7 +285,7 @@ end
 INVALID_TIMEPOINTS = 0;
 
 % Cochrane-Orcutt, iterate
-for it = 1:3
+for it = 1:1
     
     % Calculate statistical maps
     
@@ -312,15 +307,12 @@ for it = 1:3
                     timeseries = squeeze(fMRI_volumes(y,x,z,:));
                     residuals = timeseries - X_GLM*beta;
                     residuals_cpu(y,x,z,:) = residuals;
-                    %residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st-size(X_GLM,2) - 1);
-                    residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - 1);
+                    residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - size(X_GLM,2) - 1);
+                    %residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - 1);
                     
-                    % t-test
-                    for i = 1:size(contrasts,1)
-                        contrast = contrasts(i,:)';
-                        statistical_maps_cpu(y,x,z,i) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM(i));
-                    end
-                    
+                    %F-test
+                    statistical_maps_cpu(y,x,z) = (contrasts*beta)' * 1/residual_variances_cpu(y,x,z) * ctxtxc_GLM * (contrasts*beta) / size(contrasts,1);
+                                
                 end
             end
         end
@@ -535,23 +527,36 @@ tic
 [betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ...
     ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl, ...
     design_matrix, design_matrix2, whitened_X_GLMs_opencl] = ...
-    GLMTTestFirstLevel(fMRI_volumes,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,EPI_smoothing_amount,AR_smoothing_amount,...
+    GLMFTestFirstLevel(fMRI_volumes,brain_mask,smoothed_mask,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,EPI_smoothing_amount,AR_smoothing_amount,...
     EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,opencl_platform,opencl_device);
 toc
 
 slice = 20;
+
+for r = 1:size(X_GLM,2)
+    betas_cpu(:,:,:,r) = betas_cpu(:,:,:,r) .* brain_mask;
+    betas_opencl(:,:,:,r) = betas_opencl(:,:,:,r) .* brain_mask;
+end
 
 figure
 imagesc([betas_cpu(:,:,slice,1) betas_opencl(:,:,slice,1)]); colorbar
 title('Beta')
 
 figure
+imagesc([betas_cpu(:,:,slice,1) - betas_opencl(:,:,slice,1)]); colorbar
+title('Beta diff')
+
+figure
 imagesc([residual_variances_cpu(:,:,slice) residual_variances_opencl(:,:,slice)]); colorbar
 title('Residual variances')
 
 figure
-imagesc([statistical_maps_cpu(:,:,slice,1) statistical_maps_opencl(:,:,slice,1)]); colorbar
+imagesc([statistical_maps_cpu(:,:,slice) statistical_maps_opencl(:,:,slice)]); colorbar
 title('Statistical map')
+
+figure
+imagesc([statistical_maps_cpu(:,:,slice) - statistical_maps_opencl(:,:,slice)]); colorbar
+title('Statistical map diff')
 
 figure
 imagesc([ar1_estimates_cpu(:,:,slice) ar1_estimates_opencl(:,:,slice) ]); colorbar
@@ -580,4 +585,12 @@ residual_variances_max_error = max(abs(residual_variances_cpu(:) - residual_vari
 
 stat_tot_error = sum(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
 stat_max_error = max(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
+
+% for slice = 1:sz
+%    a = betas_cpu(:,:,slice,1);
+%    b = betas_opencl(:,:,slice,1);
+%    
+%    max(abs(a(:) - b(:)))
+% end
+
 

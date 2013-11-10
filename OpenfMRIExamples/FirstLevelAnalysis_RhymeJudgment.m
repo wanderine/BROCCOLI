@@ -30,10 +30,10 @@ close all
 
 if ispc
     %addpath('D:\nifti_matlab')
-    addpath('C:\nifti_matlab')
-    basepath = 'C:\OpenfMRI\';    
-    opencl_platform = 0; % 0 Nvidia, 1 Intel, 2 AMD
-    opencl_device = 0;
+    addpath('D:\nifti_matlab')
+    basepath = 'D:\OpenfMRI\';    
+    opencl_platform = 2; % 0 Nvidia, 1 Intel, 2 AMD
+    opencl_device = 1;
     %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
 elseif isunix
@@ -55,8 +55,8 @@ else
     subject = ['/sub0' num2str(subject)];
 end
 
-voxel_size = 2;
-beta_space = 0; % 0 = EPI, 1 = MNI
+voxel_size = 1;
+beta_space = 1; % 0 = EPI, 1 = MNI
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
@@ -208,22 +208,22 @@ end
 %--------------------------------------------------------------------------------------
 
 % Contrasts for confounding regressors are automatically set to zeros by BROCCOLI 
-%contrasts = [1  0];
+contrasts = [1  0];
     
-contrasts = [1  0; 
-             0  1; 
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1  1;
-             1 -1]; 
+% contrasts = [1  0; 
+%              0  1; 
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1  1;
+%              1 -1]; 
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';

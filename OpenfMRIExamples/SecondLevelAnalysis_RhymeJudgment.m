@@ -592,6 +592,7 @@ set(gca,'FontSize',15)
 
 %close all
 
+% Cluster extent
 if (inference_mode == 1)
     
     a = statistical_maps(:,:,:,1);
@@ -616,7 +617,8 @@ if (inference_mode == 1)
     sum(matlab_sums(:) - broccoli_sums(:))
     
     max(matlab_sums(:))
-    
+
+% Cluster mass
 elseif (inference_mode == 2)
 
     a = statistical_maps(:,:,:,1);

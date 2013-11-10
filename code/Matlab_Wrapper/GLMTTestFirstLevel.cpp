@@ -28,6 +28,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double		    *h_fMRI_Volumes_double, *h_X_GLM_double, *h_xtxxt_GLM_double, *h_Contrasts_double, *h_ctxtxc_GLM_double, *h_Whitened_Models_double;
     float           *h_fMRI_Volumes, *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM, *h_Whitened_Models;  
     
+    double          *h_EPI_Mask_double, *h_Smoothed_EPI_Mask_double;
+    float           *h_EPI_Mask, *h_Smoothed_EPI_Mask;
+    
     float           EPI_SMOOTHING_AMOUNT, AR_SMOOTHING_AMOUNT;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
     
@@ -47,11 +50,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<12)
+    if(nrhs<14)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>12)
+    if(nrhs>14)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -68,22 +71,24 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     // The data
     h_fMRI_Volumes_double =  (double*)mxGetData(prhs[0]);
-    h_X_GLM_double =  (double*)mxGetData(prhs[1]);
-    h_xtxxt_GLM_double =  (double*)mxGetData(prhs[2]);
-    h_Contrasts_double = (double*)mxGetData(prhs[3]);
-    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[4]);
-    EPI_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[5]);
-    AR_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[6]);
-    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[7]);
-    EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[8]);
-    EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[9]);
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[10]);
-    OPENCL_DEVICE  = (int)mxGetScalar(prhs[11]);
+    h_EPI_Mask_double =  (double*)mxGetData(prhs[1]);
+    h_Smoothed_EPI_Mask_double =  (double*)mxGetData(prhs[2]);
+    h_X_GLM_double =  (double*)mxGetData(prhs[3]);
+    h_xtxxt_GLM_double =  (double*)mxGetData(prhs[4]);
+    h_Contrasts_double = (double*)mxGetData(prhs[5]);
+    h_ctxtxc_GLM_double = (double*)mxGetData(prhs[6]);
+    EPI_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[7]);
+    AR_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[8]);
+    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[9]);
+    EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[10]);
+    EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[11]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[12]);
+    OPENCL_DEVICE  = (int)mxGetScalar(prhs[13]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
-    const int *ARRAY_DIMENSIONS_GLM = mxGetDimensions(prhs[1]);
-    const int *ARRAY_DIMENSIONS_CONTRAST = mxGetDimensions(prhs[4]);
+    const int *ARRAY_DIMENSIONS_GLM = mxGetDimensions(prhs[3]);
+    const int *ARRAY_DIMENSIONS_CONTRAST = mxGetDimensions(prhs[6]);
     
     int DATA_H, DATA_W, DATA_D, DATA_T, NUMBER_OF_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONTRASTS;
     
@@ -196,6 +201,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     // Allocate memory on the host
     h_fMRI_Volumes                 = (float *)mxMalloc(DATA_SIZE);
+    h_EPI_Mask                     = (float *)mxMalloc(VOLUME_SIZE);
+    h_Smoothed_EPI_Mask            = (float *)mxMalloc(VOLUME_SIZE);
+    
     h_X_GLM                        = (float *)mxMalloc(GLM_SIZE);
     h_xtxxt_GLM                    = (float *)mxMalloc(GLM_SIZE);
     h_Contrasts                    = (float *)mxMalloc(CONTRAST_SIZE);
@@ -218,6 +226,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     // Reorder and cast data
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, DATA_W, DATA_H, DATA_D, DATA_T);
+    pack_double2float_volume(h_EPI_Mask, h_EPI_Mask_double, DATA_W, DATA_H, DATA_D);
+    pack_double2float_volume(h_Smoothed_EPI_Mask, h_Smoothed_EPI_Mask_double, DATA_W, DATA_H, DATA_D);
     pack_double2float(h_X_GLM, h_X_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);
     pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_REGRESSORS * DATA_T);    
     pack_double2float_image(h_Contrasts, h_Contrasts_double, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS);    
@@ -277,6 +287,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);  
         BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
         BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
+        BROCCOLI.SetEPIMask(h_EPI_Mask);
+        BROCCOLI.SetSmoothedEPIMask(h_Smoothed_EPI_Mask);
         
         BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);
         BROCCOLI.SetOutputResiduals(h_Residuals);
@@ -335,6 +347,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Design_Matrix2);
     
     mxFree(h_fMRI_Volumes);
+    mxFree(h_EPI_Mask);
+    mxFree(h_Smoothed_EPI_Mask);
+    
     mxFree(h_X_GLM);
     mxFree(h_xtxxt_GLM);    
     mxFree(h_Contrasts);
