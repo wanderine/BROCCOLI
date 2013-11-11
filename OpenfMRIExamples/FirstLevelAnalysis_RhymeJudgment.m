@@ -39,7 +39,7 @@ if ispc
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/OpenfMRI/';    
-    opencl_platform = 2; 
+    opencl_platform = 1; 
     opencl_device = 0;
     %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
@@ -55,8 +55,8 @@ else
     subject = ['/sub0' num2str(subject)];
 end
 
-voxel_size = 1;
-beta_space = 1; % 0 = EPI, 1 = MNI
+voxel_size = 2;
+beta_space = 0; % 0 = EPI, 1 = MNI
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
@@ -90,7 +90,6 @@ load filters_for_nonparametric_registration.mat
 
 T1_nii = load_nii([basepath study subject '/anatomy/highres001_brain.nii.gz']);
 T1 = double(T1_nii.img);
-T1 = T1/max(T1(:));
 
 [T1_sy T1_sx T1_sz] = size(T1);
 [T1_sy T1_sx T1_sz]
@@ -124,7 +123,6 @@ TR = 2;
 
 MNI_nii = load_nii(['../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
-MNI = MNI/max(MNI(:));
 
 MNI_brain_nii = load_nii(['../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain.nii']);
 MNI_brain = double(MNI_brain_nii.img);
@@ -208,8 +206,13 @@ end
 %--------------------------------------------------------------------------------------
 
 % Contrasts for confounding regressors are automatically set to zeros by BROCCOLI 
-contrasts = [1  0];
+%contrasts = [1  0];
     
+contrasts = [1  0;
+             1  0;
+             1  0;
+             1  0];
+
 % contrasts = [1  0; 
 %              0  1; 
 %              1  1;
@@ -377,32 +380,34 @@ title('Design matrix')
 
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/firstlevelmaps.png
 
-% for slice = 1:33
-%    statistical_maps_flipped(:,:,slice) = flipud(statistical_maps(:,:,slice));
-% end
-% 
-% new_file.hdr = EPI_nii.hdr;
-% new_file.hdr.dime.dim = [3 64 64 33 1 1 1 1];
-% new_file.hdr.dime.vox_offset = 352;
-% new_file.hdr.scl_slope = 1;
-% new_file.hdr.dime.cal_max = max(statistical_maps(:));
-% new_file.hdr.dime.cal_min = min(statistical_maps(:));
-% new_file.hdr.dime.gl_max = max(statistical_maps(:));
-% new_file.hdr.dime.gl_min = min(statistical_maps(:));
-% new_file.hdr.dime.datatype = 16;
-% new_file.hdr.dime.bitpix = 32;
-% 
-% new_file.original.hdr.dime.dim = [3 64 64 33 1 1 1 1];
-% new_file.original.hdr.dime.vox_offset = 352;
-% new_file.original.hdr.scl_slope = 1;
-% new_file.original.hdr.dime.cal_max = max(statistical_maps(:));
-% new_file.original.hdr.dime.cal_min = min(statistical_maps(:));
-% new_file.original.hdr.dime.gl_max = max(statistical_maps(:));
-% new_file.original.hdr.dime.gl_min = min(statistical_maps(:));
-% new_file.original.hdr.dime.datatype = 16;
-% new_file.original.hdr.dime.bitpix = 32;
-% 
-% new_file.img = single(statistical_maps_flipped);    
-% filename = ['BROCCOLI_statistical_map_whitening_.nii'];
-% save_nii(new_file,filename);
+for slice = 1:33
+   statistical_maps_flipped(:,:,slice) = flipud(statistical_maps(:,:,slice,1));
+end
+
+a = statistical_maps(:,:,:,1);
+
+new_file.hdr = EPI_nii.hdr;
+new_file.hdr.dime.dim = [3 64 64 33 1 1 1 1];
+new_file.hdr.dime.vox_offset = 352;
+new_file.hdr.scl_slope = 1;
+new_file.hdr.dime.cal_max = max(a(:));
+new_file.hdr.dime.cal_min = min(a(:));
+new_file.hdr.dime.gl_max = max(a(:));
+new_file.hdr.dime.gl_min = min(a(:));
+new_file.hdr.dime.datatype = 16;
+new_file.hdr.dime.bitpix = 32;
+
+new_file.original.hdr.dime.dim = [3 64 64 33 1 1 1 1];
+new_file.original.hdr.dime.vox_offset = 352;
+new_file.original.hdr.scl_slope = 1;
+new_file.original.hdr.dime.cal_max = max(a(:));
+new_file.original.hdr.dime.cal_min = min(a(:));
+new_file.original.hdr.dime.gl_max = max(a(:));
+new_file.original.hdr.dime.gl_min = min(a(:));
+new_file.original.hdr.dime.datatype = 16;
+new_file.original.hdr.dime.bitpix = 32;
+
+new_file.img = single(statistical_maps_flipped);    
+filename = ['BROCCOLI_statistical_map_whitening_.nii'];
+save_nii(new_file,filename);
 

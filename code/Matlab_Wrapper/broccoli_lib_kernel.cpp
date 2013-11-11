@@ -6123,9 +6123,16 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
+	int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
+
+
+	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = (float)unirand(&seed);
+	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = (float)normalrand(&seed);
+
 	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
 
 		/*
 		Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
@@ -6147,7 +6154,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	}
 
 	// Get seed from host
-	int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+	//int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
 
 	// Prior options
 	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
@@ -6313,7 +6320,8 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		Ytildesquared = g00 - 2.0f * rho * g01 + rho * rho * g11;
 	}
 	
-	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = rhoT;
 
 	/*
 	float Sigma = 1.0f;
@@ -6321,7 +6329,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	float cholCov[2][2];
 
 	Cov[0][0] = 1.0f;
-	Cov[0][1] = 2.0f;
+	Cov[0][1] = 2.0f	;
 	Cov[1][0] = 2.0f;
 	Cov[1][1] = 15.0f;
 
