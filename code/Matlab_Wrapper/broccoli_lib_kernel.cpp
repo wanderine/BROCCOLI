@@ -5819,6 +5819,8 @@ __kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
 #pragma OPENCL EXTENSION cl_khr_fp64: enable
 
 // Generate random uniform number by modulo operation
+
+
 double unirand(__private int* seed)
 {
 	double const a = 16807.0; //ie 7**5
@@ -5838,7 +5840,7 @@ double normalrand(__private int* seed)
 	double u = unirand(seed);
 	double v = unirand(seed);
 
-	return sqrt(-2*log(u))*cos(2*pi*v);
+	return sqrt(-2.0*log(u))*cos(2.0*pi*v);
 }
 
 // Generate inverse Gamma number
@@ -5853,6 +5855,44 @@ double gamrnd(float a, float b, __private int* seed)
 
 	return 2.0 * b / x;
 }
+
+
+/*
+float unirand(__private int* seed)
+{
+	float const a = 16807.0f; //ie 7**5
+	float const m = 2147483647.0f; //ie 2**31-1
+	float const reciprocal_m = 1.0f/m;
+	float temp = (*seed) * a;
+	*seed = (int)(temp - m * floor(temp * reciprocal_m));
+
+	return ((float)(*seed) * reciprocal_m);
+}
+
+#define pi 3.141592653589793
+
+// Generate random normal number by Box-Muller transform
+float normalrand(__private int* seed)
+{
+	float u = unirand(seed);
+	float v = unirand(seed);
+
+	return sqrt(-2.0f*log(u))*cos(2.0f*pi*v);
+}
+
+// Generate inverse Gamma number
+float gamrnd(float a, float b, __private int* seed)
+{
+	float x = 0.0f;
+	for (int i = 0; i < 2*(int)round(a); i++)
+	{
+		float rand_value = normalrand(seed);
+		x += rand_value * rand_value;
+	}
+
+	return 2.0f * b / x;
+}
+*/
 
 // Cholesky factorization, not optimized
 int Cholesky(float* cholA, float factor, __constant float* A, int N)

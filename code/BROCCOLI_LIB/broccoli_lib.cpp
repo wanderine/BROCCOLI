@@ -8853,7 +8853,7 @@ void BROCCOLI_LIB::PerformBayesianFirstLevelWrapper()
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
 	cl_mem d_Regressed_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
-	cl_mem d_Seeds = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
+	cl_mem d_Seeds = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
 
 	// Allocate memory for results
 	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
@@ -8865,7 +8865,7 @@ void BROCCOLI_LIB::PerformBayesianFirstLevelWrapper()
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Remove linear fit of detrending regressors
-	//PerformDetrending(d_Regressed_Volumes, d_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	PerformDetrending(d_Regressed_Volumes, d_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = 2;
 
@@ -8921,6 +8921,7 @@ void BROCCOLI_LIB::PerformBayesianFirstLevelWrapper()
 	h_OmegaT[3] = 13.0f;
 	*/
 
+	cl_mem c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	cl_mem c_InvOmega0 = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 	cl_mem c_S00 = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 	cl_mem c_S01 = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
@@ -8973,6 +8974,8 @@ void BROCCOLI_LIB::PerformBayesianFirstLevelWrapper()
 	clReleaseMemObject(d_Regressed_Volumes);
 	clReleaseMemObject(d_Seeds);
 	clReleaseMemObject(d_Statistical_Maps);
+
+	clReleaseMemObject(c_X_GLM);
 	clReleaseMemObject(c_InvOmega0);
 	clReleaseMemObject(c_S00);
 	clReleaseMemObject(c_S01);
