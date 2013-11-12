@@ -33,20 +33,22 @@ if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
     basepath = 'D:\OpenfMRI\';
-    opencl_platform = 0;
-    opencl_device = 0;
+    opencl_platform = 2; % 0 Nvidia, 1 Intel, 2 AMD
+    opencl_device = 1;
     
     %mex -g BayesianFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     mex BayesianFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab/')
-    basepath = '/data/andek/OpenfMRI/';    
+    basepath = '/data/andek/OpenfMRI/';
     opencl_platform = 1;
     opencl_device = 0;
     
     %mex -g BayesianFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     mex BayesianFirstLevel.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
 end
+
+run_Matlab_equivalent = 0;
 
 study = 'RhymeJudgment/ds003';
 
@@ -64,7 +66,6 @@ end
 %-----------------------------------------------------------------------
 
 EPI_smoothing_amount = 5.5;
-AR_smoothing_amount = 7.0;
 
 %-----------------------------------------------------------------------
 % Load data
@@ -176,19 +177,19 @@ for regressor = 1:2
     fid = fopen([basepath study subject '/model/model001/onsets/task001_run001/cond00' num2str(regressor) '.txt']);
     text = textscan(fid,'%f%f%f');
     fclose(fid);
-
+    
     onsets = text{1};
     durations = text{2};
     values = text{3};
-
-    for i = 1:length(onsets)    
-        start = round(onsets(i)*100000/TR); 
+    
+    for i = 1:length(onsets)
+        start = round(onsets(i)*100000/TR);
         activity_length = round(durations(i)*100000/TR);
         value = values(i);
-
+        
         for j = 1:activity_length
-            X_GLM_highres(start+j,regressor) = value; 
-        end                    
+            X_GLM_highres(start+j,regressor) = value;
+        end
     end
     
     % Downsample
@@ -220,17 +221,43 @@ contrasts = [1; 0 ; 3 ; 3];
 
 statistical_maps_cpu = zeros(sy,sx,sz);
 
-    % Calculate statistical maps
+% Model and Data options
+modelOpt.k = 1;                      % Order of autoregressive process for the noise
+modelOpt.stimulusPos = 1;            % The index (position) in the beta vector corresponding to the stimulus covariate.
+
+% Prior options
+priorOpt.beta0 = 0;                  % Prior mean of beta. p-vector. Scalar value here will be replicated in the vector
+priorOpt.tau = 100;                  % Prior covariance matrix of beta is tau^2*(X'X)^-1
+priorOpt.iota = 1;                   % Decay factor for lag length in prior for rho.
+priorOpt.r = 0.0;                    % Prior mean on rho1
+priorOpt.c = 0.3;                    % Prior standard deviation on first lag.
+priorOpt.a0 = 0.01;                  % First parameter in IG prior for sigma^2
+priorOpt.b0 = 0.01;                  % Second parameter in IG prior for sigma^2
+
+% Algorithmic options
+algoOpt.nIter = 1000;               % Number of Gibbs sampling iterations.
+algoOpt.prcBurnin = 10;
+
+[T, p] = size(X_GLM);
+
+% Calculate statistical maps
+
+if run_Matlab_equivalent == 1
     
     % Loop over voxels
     disp('Calculating statistical maps')
     tic
     for x = 1:sx
+        x
         for y = 1:sy
             for z = 1:sz
                 if brain_mask(y,x,z) == 1
                     
-                   
+                    yy = squeeze(fMRI_volumes(y,x,z,:));
+                    beta = xtxxt_GLM_Detrend * yy;
+                    detrended = yy - X_GLM_Detrend*beta;
+                    [PrActive, paramDraws] = GibbsDynGLM(detrended, X_GLM, modelOpt, priorOpt, algoOpt);
+                    statistical_maps_cpu(y,x,z) = PrActive;
                     
                 end
             end
@@ -238,7 +265,8 @@ statistical_maps_cpu = zeros(sy,sx,sz);
     end
     toc
     
-    
+end
+
 tic
 statistical_maps_opencl = BayesianFirstLevel(fMRI_volumes,brain_mask,X_GLM,xtxxt_GLM',contrasts,opencl_platform,opencl_device);
 toc
@@ -247,12 +275,13 @@ slice = 20;
 
 figure
 imagesc([statistical_maps_cpu(:,:,slice,1) statistical_maps_opencl(:,:,slice,1)]); colorbar
-title('Statistical map')
+title('Posterior probability map, left = Matlab, right = OpenCL')
 
 figure
 imagesc([statistical_maps_cpu(:,:,slice,1) - statistical_maps_opencl(:,:,slice,1)]); colorbar
-title('Statistical map diff')
+title('Posterior probability map diff')
 
-stat_tot_error = sum(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
-stat_max_error = max(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
+a = statistical_maps_opencl(:,:,:,1);
+stat_tot_error = sum(abs(statistical_maps_cpu(:) - a(:)))
+stat_max_error = max(abs(statistical_maps_cpu(:) - a(:)))
 
