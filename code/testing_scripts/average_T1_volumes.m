@@ -25,23 +25,24 @@ end
 
 N = 198;    % Number of subjects
 
-calculate_std = 0;  % Calculate voxel-wise standard deviation or not
+calculate_std = 1;  % Calculate voxel-wise standard deviation or not
 
 % Load MNI brain template
-MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain.nii']);
+MNI_nii = load_nii(['../../brain_templates/MNI152_T1_1mm_brain.nii']);
 MNI = double(MNI_nii.img);
 MNI = MNI/max(MNI(:));
 MNI_ = MNI/max(MNI(:)) * 256;
 
-% Load MNI brain mask
-MNI_mask_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(1) 'mm_brain_mask.nii']);
+% Load MNI brain mask (dilated to also count ventricles and results
+% slightly outside the brain)
+MNI_mask_nii = load_nii(['../../brain_templates/MNI152_T1_1mm_brain_mask_dil.nii']);
 MNI_mask = double(MNI_mask_nii.img);
 
 MNI_masked = MNI(MNI_mask == 1);
 MNI_masked_ = MNI_masked/max(MNI_masked(:)) * 256;
 
 %-----------------------------------------------------------------
-% SPM Normalize
+% SPM Normalize Linear interpolation (default)
 %-------------------------------------------------------------------
 
 mutual_information_SPM_Normalize = zeros(N,1);
@@ -79,7 +80,7 @@ if calculate_std == 1
 end
 
 %-----------------------------------------------------------------
-% SPM Segment
+% SPM Segment Linear interpolation (default)
 %-------------------------------------------------------------------
 
 mutual_information_SPM_Segment = zeros(N,1);
@@ -118,7 +119,7 @@ end
 
 
 %-----------------------------------------------------------------
-% FSL
+% FSL Linear interpolation (default)
 %-------------------------------------------------------------------
 
 mutual_information_FSL = zeros(N,1);
@@ -156,14 +157,14 @@ if calculate_std == 1
 end
 
 %-----------------------------------------------------------------------
-% AFNI
+% AFNI Linear interpolation
 %-------------------------------------------------------------------
 
-mutual_information_AFNI = zeros(N,1);
-correlation_AFNI = zeros(N,1);
-ssd_AFNI = zeros(N,1);
+mutual_information_AFNI_Linear = zeros(N,1);
+correlation_AFNI_Linear = zeros(N,1);
+ssd_AFNI_Linear = zeros(N,1);
 
-mean_T1_volume_AFNI = zeros(182,218,182);
+mean_T1_volume_AFNI_Linear = zeros(182,218,182);
 
 % Loop over subjects
 for s = 1:N
@@ -171,30 +172,71 @@ for s = 1:N
     T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
-    mean_T1_volume_AFNI = mean_T1_volume_AFNI + T1;
+    mean_T1_volume_AFNI_Linear = mean_T1_volume_AFNI_Linear + T1;
     T1_masked = T1(MNI_mask == 1);    
     % Calculate NCC, SSD and mutual information
-    correlation_AFNI(s) = corr2(T1_masked(:),MNI_masked(:));
-    ssd_AFNI(s) = sum( (T1_masked(:) - MNI_masked(:)).^2 );
+    correlation_AFNI_Linear(s) = corr2(T1_masked(:),MNI_masked(:));
+    ssd_AFNI_Linear(s) = sum( (T1_masked(:) - MNI_masked(:)).^2 );
     T1_masked_ = T1_masked/max(T1_masked(:)) * 256;    
-    mutual_information_AFNI(s) = mi(T1_masked_(:),MNI_masked_(:));         
+    mutual_information_AFNI_Linear(s) = mi(T1_masked_(:),MNI_masked_(:));         
 end
-mean_T1_volume_AFNI = mean_T1_volume_AFNI/N;
+mean_T1_volume_AFNI_Linear = mean_T1_volume_AFNI_Linear/N;
 
 if calculate_std == 1
-    std_T1_volume_AFNI = zeros(182,218,182);
+    std_T1_volume_AFNI_Linear = zeros(182,218,182);
     for s = 1:N
         s
         T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '.nii']);
         T1 = double(T1.img);
         T1 = T1/max(T1(:));    
-        std_T1_volume_AFNI = std_T1_volume_AFNI + sqrt((T1 - MNI) .* (T1 - MNI));
+        std_T1_volume_AFNI_Linear = std_T1_volume_AFNI_Linear + sqrt((T1 - MNI) .* (T1 - MNI));
     end
-    std_T1_volume_AFNI = std_T1_volume_AFNI / N;
+    std_T1_volume_AFNI_Linear = std_T1_volume_AFNI_Linear / N;
 end
 
+
+%-----------------------------------------------------------------------
+% AFNI Sinc interpolation (default)
 %-------------------------------------------------------------------
-% BROCCOLI
+
+mutual_information_AFNI_Sinc = zeros(N,1);
+correlation_AFNI_Sinc = zeros(N,1);
+ssd_AFNI_Sinc = zeros(N,1);
+
+mean_T1_volume_AFNI_Sinc = zeros(182,218,182);
+
+% Loop over subjects
+for s = 1:N
+    s
+    T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '_sinc.nii']);
+    T1 = double(T1.img);
+    T1 = T1/max(T1(:));
+    mean_T1_volume_AFNI_Sinc = mean_T1_volume_AFNI_Sinc + T1;
+    T1_masked = T1(MNI_mask == 1);    
+    % Calculate NCC, SSD and mutual information
+    correlation_AFNI_Sinc(s) = corr2(T1_masked(:),MNI_masked(:));
+    ssd_AFNI_Sinc(s) = sum( (T1_masked(:) - MNI_masked(:)).^2 );
+    T1_masked_ = T1_masked/max(T1_masked(:)) * 256;    
+    mutual_information_AFNI_Sinc(s) = mi(T1_masked_(:),MNI_masked_(:));         
+end
+mean_T1_volume_AFNI_Sinc = mean_T1_volume_AFNI_Sinc/N;
+
+if calculate_std == 1
+    std_T1_volume_AFNI_Sinc = zeros(182,218,182);
+    for s = 1:N
+        s
+        T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '_sinc.nii']);
+        T1 = double(T1.img);
+        T1 = T1/max(T1(:));    
+        std_T1_volume_AFNI_Sinc = std_T1_volume_AFNI_Sinc + sqrt((T1 - MNI) .* (T1 - MNI));
+    end
+    std_T1_volume_AFNI_Sinc = std_T1_volume_AFNI_Sinc / N;
+end
+
+
+
+%-------------------------------------------------------------------
+% BROCCOLI Linear interpolation (default)
 %-------------------------------------------------------------------
 
 mutual_information_BROCCOLI = zeros(N,1);
@@ -223,8 +265,6 @@ if calculate_std == 1
     std_T1_volume_BROCCOLI = zeros(182,218,182);
     for s = 1:N
         s
-        %load([basepath_BROCCOLI '/BROCCOLI_warped_subject'  num2str(s) '.mat']);    
-        %T1 = aligned_T1_nonparametric_opencl;
         T1 = load_nii([basepath_BROCCOLI '/BROCCOLI_warped_subject'  num2str(s) '.nii']);
         T1 = double(T1.img);    
         T1 = T1/max(T1(:));    
@@ -240,7 +280,7 @@ close all
 
 % Show average normalized T1 volumes
 figure(1)
-image([ flipud(MNI(:,:,85)')*50  flipud(mean_T1_volume_SPM_Normalize(:,:,85)')*75 flipud(mean_T1_volume_SPM_Segment(:,:,85)')*75   ; flipud(mean_T1_volume_FSL(:,:,85)')*75 flipud(mean_T1_volume_AFNI(:,:,85)')*75  flipud(mean_T1_volume_BROCCOLI(:,:,85)')*75 ; zeros(15,546) ]); colormap gray
+image([ flipud(MNI(:,:,85)')*50  flipud(mean_T1_volume_SPM_Normalize(:,:,85)')*75 flipud(mean_T1_volume_SPM_Segment(:,:,85)')*75   ; flipud(mean_T1_volume_FSL(:,:,85)')*75 flipud(mean_T1_volume_AFNI_Sinc(:,:,85)')*75  flipud(mean_T1_volume_BROCCOLI(:,:,85)')*75 ; zeros(15,546) ]); colormap gray
 axis equal
 axis off
 text(10,25,'A','Color','White','FontSize',17)
@@ -260,7 +300,7 @@ export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroIn
 % Show voxel-wise standard deviation
 if calculate_std == 1
     figure(2)
-    imagesc([ std_T1_volume_SPM_Normalize(:,:,85) std_T1_volume_SPM_Segment(:,:,85) std_T1_volume_FSL(:,:,85) std_T1_volume_AFNI(:,:,85)  std_T1_volume_BROCCOLI(:,:,85) ]); colormap gray
+    imagesc([ std_T1_volume_SPM_Normalize(:,:,85) std_T1_volume_SPM_Segment(:,:,85) std_T1_volume_FSL(:,:,85) std_T1_volume_AFNI_Sinc(:,:,85)  std_T1_volume_BROCCOLI(:,:,85) ]); colormap gray
     axis equal
     axis off
     %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_std.png
@@ -268,7 +308,7 @@ end
 
 % Show average normalized T1 volumes
 figure(3)
-image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 flipud(squeeze(mean_T1_volume_SPM_Segment(85,:,:))')*75    ; flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75 ; zeros(30,654) ]); colormap gray
+image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 flipud(squeeze(mean_T1_volume_SPM_Segment(85,:,:))')*75    ; flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI_Sinc(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75 ; zeros(30,654) ]); colormap gray
 axis equal
 axis off
 text(10,25,'A','Color','White','FontSize',18)
@@ -286,7 +326,7 @@ export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroIn
 % Show voxel-wise standard deviation
 if calculate_std == 1
     figure(4)
-    imagesc([ flipud(squeeze(std_T1_volume_SPM_Normalize(85,:,:))') flipud(squeeze(std_T1_volume_SPM_Segment(85,:,:))') flipud(squeeze(std_T1_volume_FSL(85,:,:))') flipud(squeeze(std_T1_volume_AFNI(85,:,:))') flipud(squeeze(std_T1_volume_BROCCOLI(85,:,:))')  ]); colormap gray
+    imagesc([ flipud(squeeze(std_T1_volume_SPM_Normalize(85,:,:))') flipud(squeeze(std_T1_volume_SPM_Segment(85,:,:))') flipud(squeeze(std_T1_volume_FSL(85,:,:))') flipud(squeeze(std_T1_volume_AFNI_Sinc(85,:,:))') flipud(squeeze(std_T1_volume_BROCCOLI(85,:,:))')  ]); colormap gray
     axis equal
     axis off
     %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_std.png
@@ -296,39 +336,45 @@ end
 mean(correlation_SPM_Normalize)
 mean(correlation_SPM_Segment)
 mean(correlation_FSL)
-mean(correlation_AFNI)
+mean(correlation_AFNI_Linear)
+mean(correlation_AFNI_Sinc)
 mean(correlation_BROCCOLI)
 
 std(correlation_SPM_Normalize)
 std(correlation_SPM_Segment)
 std(correlation_FSL)
-std(correlation_AFNI)
+std(correlation_AFNI_Linear)
+std(correlation_AFNI_Sinc)
 std(correlation_BROCCOLI)
 
 % Calculate mean and standard deviation of mutual information
 mean(mutual_information_SPM_Normalize)
 mean(mutual_information_SPM_Segment)
 mean(mutual_information_FSL)
-mean(mutual_information_AFNI)
+mean(mutual_information_AFNI_Linear)
+mean(mutual_information_AFNI_Sinc)
 mean(mutual_information_BROCCOLI)
 
 std(mutual_information_SPM_Normalize)
 std(mutual_information_SPM_Segment)
 std(mutual_information_FSL)
-std(mutual_information_AFNI)
+std(mutual_information_AFNI_Linear)
+std(mutual_information_AFNI_Sinc)
 std(mutual_information_BROCCOLI)
 
 % Calculate mean and standard deviation of ssd
 mean(ssd_SPM_Normalize/100000)
 mean(ssd_SPM_Segment/100000)
 mean(ssd_FSL/100000)
-mean(ssd_AFNI/100000)
+mean(ssd_AFNI_Linear/100000)
+mean(ssd_AFNI_Sinc/100000)
 mean(ssd_BROCCOLI/100000)
 
 std(ssd_SPM_Normalize/100000)
 std(ssd_SPM_Segment/100000)
 std(ssd_FSL/100000)
-std(ssd_AFNI/100000)
+std(ssd_AFNI_Linear/100000)
+std(ssd_AFNI_Sinc/100000)
 std(ssd_BROCCOLI/100000)
 
 

@@ -7,7 +7,8 @@ results_directory=/data/andek/BROCCOLI_test_data/FSL/motion_correction
 
 date1=$(date +"%s")
 
-for subject in {1..198}
+#for subject in {1..198}
+for subject in {1..50}
 do
 
 	echo $subject

@@ -22,22 +22,22 @@ end
 
 % Select noise level in data
 
-%noise_level = '_no_noise';
-%noise_level = '_1percent_noise';
-noise_level = '_2percent_noise';
+noise_level = '_no_noise';
+%noise_level = '_2percent_noise';
+%noise_level = '_shading';
 
 N = 198;
 
 voxel_size = 3;
 
-show_parameters = 1;       % Show the estimated parameters as plots or not, for SPM, FSL, AFNI and BROCCOLI
+show_parameters = 0;       % Show the estimated parameters as plots or not, for SPM, FSL, AFNI and BROCCOLI
 show_errors = 0;           % Show the motion errors or not, for SPM, FSL, AFNI and BROCCOLI
 
 %-----------------------------------------------------------------
-% SPM
+% SPM Linear interpolation
 %-------------------------------------------------------------------
 
-errors_SPM = zeros(N,1);
+errors_SPM_Linear = zeros(N,1);
 
 dirs = dir([basepath_none]);
 
@@ -80,11 +80,61 @@ for s = 1:N
     errors(:,5) = SPM_rotations_y - y_rotations;
     errors(:,6) = SPM_rotations_z - z_rotations;
     
-    errors_SPM(s) = sum(sum(errors.^2));
+    errors_SPM_Linear(s) = sqrt(sum(sum(errors.^2)));
 end
 
 %-----------------------------------------------------------------
-% FSL
+% SPM B-spline interpolation (default)
+%-------------------------------------------------------------------
+
+errors_SPM_Spline = zeros(N,1);
+
+dirs = dir([basepath_none]);
+
+% Loop over subjects
+for s = 1:N
+    
+    s
+    
+    % Load estimated motion parameters
+    fid = fopen([basepath_SPM '/rp_cambridge_rest_subject_' num2str(s) '_with_random_motion' noise_level '_spline.txt']);
+    text = textscan(fid,'%f%f%f%f%f%f');
+    fclose(fid);
+            
+    transx = text{1};
+    transy = text{2};
+    transz = text{3};
+    
+    rotx = text{4};
+    roty = text{5};
+    rotz = text{6};
+    
+    % Convert parameters to BROCCOLI coordinate system
+    SPM_translations_x = -transy/voxel_size;
+    SPM_translations_y = -transx/voxel_size;
+    SPM_translations_z = -transz/voxel_size;
+    
+    SPM_rotations_x = roty*180/pi;
+    SPM_rotations_y = -rotx*180/pi;
+    SPM_rotations_z = -rotz*180/pi;
+    
+    % Load true parameters
+    load([basepath_none '/true_motion_parameters_subject_' num2str(s) '_random_motion' noise_level '.mat']);
+    
+    % Calculate errors
+    errors = zeros(119,6);
+    errors(:,1) = SPM_translations_x - x_translations;
+    errors(:,2) = SPM_translations_y - y_translations;
+    errors(:,3) = SPM_translations_z - z_translations;
+    errors(:,4) = SPM_rotations_x - x_rotations;
+    errors(:,5) = SPM_rotations_y - y_rotations;
+    errors(:,6) = SPM_rotations_z - z_rotations;
+    
+    errors_SPM_Spline(s) = sqrt(sum(sum(errors.^2)));
+end
+
+%-----------------------------------------------------------------
+% FSL Linear interpolation (default)
 %-------------------------------------------------------------------
 
 errors_FSL = zeros(N,1);
@@ -125,16 +175,16 @@ for s = 1:N
     errors(:,5) = FSL_rotations_y - y_rotations;
     errors(:,6) = FSL_rotations_z - z_rotations;
     
-    errors_FSL(s) = sum(sum(errors.^2));
+    errors_FSL(s) = sqrt(sum(sum(errors.^2)));
 end
 
 
 
 %-----------------------------------------------------------------------
-% AFNI
+% AFNI Linear interpolation
 %-------------------------------------------------------------------
 
-errors_AFNI = zeros(N,1);
+errors_AFNI_Linear = zeros(N,1);
 
 % Loop over subjects
 for s = 1:N
@@ -172,14 +222,61 @@ for s = 1:N
     errors(:,5) = AFNI_rotations_y - y_rotations;
     errors(:,6) = AFNI_rotations_z - z_rotations;
     
-    errors_AFNI(s) = sum(sum(errors.^2));
+    errors_AFNI_Linear(s) = sqrt(sum(sum(errors.^2)));
+    
+end
+
+
+%-----------------------------------------------------------------------
+% AFNI Fourier interpolation (default)
+%-------------------------------------------------------------------
+
+errors_AFNI_Fourier = zeros(N,1);
+
+% Loop over subjects
+for s = 1:N
+    
+    % Load estimated motion parameters
+    fid = fopen([basepath_AFNI '/AFNI_motion_parameters_subject' num2str(s) '_random_motion' noise_level '_Fourier.1D']);
+    text = textscan(fid,'%f%f%f%f%f%f');
+    fclose(fid);
+    
+    roll = text{1};
+    pitch = text{2};
+    yaw = text{3};
+    
+    dS = text{4}; % Superior
+    dL = text{5}; % Left
+    dP = text{6}; % Posterior
+    
+    % Convert parameters to BROCCOLI coordinate system
+    AFNI_translations_x = dP/voxel_size;
+    AFNI_translations_y = dL/voxel_size;
+    AFNI_translations_z = -dS/voxel_size;
+    AFNI_rotations_x = -yaw;
+    AFNI_rotations_y = -pitch;
+    AFNI_rotations_z = roll;
+    
+    % Load true parameters
+    load([basepath_none '/true_motion_parameters_subject_' num2str(s) '_random_motion' noise_level '.mat']);
+    
+    % Calculate errors
+    errors = zeros(119,6);
+    errors(:,1) = AFNI_translations_x - x_translations;
+    errors(:,2) = AFNI_translations_y - y_translations;
+    errors(:,3) = AFNI_translations_z - z_translations;
+    errors(:,4) = AFNI_rotations_x - x_rotations;
+    errors(:,5) = AFNI_rotations_y - y_rotations;
+    errors(:,6) = AFNI_rotations_z - z_rotations;
+    
+    errors_AFNI_Fourier(s) = sqrt(sum(sum(errors.^2)));
     
 end
 
 
 
 %-------------------------------------------------------------------
-% BROCCOLI
+% BROCCOLI Linear interpolation (default)
 %-------------------------------------------------------------------
 
 errors_BROCCOLI = zeros(N,1);
@@ -208,18 +305,23 @@ for s = 1:N
     errors(:,5) = BROCCOLI_rotations_y - y_rotations;
     errors(:,6) = BROCCOLI_rotations_z - z_rotations;
     
-    errors_BROCCOLI(s) = sum(sum(errors.^2));
+    errors_BROCCOLI(s) = sqrt(sum(sum(errors.^2)));
         
 end
 
-SPM_meanerror = mean(errors_SPM)
+SPM_Linear_meanerror = mean(errors_SPM_Linear)
+SPM_Spline_meanerror = mean(errors_SPM_Spline)
 FSL_meanerror = mean(errors_FSL)
-AFNI_meanerror = mean(errors_AFNI)
+AFNI_Linear_meanerror = mean(errors_AFNI_Linear)
+AFNI_Fourier_meanerror = mean(errors_AFNI_Fourier)
 BROCCOLI_meanerror = mean(errors_BROCCOLI)
 
-SPM_std = std(errors_SPM)
+SPM_Linear_std = std(errors_SPM_Linear)
+SPM_Spline_std = std(errors_SPM_Spline)
 FSL_std = std(errors_FSL)
-AFNI_std = std(errors_AFNI)
+AFNI_Linear_std = std(errors_AFNI_Linear)
+AFNI_Fourier_std = std(errors_AFNI_Fourier)
+
 BROCCOLI_std = std(errors_BROCCOLI)
 
 % Plot estimated parameters for SPM, FSL, AFNI och BROCCOLI
@@ -229,10 +331,10 @@ if show_parameters == 1
     for s = 1:N
         
         %-----------------
-        % SPM
+        % SPM Spline
         %-----------------
                 
-        fid = fopen([basepath_SPM '/rp_cambridge_rest_subject_' num2str(s) '_with_random_motion' noise_level '.txt']);
+        fid = fopen([basepath_SPM '/rp_cambridge_rest_subject_' num2str(s) '_with_random_motion' noise_level '_spline.txt']);
         text = textscan(fid,'%f%f%f%f%f%f');
         fclose(fid);
         
@@ -279,10 +381,10 @@ if show_parameters == 1
         FSL_rotations_z = rotz*180/pi;
         
         %-----------------
-        % AFNI
+        % AFNI Fourier
         %-----------------
         
-        fid = fopen([basepath_AFNI '/AFNI_motion_parameters_subject' num2str(s) '_random_motion' noise_level '.1D']);
+        fid = fopen([basepath_AFNI '/AFNI_motion_parameters_subject' num2str(s) '_random_motion' noise_level '_Fourier.1D']);
         text = textscan(fid,'%f%f%f%f%f%f');
         fclose(fid);
         
@@ -437,10 +539,10 @@ if show_errors == 1
     for s = 1:N
         
         %-----------------
-        % SPM
+        % SPM Spline
         %-----------------
                 
-        fid = fopen([basepath_SPM '/rp_cambridge_rest_subject_' num2str(s) '_with_random_motion' noise_level '.txt']);
+        fid = fopen([basepath_SPM '/rp_cambridge_rest_subject_' num2str(s) '_with_random_motion' noise_level '_spline.txt']);
         text = textscan(fid,'%f%f%f%f%f%f');
         fclose(fid);
         
@@ -487,10 +589,10 @@ if show_errors == 1
         FSL_rotations_z = rotz*180/pi;
         
         %-----------------
-        % AFNI
+        % AFNI Fourier
         %-----------------
         
-        fid = fopen([basepath_AFNI '/AFNI_motion_parameters_subject' num2str(s) '_random_motion' noise_level '.1D']);
+        fid = fopen([basepath_AFNI '/AFNI_motion_parameters_subject' num2str(s) '_random_motion' noise_level '_Fourier.1D']);
         text = textscan(fid,'%f%f%f%f%f%f');
         fclose(fid);
         

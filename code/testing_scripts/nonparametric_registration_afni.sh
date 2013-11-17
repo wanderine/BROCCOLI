@@ -8,6 +8,9 @@ MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/
 results_directory=/data/andek/BROCCOLI_test_data/AFNI/temp
 
+#interpolation=1 # Linear
+interpolation=2 # sinc
+
 subject=1
 
 # Unifize intensity of MNI template
@@ -30,19 +33,30 @@ do
 		# Unifize intensity		
 		3dUnifize -GM -prefix anat_unifized.nii -input ${dir}/anat/mprage_skullstripped.nii.gz		
 
-		# Parametric registration
+		# Parametric registration, linear interpolation by default for optimization, cubic interpolation for final transformation
 		3dAllineate -prefix anat_affine.nii -base ${UNIFIZED_MNI_TEMPLATE} -source anat_unifized.nii -source_automask -twopass -cost lpa -1Dmatrix_save ${results_directory}/anat_affine_subject${subject}.1D -autoweight -fineblur 3 -cmass 
 		
 		# Non-parametric registration				
 		3dQwarp -duplo -useweight -nodset -blur 0 3 -prefix ${results_directory}/AFNI_warped_subject${subject}.nii -source anat_affine.nii -base ${UNIFIZED_MNI_TEMPLATE}    		
 
-		# Apply found transformations to original volume (without unifized intensity) using linear interpolation
-		3dNwarpApply -interp linear -nwarp ${results_directory}/AFNI_warped_subject${subject}_WARP.nii -affter ${results_directory}/anat_affine_subject${subject}.1D -source ${dir}/anat/mprage_skullstripped.nii.gz -master ${MNI_TEMPLATE} -prefix ${results_directory}/AFNI_warped_subject${subject}.nii 
-	
+		# Linear
+		if [ "$interpolation" -eq "1" ]
+		then
+
+			# Apply found transformations to original volume (without unifized intensity) using linear interpolation
+			3dNwarpApply -interp linear -nwarp ${results_directory}/AFNI_warped_subject${subject}_WARP.nii -affter ${results_directory}/anat_affine_subject${subject}.1D -source ${dir}/anat/mprage_skullstripped.nii.gz -master ${MNI_TEMPLATE} -prefix ${results_directory}/AFNI_warped_subject${subject}.nii 
+
+		elif [ "$interpolation" -eq "2" ]
+		then
+
+			# Apply found transformations to original volume (without unifized intensity) using sinc interpolation
+			3dNwarpApply -nwarp ${results_directory}/AFNI_warped_subject${subject}_WARP.nii -affter ${results_directory}/anat_affine_subject${subject}.1D -source ${dir}/anat/mprage_skullstripped.nii.gz -master ${MNI_TEMPLATE} -prefix ${results_directory}/AFNI_warped_subject${subject}_sinc.nii 	
+
+		fi
+
 		date2=$(date +"%s")
 		diff=$(($date2-$date1))
 		echo "$(($diff))" >> afni_normalization_times.txt
-		#echo "$(($diff / 60)) minutes and $(($diff % 60)) seconds elapsed." | 2>> afni_normalization_times.txt
 
 		subject=$((subject + 1))	
 	fi

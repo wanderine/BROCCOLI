@@ -18,7 +18,7 @@ try
     system(['rm' ' batch_preprocessing.mat']);
 end
    
-voxel_size = 2;
+voxel_size = 1;
 dirs = dir(data_path);
 
 N = 198;    % Number of subjects
@@ -80,7 +80,7 @@ for s = 1:N
     pjobs{3}.spatial{1}.preproc.opts.warpco = 25;
     pjobs{3}.spatial{1}.preproc.opts.biasreg = 0.0001;
     pjobs{3}.spatial{1}.preproc.opts.biasfwhm = 60;
-    pjobs{3}.spatial{1}.preproc.opts.samp = 3;
+    pjobs{3}.spatial{1}.preproc.opts.samp = 1;
     pjobs{3}.spatial{1}.preproc.opts.msk = {''};
 
 

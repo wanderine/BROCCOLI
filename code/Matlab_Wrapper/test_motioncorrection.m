@@ -35,8 +35,8 @@ if ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
     basepath = 'D:\BROCCOLI_test_data\';
-    mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
-    %mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+    %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+    mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     
     opencl_platform = 0;
     opencl_device = 1;
@@ -58,13 +58,13 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-noise_level = 0.02; % 0.01, 0.02        % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
+noise_level = 0.0; % 0.01, 0.02        % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
 save_test_dataset = 0;                  % Save testing data as a nifti file or not
 save_motion_corrected_data = 0;         % Save motion corrected data as a Matlab file or not
 plot_results = 0;                       % Plot true and estimated motion parameters or not
 save_estimated_motion_parameters = 0;   % Save estimated motion parameters as a Matlab file or not
 save_true_motion_parameters = 0;        % Save true motion parameters as a Matlab file or not
-add_shading = 0;                        % Add shading to each fMRI volume or not
+add_shading = 1;                        % Add shading to each fMRI volume or not
 run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comparison to OpenCL algorithm
 
 motion_correction_times = zeros(198,1);
@@ -178,8 +178,8 @@ for s = 1:1
         altered_volume(isnan(altered_volume)) = 0;        
         
         if add_shading == 1
-            % Shading in x direction, 1% of maximum intensity
-            shade = repmat(linspace(1,0.01*max(fMRI_volumes(:)),sx),sy,1);
+            % Shading in x direction, 25% of maximum intensity
+            shade = repmat(linspace(1,0.25*max(fMRI_volumes(:)),sx),sy,1);
             for z = 1:sz
                 altered_volume(:,:,z) =  altered_volume(:,:,z) + shade;
             end
@@ -199,12 +199,20 @@ for s = 1:1
         new_file.hdr.dime.bitpix = 16;
         new_file.img = single(generated_fMRI_volumes);    
         
-        if noise_level == 0
-            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
-        elseif noise_level == 0.01
-            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
-        elseif noise_level == 0.02
-            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_2percent_noise.nii'];
+        if add_shading == 1
+           
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_shading.nii'];
+            
+        else
+        
+            if noise_level == 0
+                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
+            elseif noise_level == 0.01
+                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
+            elseif noise_level == 0.02
+                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_2percent_noise.nii'];
+            end
+            
         end
             
         save_nii(new_file,filename);
@@ -231,12 +239,21 @@ for s = 1:1
         
     % Save motion corrected data as Matlab file
     if save_motion_corrected_data == 1        
-        if noise_level == 0
-            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.mat'];
-        elseif noise_level == 0.01
-            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-        elseif noise_level == 0.02
-            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+        
+        if add_shading == 1
+        
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_shading.mat'];
+            
+        else
+        
+            if noise_level == 0
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.mat'];
+            elseif noise_level == 0.01
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+            elseif noise_level == 0.02
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+            end
+        
         end
         
         save(filename,'motion_corrected_volumes_opencl');
@@ -244,12 +261,21 @@ for s = 1:1
     
     % Save estimated motion parameters as Matlab file
     if save_estimated_motion_parameters == 1    
-        if noise_level == 0
-            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-        elseif noise_level == 0.01
-            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-        elseif noise_level == 0.02
-            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+        
+        if add_shading == 1
+        
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_shading.mat'];
+            
+        else
+            
+            if noise_level == 0
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+            elseif noise_level == 0.01
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+            elseif noise_level == 0.02
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+            end
+            
         end
         
         save(filename,'motion_parameters_opencl');
@@ -257,12 +283,21 @@ for s = 1:1
     
     % Save true motion parameters as Matlab file
     if save_true_motion_parameters == 1        
-        if noise_level == 0
-            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-        elseif noise_level == 0.01
-            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-        elseif noise_level == 0.02
-            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+        
+        if add_shading == 1
+            
+            filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_shading.mat'];
+            
+        else
+            
+            if noise_level == 0
+                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
+            elseif noise_level == 0.01
+                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
+            elseif noise_level == 0.02
+                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/true_motion_parameters_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
+            end
+            
         end
         
         save(filename,'x_translations','y_translations','z_translations','x_rotations','y_rotations','z_rotations');

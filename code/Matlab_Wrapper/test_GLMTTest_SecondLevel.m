@@ -133,12 +133,12 @@ for x = 1:sx
         for z = 1:sz
             if MNI_brain_mask(y,x,z) == 1
                 
-                % Calculate beta values, using whitened data and the whitened voxel-specific models
+                % Calculate beta values
                 data = squeeze(first_level_results(y,x,z,:));
                 beta = xtxxt_GLM * data;
                 betas_cpu(y,x,z,:) = beta;
                 
-                % Calculate t-values and residuals, using original data and the original model
+                % Calculate t-values and residuals
                 residuals = data - X_GLM*beta;
                 residuals_cpu(y,x,z,:) = residuals;
                 residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - 1);

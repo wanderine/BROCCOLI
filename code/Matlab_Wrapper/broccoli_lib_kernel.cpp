@@ -8396,6 +8396,8 @@ float CalculateContrastValue(__private float* beta, __constant float* c_Contrast
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
 
+			break;
+
 		case 11:
 
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];

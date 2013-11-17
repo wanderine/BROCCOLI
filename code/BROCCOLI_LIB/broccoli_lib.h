@@ -367,6 +367,10 @@ class BROCCOLI_LIB
 		void PerformGLMFTestFirstLevelWrapper();
 		void PerformGLMTTestSecondLevelWrapper();
 		void PerformGLMFTestSecondLevelWrapper();
+		void PerformGLMTTestFirstLevelPermutationWrapper();
+		void PerformGLMFTestFirstLevelPermutationWrapper();
+		void PerformGLMTTestSecondLevelPermutationWrapper();
+		void PerformGLMFTestSecondLevelPermutationWrapper();
 		void PerformBayesianFirstLevelWrapper();
 		void PerformFirstLevelAnalysisWrapper();
 		void PerformFirstLevelAnalysisBayesianWrapper();
