@@ -29,7 +29,7 @@ The code has previously been used in this publication
 
 Eklund, A., Andersson, M., Josephson, C., Johannesson, M., Knutsson, H., Does Parametric fMRI Analysis with SPM Yield Valid Results? - An Empirical Study of 1484 Rest Datasets, NeuroImage, 61, 565-578, 2012, http://dx.doi.org/10.1016/j.neuroimage.2012.03.093
 
-This paper presents an overview of GPUs in Medical Imaging
+This paper presents an overview of GPUs in medical imaging
 
 Eklund, A., Dufort, P., Forsberg, D., and LaConte, S., Medical image processing on the GPU - Past, present and future, Medical Image Analysis, 17, 1073–1094, 2013, http://dx.doi.org/10.1016/j.media.2013.05.008
 
