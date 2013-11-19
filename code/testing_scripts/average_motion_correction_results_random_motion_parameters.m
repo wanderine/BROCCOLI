@@ -321,7 +321,6 @@ SPM_Spline_std = std(errors_SPM_Spline)
 FSL_std = std(errors_FSL)
 AFNI_Linear_std = std(errors_AFNI_Linear)
 AFNI_Fourier_std = std(errors_AFNI_Fourier)
-
 BROCCOLI_std = std(errors_BROCCOLI)
 
 % Plot estimated parameters for SPM, FSL, AFNI och BROCCOLI
@@ -345,11 +344,12 @@ if show_parameters == 1
         rotx = text{4};
         roty = text{5};
         rotz = text{6};
-                
+        
+		% Transform coordinates to BROCCOLI space and compare to true
+        % parameters        
         SPM_translations_x = -transy/voxel_size;
         SPM_translations_y = -transx/voxel_size;
-        SPM_translations_z = -transz/voxel_size;
-                
+        SPM_translations_z = -transz/voxel_size;                
         SPM_rotations_x = roty*180/pi;
         SPM_rotations_y = -rotx*180/pi;
         SPM_rotations_z = -rotz*180/pi;
@@ -553,11 +553,12 @@ if show_errors == 1
         rotx = text{4};
         roty = text{5};
         rotz = text{6};
-                
+        
+		% Transform coordinates to BROCCOLI space and compare to true
+        % parameters        
         SPM_translations_x = -transy/voxel_size;
         SPM_translations_y = -transx/voxel_size;
-        SPM_translations_z = -transz/voxel_size;
-                
+        SPM_translations_z = -transz/voxel_size;                
         SPM_rotations_x = roty*180/pi;
         SPM_rotations_y = -rotx*180/pi;
         SPM_rotations_z = -rotz*180/pi;               

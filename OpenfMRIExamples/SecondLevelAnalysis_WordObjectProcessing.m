@@ -43,8 +43,7 @@ elseif isunix
     mex ../code/Matlab_Wrapper/SecondLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
 end
 
-% Temporary solution until its possible to download all the preprocessed
-% data
+% Temporary solution until its possible to download all the preprocessed data from the OpenfMRI homepage
 study = 'RhymeJudgment/ds003_models';
 number_of_subjects = 49;
 
@@ -54,10 +53,10 @@ voxel_size = 2;
 % Statistical settings
 %--------------------------------------------------------------------------------------
 
-nr = 9;
+number_of_regressors = 9;
 number_of_permutations = 1000;
 inference_mode = 0; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
-cluster_defining_threshold = 2;
+cluster_defining_threshold = 2; % threshold to be applied before clustering
 statistical_test = 0; % 0 = t-test, 1 = F-test
 
 %--------------------------------------------------------------------------------------
@@ -86,7 +85,7 @@ for subject = 1:13
     first_level_results(:,:,:,subject) = beta_volume;
 end
 
-% Temporary solution until its possible to download all the preprocessed data
+% Temporary solution until its possible to download all the preprocessed data from the OpenfMRI homepage
 first_level_results(:,:,:,14:26) = first_level_results(:,:,:,1:13);
 first_level_results(:,:,:,27:39) = first_level_results(:,:,:,1:13);
 first_level_results(:,:,:,40:49) = first_level_results(:,:,:,1:10);
@@ -95,160 +94,24 @@ first_level_results(:,:,:,40:49) = first_level_results(:,:,:,1:10);
 % Create GLM regressors
 %--------------------------------------------------------------------------------------
 
-
-X_GLM = zeros(number_of_subjects,nr);
+X_GLM = zeros(number_of_subjects,number_of_regressors);
 
 for subject = 1:number_of_subjects
     X_GLM(subject,1) = subject;
     
-    for r = 2:nr
+    for r = 2:number_of_regressors
         X_GLM(subject,r) = randn;
     end
     
 end
 
-
-%for subject = 1:6
-%   X_GLM(subject,1) = 1;
-%end
-%for subject = 7:13
-%   X_GLM(subject,1) = -1;
-%end
-
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
-
-
-
 
 %--------------------------------------------------------------------------------------
 % Setup contrasts
 %--------------------------------------------------------------------------------------
 
-if nr == 1
-    
-    contrasts = [1];
-    %contrasts = [1; -1; 3; 8; 99];
-    
-elseif nr == 2
-    
-    contrasts = [1 0];
-    
-    %contrasts = [1 0;
-    %             0 1];
-    
-    
-elseif nr == 3
-    
-    contrasts = [1 0 0];
-    
-elseif nr == 4
-    
-    contrasts = [1 0 0 0];
-    
-elseif nr == 5
-    
-    contrasts = [1 0 0 0 0];
-    
-elseif nr == 6
-    
-    contrasts = [1 0 0 0 0 0];
-    
-elseif nr == 7
-    
-    contrasts = [1 0 0 0 0 0 0];
-    
-elseif nr == 8
-    
-    contrasts = [1 0 0 0 0 0 0 0];
-    
-elseif nr == 9
-    
-    contrasts = [1 0 0 0 0 0 0 0 0];
-    
-elseif nr == 10
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0];
-    
-    %contrasts = [1 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0];
-    
-elseif nr == 11
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 12
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 13
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 14
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 15
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 16
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 17
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 18
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 19
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 20
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-    
-elseif nr == 21
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 22
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 23
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 24
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-elseif nr == 25
-    
-    %contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 ;
-    %             0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
-    
-    contrasts = [1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0] ;
-    
-end
+contrasts = [1 zeros(1,number_of_regressors-1)];
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
@@ -257,26 +120,21 @@ end
 
 
 %--------------------------------------------------------------------------------------
+% Generate permutation matrix
+%--------------------------------------------------------------------------------------
+
+permutation_matrix = zeros(number_of_permutations,number_of_subjects);
+values = 1:number_of_subjects;
+for p = 1:number_of_permutations
+    permutation = randperm(number_of_subjects);
+    permutation_matrix(p,:) = values(permutation);
+end
+
+permutation_matrix = permutation_matrix - 1;
+
+%--------------------------------------------------------------------------------------
 % Run second level analysis
 %--------------------------------------------------------------------------------------
-%fid = fopen([basepath 'RhymeJudgment/permtest__perm_tstat1.txt']);
-%text = textscan(fid,'%f%f%f%f%f%f%f%f%f%f%f%f%f');
-%fclose(fid);
-permutation_matrix = zeros(10000,13);
-%permutation_matrix(:,1) = text{1};
-%permutation_matrix(:,2) = text{2};
-%permutation_matrix(:,3) = text{3};
-%permutation_matrix(:,4) = text{4};
-%permutation_matrix(:,5) = text{5};
-%permutation_matrix(:,6) = text{6};
-%permutation_matrix(:,7) = text{7};
-%permutation_matrix(:,8) = text{8};
-%permutation_matrix(:,9) = text{9};
-%permutation_matrix(:,10) = text{10};
-%permutation_matrix(:,11) = text{11};
-%permutation_matrix(:,12) = text{12};
-%permutation_matrix(:,13) = text{13};
-%permutation_matrix = permutation_matrix - 1;
 
 tic
 [beta_volumes, residuals, residual_variances, statistical_maps, design_matrix1, design_matrix2, cluster_indices, null_distribution, permuted_first_level_results] = ...
@@ -330,32 +188,8 @@ threshold = s(round(0.95*number_of_permutations))
 
 figure
 hist(null_distribution,50)
-%hist(null_distribution,5:0.75:25)
-%N_BROCCOLI = hist(null_distribution,5:0.75:25);
-
-% fid = fopen([basepath 'RhymeJudgment/permtest__vox_corrp_tstat1.txt']);
-% text = textscan(fid,'%f');
-% fclose(fid);
-% FSL_permutation_values = text{1};
-% N_FSL = hist(FSL_permutation_values,5:0.75:25);
-%
-% figure
-% plot(5:0.75:25,N_BROCCOLI/sum(N_BROCCOLI),'b')
-% hold on
-% plot(5:0.75:25,N_FSL/sum(N_FSL),'g')
-% hold off
-%
-% legend('BROCCOLI null distribution','FSL null distribution')
-%
-% xlabel('Maximum t-value','FontSize',15)
-% ylabel('Probability','FontSize',15)
-%
-% set(gca,'FontSize',15)
-
-%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/permutation_distributions.png
-
-
-%close all
+xlabel('Maximum t-value','FontSize',15)
+ylabel('Probability','FontSize',15)
 
 if (inference_mode == 1)
     

@@ -57,6 +57,7 @@ end
 
 voxel_size = 2;
 beta_space = 0; % 0 = EPI, 1 = MNI
+save_as_nifti = 0; % Save statistical map as nifti file or not
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
@@ -174,8 +175,6 @@ end
     
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
-%X_GLM(100,1) = 1;
-
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 %--------------------------------------------------------------------------------------
@@ -212,21 +211,6 @@ contrasts = [1  0;
              1  0;
              1  0;
              1  0];
-
-% contrasts = [1  0; 
-%              0  1; 
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1  1;
-%              1 -1]; 
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
@@ -369,6 +353,9 @@ imagesc(design_matrix1); colormap gray
 title('Design matrix')
 
 %figure
+%imagesc(ar1_estimates(:,:,30)); colorbar
+
+%figure
 %imagesc(ar2_estimates(:,:,30)); colorbar
  
 %figure
@@ -377,37 +364,39 @@ title('Design matrix')
 %figure
 %imagesc(ar4_estimates(:,:,30)); colorbar
 
+if save_as_nifti == 1
 
-%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/firstlevelmaps.png
+	% Flip upside down
+	for slice = 1:33
+	   statistical_maps_flipped(:,:,slice) = flipud(statistical_maps(:,:,slice,1));
+	end
 
-for slice = 1:33
-   statistical_maps_flipped(:,:,slice) = flipud(statistical_maps(:,:,slice,1));
-end
+	a = statistical_maps(:,:,:,1);
 
-a = statistical_maps(:,:,:,1);
+	new_file.hdr = EPI_nii.hdr;
+	new_file.hdr.dime.dim = [3 64 64 33 1 1 1 1];
+	new_file.hdr.dime.vox_offset = 352;
+	new_file.hdr.scl_slope = 1;
+	new_file.hdr.dime.cal_max = max(a(:));
+	new_file.hdr.dime.cal_min = min(a(:));
+	new_file.hdr.dime.gl_max = max(a(:));
+	new_file.hdr.dime.gl_min = min(a(:));
+	new_file.hdr.dime.datatype = 16;
+	new_file.hdr.dime.bitpix = 32;
 
-new_file.hdr = EPI_nii.hdr;
-new_file.hdr.dime.dim = [3 64 64 33 1 1 1 1];
-new_file.hdr.dime.vox_offset = 352;
-new_file.hdr.scl_slope = 1;
-new_file.hdr.dime.cal_max = max(a(:));
-new_file.hdr.dime.cal_min = min(a(:));
-new_file.hdr.dime.gl_max = max(a(:));
-new_file.hdr.dime.gl_min = min(a(:));
-new_file.hdr.dime.datatype = 16;
-new_file.hdr.dime.bitpix = 32;
+	new_file.original.hdr.dime.dim = [3 64 64 33 1 1 1 1];
+	new_file.original.hdr.dime.vox_offset = 352;
+	new_file.original.hdr.scl_slope = 1;
+	new_file.original.hdr.dime.cal_max = max(a(:));
+	new_file.original.hdr.dime.cal_min = min(a(:));
+	new_file.original.hdr.dime.gl_max = max(a(:));
+	new_file.original.hdr.dime.gl_min = min(a(:));
+	new_file.original.hdr.dime.datatype = 16;
+	new_file.original.hdr.dime.bitpix = 32;
 
-new_file.original.hdr.dime.dim = [3 64 64 33 1 1 1 1];
-new_file.original.hdr.dime.vox_offset = 352;
-new_file.original.hdr.scl_slope = 1;
-new_file.original.hdr.dime.cal_max = max(a(:));
-new_file.original.hdr.dime.cal_min = min(a(:));
-new_file.original.hdr.dime.gl_max = max(a(:));
-new_file.original.hdr.dime.gl_min = min(a(:));
-new_file.original.hdr.dime.datatype = 16;
-new_file.original.hdr.dime.bitpix = 32;
+	new_file.img = single(statistical_maps_flipped);    
+	filename = ['BROCCOLI_statistical_map.nii'];
+	save_nii(new_file,filename);
+end
 
-new_file.img = single(statistical_maps_flipped);    
-filename = ['BROCCOLI_statistical_map_whitening_.nii'];
-save_nii(new_file,filename);
 
