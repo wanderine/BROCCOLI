@@ -29,7 +29,7 @@ Eklund, A., Andersson, M., Josephson, C., Johannesson, M., Knutsson, H., Does Pa
 
 This paper presents an overview of GPUs in medical imaging
 
-Eklund, A., Dufort, P., Forsberg, D., and LaConte, S., Medical image processing on the GPU - Past, present and future, Medical Image Analysis, 17, 1073–1094, 2013, http://dx.doi.org/10.1016/j.media.2013.05.008
+Eklund, A., Dufort, P., Forsberg, D., LaConte, S., Medical image processing on the GPU - Past, present and future, Medical Image Analysis, 17, 1073-1094, 2013, http://dx.doi.org/10.1016/j.media.2013.05.008
 
 --------------------------------------------------------------------
 
