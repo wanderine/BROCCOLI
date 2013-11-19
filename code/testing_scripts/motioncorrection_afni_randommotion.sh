@@ -2,17 +2,16 @@
 
 clear
 
-data_directory=/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion
-results_directory=/data/andek/BROCCOLI_test_data/AFNI/motion_correction
+data_directory=/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion_blurry
+results_directory=/data/andek/BROCCOLI_test_data/AFNI/motion_correction_blurry
 
 date1=$(date +"%s")
 
 #interpolation=1 # Linear
 interpolation=2 # Fourier
 
-
 #for subject in {1..198}
-for subject in {1..2}
+for subject in {1..10}
 do
 
 	echo $subject
@@ -21,7 +20,7 @@ do
 	if [ "$interpolation" -eq "1" ]
 	then
 
-		{ time 3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii ;} 2>> afni_motion_correction_times.txt
+		#{ time 3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii ;} 2>> afni_motion_correction_times.txt
 
 		3dvolreg -float -linear -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii
 
@@ -33,13 +32,13 @@ do
 	elif [ "$interpolation" -eq "2" ]
     then
 
-		#{ time 3dvolreg -float -Fourier -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii ;} 2>> afni_motion_correction_times_Fourier.txt
+		#{ time 3dvolreg -float -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii ;} 2>> afni_motion_correction_times_Fourier.txt
 
-		#3dvolreg -float -Fourier -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii
+		3dvolreg -float -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii
 
-		#3dvolreg -float -Fourier -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_2percent_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_2percent_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_2percent_noise.nii
+		#3dvolreg -float -maxite 50 -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_2percent_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_2percent_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_2percent_noise.nii
 
-		#3dvolreg -float -Fourier -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_shading_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_shading_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_shading.nii
+		#3dvolreg -float -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_shading_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_shading_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_shading.nii
 
 	fi
 

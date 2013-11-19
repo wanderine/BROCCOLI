@@ -14,8 +14,8 @@ elseif isunix
 end
 
 %noise_level = '_no_noise';
-noise_level = '_2percent_noise';
-%noise_level = '_shading';
+%noise_level = '_2percent_noise';
+noise_level = '_shading';
 
 %interpolation = 1; % Linear interpolation
 interpolation = 2; % B-spline interpolation

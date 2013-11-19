@@ -30,7 +30,7 @@ N = 198;
 
 voxel_size = 3;
 
-show_parameters = 0;       % Show the estimated parameters as plots or not, for SPM, FSL, AFNI and BROCCOLI
+show_parameters = 1;       % Show the estimated parameters as plots or not, for SPM, FSL, AFNI and BROCCOLI
 show_errors = 0;           % Show the motion errors or not, for SPM, FSL, AFNI and BROCCOLI
 
 %-----------------------------------------------------------------

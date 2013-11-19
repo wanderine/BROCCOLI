@@ -25,7 +25,7 @@ end
 
 N = 198;    % Number of subjects
 
-calculate_std = 1;  % Calculate voxel-wise standard deviation or not
+calculate_std = 0;  % Calculate voxel-wise standard deviation or not
 
 % Load MNI brain template
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_1mm_brain.nii']);
@@ -33,9 +33,8 @@ MNI = double(MNI_nii.img);
 MNI = MNI/max(MNI(:));
 MNI_ = MNI/max(MNI(:)) * 256;
 
-% Load MNI brain mask (dilated to also count ventricles and results
-% slightly outside the brain)
-MNI_mask_nii = load_nii(['../../brain_templates/MNI152_T1_1mm_brain_mask_dil.nii']);
+% Load MNI brain mask
+MNI_mask_nii = load_nii(['../../brain_templates/MNI152_T1_1mm_brain_mask.nii']);
 MNI_mask = double(MNI_mask_nii.img);
 
 MNI_masked = MNI(MNI_mask == 1);
@@ -363,19 +362,19 @@ std(mutual_information_AFNI_Sinc)
 std(mutual_information_BROCCOLI)
 
 % Calculate mean and standard deviation of ssd
-mean(ssd_SPM_Normalize/100000)
-mean(ssd_SPM_Segment/100000)
-mean(ssd_FSL/100000)
-mean(ssd_AFNI_Linear/100000)
-mean(ssd_AFNI_Sinc/100000)
-mean(ssd_BROCCOLI/100000)
+mean(ssd_SPM_Normalize/300000)
+mean(ssd_SPM_Segment/300000)
+mean(ssd_FSL/300000)
+mean(ssd_AFNI_Linear/300000)
+mean(ssd_AFNI_Sinc/300000)
+mean(ssd_BROCCOLI/300000)
 
-std(ssd_SPM_Normalize/100000)
-std(ssd_SPM_Segment/100000)
-std(ssd_FSL/100000)
-std(ssd_AFNI_Linear/100000)
-std(ssd_AFNI_Sinc/100000)
-std(ssd_BROCCOLI/100000)
+std(ssd_SPM_Normalize/300000)
+std(ssd_SPM_Segment/300000)
+std(ssd_FSL/300000)
+std(ssd_AFNI_Linear/300000)
+std(ssd_AFNI_Sinc/300000)
+std(ssd_BROCCOLI/300000)
 
 
 

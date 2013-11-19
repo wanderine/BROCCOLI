@@ -58,19 +58,20 @@ study = 'Cambridge';
 %study = 'OpenfMRI';
 %substudy = 'Mixed';
 
-noise_level = 0.0; % 0.01, 0.02        % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
+noise_level = 0.0; % 0.01, 0.02         % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
 save_test_dataset = 0;                  % Save testing data as a nifti file or not
-save_motion_corrected_data = 0;         % Save motion corrected data as a Matlab file or not
+save_motion_corrected_data_Matlab = 0;  % Save motion corrected data as a Matlab file or not
+save_motion_corrected_data_Nifti = 1;   % Save motion corrected data as a Nifti file or not
 plot_results = 0;                       % Plot true and estimated motion parameters or not
 save_estimated_motion_parameters = 0;   % Save estimated motion parameters as a Matlab file or not
 save_true_motion_parameters = 0;        % Save true motion parameters as a Matlab file or not
-add_shading = 1;                        % Add shading to each fMRI volume or not
+add_shading = 0;                        % Add shading to each fMRI volume or not
 run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comparison to OpenCL algorithm
 
 motion_correction_times = zeros(198,1);
 
 % Loop over subjects
-for s = 1:1
+for s = 1:10
     
     s
     
@@ -238,7 +239,7 @@ for s = 1:1
     motion_correction_times(s) = etime(clock,start);
         
     % Save motion corrected data as Matlab file
-    if save_motion_corrected_data == 1        
+    if save_motion_corrected_data_Matlab == 1        
         
         if add_shading == 1
         
@@ -256,7 +257,34 @@ for s = 1:1
         
         end
         
+        motion_corrected_volumes_opencl = single(motion_corrected_volumes_opencl);
         save(filename,'motion_corrected_volumes_opencl');
+    end
+    
+    % Save motion corrected data as nifti file
+    if save_motion_corrected_data_Nifti == 1
+        new_file.hdr = EPI_nii.hdr;
+        new_file.hdr.dime.datatype = 16;
+        new_file.hdr.dime.bitpix = 16;
+        new_file.img = single(motion_corrected_volumes_opencl);    
+        
+        if add_shading == 1
+           
+            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_shading.nii'];
+            
+        else
+        
+            if noise_level == 0
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.nii'];
+            elseif noise_level == 0.01
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.nii'];
+            elseif noise_level == 0.02
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_2percent_noise.nii'];
+            end
+            
+        end
+            
+        save_nii(new_file,filename);
     end
     
     % Save estimated motion parameters as Matlab file
