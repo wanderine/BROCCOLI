@@ -18,10 +18,9 @@ tic
 
 processing_times = zeros(13,1);
 
-voxel_size = 1;
+voxel_size = 2; % 1 or 2
   
-% Subject 11 has something strange in timepoint 157 that causes SPM to stop
-for subject = [1 2 3 4 5 6 7 8 9 10 12 13]
+for subject = [1 2 3 4 5 6 7 8 9 10 11 12 13]
     
     if subject == 1
         subjectstring = '01';
@@ -58,15 +57,14 @@ for subject = [1 2 3 4 5 6 7 8 9 10 12 13]
         data_path = ['D:\OpenfMRI\RhymeJudgment\ds003\sub0' subjectstring '\'];
         results_directory = '/data/andek/BROCCOLI_test_data/SPM/';
     elseif isunix
-        addpath('/data/andek/spm8/')
-        
+        addpath('/data/andek/spm8/')        
     end
     
     %% Initialise SPM defaults
     %--------------------------------------------------------------------------
     spm('Defaults','fMRI');
     
-    spm_jobman('initcfg'); % SPM8 only
+    spm_jobman('initcfg'); 
     
     %% WORKING DIRECTORY (useful for .ps only)
     %--------------------------------------------------------------------------
@@ -275,14 +273,12 @@ for subject = [1 2 3 4 5 6 7 8 9 10 12 13]
     jobs{5}.spatial{1}.coreg{1}.estimate.ref = {[filename ',1']};
     filename = [data_path 'anatomy/rmprage_defaced.nii'];
     jobs{5}.spatial{1}.coreg{1}.estimate.source = {[filename ',1']};
-    
-    
+        
     %% SEGMENT
     %--------------------------------------------------------------------------
     
     filename = [data_path 'anatomy/rmprage_defaced.nii'];
-    jobs{6}.spatial{1}.preproc.data = {[filename ',1']};
-    
+    jobs{6}.spatial{1}.preproc.data = {[filename ',1']};    
     
     %% NORMALIZE (using transformation from segment)
     %--------------------------------------------------------------------------
@@ -556,12 +552,8 @@ for subject = [1 2 3 4 5 6 7 8 9 10 12 13]
     spm_jobman('run',jobs);
     
     processing_times(subject) = etime(clock,start);
-    
-    
+        
 end
 toc
 
-% The processing time for subject 11 = the mean of the other subjects
-processing_times(11) = mean(processing_times([1 2 3 4 5 6 7 8 9 10 12 13]));
-total_processing_time = sum(processing_times)
 

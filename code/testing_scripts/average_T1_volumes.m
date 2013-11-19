@@ -27,6 +27,12 @@ N = 198;    % Number of subjects
 
 calculate_std = 0;  % Calculate voxel-wise standard deviation or not
 
+show_SPM_Normalize = 0;
+show_SPM_Segment = 0;
+show_FSL = 0;
+show_AFNI = 0;
+show_BROCCOLI = 1;
+
 % Load MNI brain template
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_1mm_brain.nii']);
 MNI = double(MNI_nii.img);
@@ -51,11 +57,18 @@ ssd_SPM_Normalize = zeros(N,1);
 mean_T1_volume_SPM_Normalize = zeros(182,218,182);
 
 % Loop over subjects
+disp('SPM Normalize')
 for s = 1:N
     s
     T1 = load_nii([basepath_SPM_Normalize '/SPM_warped_subject_'  num2str(s) '.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
+    if show_SPM_Normalize == 1
+        figure(1)
+        imagesc(T1(:,:,85)); colormap gray; pause(0.5); title(['SPM Normalize ' num2str(s)] )
+        figure(2)    
+        imagesc(flipud(squeeze(T1(85,:,:))')); colormap gray; pause(0.2); title(['SPM Normalize ' num2str(s)])
+    end
     mean_T1_volume_SPM_Normalize = mean_T1_volume_SPM_Normalize + T1; 
     T1_masked = T1(MNI_mask == 1);    
     % Calculate NCC, SSD and mutual information
@@ -89,11 +102,18 @@ ssd_SPM_Segment = zeros(N,1);
 mean_T1_volume_SPM_Segment = zeros(182,218,182);
 
 % Loop over subjects
+disp('SPM Segment')
 for s = 1:N
     s
     T1 = load_nii([basepath_SPM_Segment '/SPM_warped_subject_'  num2str(s) '.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
+    if show_SPM_Segment == 1
+        figure(1)
+        imagesc(T1(:,:,85)); colormap gray; pause(0.5); title(['SPM Segment ' num2str(s)] )
+        figure(2)    
+        imagesc(flipud(squeeze(T1(85,:,:))')); colormap gray; pause(0.2); title(['SPM Segment ' num2str(s)])
+    end   
     mean_T1_volume_SPM_Segment = mean_T1_volume_SPM_Segment + T1; 
     T1_masked = T1(MNI_mask == 1);    
     % Calculate NCC, SSD and mutual information
@@ -128,11 +148,18 @@ ssd_FSL = zeros(N,1);
 mean_T1_volume_FSL = zeros(182,218,182);
 
 % Loop over subjects
+disp('FSL')
 for s = 1:N
     s
     T1 = load_nii([basepath_FSL '/FSL_warped_'  num2str(s) '.nii.gz']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
+    if show_FSL == 1
+        figure(1)
+        imagesc(T1(:,:,85)); colormap gray; pause(0.5); title(['FSL ' num2str(s)] )
+        figure(2)    
+        imagesc(flipud(squeeze(T1(85,:,:))')); colormap gray; pause(0.2); title(['FSL ' num2str(s)])
+    end     
     mean_T1_volume_FSL = mean_T1_volume_FSL + T1; 
     T1_masked = T1(MNI_mask == 1);    
     % Calculate NCC, SSD and mutual information
@@ -166,6 +193,7 @@ ssd_AFNI_Linear = zeros(N,1);
 mean_T1_volume_AFNI_Linear = zeros(182,218,182);
 
 % Loop over subjects
+disp('AFNI Linear')
 for s = 1:N
     s
     T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '.nii']);
@@ -205,11 +233,18 @@ ssd_AFNI_Sinc = zeros(N,1);
 mean_T1_volume_AFNI_Sinc = zeros(182,218,182);
 
 % Loop over subjects
+disp('AFNI Sinc')
 for s = 1:N
     s
     T1 = load_nii([basepath_AFNI '/AFNI_warped_subject'  num2str(s) '_sinc.nii']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
+    if show_AFNI == 1
+        figure(1)
+        imagesc(T1(:,:,85)); colormap gray; pause(0.5); title(['AFNI ' num2str(s)] )
+        figure(2)    
+        imagesc(flipud(squeeze(T1(85,:,:))')); colormap gray; pause(0.2); title(['AFNI ' num2str(s)])
+    end     
     mean_T1_volume_AFNI_Sinc = mean_T1_volume_AFNI_Sinc + T1;
     T1_masked = T1(MNI_mask == 1);    
     % Calculate NCC, SSD and mutual information
@@ -245,11 +280,18 @@ ssd_BROCCOLI = zeros(N,1);
 mean_T1_volume_BROCCOLI = zeros(182,218,182);
 
 % Loop over subjects
+disp('BROCCOLI')
 for s = 1:N
     s    
     T1 = load_nii([basepath_BROCCOLI '/BROCCOLI_warped_subject'  num2str(s) '.nii']);
     T1 = double(T1.img);    
     T1 = T1/max(T1(:));
+    if show_BROCCOLI == 1
+        figure(1)
+        imagesc(T1(:,:,85)); colormap gray; pause(0.5); title(['BROCCOLIL ' num2str(s)] )
+        figure(2)    
+        imagesc(flipud(squeeze(T1(85,:,:))')); colormap gray; pause(0.2); title(['BROCCOLI ' num2str(s)])
+    end     
     mean_T1_volume_BROCCOLI = mean_T1_volume_BROCCOLI + T1;  
     T1_masked = T1(MNI_mask == 1);        
     % Calculate NCC, SSD and mutual information

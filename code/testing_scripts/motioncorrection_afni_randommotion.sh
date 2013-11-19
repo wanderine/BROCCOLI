@@ -2,16 +2,15 @@
 
 clear
 
-data_directory=/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion_blurry
-results_directory=/data/andek/BROCCOLI_test_data/AFNI/motion_correction_blurry
+data_directory=/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion
+results_directory=/data/andek/BROCCOLI_test_data/AFNI/motion_correction
 
 date1=$(date +"%s")
 
 #interpolation=1 # Linear
 interpolation=2 # Fourier
 
-#for subject in {1..198}
-for subject in {1..10}
+for subject in {1..198}
 do
 
 	echo $subject

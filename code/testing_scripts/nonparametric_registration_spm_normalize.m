@@ -10,15 +10,14 @@ if ispc
 elseif isunix
     addpath('/data/andek/spm8/')
     data_path = '/data/andek/BROCCOLI_test_data/Cambridge/wSPM/';
-    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/normalize/';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/temp/';
+    results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/normalize/';    
 end
 
 try
     system(['rm' ' batch_preprocessing.mat']);
 end
 
-voxel_size = 2;
+voxel_size = 2; % 1 or 2
 
 dirs = dir(data_path);
 
@@ -28,14 +27,12 @@ normalization_times = zeros(N,1);
 % Loop over subjects
 tic
 for s = 1:N
-    
-    
+        
     %% Initialise SPM defaults
     %--------------------------------------------------------------------------
     spm('Defaults','fMRI');
-    spm_jobman('initcfg'); % useful in SPM8 only
-    
-    
+    spm_jobman('initcfg'); 
+        
     subject = dirs(s+2).name    % Skip . and .. 'folders'
     subject_path = [data_path subject '/anat/'];
     
@@ -44,13 +41,11 @@ for s = 1:N
     clear pjobs
     pjobs{1}.util{1}.cdir.directory = cellstr(subject_path);      
             
-
     %% Normalize settings        
    
     pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.source = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/mprage_skullstripped.nii,1']};    
     pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.wtsrc = '';
     pjobs{2}.spatial{1}.normalise{1}.estwrite.subj.resample = {['/data/andek/BROCCOLI_test_data/Cambridge/wSPM/' subject '/anat/mprage_skullstripped.nii']};    
-    % Use unpacked MNI template
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.template = {['/home/andek/fsl/data/standard/MNI152_T1_' num2str(voxel_size) 'mm_brain_.nii']};
     pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.weight = '';
     %pjobs{2}.spatial{1}.normalise{1}.estwrite.eoptions.smosrc = 8;
@@ -94,8 +89,7 @@ for s = 1:N
         err
         error1 = 1;
     end
-    normalization_times(s) = etime(clock,start);
-    
+    normalization_times(s) = etime(clock,start);    
     
     % Move files to results directory 
     normalized_data = ['wmprage_skullstripped.nii'];

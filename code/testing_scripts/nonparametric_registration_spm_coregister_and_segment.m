@@ -10,15 +10,14 @@ if ispc
 elseif isunix
     addpath('/data/andek/spm8/')
     data_path = '/data/andek/BROCCOLI_test_data/Cambridge/wSPM/';
-    %results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/segment/';
-    results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/temp/';
+   	results_directory = '/data/andek/BROCCOLI_test_data/SPM/normalization/segment/';
 end
 
 try
     system(['rm' ' batch_preprocessing.mat']);
 end
    
-voxel_size = 2;
+voxel_size = 2; % 1 or 2
 dirs = dir(data_path);
 
 N = 198;    % Number of subjects
@@ -27,12 +26,11 @@ normalization_times = zeros(N,1);
 % Loop over subjects
 tic
 for s = 1:N
-    
-    
+        
     %% Initialise SPM defaults
     %--------------------------------------------------------------------------
     spm('Defaults','fMRI');
-    spm_jobman('initcfg'); % useful in SPM8 only
+    spm_jobman('initcfg'); 
         
     subject = dirs(s+2).name    % Skip . and .. 'folders'
     subject_path = [data_path subject '/anat/'];
@@ -42,7 +40,6 @@ for s = 1:N
     clear pjobs
     pjobs{1}.util{1}.cdir.directory = cellstr(subject_path);      
             
-
     %% Coregister settings
     
     pjobs{2}.spatial{1}.coreg{1}.estwrite.ref = {['/home/andek/fsl/data/standard/MNI152_T1_' num2str(voxel_size) 'mm_brain_.nii,1']};
@@ -56,7 +53,6 @@ for s = 1:N
     pjobs{2}.spatial{1}.coreg{1}.estwrite.roptions.wrap = [0 0 0];
     pjobs{2}.spatial{1}.coreg{1}.estwrite.roptions.mask = 0;
     pjobs{2}.spatial{1}.coreg{1}.estwrite.roptions.prefix = 'r';
-
     
     %% Segment settings        
 
@@ -128,7 +124,7 @@ for s = 1:N
     mat2 = 'rmprage_skullstripped_seg_inv_sn.mat';
     c1 = 'c1rmprage_skullstripped.nii';
     c2 = 'c2rmprage_skullstripped.nii';
-    m = ['mrmprage_skullstripped.nii'];
+    m = 'mrmprage_skullstripped.nii';
     
     % Move files to results directory 
     system(['mv ' normalized_data ' ' results_directory new_normalized_data]);
@@ -137,9 +133,9 @@ for s = 1:N
     system(['rm ' coregistered_data]);
     system(['rm ' mat1]);
     system(['rm ' mat2]);
-    system(['rm ' m]);
     system(['rm ' c1]);
     system(['rm ' c2]);
+    system(['rm ' m]);
     system(['rm' ' batch_preprocessing.mat']);
     
     s

@@ -16,8 +16,6 @@ do
 
 	#mcflirt -in ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii -refvol 0  -plots -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion_no_noise.nii
 
-	#mcflirt -in ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_1percent_noise.nii -refvol 0  -plots -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion_1percent_noise.nii
-
 	#mcflirt -in ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_2percent_noise.nii -refvol 0  -plots -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion_2percent_noise.nii
 
 	mcflirt -in ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_shading.nii -refvol 0  -plots -out ${results_directory}/FSL_motion_corrected_subject${subject}_random_motion_shading.nii

@@ -6,7 +6,7 @@ export OMP_NUM_THREADS=1
 MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_1mm_brain.nii.gz
 
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/
-results_directory=/data/andek/BROCCOLI_test_data/AFNI/temp
+results_directory=/data/andek/BROCCOLI_test_data/AFNI/normalization
 
 #interpolation=1 # Linear
 interpolation=2 # sinc
@@ -36,7 +36,7 @@ do
 		# Parametric registration, linear interpolation by default for optimization, cubic interpolation for final transformation
 		3dAllineate -prefix anat_affine.nii -base ${UNIFIZED_MNI_TEMPLATE} -source anat_unifized.nii -source_automask -twopass -cost lpa -1Dmatrix_save ${results_directory}/anat_affine_subject${subject}.1D -autoweight -fineblur 3 -cmass 
 		
-		# Non-parametric registration, uses cubic and Hermite quintic basis functions, impossible to change interpolation?				
+		# Non-parametric registration, uses cubic and Hermite quintic basis functions
 		3dQwarp -duplo -useweight -nodset -blur 0 3 -prefix ${results_directory}/AFNI_warped_subject${subject}.nii -source anat_affine.nii -base ${UNIFIZED_MNI_TEMPLATE}    		
 
 		# Linear

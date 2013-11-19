@@ -2,11 +2,10 @@
 
 clear
 
-
 MNI_TEMPLATE=/home/andek/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz
 
 data_directory=/data/andek/BROCCOLI_test_data/Cambridge/
-results_directory=/data/andek/BROCCOLI_test_data/FSL/temp2
+results_directory=/data/andek/BROCCOLI_test_data/FSL/normalization
 
 subject=1
 
