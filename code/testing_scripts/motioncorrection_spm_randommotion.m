@@ -37,7 +37,7 @@ for s = 1:N
     %% Initialise SPM defaults
     %--------------------------------------------------------------------------
     spm('Defaults','fMRI');
-    spm_jobman('initcfg'); % useful in SPM8 only
+    spm_jobman('initcfg'); 
     
     
     %% WORKING DIRECTORY (useful for .ps only)
@@ -74,16 +74,15 @@ for s = 1:N
     save('batch_preprocessing.mat','pjobs');
         
     error1 = 0;
+    start = clock;
     try        
-        % Run preprocessing
-        start = clock;
-        spm_jobman('run',pjobs);        
-        motion_correction_times(s) = etime(clock,start)
+        % Run preprocessing        
+        spm_jobman('run',pjobs);                
     catch err
         err
         error1 = 1;
     end
-    
+    motion_correction_times(s) = etime(clock,start)
     
     % Move files to results directory 
     

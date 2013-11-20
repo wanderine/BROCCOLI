@@ -157,14 +157,14 @@ affine_registration_parameters
 % Look at sagittal results
 slice = round(0.55*MNI_sy);
 figure; imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray; title('Original T1 volume, after interpolation to MNI voxel size and z cut')
-figure; imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray; title('Aligned T1 volume, parametric registration')
-figure; imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray; title('Aligned T1 volume, parametric + non-parametric registration')
+figure; imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray; title('Aligned T1 volume, linear registration')
+figure; imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray; title('Aligned T1 volume, linear + non-linear registration')
 figure; imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray; title('MNI volume')
 
 % Look at axial results
 slice = round(0.47*MNI_sz);
 figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray; title('Original T1 volume, after interpolation to MNI voxel size and z cut')
-figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray; title('Aligned T1 volume, parametric registration')
-figure; imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray; title('Aligned T1 volume, parametric + non-parametric registration')
+figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray; title('Aligned T1 volume, linear registration')
+figure; imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray; title('Aligned T1 volume, linear + non-linear registration')
 figure; imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray; title('MNI volume')
 
