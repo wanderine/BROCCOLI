@@ -35,7 +35,7 @@ do
 
 		3dvolreg -float -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_no_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_no_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_no_noise.nii
 
-		#3dvolreg -float -maxite 50 -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_2percent_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_2percent_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_2percent_noise.nii
+		#3dvolreg -float -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_2percent_noise_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_2percent_noise_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_2percent_noise.nii
 
 		#3dvolreg -float -1Dfile ${results_directory}/AFNI_motion_parameters_subject${subject}_random_motion_shading_Fourier.1D -prefix ${results_directory}/AFNI_motion_corrected_subject${subject}_random_motion_shading_Fourier.nii ${data_directory}/cambridge_rest_subject_${subject}_with_random_motion_shading.nii
 
