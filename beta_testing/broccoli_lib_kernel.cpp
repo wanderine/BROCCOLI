@@ -182,7 +182,7 @@ void GetParameterIndices(int* i, int* j, int parameter)
 
 
 
-__kernel void SeparableConvolutionRows(__global float *Filter_Response, 
+__kernel void SeparableConvolutionRows(__global float *Filter_Response,
 	                                   __global const float* Volume, 
 									   __global const float* Certainty, 
 									   __constant float *c_Smoothing_Filter_Y, 
@@ -1687,6 +1687,7 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response,
 
 typedef struct tag_float6 {float a; float b; float c; float d; float e; float f;} float6;
 
+// Non-separable 2D convolution for three complex valued 7 x 7 filters, unrolled for performance
 float6 Conv_2D_Unrolled_7x7_ThreeFilters(__local float image[64][96],
 	                                     int y, 
 										 int x, 
@@ -4607,14 +4608,14 @@ __kernel void CalculateDisplacementUpdate(__global float* DisplacementX,
 
 	float norm = 1.0f / (a11Temp * a22Temp * a33Temp - a11Temp * a23Temp * a23Temp - a12Temp * a12Temp * a33Temp + a12Temp * a23Temp * a13Temp + a13Temp * a12Temp * a23Temp - a13Temp * a22Temp * a13Temp + 1E-16f);
 		
-	DisplacementX[idx] = -norm * ((h3Temp * (a12Temp * a23Temp - a13Temp * a22Temp)) - (h2Temp * (a12Temp * a33Temp - a13Temp * a23Temp)) + (h1Temp * (a22Temp * a33Temp - a23Temp * a23Temp)));
-	DisplacementY[idx] = -norm * ((h2Temp * (a11Temp * a33Temp - a13Temp * a13Temp)) - (h3Temp * (a11Temp * a23Temp - a13Temp * a12Temp)) - (h1Temp * (a12Temp * a33Temp - a23Temp * a13Temp)));
-	DisplacementZ[idx] = -norm * ((h3Temp * (a11Temp * a22Temp - a12Temp * a12Temp)) - (h2Temp * (a11Temp * a23Temp - a12Temp * a13Temp)) + (h1Temp * (a12Temp * a23Temp - a22Temp * a13Temp)));
+	DisplacementX[idx] = norm * ((h3Temp * (a12Temp * a23Temp - a13Temp * a22Temp)) - (h2Temp * (a12Temp * a33Temp - a13Temp * a23Temp)) + (h1Temp * (a22Temp * a33Temp - a23Temp * a23Temp)));
+	DisplacementY[idx] = norm * ((h2Temp * (a11Temp * a33Temp - a13Temp * a13Temp)) - (h3Temp * (a11Temp * a23Temp - a13Temp * a12Temp)) - (h1Temp * (a12Temp * a33Temp - a23Temp * a13Temp)));
+	DisplacementZ[idx] = norm * ((h3Temp * (a11Temp * a22Temp - a12Temp * a12Temp)) - (h2Temp * (a11Temp * a23Temp - a12Temp * a13Temp)) + (h1Temp * (a12Temp * a23Temp - a22Temp * a13Temp)));
 }
 
 
 
-__constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
+__constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 	
 
 __kernel void InterpolateVolumeNearestParametric(__global float* Volume, 
@@ -4674,16 +4675,16 @@ __kernel void InterpolateVolumeNearestNonParametric(__global float* Volume,
 	int idx = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
 	float4 Motion_Vector;
 	
-	Motion_Vector.x = (float)x - d_Displacement_Field_X[idx] + 0.5f;
-	Motion_Vector.y = (float)y - d_Displacement_Field_Y[idx] + 0.5f;
-	Motion_Vector.z = (float)z - d_Displacement_Field_Z[idx] + 0.5f;
+	Motion_Vector.x = (float)x + d_Displacement_Field_X[idx] + 0.5f;
+	Motion_Vector.y = (float)y + d_Displacement_Field_Y[idx] + 0.5f;
+	Motion_Vector.z = (float)z + d_Displacement_Field_Z[idx] + 0.5f;
 	Motion_Vector.w = 0.0f;
 
 	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_nearest, Motion_Vector);
 	Volume[idx] = Interpolated_Value.x;
 }
 
-__constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_LINEAR;
+__constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 	
 
 __kernel void InterpolateVolumeLinearParametric(__global float* Volume, 
@@ -4753,26 +4754,13 @@ __kernel void InterpolateVolumeLinearNonParametric(__global float* Volume,
 
 	float4 Motion_Vector;
 	
-	if ( (myabs(d_Displacement_Field_X[idx3D]) < 100.0f) && (myabs(d_Displacement_Field_Y[idx3D]) < 100.0f) && (myabs(d_Displacement_Field_Z[idx3D]) < 100.0f) )
-	{
-		Motion_Vector.x = (float)x - d_Displacement_Field_X[idx3D] + 0.5f;
-		Motion_Vector.y = (float)y - d_Displacement_Field_Y[idx3D] + 0.5f;
-		Motion_Vector.z = (float)z - d_Displacement_Field_Z[idx3D] + 0.5f;
-		Motion_Vector.w = 0.0f;
+	Motion_Vector.x = (float)x + d_Displacement_Field_X[idx3D] + 0.5f;
+	Motion_Vector.y = (float)y + d_Displacement_Field_Y[idx3D] + 0.5f;
+	Motion_Vector.z = (float)z + d_Displacement_Field_Z[idx3D] + 0.5f;
+	Motion_Vector.w = 0.0f;
 
-		float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-		Volume[idx4D] = Interpolated_Value.x;
-	}
-	else
-	{
-		Motion_Vector.x = (float)x + 0.5f;
-		Motion_Vector.y = (float)y + 0.5f;
-		Motion_Vector.z = (float)z + 0.5f;
-		Motion_Vector.w = 0.0f;
-
-		float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
-		Volume[idx4D] = Interpolated_Value.x;
-	}
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_linear, Motion_Vector);
+	Volume[idx4D] = Interpolated_Value.x;
 }
 
 float bspline(float t)
@@ -5099,6 +5087,27 @@ __kernel void CalculateRowMaxs(__global float* Maxs,
 	Maxs[z] = max;
 }
 
+// Ugly quick solution, since atomic max does not work for floats
+__kernel void CalculateMaxAtomic(volatile __global int* max_value,
+	                             __global const float* Volume,
+								 __global const float* Mask,
+								 __private int DATA_W,
+								 __private int DATA_H,
+								 __private int DATA_D)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	int value = (int)(Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] * 10000.0f);
+	atomic_max(max_value, value);
+}
 
 __kernel void CopyT1VolumeToMNI(__global float* MNI_T1_Volume,
 		                        __global float* Interpolated_T1_Volume,
@@ -5334,7 +5343,7 @@ __kernel void CopyVolumeToNew(__global float* New_Volume,
 		z_NEW = z + (int)round((float)abs(z_diff)/2.0);
 		z_Interpolated = z + (int)round((float)MM_Z_CUT/NEW_VOXEL_SIZE_Z);
 	}
-
+	
 	// Make sure we are not reading outside any volume
 	if ( (x_Interpolated >= DATA_W_INTERPOLATED) || (y_Interpolated >= DATA_H_INTERPOLATED) || (z_Interpolated >= DATA_D_INTERPOLATED) || (x_NEW >= NEW_DATA_W) || (y_NEW >= NEW_DATA_H) || (z_NEW >= NEW_DATA_D) )
 	{
@@ -5351,6 +5360,5099 @@ __kernel void CopyVolumeToNew(__global float* New_Volume,
 		New_Volume[NEW_idx] = Interpolated_Volume[Interpolated_idx];
 	}			
 }
+
+
+
+float InterpolateCubic(float p0, float p1, float p2, float p3, float delta)
+{
+   float a0,a1,a2,a3,delta2;
+
+   delta2 = delta * delta;
+   a0 = p3 - p2 - p0 + p1;
+   a1 = p0 - p1 - a0;
+   a2 = p2 - p0;
+   a3 = p1;
+
+   return(a0 * delta * delta2 + a1 * delta2 + a2 * delta + a3);
+}
+
+__kernel void SliceTimingCorrection(__global float* Corrected_Volumes, 
+                                    __global const float* Volumes, 									 
+									__constant float* c_Slice_Differences, 									 
+									__private int DATA_W, 
+									__private int DATA_H, 
+									__private int DATA_D, 
+									__private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	float delta = c_Slice_Differences[z];
+	float t0, t1, t2, t3;
+
+	// Forward interpolation
+	if (delta > 0.0f)
+	{
+		t0 = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+		t1 = t0;
+		t2 = Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+		t3 = Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over timepoints
+		for (int t = 0; t < DATA_T - 3; t++)
+		{
+			// Cubic interpolation in time
+			Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		
+			// Shift old values backwards
+			t0 = t1;
+			t1 = t2;
+			t2 = t3;
+
+			// Read one new value
+			t3 = Volumes[Calculate4DIndex(x,y,z,t+3,DATA_W,DATA_H,DATA_D)];
+		}
+
+		int t = DATA_T - 3;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	
+		t = DATA_T - 2;
+		t0 = t1;
+		t1 = t2;
+		t2 = t3;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+
+		t = DATA_T - 1;
+		t0 = t1;
+		t1 = t2;
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	}
+	// Backward interpolation
+	else
+	{
+		delta = 1.0f - (-delta);
+
+		t0 = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+		t1 = t0;
+		t2 = t0;
+		t3 = Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over timepoints
+		for (int t = 0; t < DATA_T - 2; t++)
+		{
+			// Cubic interpolation in time
+			Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		
+			// Shift old values backwards
+			t0 = t1;
+			t1 = t2;
+			t2 = t3;
+
+			// Read one new value
+			t3 = Volumes[Calculate4DIndex(x,y,z,t+2,DATA_W,DATA_H,DATA_D)];
+		}
+
+		int t = DATA_T - 2;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	
+		t = DATA_T - 1;
+		t0 = t1;
+		t1 = t2;
+		t2 = t3;	
+		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+	}
+}
+
+// Statistical functions
+
+// General function for calculating beta weights, all voxels use the same design matrix, not optimized for speed
+
+__kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes, 
+                                      __global const float* Volumes, 
+									  __global const float* Mask, 
+									  __constant float* c_xtxxt_GLM, 
+									  __constant float* c_Censored_Timepoints,
+									  __private int DATA_W, 
+									  __private int DATA_H, 
+									  __private int DATA_D, 
+									  __private int NUMBER_OF_VOLUMES, 
+									  __private int NUMBER_OF_REGRESSORS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+		return;
+	}
+
+	int t = 0;
+	float beta[25];
+	
+	// Reset all beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = 0.0f;
+	}
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] * c_Censored_Timepoints[v];
+
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+		}
+	}
+
+	// Save beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
+	}
+}
+
+// Special function for calculating beta weights, all voxels use different design matrices (needed for Cochrane-Orcutt procedure)
+
+__kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes, 
+												__global const float* Volumes, 
+												__global const float* Mask, 
+												__global const float* d_xtxxt_GLM, 
+												__global const float* d_Voxel_Numbers, 
+												__constant float* c_Censored_Timepoints,
+												__private int DATA_W, 
+												__private int DATA_H, 
+												__private int DATA_D, 
+												__private int NUMBER_OF_VOLUMES, 
+												__private int NUMBER_OF_REGRESSORS,
+												__private int NUMBER_OF_INVALID_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+		return;
+	}
+
+	int t = 0;
+	float beta[25];
+	
+	// Reset all beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = 0.0f;
+	}
+
+	// Get the specific voxel number for this brain voxel
+	int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = NUMBER_OF_INVALID_TIMEPOINTS; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			beta[r] += temp * d_xtxxt_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v];
+		}
+	}
+
+	// Save beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
+	}
+}
+
+// Unoptimized kernel for calculating t-values, not a problem for regular first and second level analysis
+
+__kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
+		                                       __global float* Residuals,
+		                                       __global float* Residual_Variances,
+		                                       __global const float* Volumes,
+		                                       __global const float* Beta_Volumes,
+		                                       __global const float* Mask,
+		                                       __constant float *c_X_GLM,
+		                                       __constant float* c_Contrasts,
+		                                       __constant float* c_ctxtxc_GLM,
+											   __constant float* c_Censored_Timepoints,
+		                                       __private int DATA_W,
+		                                       __private int DATA_H,
+		                                       __private int DATA_D,
+		                                       __private int NUMBER_OF_VOLUMES,
+		                                       __private int NUMBER_OF_REGRESSORS,
+		                                       __private int NUMBER_OF_CONTRASTS,
+											   __private int NUMBER_OF_CENSORED_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+	
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{ 
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+	// Calculate the mean of the error eps
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{ 
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		//eps *= c_Censored_Timepoints[v];
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+	//meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
+	meaneps /= ((float)NUMBER_OF_VOLUMES);
+
+
+	// Now calculate the variance of eps
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		//vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+		vareps += (eps - meaneps) * (eps - meaneps);
+	}
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
+	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
+	
+	// Loop over contrasts and calculate t-values
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
+	}
+}
+
+// Unoptimized kernel for calculating F-values, not a problem for regular first and second level analysis
+
+__kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
+		                                       __global float* Residuals,
+		                                       __global float* Residual_Variances,
+		                                       __global const float* Volumes,
+		                                       __global const float* Beta_Volumes,
+		                                       __global const float* Mask,
+		                                       __constant float* c_X_GLM,
+		                                       __constant float* c_Contrasts,
+		                                       __constant float* c_ctxtxc_GLM,
+		                                       __constant float* c_Censored_Timepoints,
+		                                       __private int DATA_W,
+		                                       __private int DATA_H,
+		                                       __private int DATA_D,
+		                                       __private int NUMBER_OF_VOLUMES,
+		                                       __private int NUMBER_OF_REGRESSORS,
+		                                       __private int NUMBER_OF_CONTRASTS,
+		                                       __private int NUMBER_OF_CENSORED_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+		Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+		
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+	// Calculate the mean of the error eps
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+	meaneps /= (float)NUMBER_OF_VOLUMES;
+
+	// Now calculate the variance of eps
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		vareps += (eps - meaneps) * (eps - meaneps);
+	}
+	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f); 
+	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
+
+	//-------------------------
+
+	// Calculate matrix vector product C*beta (minus u)
+	float cbeta[25];
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		cbeta[c] = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+	}
+
+	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		beta[c] = 0.0f;
+		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+		{
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
+		}
+	}
+
+	// Finally calculate (C*beta)^T * temp
+	float scalar = 0.0f;
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		scalar += cbeta[c] * beta[c];
+	}
+
+	// Save F-value
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
+}
+	
+#pragma OPENCL EXTENSION cl_khr_fp64: enable
+
+// Generate random uniform number by modulo operation
+
+
+double unirand(__private int* seed)
+{
+	double const a = 16807.0; //ie 7**5
+	double const m = 2147483647.0; //ie 2**31-1
+	double const reciprocal_m = 1.0/m;
+	double temp = (*seed) * a;
+	*seed = (int)(temp - m * floor(temp * reciprocal_m));
+
+	return ((double)(*seed) * reciprocal_m);
+}
+
+#define pi 3.141592653589793
+
+// Generate random normal number by Box-Muller transform
+double normalrand(__private int* seed)
+{
+	double u = unirand(seed);
+	double v = unirand(seed);
+
+	return sqrt(-2.0*log(u))*cos(2.0*pi*v);
+}
+
+// Generate inverse Gamma number
+double gamrnd(float a, float b, __private int* seed)
+{
+	double x = 0.0;
+	for (int i = 0; i < 2*(int)round(a); i++)
+	{
+		double rand_value = normalrand(seed);
+		x += rand_value * rand_value;
+	}
+
+	return 2.0 * b / x;
+}
+
+
+/*
+float unirand(__private int* seed)
+{
+	float const a = 16807.0f; //ie 7**5
+	float const m = 2147483647.0f; //ie 2**31-1
+	float const reciprocal_m = 1.0f/m;
+	float temp = (*seed) * a;
+	*seed = (int)(temp - m * floor(temp * reciprocal_m));
+
+	return ((float)(*seed) * reciprocal_m);
+}
+
+#define pi 3.141592653589793
+
+// Generate random normal number by Box-Muller transform
+float normalrand(__private int* seed)
+{
+	float u = unirand(seed);
+	float v = unirand(seed);
+
+	return sqrt(-2.0f*log(u))*cos(2.0f*pi*v);
+}
+
+// Generate inverse Gamma number
+float gamrnd(float a, float b, __private int* seed)
+{
+	float x = 0.0f;
+	for (int i = 0; i < 2*(int)round(a); i++)
+	{
+		float rand_value = normalrand(seed);
+		x += rand_value * rand_value;
+	}
+
+	return 2.0f * b / x;
+}
+*/
+
+// Cholesky factorization, not optimized
+int Cholesky(float* cholA, float factor, __constant float* A, int N)
+{
+	for (int i = 0; i < N; i++)
+	{
+		for (int j = 0; j < N; j++)
+		{   
+			cholA[i + j*N] = 0.0f;
+
+			if (i == j)
+			{
+				float value = 0.0f;
+				for (int k = 0; k <= (j-1); k++)
+				{
+					value += cholA[k + j*N] * cholA[k + j*N];
+				}
+				cholA[j + j*N] = sqrt(factor*A[j + j*N] - value);
+			}
+			else if (i > j)
+			{
+				float value = 0.0f;
+				for (int k = 0; k <= (j-1); k++)
+				{
+					value += cholA[k + i*N] * cholA[k + j*N]; 
+				}
+				cholA[j + i*N] = 1/cholA[j + j*N] * (factor*A[j + i*N] - value);
+			}
+		}
+	}
+
+	return 0;
+}
+
+int MultivariateRandomOld(float* random, float* mu, __constant float* Cov, float Sigma, int N, __private int* seed)
+{
+	float randvalues[2];
+	float cholCov[4];
+			
+	switch(N)
+	{
+		case 2:
+			
+			randvalues[0] = normalrand(seed);
+			randvalues[1] = normalrand(seed);
+	
+			Cholesky(cholCov, Sigma, Cov, N);
+
+			random[0] = mu[0] + cholCov[0 + 0 * N] * randvalues[0] + cholCov[1 + 0 * N] * randvalues[1];
+			random[1] = mu[1] + cholCov[0 + 1 * N] * randvalues[0] + cholCov[1 + 1 * N] * randvalues[1];
+		
+			break;
+
+		case 3:
+
+		
+			break;
+
+		case 4:
+
+		
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+
+int Cholesky1(float* cholA, float factor, float A)
+{
+	*cholA = sqrt(factor * A);
+
+	return 0;
+}
+
+int Cholesky2(float cholA[2][2], float factor, float A[2][2])
+{
+	// i = 0, j = 0
+	cholA[0][0] = sqrt(factor * A[0][0]);
+
+	// i = 1, j = 0
+	cholA[1][0] = 1.0f / cholA[0][0] * (factor * A[1][0]);
+
+	// i = 0, j = 1
+	cholA[0][1] = 0.0f;
+
+	// i = 1, j = 1
+	cholA[1][1] = sqrt(factor * A[1][1] - cholA[0][1] * cholA[0][1] - cholA[1][0] * cholA[1][0] );
+
+	return 0;
+}
+
+
+
+int MultivariateRandom1(float* random, float mu, __private float Cov, float Sigma, __private int* seed)
+{
+	float randvalues;
+	float cholCov;
+			
+	randvalues = normalrand(seed);		
+	Cholesky1(&cholCov, Sigma, Cov);
+	random[0] = mu + cholCov * randvalues;
+
+	return 0;
+}
+
+int MultivariateRandom2(float* random, float* mu, __private float Cov[2][2], float Sigma, __private int* seed)
+{
+	float randvalues[2];
+	float cholCov[2][2];
+			
+	randvalues[0] = normalrand(seed);
+	randvalues[1] = normalrand(seed);
+	
+	Cholesky2(cholCov, Sigma, Cov);
+
+	random[0] = mu[0] + cholCov[0][0] * randvalues[0] + cholCov[0][1] * randvalues[1];
+	random[1] = mu[1] + cholCov[0][1] * randvalues[0] + cholCov[1][1] * randvalues[1];
+	
+	return 0;
+}
+
+int CalculateBetaWeightsBayesian(__private float* beta,
+								 __private float value,
+								 __constant float* c_X_GLM,
+								 int v,
+								 int NUMBER_OF_VOLUMES,
+								 int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			beta[0] += value * c_X_GLM[NUMBER_OF_VOLUMES * 0 + v];
+
+			break;
+
+		case 2:
+
+			beta[0] += value * c_X_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_X_GLM[NUMBER_OF_VOLUMES * 1 + v];
+
+			break;
+
+		case 3:
+
+			beta[0] += value * c_X_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_X_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_X_GLM[NUMBER_OF_VOLUMES * 2 + v];
+
+			break;
+
+		case 4:
+
+			beta[0] += value * c_X_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_X_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_X_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_X_GLM[NUMBER_OF_VOLUMES * 3 + v];
+
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+
+
+
+float Determinant_4x4(float Cxx[4][4])
+{
+    return Cxx[0][3] * Cxx[1][2] * Cxx[2][1] * Cxx[3][0] - Cxx[0][2] * Cxx[1][3] * Cxx[2][1] * Cxx[3][0] - Cxx[0][3] * Cxx[1][1] * Cxx[2][2] * Cxx[3][0]
+         + Cxx[0][1] * Cxx[1][3] * Cxx[2][2] * Cxx[3][0] + Cxx[0][2] * Cxx[1][1] * Cxx[2][3] * Cxx[3][0] - Cxx[0][1] * Cxx[1][2] * Cxx[2][3] * Cxx[3][0]
+         - Cxx[0][3] * Cxx[1][2] * Cxx[2][0] * Cxx[3][1] + Cxx[0][2] * Cxx[1][3] * Cxx[2][0] * Cxx[3][1] + Cxx[0][3] * Cxx[1][0] * Cxx[2][2] * Cxx[3][1]
+         - Cxx[0][0] * Cxx[1][3] * Cxx[2][2] * Cxx[3][1] - Cxx[0][2] * Cxx[1][0] * Cxx[2][3] * Cxx[3][1] + Cxx[0][0] * Cxx[1][2] * Cxx[2][3] * Cxx[3][1]
+         + Cxx[0][3] * Cxx[1][1] * Cxx[2][0] * Cxx[3][2] - Cxx[0][1] * Cxx[1][3] * Cxx[2][0] * Cxx[3][2] - Cxx[0][3] * Cxx[1][0] * Cxx[2][1] * Cxx[3][2]
+         + Cxx[0][0] * Cxx[1][3] * Cxx[2][1] * Cxx[3][2] + Cxx[0][1] * Cxx[1][0] * Cxx[2][3] * Cxx[3][2] - Cxx[0][0] * Cxx[1][1] * Cxx[2][3] * Cxx[3][2]
+         - Cxx[0][2] * Cxx[1][1] * Cxx[2][0] * Cxx[3][3] + Cxx[0][1] * Cxx[1][2] * Cxx[2][0] * Cxx[3][3] + Cxx[0][2] * Cxx[1][0] * Cxx[2][1] * Cxx[3][3]
+		 - Cxx[0][0] * Cxx[1][2] * Cxx[2][1] * Cxx[3][3] - Cxx[0][1] * Cxx[1][0] * Cxx[2][2] * Cxx[3][3] + Cxx[0][0] * Cxx[1][1] * Cxx[2][2] * Cxx[3][3];
+}
+
+
+
+void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
+{
+	float determinant = Determinant_4x4(Cxx) + 0.001f;
+
+	inv_Cxx[0][0] = Cxx[1][2]*Cxx[2][3]*Cxx[3][1] - Cxx[1][3]*Cxx[2][2]*Cxx[3][1] + Cxx[1][3]*Cxx[2][1]*Cxx[3][2] - Cxx[1][1]*Cxx[2][3]*Cxx[3][2] - Cxx[1][2]*Cxx[2][1]*Cxx[3][3] + Cxx[1][1]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[0][1] = Cxx[0][3]*Cxx[2][2]*Cxx[3][1] - Cxx[0][2]*Cxx[2][3]*Cxx[3][1] - Cxx[0][3]*Cxx[2][1]*Cxx[3][2] + Cxx[0][1]*Cxx[2][3]*Cxx[3][2] + Cxx[0][2]*Cxx[2][1]*Cxx[3][3] - Cxx[0][1]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[0][2] = Cxx[0][2]*Cxx[1][3]*Cxx[3][1] - Cxx[0][3]*Cxx[1][2]*Cxx[3][1] + Cxx[0][3]*Cxx[1][1]*Cxx[3][2] - Cxx[0][1]*Cxx[1][3]*Cxx[3][2] - Cxx[0][2]*Cxx[1][1]*Cxx[3][3] + Cxx[0][1]*Cxx[1][2]*Cxx[3][3];
+	inv_Cxx[0][3] = Cxx[0][3]*Cxx[1][2]*Cxx[2][1] - Cxx[0][2]*Cxx[1][3]*Cxx[2][1] - Cxx[0][3]*Cxx[1][1]*Cxx[2][2] + Cxx[0][1]*Cxx[1][3]*Cxx[2][2] + Cxx[0][2]*Cxx[1][1]*Cxx[2][3] - Cxx[0][1]*Cxx[1][2]*Cxx[2][3];
+	inv_Cxx[1][0] = Cxx[1][3]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][0]*Cxx[3][2] + Cxx[1][0]*Cxx[2][3]*Cxx[3][2] + Cxx[1][2]*Cxx[2][0]*Cxx[3][3] - Cxx[1][0]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[1][1] = Cxx[0][2]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][2]*Cxx[3][0] + Cxx[0][3]*Cxx[2][0]*Cxx[3][2] - Cxx[0][0]*Cxx[2][3]*Cxx[3][2] - Cxx[0][2]*Cxx[2][0]*Cxx[3][3] + Cxx[0][0]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[1][2] = Cxx[0][3]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][0]*Cxx[3][2] + Cxx[0][0]*Cxx[1][3]*Cxx[3][2] + Cxx[0][2]*Cxx[1][0]*Cxx[3][3] - Cxx[0][0]*Cxx[1][2]*Cxx[3][3];
+	inv_Cxx[1][3] = Cxx[0][2]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][2]*Cxx[2][0] + Cxx[0][3]*Cxx[1][0]*Cxx[2][2] - Cxx[0][0]*Cxx[1][3]*Cxx[2][2] - Cxx[0][2]*Cxx[1][0]*Cxx[2][3] + Cxx[0][0]*Cxx[1][2]*Cxx[2][3];
+	inv_Cxx[2][0] = Cxx[1][1]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][1]*Cxx[3][0] + Cxx[1][3]*Cxx[2][0]*Cxx[3][1] - Cxx[1][0]*Cxx[2][3]*Cxx[3][1] - Cxx[1][1]*Cxx[2][0]*Cxx[3][3] + Cxx[1][0]*Cxx[2][1]*Cxx[3][3];
+	inv_Cxx[2][1] = Cxx[0][3]*Cxx[2][1]*Cxx[3][0] - Cxx[0][1]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][0]*Cxx[3][1] + Cxx[0][0]*Cxx[2][3]*Cxx[3][1] + Cxx[0][1]*Cxx[2][0]*Cxx[3][3] - Cxx[0][0]*Cxx[2][1]*Cxx[3][3];
+	inv_Cxx[2][2] = Cxx[0][1]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][1]*Cxx[3][0] + Cxx[0][3]*Cxx[1][0]*Cxx[3][1] - Cxx[0][0]*Cxx[1][3]*Cxx[3][1] - Cxx[0][1]*Cxx[1][0]*Cxx[3][3] + Cxx[0][0]*Cxx[1][1]*Cxx[3][3];
+	inv_Cxx[2][3] = Cxx[0][3]*Cxx[1][1]*Cxx[2][0] - Cxx[0][1]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][0]*Cxx[2][1] + Cxx[0][0]*Cxx[1][3]*Cxx[2][1] + Cxx[0][1]*Cxx[1][0]*Cxx[2][3] - Cxx[0][0]*Cxx[1][1]*Cxx[2][3];
+	inv_Cxx[3][0] = Cxx[1][2]*Cxx[2][1]*Cxx[3][0] - Cxx[1][1]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][0]*Cxx[3][1] + Cxx[1][0]*Cxx[2][2]*Cxx[3][1] + Cxx[1][1]*Cxx[2][0]*Cxx[3][2] - Cxx[1][0]*Cxx[2][1]*Cxx[3][2];
+	inv_Cxx[3][1] = Cxx[0][1]*Cxx[2][2]*Cxx[3][0] - Cxx[0][2]*Cxx[2][1]*Cxx[3][0] + Cxx[0][2]*Cxx[2][0]*Cxx[3][1] - Cxx[0][0]*Cxx[2][2]*Cxx[3][1] - Cxx[0][1]*Cxx[2][0]*Cxx[3][2] + Cxx[0][0]*Cxx[2][1]*Cxx[3][2];
+	inv_Cxx[3][2] = Cxx[0][2]*Cxx[1][1]*Cxx[3][0] - Cxx[0][1]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][0]*Cxx[3][1] + Cxx[0][0]*Cxx[1][2]*Cxx[3][1] + Cxx[0][1]*Cxx[1][0]*Cxx[3][2] - Cxx[0][0]*Cxx[1][1]*Cxx[3][2];
+	inv_Cxx[3][3] = Cxx[0][1]*Cxx[1][2]*Cxx[2][0] - Cxx[0][2]*Cxx[1][1]*Cxx[2][0] + Cxx[0][2]*Cxx[1][0]*Cxx[2][1] - Cxx[0][0]*Cxx[1][2]*Cxx[2][1] - Cxx[0][1]*Cxx[1][0]*Cxx[2][2] + Cxx[0][0]*Cxx[1][1]*Cxx[2][2];
+
+	inv_Cxx[0][0] /= determinant;
+	inv_Cxx[0][1] /= determinant;
+	inv_Cxx[0][2] /= determinant;
+	inv_Cxx[0][3] /= determinant;
+	inv_Cxx[1][0] /= determinant;
+	inv_Cxx[1][1] /= determinant;
+	inv_Cxx[1][2] /= determinant;
+	inv_Cxx[1][3] /= determinant;
+	inv_Cxx[2][0] /= determinant;
+	inv_Cxx[2][1] /= determinant;
+	inv_Cxx[2][2] /= determinant;
+	inv_Cxx[2][3] /= determinant;
+	inv_Cxx[3][0] /= determinant;
+	inv_Cxx[3][1] /= determinant;
+	inv_Cxx[3][2] /= determinant;
+	inv_Cxx[3][3] /= determinant;
+
+}
+
+float Determinant_2x2(float Cxx[2][2])
+{
+    return Cxx[0][0] * Cxx[1][1] - Cxx[0][1] * Cxx[1][0];
+}
+
+void Invert_2x2(float Cxx[2][2], float inv_Cxx[2][2])
+{
+	float determinant = Determinant_2x2(Cxx) + 0.001f;
+
+	inv_Cxx[0][0] = Cxx[1][1] / determinant;
+	inv_Cxx[0][1] = -Cxx[0][1] / determinant;
+	inv_Cxx[1][0] = -Cxx[1][0] / determinant;
+	inv_Cxx[1][1] = Cxx[0][0] / determinant;
+}
+
+// Generates a posterior probability map (PPM) using Gibbs sampling
+
+__kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Maps,
+		                                          __global const float* Volumes,
+		                                          __global const float* Mask,
+		                                          __global const int* Seeds,
+		                                          __constant float* c_X_GLM,
+		                                          __constant float* c_InvOmega0,
+											      __constant float* c_S00,
+											      __constant float* c_S01,
+											      __constant float* c_S11,
+		                                          __private int DATA_W,
+		                                          __private int DATA_H,
+		                                          __private int DATA_D,
+		                                          __private int NUMBER_OF_VOLUMES,
+		                                          __private int NUMBER_OF_REGRESSORS,
+											      __private int NUMBER_OF_ITERATIONS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
+
+
+	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = (float)unirand(&seed);
+	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = (float)normalrand(&seed);
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
+
+		/*
+		Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		*/
+
+		return;
+	}
+
+	// Get seed from host
+	//int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+
+	// Prior options
+	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
+	float r = 0.5f;                    // Prior mean on rho1
+	float c = 0.3f;                    // Prior standard deviation on first lag.
+	float a0 = 0.01f;                  // First parameter in IG prior for sigma^2
+	float b0 = 0.01f;                  // Second parameter in IG prior for sigma^2
+
+	float InvA0 = c * c;
+
+	// Algorithmic options
+	float prcBurnin = 10.0f;             // Percentage of nIter used for burnin. Note: effective number of iter is nIter.
+
+	float beta[2];
+	float betaT[2];
+
+	int nBurnin = (int)round((float)NUMBER_OF_ITERATIONS*(prcBurnin/100.0f));
+	int probability = 0;
+	
+	float m00[2];
+	float m01[2];
+	float m10[2];
+	float m11[2];
+
+	m00[0] = 0.0f;
+	m00[1] = 0.0f;
+
+	m01[0] = 0.0f;
+	m01[1] = 0.0f;
+
+	m10[0] = 0.0f;
+	m10[1] = 0.0f;
+
+	m11[0] = 0.0f;
+	m11[1] = 0.0f;
+
+	float g00 = 0.0f;
+	float g01 = 0.0f;
+	float g11 = 0.0f;
+
+	float old_value = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+
+	m00[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + 0] * old_value;
+	m00[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + 0] * old_value;
+
+	g00 += old_value * old_value;
+
+	for (int v = 1; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		m00[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * value;
+		m00[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * value;
+
+		m01[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * old_value;
+		m01[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * old_value;
+
+		m10[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + (v - 1)] * value;
+		m10[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + (v - 1)] * value;
+
+		m11[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + (v - 1)] * old_value;
+		m11[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + (v - 1)] * old_value;
+
+		g00 += value * value;
+		g01 += value * old_value;
+		g11 += old_value * old_value;
+
+		old_value = value;
+	}
+	
+	float InvOmegaT[2][2];
+	float OmegaT[2][2];
+	float Xtildesquared[2][2];
+	float XtildeYtilde[2];
+	float Ytildesquared;
+
+	Xtildesquared[0][0] = c_S00[0 + 0*2];
+	Xtildesquared[0][1] = c_S00[0 + 1*2];
+	Xtildesquared[1][0] = c_S00[1 + 0*2];
+	Xtildesquared[1][1] = c_S00[1 + 1*2];
+		
+	XtildeYtilde[0] = m00[0];
+	XtildeYtilde[1] = m00[1];
+
+	Ytildesquared = g00;
+
+	float sigma2;
+	float rho, rhoT, rhoProp, bT;
+
+	rho = 0.0f;
+
+	// Loop over iterations
+	for (int i = 0; i < (nBurnin + NUMBER_OF_ITERATIONS); i++)
+	//for (int i = 0; i < 100; i++)
+	{
+		InvOmegaT[0][0] = c_InvOmega0[0 + 0 * NUMBER_OF_REGRESSORS] + Xtildesquared[0][0];
+		InvOmegaT[0][1] = c_InvOmega0[0 + 1 * NUMBER_OF_REGRESSORS] + Xtildesquared[0][1];
+		InvOmegaT[1][0] = c_InvOmega0[1 + 0 * NUMBER_OF_REGRESSORS] + Xtildesquared[1][0];
+		InvOmegaT[1][1] = c_InvOmega0[1 + 1 * NUMBER_OF_REGRESSORS] + Xtildesquared[1][1];
+		Invert_2x2(InvOmegaT, OmegaT);
+
+		betaT[0] = OmegaT[0][0] * XtildeYtilde[0] + OmegaT[0][1] * XtildeYtilde[1];
+		betaT[1] = OmegaT[1][0] * XtildeYtilde[0] + OmegaT[1][1] * XtildeYtilde[1];
+
+		float aT = a0 + (float)NUMBER_OF_VOLUMES/2.0f;
+		float temp[2];
+		temp[0] = InvOmegaT[0][0] * betaT[0] + InvOmegaT[0][1] * betaT[1];
+		temp[1] = InvOmegaT[1][0] * betaT[0] + InvOmegaT[1][1] * betaT[1];
+		bT = b0 + 0.5f * (Ytildesquared - betaT[0] * temp[0] - betaT[1] * temp[1]);
+
+		// Block 1 - Step 1a. Update sigma2
+		sigma2 = gamrnd(aT,bT,&seed);
+		
+		// Block 1 - Step 1b. Update beta | sigma2
+		MultivariateRandom2(beta,betaT,OmegaT,sigma2,&seed);
+		
+		if (i > nBurnin)
+		{
+			if (beta[0] > 0.0f)
+			{
+				probability++;
+			}
+		}  
+
+		// Block 2, update rho
+		float zsquared = 0.0f;
+		float zu = 0.0f;
+		float old_eps = 0.0f;
+
+		// Calculate residuals
+		for (int v = 1; v < NUMBER_OF_VOLUMES; v++)
+		{
+			float eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+
+			zsquared += eps * eps;
+			zu += eps * old_eps;
+
+			old_eps = eps;
+		}
+
+		// Generate rho
+		float InvAT = InvA0 + zsquared / sigma2;
+		float AT = 1.0f / InvAT;
+		rhoT = AT * zu / sigma2;
+		MultivariateRandom1(&rhoProp,rhoT,AT,sigma2,&seed);
+
+		if (myabs(rhoProp) < 1.0f)
+		{
+			rho = rhoProp;
+		}
+
+		// Prewhitening of regressors and data
+		Xtildesquared[0][0] = c_S00[0 + 0*2] - 2.0f * rho * c_S01[0 + 0*2] + rho * rho * c_S11[0 + 0*2];
+		Xtildesquared[0][1] = c_S00[0 + 1*2] - 2.0f * rho * c_S01[0 + 1*2] + rho * rho * c_S11[0 + 1*2];
+		Xtildesquared[1][0] = c_S00[1 + 0*2] - 2.0f * rho * c_S01[1 + 0*2] + rho * rho * c_S11[1 + 0*2];
+		Xtildesquared[1][1] = c_S00[1 + 1*2] - 2.0f * rho * c_S01[1 + 1*2] + rho * rho * c_S11[1 + 1*2];
+		
+		XtildeYtilde[0] = m00[0] - rho * (m01[0] + m10[0]) + rho * rho * m11[0];
+		XtildeYtilde[1] = m00[1] - rho * (m01[1] + m10[1]) + rho * rho * m11[1];
+
+		Ytildesquared = g00 - 2.0f * rho * g01 + rho * rho * g11;
+	}
+	
+	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = rhoT;
+
+	/*
+	float Sigma = 1.0f;
+	float Cov[2][2];
+	float cholCov[2][2];
+
+	Cov[0][0] = 1.0f;
+	Cov[0][1] = 2.0f	;
+	Cov[1][0] = 2.0f;
+	Cov[1][1] = 15.0f;
+
+	Cholesky2(cholCov, Sigma, Cov);
+
+	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = cholCov[0][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = cholCov[0][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = cholCov[1][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = cholCov[1][1];
+	*/
+
+	/*
+	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = beta[0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = betaT[0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = betaT[1];
+	
+	Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = rhoT;
+	Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = rho;
+	Statistical_Maps[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)] = bT;
+	Statistical_Maps[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)] = InvOmegaT[0][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)] = InvOmegaT[1][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)] = InvOmegaT[1][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)] = OmegaT[0][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = OmegaT[0][1];
+	Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = OmegaT[1][0];
+	Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
+	*/
+}
+
+
+// Functions for permutation test
+
+int LoadBetaWeights(__private float* beta, 
+	                __global const float* Beta_Volumes, 
+					int x, 
+					int y, 
+					int z, 
+					int DATA_W, 
+					int DATA_H, 
+					int DATA_D, 
+					int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 2:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 3:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 4:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 5:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 6:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 7:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];			
+
+			break;
+
+		case 8:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 9:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 10:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 11:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 12:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 13:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 14:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 15:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 16:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 17:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 18:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 19:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			beta[18] = Beta_Volumes[Calculate4DIndex(x,y,z,18,DATA_W,DATA_H,DATA_D)];			
+
+			break;
+
+		case 20:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			beta[18] = Beta_Volumes[Calculate4DIndex(x,y,z,18,DATA_W,DATA_H,DATA_D)];
+			beta[19] = Beta_Volumes[Calculate4DIndex(x,y,z,19,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 21:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			beta[18] = Beta_Volumes[Calculate4DIndex(x,y,z,18,DATA_W,DATA_H,DATA_D)];
+			beta[19] = Beta_Volumes[Calculate4DIndex(x,y,z,19,DATA_W,DATA_H,DATA_D)];
+			beta[20] = Beta_Volumes[Calculate4DIndex(x,y,z,20,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 22:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			beta[18] = Beta_Volumes[Calculate4DIndex(x,y,z,18,DATA_W,DATA_H,DATA_D)];
+			beta[19] = Beta_Volumes[Calculate4DIndex(x,y,z,19,DATA_W,DATA_H,DATA_D)];
+			beta[20] = Beta_Volumes[Calculate4DIndex(x,y,z,20,DATA_W,DATA_H,DATA_D)];
+			beta[21] = Beta_Volumes[Calculate4DIndex(x,y,z,21,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 23:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			beta[18] = Beta_Volumes[Calculate4DIndex(x,y,z,18,DATA_W,DATA_H,DATA_D)];
+			beta[19] = Beta_Volumes[Calculate4DIndex(x,y,z,19,DATA_W,DATA_H,DATA_D)];
+			beta[20] = Beta_Volumes[Calculate4DIndex(x,y,z,20,DATA_W,DATA_H,DATA_D)];
+			beta[21] = Beta_Volumes[Calculate4DIndex(x,y,z,21,DATA_W,DATA_H,DATA_D)];
+			beta[22] = Beta_Volumes[Calculate4DIndex(x,y,z,22,DATA_W,DATA_H,DATA_D)];
+
+			break;
+
+		case 24:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			beta[18] = Beta_Volumes[Calculate4DIndex(x,y,z,18,DATA_W,DATA_H,DATA_D)];
+			beta[19] = Beta_Volumes[Calculate4DIndex(x,y,z,19,DATA_W,DATA_H,DATA_D)];
+			beta[20] = Beta_Volumes[Calculate4DIndex(x,y,z,20,DATA_W,DATA_H,DATA_D)];
+			beta[21] = Beta_Volumes[Calculate4DIndex(x,y,z,21,DATA_W,DATA_H,DATA_D)];
+			beta[22] = Beta_Volumes[Calculate4DIndex(x,y,z,22,DATA_W,DATA_H,DATA_D)];
+			beta[23] = Beta_Volumes[Calculate4DIndex(x,y,z,23,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+		case 25:
+
+			beta[0] = Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+			beta[1] = Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+			beta[2] = Beta_Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+			beta[3] = Beta_Volumes[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)];
+			beta[4] = Beta_Volumes[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)];
+			beta[5] = Beta_Volumes[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)];
+			beta[6] = Beta_Volumes[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)];
+			beta[7] = Beta_Volumes[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)];
+			beta[8] = Beta_Volumes[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)];
+			beta[9] = Beta_Volumes[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)];
+			beta[10] = Beta_Volumes[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)];
+			beta[11] = Beta_Volumes[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)];
+			beta[12] = Beta_Volumes[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)];
+			beta[13] = Beta_Volumes[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)];
+			beta[14] = Beta_Volumes[Calculate4DIndex(x,y,z,14,DATA_W,DATA_H,DATA_D)];
+			beta[15] = Beta_Volumes[Calculate4DIndex(x,y,z,15,DATA_W,DATA_H,DATA_D)];
+			beta[16] = Beta_Volumes[Calculate4DIndex(x,y,z,16,DATA_W,DATA_H,DATA_D)];
+			beta[17] = Beta_Volumes[Calculate4DIndex(x,y,z,17,DATA_W,DATA_H,DATA_D)];
+			beta[18] = Beta_Volumes[Calculate4DIndex(x,y,z,18,DATA_W,DATA_H,DATA_D)];
+			beta[19] = Beta_Volumes[Calculate4DIndex(x,y,z,19,DATA_W,DATA_H,DATA_D)];
+			beta[20] = Beta_Volumes[Calculate4DIndex(x,y,z,20,DATA_W,DATA_H,DATA_D)];
+			beta[21] = Beta_Volumes[Calculate4DIndex(x,y,z,21,DATA_W,DATA_H,DATA_D)];
+			beta[22] = Beta_Volumes[Calculate4DIndex(x,y,z,22,DATA_W,DATA_H,DATA_D)];
+			beta[23] = Beta_Volumes[Calculate4DIndex(x,y,z,23,DATA_W,DATA_H,DATA_D)];
+			beta[24] = Beta_Volumes[Calculate4DIndex(x,y,z,24,DATA_W,DATA_H,DATA_D)];
+			
+			break;
+
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+
+int CalculateBetaWeights(__private float* beta,
+		                 __private float value,
+		                 __constant float* c_xtxxt_GLM,
+		                 int v,
+		                 __constant unsigned short int* c_Permutation_Vector,
+		                 int NUMBER_OF_VOLUMES,
+		                 int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 2:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 3:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 4:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 5:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 6:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 7:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 8:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 9:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 10:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 11:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 12:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 13:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 14:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 15:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 16:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 17:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 18:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 19:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 20:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 21:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 22:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 23:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]];
+
+			break;
+
+		case 24:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]];
+			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + c_Permutation_Vector[v]];
+			
+			break;
+
+		case 25:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]];
+			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + c_Permutation_Vector[v]];
+			beta[24] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 24 + c_Permutation_Vector[v]];
+			
+			break;
+
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+
+
+
+
+
+// For first level, volumes already permuted
+float CalculateEpsFirstLevel(__private float eps,
+							 __private float* beta,
+							 __constant float* c_X_GLM,
+							 int v,		           
+							 int NUMBER_OF_VOLUMES,
+							 int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+
+			break;
+
+		case 2:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+
+			break;
+
+		case 3:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+
+			break;
+
+		case 4:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+
+			break;
+
+		case 5:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+
+			break;
+
+		case 6:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+
+			break;
+
+		case 7:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+
+			break;
+
+		case 8:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+
+			break;
+
+		case 9:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+
+			break;
+
+		case 10:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];			
+
+			break;
+
+		case 11:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			
+			break;
+
+		case 12:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			
+			break;
+
+		case 13:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			
+			break;
+
+		case 14:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			
+			break;
+
+		case 15:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			
+			break;
+
+		case 16:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			
+			break;
+
+		case 17:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			
+			break;
+
+		case 18:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			
+			break;
+
+		case 19:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			
+			break;
+
+		case 20:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			
+			break;
+
+		case 21:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			
+			break;
+
+		case 22:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			
+			break;
+
+		case 23:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
+			
+			break;
+
+		case 24:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 23 + v] * beta[23];
+			
+			break;
+
+		case 25:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + v] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + v] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + v] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + v] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 23 + v] * beta[23];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 24 + v] * beta[24];
+
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return eps;
+}
+
+
+// For second level, permutation of rows in design matrix (as in FSL)
+float CalculateEpsSecondLevel(__private float eps,
+							  __private float* beta,
+							  __constant float* c_X_GLM,
+							  int v,
+							  __constant unsigned short int* c_Permutation_Vector,
+							  int NUMBER_OF_VOLUMES,
+							  int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+
+			break;
+
+		case 2:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+
+			break;
+
+		case 3:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+
+			break;
+
+		case 4:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+
+			break;
+
+		case 5:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+
+			break;
+
+		case 6:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+
+			break;
+
+		case 7:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+
+			break;
+
+		case 8:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+
+			break;
+
+		case 9:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+
+			break;
+
+		case 10:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+
+			break;
+
+		case 11:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			
+			break;
+
+		case 12:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			
+			break;
+
+		case 13:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			
+			break;
+
+		case 14:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			
+			break;
+
+		case 15:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			
+			break;
+
+		case 16:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			
+			break;
+
+		case 17:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			
+			break;
+
+		case 18:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			
+			break;
+
+		case 19:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]] * beta[18];
+			
+			break;
+
+		case 20:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]] * beta[19];
+			
+			break;
+
+		case 21:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]] * beta[20];
+			
+			break;
+
+		case 22:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]] * beta[21];
+			
+			break;
+
+		case 23:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]] * beta[22];
+			
+			break;
+
+		case 24:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]] * beta[22];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 23 + c_Permutation_Vector[v]] * beta[23];
+			
+			break;
+
+		case 25:
+
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + c_Permutation_Vector[v]] * beta[0];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + c_Permutation_Vector[v]] * beta[1];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 2 + c_Permutation_Vector[v]] * beta[2];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 3 + c_Permutation_Vector[v]] * beta[3];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 4 + c_Permutation_Vector[v]] * beta[4];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 5 + c_Permutation_Vector[v]] * beta[5];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + c_Permutation_Vector[v]] * beta[6];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + c_Permutation_Vector[v]] * beta[7];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]] * beta[15];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]] * beta[16];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]] * beta[17];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]] * beta[18];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]] * beta[19];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]] * beta[20];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]] * beta[21];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]] * beta[22];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 23 + c_Permutation_Vector[v]] * beta[23];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 24 + c_Permutation_Vector[v]] * beta[24];
+
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return eps;
+}
+
+
+
+float CalculateContrastValue(__private float* beta, __constant float* c_Contrasts, int c, int NUMBER_OF_REGRESSORS)
+{
+	float contrast_value = 0.0f;
+
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+
+			break;
+
+		case 2:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+
+			break;
+
+		case 3:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+
+			break;
+
+		case 4:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+
+			break;
+
+		case 5:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+
+			break;
+
+		case 6:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+
+			break;
+
+		case 7:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+
+			break;
+
+		case 8:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+
+			break;
+
+		case 9:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+
+			break;
+
+		case 10:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+
+			break;
+
+		case 11:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			
+			break;
+
+		case 12:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			
+			break;
+
+		case 13:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			
+			break;
+
+		case 14:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			
+			break;
+
+		case 15:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			
+			break;
+
+		case 16:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			
+			break;
+
+		case 17:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			
+			break;
+
+		case 18:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			
+			break;
+
+		case 19:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			
+			break;
+
+		case 20:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			
+			break;
+
+		case 21:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+
+			break;
+
+		case 22:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			
+			break;
+
+		case 23:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			
+			break;
+
+		case 24:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
+			
+			break;
+
+		case 25:
+
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 24] * beta[24];
+
+			break;
+
+
+		default:
+			1;
+			break;
+	}
+
+	return contrast_value;
+}
+
+
+
+int CalculateCBeta(__private float* cbeta, __private float* beta, __constant float* c_Contrasts, int c, int NUMBER_OF_REGRESSORS)	
+{
+	cbeta[c] = 0.0f;
+
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+
+			break;
+
+		case 2:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			
+			break;
+
+		case 3:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			
+			break;
+
+		case 4:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			
+			break;
+
+		case 5:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			
+			break;
+
+		case 6:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			
+			break;
+
+		case 7:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			
+			break;
+
+		case 8:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			
+			break;
+
+		case 9:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			
+			break;
+
+		case 10:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			
+			break;
+
+		case 11:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			
+			break;
+
+		case 12:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			
+			break;
+
+		case 13:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			
+			break;
+
+		case 14:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			
+			break;
+
+		case 15:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			
+			break;
+
+		case 16:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			
+			break;
+
+		case 17:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			
+			break;
+
+		case 18:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			
+			break;
+
+		case 19:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			
+			break;
+
+		case 20:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			
+			break;
+
+		case 21:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			
+			break;
+
+		case 22:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			
+			break;
+
+		case 23:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			
+			break;
+
+		case 24:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
+			
+			break;
+
+		case 25:
+
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 15] * beta[15];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 16] * beta[16];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 17] * beta[17];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 18] * beta[18];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 24] * beta[24];			
+			
+			break;
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+
+int CalculateCBetas(__private float* cbeta, __private float* beta, __constant float* c_Contrasts, int NUMBER_OF_REGRESSORS, int NUMBER_OF_CONTRASTS)
+{
+	switch(NUMBER_OF_CONTRASTS)
+	{
+		case 1:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+
+			break;
+
+		case 2:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+
+			break;
+
+		case 3:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			
+			break;
+
+		case 4:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
+			
+			break;
+
+		case 5:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 4, NUMBER_OF_REGRESSORS);
+
+			break;
+
+		case 6:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 4, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 5, NUMBER_OF_REGRESSORS);
+
+			break;
+
+		case 7:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 4, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 5, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 6, NUMBER_OF_REGRESSORS);
+
+			break;
+
+		case 8:
+			
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 4, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 5, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 6, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 7, NUMBER_OF_REGRESSORS);
+
+			break;
+
+		case 9:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 4, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 5, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 6, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 7, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 8, NUMBER_OF_REGRESSORS);
+
+			break;
+
+		case 10:
+
+			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 4, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 5, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 6, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 7, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 8, NUMBER_OF_REGRESSORS);
+			CalculateCBeta(cbeta, beta, c_Contrasts, 9, NUMBER_OF_REGRESSORS);
+			
+			break;		
+
+		default:
+			1;
+			break;
+	}	
+
+	return 0;
+}
+
+int CalculateCTXTXCCBeta(__private float* beta, float vareps, __constant float* c_ctxtxc_GLM, __private float* cbeta, int c,  int NUMBER_OF_CONTRASTS)
+{
+	beta[c] = 0.0f;
+
+	switch(NUMBER_OF_CONTRASTS)
+	{
+		case 1:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			
+			break;
+
+		case 2:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			
+			break;
+
+		case 3:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			
+			break;
+
+		case 4:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[3 + c * NUMBER_OF_CONTRASTS] * cbeta[3];
+			
+			break;
+
+		case 5:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[3 + c * NUMBER_OF_CONTRASTS] * cbeta[3];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[4 + c * NUMBER_OF_CONTRASTS] * cbeta[4];
+			
+			break;
+
+		case 6:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[3 + c * NUMBER_OF_CONTRASTS] * cbeta[3];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[4 + c * NUMBER_OF_CONTRASTS] * cbeta[4];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[5 + c * NUMBER_OF_CONTRASTS] * cbeta[5];
+			
+			break;
+
+		case 7:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[3 + c * NUMBER_OF_CONTRASTS] * cbeta[3];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[4 + c * NUMBER_OF_CONTRASTS] * cbeta[4];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[5 + c * NUMBER_OF_CONTRASTS] * cbeta[5];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[6 + c * NUMBER_OF_CONTRASTS] * cbeta[6];
+			
+			break;
+
+		case 8:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[3 + c * NUMBER_OF_CONTRASTS] * cbeta[3];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[4 + c * NUMBER_OF_CONTRASTS] * cbeta[4];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[5 + c * NUMBER_OF_CONTRASTS] * cbeta[5];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[6 + c * NUMBER_OF_CONTRASTS] * cbeta[6];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[7 + c * NUMBER_OF_CONTRASTS] * cbeta[7];
+			
+			break;
+
+		case 9:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[3 + c * NUMBER_OF_CONTRASTS] * cbeta[3];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[4 + c * NUMBER_OF_CONTRASTS] * cbeta[4];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[5 + c * NUMBER_OF_CONTRASTS] * cbeta[5];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[6 + c * NUMBER_OF_CONTRASTS] * cbeta[6];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[7 + c * NUMBER_OF_CONTRASTS] * cbeta[7];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[8 + c * NUMBER_OF_CONTRASTS] * cbeta[8];
+			
+			break;
+
+		case 10:
+
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[0 + c * NUMBER_OF_CONTRASTS] * cbeta[0];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[1 + c * NUMBER_OF_CONTRASTS] * cbeta[1];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[2 + c * NUMBER_OF_CONTRASTS] * cbeta[2];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[3 + c * NUMBER_OF_CONTRASTS] * cbeta[3];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[4 + c * NUMBER_OF_CONTRASTS] * cbeta[4];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[5 + c * NUMBER_OF_CONTRASTS] * cbeta[5];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[6 + c * NUMBER_OF_CONTRASTS] * cbeta[6];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[7 + c * NUMBER_OF_CONTRASTS] * cbeta[7];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[8 + c * NUMBER_OF_CONTRASTS] * cbeta[8];
+			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[9 + c * NUMBER_OF_CONTRASTS] * cbeta[9];
+
+			break;		
+
+		default:
+			1;
+			break;
+	}	
+
+	return 0;	
+}			
+
+
+int CalculateCTXTXCCBetas(__private float* beta, float vareps, __constant float* c_ctxtxc_GLM, __private float* cbeta, int NUMBER_OF_CONTRASTS)
+{
+	switch(NUMBER_OF_CONTRASTS)
+	{
+		case 1:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			
+			break;
+
+		case 2:
+			
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+						
+			break;
+
+		case 3:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+
+			break;
+
+		case 4:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
+			
+			break;
+
+		case 5:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
+
+			break;
+
+		case 6:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 5, NUMBER_OF_CONTRASTS);
+			
+			break;
+
+		case 7:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 5, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 6, NUMBER_OF_CONTRASTS);
+			
+			break;
+
+		case 8:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 5, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 6, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 7, NUMBER_OF_CONTRASTS);
+
+			break;
+
+		case 9:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 5, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 6, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 7, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 8, NUMBER_OF_CONTRASTS);
+
+			break;
+
+		case 10:
+
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 2, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 5, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 6, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 7, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 8, NUMBER_OF_CONTRASTS);
+			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 9, NUMBER_OF_CONTRASTS);
+			
+			break;		
+
+		default:
+			1;
+			break;
+	}	
+
+	return 0;	
+}			
+
+
+float CalculateFTestScalar(__private float* cbeta, __private float* beta, int NUMBER_OF_CONTRASTS)
+{
+	float scalar = 0.0f;
+
+	switch(NUMBER_OF_CONTRASTS)
+	{
+		case 1:
+
+			scalar += cbeta[0] * beta[0];
+			
+			break;
+
+		case 2:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			
+			break;
+
+		case 3:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			
+			break;
+
+		case 4:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			scalar += cbeta[3] * beta[3];
+			
+			break;
+
+		case 5:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			scalar += cbeta[3] * beta[3];
+			scalar += cbeta[4] * beta[4];
+			
+			break;
+
+		case 6:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			scalar += cbeta[3] * beta[3];
+			scalar += cbeta[4] * beta[4];
+			scalar += cbeta[5] * beta[5];
+			
+			break;
+
+		case 7:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			scalar += cbeta[3] * beta[3];
+			scalar += cbeta[4] * beta[4];
+			scalar += cbeta[5] * beta[5];
+			scalar += cbeta[6] * beta[6];
+			scalar += cbeta[7] * beta[7];
+			
+			break;
+
+		case 8:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			scalar += cbeta[3] * beta[3];
+			scalar += cbeta[4] * beta[4];
+			scalar += cbeta[5] * beta[5];
+			scalar += cbeta[6] * beta[6];
+			scalar += cbeta[7] * beta[7];
+			
+			break;
+
+		case 9:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			scalar += cbeta[3] * beta[3];
+			scalar += cbeta[4] * beta[4];
+			scalar += cbeta[5] * beta[5];
+			scalar += cbeta[6] * beta[6];
+			scalar += cbeta[7] * beta[7];
+			scalar += cbeta[8] * beta[8];
+			
+			break;
+
+		case 10:
+
+			scalar += cbeta[0] * beta[0];
+			scalar += cbeta[1] * beta[1];
+			scalar += cbeta[2] * beta[2];
+			scalar += cbeta[3] * beta[3];
+			scalar += cbeta[4] * beta[4];
+			scalar += cbeta[5] * beta[5];
+			scalar += cbeta[6] * beta[6];
+			scalar += cbeta[7] * beta[7];
+			scalar += cbeta[8] * beta[8];
+			scalar += cbeta[9] * beta[9];
+			
+			break;		
+
+		default:
+			1;
+			break;
+	}	
+
+	return scalar;
+}
+
+	
+
+
+// Not used currently, since Cochrane-Orcutt procedure is slow anyway
+__kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global float* Statistical_Maps,
+																    __global float* Residuals,
+																	__global const float* Volumes,
+																	__global const float* Beta_Volumes,
+																	__global const float* Mask,
+																	__constant float *c_X_GLM,
+																	__constant float* c_Contrasts,	
+																	__constant float* c_ctxtxc_GLM,
+																	__private int DATA_W,
+																	__private int DATA_H,
+																	__private int DATA_D,
+																	__private int NUMBER_OF_VOLUMES,
+																	__private int NUMBER_OF_REGRESSORS,
+																	__private int NUMBER_OF_CONTRASTS)
+{	
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	LoadBetaWeights(beta, Beta_Volumes, x, y, z, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
+
+	// Calculate the mean and variance of the error eps
+	meaneps = 0.0f;
+	vareps = 0.0f;
+	float n = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+
+		n += 1.0f;
+		float delta = eps - meaneps;
+		meaneps += delta/n;
+		vareps += delta * (eps - meaneps);
+	}
+	vareps = vareps / (n - 1.0f);
+
+	// Loop over contrasts and calculate t-values
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
+	}
+}
+
+// Not used currently, since Cochrane-Orcutt procedure is slow anyway
+__kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global float* Statistical_Maps,
+																    __global float* Residuals,
+					 		                                        __global const float* Volumes,
+																	__global const float* Beta_Volumes,
+																	__global const float* Mask,
+																	__constant float* c_X_GLM,
+																	__constant float* c_Contrasts,
+																	__constant float* c_ctxtxc_GLM,
+																	__private int DATA_W,
+																	__private int DATA_H,
+																	__private int DATA_D,
+																	__private int NUMBER_OF_VOLUMES,
+																	__private int NUMBER_OF_REGRESSORS,
+																	__private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	LoadBetaWeights(beta, Beta_Volumes, x, y, z, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
+
+	// Calculate the mean and variance of the error eps
+	meaneps = 0.0f;
+	vareps = 0.0f;
+	float n = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+
+		n += 1.0f;
+		float delta = eps - meaneps;
+		meaneps += delta/n;
+		vareps += delta * (eps - meaneps);
+	}
+	vareps = vareps / (n - 1.0f);
+
+	//-------------------------
+
+	// Calculate matrix vector product C*beta (minus u)
+	float cbeta[10];
+	CalculateCBetas(cbeta, beta, c_Contrasts, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS);		
+
+	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)	
+	CalculateCTXTXCCBetas(beta, vareps, c_ctxtxc_GLM, cbeta, NUMBER_OF_CONTRASTS);
+
+	// Finally calculate (C*beta)^T * temp
+	float scalar = CalculateFTestScalar(cbeta,beta,NUMBER_OF_CONTRASTS);
+
+	// Save F-value
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
+}
+
+// Optimized kernel for calculating t-test values for permutations, second level
+
+__kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global float* Statistical_Maps,
+		                                       	   	   				 __global const float* Volumes,
+		                                       	   	   				 __global const float* Mask,
+		                                       	   	   				 __constant float* c_X_GLM,
+		                                       	   	   				 __constant float* c_xtxxt_GLM,
+		                                       	   	   				 __constant float* c_Contrasts,
+		                                       	   	   				 __constant float* c_ctxtxc_GLM,
+		                                       	   	   				 __constant unsigned short int* c_Permutation_Vector,
+		                                       	   	   				 __private int DATA_W,
+		                                       	   	   				 __private int DATA_H,
+		                                       	   	   				 __private int DATA_D,
+		                                       	   	   				 __private int NUMBER_OF_VOLUMES,
+		                                       	   	   				 __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   				 __private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	// Reset beta weights
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
+
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+	}
+
+	// Calculate the mean and variance of the error eps
+	meaneps = 0.0f;
+	vareps = 0.0f;
+	float n = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		eps = CalculateEpsSecondLevel(eps, beta, c_X_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+
+		n += 1.0f;
+		float delta = eps - meaneps;
+		meaneps += delta/n;
+		vareps += delta * (eps - meaneps);
+	}
+	vareps = vareps / (n - 1.0f);
+
+	// Loop over contrasts and calculate t-values
+
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
+	}
+}
+
+
+// Optimized kernel for calculating F-test values for permutations, second level
+
+__kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global float* Statistical_Maps,
+		                                       	   	   	             __global const float* Volumes,
+		                                       	   	   	             __global const float* Mask,
+		                                       	   	   				 __constant float* c_X_GLM,
+																	 __constant float* c_xtxxt_GLM,
+		                                       	   	   				 __constant float* c_Contrasts,
+		                                       	   	   				 __constant float* c_ctxtxc_GLM,
+																	 __constant unsigned short int* c_Permutation_Vector,
+		                                       	   	   				 __private int DATA_W,
+		                                       	   	   				 __private int DATA_H,
+		                                       	   	   				 __private int DATA_D,
+		                                       	   	   				 __private int NUMBER_OF_VOLUMES,
+		                                       	   	   				 __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   				 __private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
+
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+	}
+
+	// Calculate the mean and variance of the error eps
+	meaneps = 0.0f;
+	vareps = 0.0f;
+	float n = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		eps = CalculateEpsSecondLevel(eps, beta, c_X_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+
+		n += 1.0f;
+		float delta = eps - meaneps;
+		meaneps += delta/n;
+		vareps += delta * (eps - meaneps);
+	}
+	vareps = vareps / (n - 1.0f);
+
+	//-------------------------
+
+	// Calculate matrix vector product C*beta (minus u)
+	float cbeta[10];
+	CalculateCBetas(cbeta, beta, c_Contrasts, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS);		
+
+	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+	CalculateCTXTXCCBetas(beta, vareps, c_ctxtxc_GLM, cbeta, NUMBER_OF_CONTRASTS);
+
+	// Finally calculate (C*beta)^T * temp
+	float scalar = CalculateFTestScalar(cbeta,beta,NUMBER_OF_CONTRASTS);
+
+	// Save F-value
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
+}
+
+
+
+
+// Estimates voxel specific AR(4) models
+__kernel void EstimateAR4Models(__global float* AR1_Estimates, 
+                                __global float* AR2_Estimates, 
+								__global float* AR3_Estimates, 
+								__global float* AR4_Estimates, 
+								__global const float* fMRI_Volumes, 
+								__global const float* Mask, 
+								__private int DATA_W, 
+								__private int DATA_H, 
+								__private int DATA_D, 
+								__private int DATA_T,
+								__private int INVALID_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+	{
+        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+
+		return;
+	}
+
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+	float c0 = 0.0f;
+    float c1 = 0.0f;
+    float c2 = 0.0f;
+    float c3 = 0.0f;
+    float c4 = 0.0f;
+
+    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_1 * old_value_1;
+    old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_2 * old_value_2;
+    c1 += old_value_2 * old_value_1;
+    old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_3 * old_value_3;
+    c1 += old_value_3 * old_value_2;
+    c2 += old_value_3 * old_value_1;
+    old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_4 * old_value_4;
+    c1 += old_value_4 * old_value_3;
+    c2 += old_value_4 * old_value_2;
+    c3 += old_value_4 * old_value_1;
+
+    // Estimate c0, c1, c2, c3, c4
+    for (t = 4 + INVALID_TIMEPOINTS; t < DATA_T; t++)
+    {
+        // Read data into register
+        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+        
+        // Sum and multiply the values in fast registers
+        c0 += old_value_5 * old_value_5;
+        c1 += old_value_5 * old_value_4;
+        c2 += old_value_5 * old_value_3;
+        c3 += old_value_5 * old_value_2;
+        c4 += old_value_5 * old_value_1;
+
+		// Save old values
+        old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
+    }
+
+    c0 /= ((float)DATA_T - 1.0f - (float)INVALID_TIMEPOINTS);
+    c1 /= ((float)DATA_T - 2.0f - (float)INVALID_TIMEPOINTS);
+    c2 /= ((float)DATA_T - 3.0f - (float)INVALID_TIMEPOINTS);
+    c3 /= ((float)DATA_T - 4.0f - (float)INVALID_TIMEPOINTS);
+    c4 /= ((float)DATA_T - 5.0f - (float)INVALID_TIMEPOINTS);
+
+    // Calculate alphas
+    float4 r, alphas;
+
+    if (c0 != 0.0f)
+    {
+        r.x = c1/c0;
+        r.y = c2/c0;
+        r.z = c3/c0;
+        r.w = c4/c0;
+
+        float matrix[4][4];
+        matrix[0][0] = 1.0f;
+        matrix[1][0] = r.x + 0.001f;
+        matrix[2][0] = r.y + 0.001f;
+        matrix[3][0] = r.z + 0.001f;
+
+        matrix[0][1] = r.x + 0.001f;
+        matrix[1][1] = 1.0f;
+        matrix[2][1] = r.x + 0.001f;
+        matrix[3][1] = r.y + 0.001f;
+
+        matrix[0][2] = r.y + 0.001f;
+        matrix[1][2] = r.x + 0.001f;
+        matrix[2][2] = 1.0f;
+        matrix[3][2] = r.x + 0.001f;
+
+        matrix[0][3] = r.z + 0.001f;
+        matrix[1][3] = r.y + 0.001f;
+        matrix[2][3] = r.x + 0.001f;
+        matrix[3][3] = 1.0f;
+
+		float inv_matrix[4][4];
+
+        Invert_4x4(matrix, inv_matrix);
+
+        alphas.x = inv_matrix[0][0] * r.x + inv_matrix[0][1] * r.y + inv_matrix[0][2] * r.z + inv_matrix[0][3] * r.w;
+        alphas.y = inv_matrix[1][0] * r.x + inv_matrix[1][1] * r.y + inv_matrix[1][2] * r.z + inv_matrix[1][3] * r.w;
+        alphas.z = inv_matrix[2][0] * r.x + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
+        alphas.w = inv_matrix[3][0] * r.x + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
+
+        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.x;
+		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.y;
+		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.z;
+		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.w;
+    }
+    else
+    {
+		AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+        AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+    }
+}
+
+
+__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, 
+                                __global float* fMRI_Volumes, 
+								__global const float* AR1_Estimates, 
+								__global const float* AR2_Estimates, 
+								__global const float* AR3_Estimates, 
+								__global const float* AR4_Estimates, 
+								__global const float* Mask, 
+								__private int DATA_W, 
+								__private int DATA_H, 
+								__private int DATA_D, 
+								__private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
+        return;
+
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+		return;
+
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+    float4 alphas;
+	alphas.x = AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.y = AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.z = AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.w = AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+
+    // Calculate the whitened timeseries
+
+    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)];	
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)] = old_value_1;
+    old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)] = old_value_2  - alphas.x * old_value_1;
+    old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 2, DATA_W, DATA_H, DATA_D)] = old_value_3 - alphas.x * old_value_2 - alphas.y * old_value_1;
+    old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)] = old_value_4 - alphas.x * old_value_3 - alphas.y * old_value_2 - alphas.z * old_value_1;
+
+    for (t = 4; t < DATA_T; t++)
+    {
+        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+
+        Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
+
+		// Save old values
+        old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
+    }
+}
+
+__kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Volumes, 
+                                                __global const float* Whitened_fMRI_Volumes, 
+												__global const float* AR1_Estimates, 
+												__global const float* AR2_Estimates, 
+												__global const float* AR3_Estimates, 
+												__global const float* AR4_Estimates, 
+												__global const float* Mask, 
+												__constant unsigned short int *c_Permutation_Vector, 
+												__private int DATA_W, 
+												__private int DATA_H, 
+												__private int DATA_D, 
+												__private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
+        return;
+
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+		return;
+
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+	float4 alphas;
+	alphas.x = AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.y = AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.z = AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.w = AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+
+    old_value_1 = Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[0], DATA_W, DATA_H, DATA_D)];
+	old_value_2 = alphas.x * old_value_1  + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[1], DATA_W, DATA_H, DATA_D)];
+	old_value_3 = alphas.x * old_value_2  + alphas.y * old_value_1 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[2], DATA_W, DATA_H, DATA_D)];
+	old_value_4 = alphas.x * old_value_3  + alphas.y * old_value_2 + alphas.z * old_value_1 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[3], DATA_W, DATA_H, DATA_D)];
+
+    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)] =  old_value_1;
+    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)] =  old_value_2;
+    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 2, DATA_W, DATA_H, DATA_D)] =  old_value_3;
+    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)] =  old_value_4;
+
+    // Read the data in a permuted order and apply an inverse whitening transform
+    for (t = 4; t < DATA_T; t++)
+    {
+        // Calculate the unwhitened, permuted, timeseries
+        old_value_5 = alphas.x * old_value_1 + alphas.y * old_value_2 + alphas.z * old_value_3 + alphas.w * old_value_4 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
+			
+        Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5;
+
+        // Save old values
+		old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
+    }
+}
+
+
+
+
+
+// Not working
+__kernel void Clusterize(volatile __global int* Cluster_Indices,
+						 volatile __global int* current_cluster,
+						 __global const float* Data,
+						 __global const float* Mask,
+						 __private float threshold,
+					     __private int DATA_W, 
+						 __private int DATA_H, 
+						 __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	// Threshold data
+	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
+	{
+		int cluster_index = 0;
+
+		for (int zz = -1; zz < 2; zz++)
+		{
+			for (int yy = -1; yy < 2; yy++)
+			{
+				for (int xx = -1; xx < 2; xx++)
+				{
+					if ( ((x + xx) >= 0) && ((y + yy) >= 0) && ((z + zz) >= 0) && ((x + xx) < DATA_W) && ((y + yy) < DATA_H) && ((z + zz) < DATA_D) )
+					{
+						cluster_index = mymax(Cluster_Indices[Calculate3DIndex(x+xx,y+yy,z+zz,DATA_W,DATA_H)],cluster_index);
+					}
+				}
+			}
+		}
+
+		// Use existing cluster index
+		if (cluster_index != 0)
+		{
+			//Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = cluster_index;
+			atomic_xchg(&Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)],cluster_index);
+		}
+		// Use new cluster index
+		else
+		{
+			atomic_inc(current_cluster);
+			atomic_xchg(&Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)],*current_cluster);
+		}		
+	}
+	else
+	{
+		Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0;
+	}
+}
+
+
+
+
+
+
+
+
+__kernel void ThresholdVolume(__global float* Thresholded_Volume, 
+	                          __global const float* Volume, 
+							  __private float threshold, 
+							  __private int DATA_W, 
+							  __private int DATA_H, 
+							  __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+
+	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] >= threshold )
+	{
+		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
+	}
+	else
+	{
+		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.001f;
+	}
+}
+
+// Removes a linear fit estimated with CalculateGLMBetaWeights
+__kernel void RemoveLinearFit(__global float* Residual_Volumes, 
+                              __global const float* Volumes, 
+							  __global const float* Beta_Volumes, 
+							  __global const float* Mask, 
+							  __constant float *c_X_Detrend, 
+							  __private int DATA_W, 
+							  __private int DATA_H, 
+							  __private int DATA_D, 
+							  __private int NUMBER_OF_VOLUMES, 
+							  __private int NUMBER_OF_REGRESSORS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+	
+	float eps;
+	float beta[10];
+
+	// Load beta values into regressors
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{ 
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+	// Calculate the residual
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{ 			
+			eps -= beta[r] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
+		}
+		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+}
+
+__kernel void RemoveMean(__global float* Volumes, 
+					     __private int DATA_W, 
+						 __private int DATA_H, 
+						 __private int DATA_D, 
+						 __private int NUMBER_OF_VOLUMES)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+
+	float mean = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		mean += Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+	}
+	mean /= (float)NUMBER_OF_VOLUMES;
+	
+	// Calculate the residual
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] -= mean;
+	}
+
+}
+
+
 
 
 
@@ -5467,933 +10569,4 @@ __kernel void MultiplyVolumesOverwrite(__global float* Volume1,
 	Volume1[idx4D] = Volume1[idx4D] * Volume2[idx3D];
 }
 
-// Statistical functions
 
-__kernel void CalculateBetaValuesGLM(__global float* Beta_Volumes, 
-                                     __global const float* Volumes, 
-									 __global const float* Mask, 
-									 __constant float* c_xtxxt_GLM, 
-									 __constant float* c_Censored_Timepoints,
-									 __private int DATA_W, 
-									 __private int DATA_H, 
-									 __private int DATA_D, 
-									 __private int NUMBER_OF_VOLUMES, 
-									 __private int NUMBER_OF_REGRESSORS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-		return;
-	}
-
-	int t = 0;
-	float beta[20];
-	
-	// Reset all beta values
-	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{
-		beta[r] = 0.0f;
-	}
-
-	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
-	// Loop over volumes
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] * c_Censored_Timepoints[v];
-		// Loop over regressors
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
-		}
-	}
-
-	// Save beta values
-	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{
-		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
-	}
-}
-
-
-__kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
-		                                       __global float* Beta_Contrasts,
-		                                       __global float* Residuals,
-		                                       __global float* Residual_Variances,
-		                                       __global const float* Volumes,
-		                                       __global const float* Beta_Volumes,
-		                                       __global const float* Mask,
-		                                       __constant float *c_X_GLM,
-		                                       __constant float* c_Contrasts,
-		                                       __constant float* c_ctxtxc_GLM,
-											   __constant float* c_Censored_Timepoints,
-		                                       __private int DATA_W,
-		                                       __private int DATA_H,
-		                                       __private int DATA_D,
-		                                       __private int NUMBER_OF_VOLUMES,
-		                                       __private int NUMBER_OF_REGRESSORS,
-		                                       __private int NUMBER_OF_CONTRASTS,
-											   __private int NUMBER_OF_CENSORED_TIMEPOINTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
-
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-		{
-			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-			Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-	
-		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-		{
-			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
-		return;
-	}
-
-	int t = 0;
-	float eps, meaneps, vareps;
-	float beta[20];
-
-	// Load beta values into shared memory
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{ 
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-	}
-
-	// Calculate the mean of the error eps
-	meaneps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{ 
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		eps *= c_Censored_Timepoints[v];
-		meaneps += eps;
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-	}
-	meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
-
-	// Now calculate the variance of eps
-	vareps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
-	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f); 
-	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
-	
-	// Loop over contrasts and calculate t-values
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		float contrast_value = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}	
-		Beta_Contrasts[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
-	}
-}
-
-__kernel void CalculateStatisticalMapsGLMFTest(__global float* Statistical_Maps,
-		                                       __global float* Residuals,
-		                                       __global float* Residual_Variances,
-		                                       __global const float* Volumes,
-		                                       __global const float* Beta_Volumes,
-		                                       __global const float* Mask,
-		                                       __constant float* c_X_GLM,
-		                                       __constant float* c_Contrasts,
-		                                       __constant float* c_ctxtxc_GLM,
-		                                       __private int DATA_W,
-		                                       __private int DATA_H,
-		                                       __private int DATA_D,
-		                                       __private int NUMBER_OF_VOLUMES,
-		                                       __private int NUMBER_OF_REGRESSORS,
-		                                       __private int NUMBER_OF_CONTRASTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
-
-		Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
-		
-		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-		{
-			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
-		return;
-	}
-
-	int t = 0;
-	float eps, meaneps, vareps;
-	float beta[20];
-
-	// Load beta values into registers
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-	}
-
-	// Calculate the mean of the error eps
-	meaneps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		meaneps += eps;
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-	}
-	meaneps /= (float)NUMBER_OF_VOLUMES;
-
-	// Now calculate the variance of eps
-	vareps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps);
-	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f); 
-	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
-
-	//-------------------------
-
-	// Calculate matrix vector product C*beta (minus u)
-	float cbeta[20];
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		cbeta[c] = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}
-	}
-
-	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
-
-	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
-	float temp[20];
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		temp[c] = 0.0f;
-		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
-		{
-			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
-		}
-	}
-
-	// Finally calculate (C*beta)^T * temp
-	float scalar = 0.0f;
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		scalar += cbeta[c] * temp[c];
-	}
-
-	// Save F-value
-	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
-}
-	
-
-
-// Functions for permutation test
-
-__kernel void CalculateStatisticalMapsGLMTTestPermutation(__global float* Statistical_Maps,
-		                                       	   	   	  __global float* Residuals,
-		                                       	   	   	  __global const float* Volumes,
-		                                       	   	   	  __global const float* Beta_Volumes,
-		                                       	   	   	  __global const float* Mask,
-		                                       	   	   	  __constant float *c_X_GLM,
-		                                       	   	   	  __constant float* c_Contrasts,
-		                                       	   	   	  __constant float* c_ctxtxc_GLM,
-		                                       	   	   	  __constant float* c_Censored_Timepoints,
-		                                       	   	   	  __private int DATA_W,
-		                                       	   	   	  __private int DATA_H,
-		                                       	   	   	  __private int DATA_D,
-		                                       	   	   	  __private int NUMBER_OF_VOLUMES,
-		                                       	   	   	  __private int NUMBER_OF_REGRESSORS,
-		                                       	   	   	  __private int NUMBER_OF_CONTRASTS,
-		                                       	   	   	  __private int NUMBER_OF_CENSORED_TIMEPOINTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-		{
-			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
-		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-		{
-			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
-		return;
-	}
-
-	int t = 0;
-	float eps, meaneps, vareps;
-	float beta[20];
-
-	// Load beta values into registers
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-	}
-
-	// Calculate the mean of the error eps
-	meaneps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		eps *= c_Censored_Timepoints[v];
-		meaneps += eps;
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-	}
-	meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
-
-	// Now calculate the variance of eps
-	vareps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
-	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
-
-	// Loop over contrasts and calculate t-values
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		float contrast_value = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
-	}
-}
-
-__kernel void CalculateStatisticalMapsGLMFTestPermutation(__global float* Statistical_Maps,
-		                                       	   	   	  __global float* Residuals,
-		                                       	   	   	  __global const float* Volumes,
-		                                       	   	   	  __global const float* Beta_Volumes,
-		                                       	   	   	  __global const float* Mask,
-		                                       	   	   	  __constant float* c_X_GLM,
-		                                       	   	   	  __constant float* c_Contrasts,
-		                                       	   	   	  __constant float* c_ctxtxc_GLM,
-		                                       	   	   	  __private int DATA_W,
-		                                       	   	   	  __private int DATA_H,
-		                                       	   	   	  __private int DATA_D,
-		                                       	   	   	  __private int NUMBER_OF_VOLUMES,
-		                                       	   	   	  __private int NUMBER_OF_REGRESSORS,
-		                                       	   	   	  __private int NUMBER_OF_CONTRASTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
-
-		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-		{
-			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
-		return;
-	}
-
-	int t = 0;
-	float eps, meaneps, vareps;
-	float beta[20];
-
-	// Load beta values into registers
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-	}
-
-	// Calculate the mean of the error eps
-	meaneps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		meaneps += eps;
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-	}
-	meaneps /= (float)NUMBER_OF_VOLUMES;
-
-	// Now calculate the variance of eps
-	vareps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps);
-	}
-	vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
-
-	//-------------------------
-
-	// Calculate matrix vector product C*beta (minus u)
-	float cbeta[20];
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		cbeta[c] = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
-		}
-	}
-
-	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
-
-	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
-	float temp[20];
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		temp[c] = 0.0f;
-		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
-		{
-			temp[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
-		}
-	}
-
-	// Finally calculate (C*beta)^T * temp
-	float scalar = 0.0f;
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		scalar += cbeta[c] * temp[c];
-	}
-
-	// Save F-value
-	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
-}
-
-
-
-
-
-float Determinant_(float Cxx[4][4])
-{
-    return Cxx[0][3] * Cxx[1][2] * Cxx[2][1] * Cxx[3][0] - Cxx[0][2] * Cxx[1][3] * Cxx[2][1] * Cxx[3][0] - Cxx[0][3] * Cxx[1][1] * Cxx[2][2] * Cxx[3][0]
-         + Cxx[0][1] * Cxx[1][3] * Cxx[2][2] * Cxx[3][0] + Cxx[0][2] * Cxx[1][1] * Cxx[2][3] * Cxx[3][0] - Cxx[0][1] * Cxx[1][2] * Cxx[2][3] * Cxx[3][0]
-         - Cxx[0][3] * Cxx[1][2] * Cxx[2][0] * Cxx[3][1] + Cxx[0][2] * Cxx[1][3] * Cxx[2][0] * Cxx[3][1] + Cxx[0][3] * Cxx[1][0] * Cxx[2][2] * Cxx[3][1]
-         - Cxx[0][0] * Cxx[1][3] * Cxx[2][2] * Cxx[3][1] - Cxx[0][2] * Cxx[1][0] * Cxx[2][3] * Cxx[3][1] + Cxx[0][0] * Cxx[1][2] * Cxx[2][3] * Cxx[3][1]
-         + Cxx[0][3] * Cxx[1][1] * Cxx[2][0] * Cxx[3][2] - Cxx[0][1] * Cxx[1][3] * Cxx[2][0] * Cxx[3][2] - Cxx[0][3] * Cxx[1][0] * Cxx[2][1] * Cxx[3][2]
-         + Cxx[0][0] * Cxx[1][3] * Cxx[2][1] * Cxx[3][2] + Cxx[0][1] * Cxx[1][0] * Cxx[2][3] * Cxx[3][2] - Cxx[0][0] * Cxx[1][1] * Cxx[2][3] * Cxx[3][2]
-         - Cxx[0][2] * Cxx[1][1] * Cxx[2][0] * Cxx[3][3] + Cxx[0][1] * Cxx[1][2] * Cxx[2][0] * Cxx[3][3] + Cxx[0][2] * Cxx[1][0] * Cxx[2][1] * Cxx[3][3]
-		 - Cxx[0][0] * Cxx[1][2] * Cxx[2][1] * Cxx[3][3] - Cxx[0][1] * Cxx[1][0] * Cxx[2][2] * Cxx[3][3] + Cxx[0][0] * Cxx[1][1] * Cxx[2][2] * Cxx[3][3];
-}
-
-void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
-{
-	float determinant = Determinant_(Cxx) + 0.001f;
-
-	inv_Cxx[0][0] = Cxx[1][2]*Cxx[2][3]*Cxx[3][1] - Cxx[1][3]*Cxx[2][2]*Cxx[3][1] + Cxx[1][3]*Cxx[2][1]*Cxx[3][2] - Cxx[1][1]*Cxx[2][3]*Cxx[3][2] - Cxx[1][2]*Cxx[2][1]*Cxx[3][3] + Cxx[1][1]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[0][1] = Cxx[0][3]*Cxx[2][2]*Cxx[3][1] - Cxx[0][2]*Cxx[2][3]*Cxx[3][1] - Cxx[0][3]*Cxx[2][1]*Cxx[3][2] + Cxx[0][1]*Cxx[2][3]*Cxx[3][2] + Cxx[0][2]*Cxx[2][1]*Cxx[3][3] - Cxx[0][1]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[0][2] = Cxx[0][2]*Cxx[1][3]*Cxx[3][1] - Cxx[0][3]*Cxx[1][2]*Cxx[3][1] + Cxx[0][3]*Cxx[1][1]*Cxx[3][2] - Cxx[0][1]*Cxx[1][3]*Cxx[3][2] - Cxx[0][2]*Cxx[1][1]*Cxx[3][3] + Cxx[0][1]*Cxx[1][2]*Cxx[3][3];
-	inv_Cxx[0][3] = Cxx[0][3]*Cxx[1][2]*Cxx[2][1] - Cxx[0][2]*Cxx[1][3]*Cxx[2][1] - Cxx[0][3]*Cxx[1][1]*Cxx[2][2] + Cxx[0][1]*Cxx[1][3]*Cxx[2][2] + Cxx[0][2]*Cxx[1][1]*Cxx[2][3] - Cxx[0][1]*Cxx[1][2]*Cxx[2][3];
-	inv_Cxx[1][0] = Cxx[1][3]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][0]*Cxx[3][2] + Cxx[1][0]*Cxx[2][3]*Cxx[3][2] + Cxx[1][2]*Cxx[2][0]*Cxx[3][3] - Cxx[1][0]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[1][1] = Cxx[0][2]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][2]*Cxx[3][0] + Cxx[0][3]*Cxx[2][0]*Cxx[3][2] - Cxx[0][0]*Cxx[2][3]*Cxx[3][2] - Cxx[0][2]*Cxx[2][0]*Cxx[3][3] + Cxx[0][0]*Cxx[2][2]*Cxx[3][3];
-	inv_Cxx[1][2] = Cxx[0][3]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][0]*Cxx[3][2] + Cxx[0][0]*Cxx[1][3]*Cxx[3][2] + Cxx[0][2]*Cxx[1][0]*Cxx[3][3] - Cxx[0][0]*Cxx[1][2]*Cxx[3][3];
-	inv_Cxx[1][3] = Cxx[0][2]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][2]*Cxx[2][0] + Cxx[0][3]*Cxx[1][0]*Cxx[2][2] - Cxx[0][0]*Cxx[1][3]*Cxx[2][2] - Cxx[0][2]*Cxx[1][0]*Cxx[2][3] + Cxx[0][0]*Cxx[1][2]*Cxx[2][3];
-	inv_Cxx[2][0] = Cxx[1][1]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][1]*Cxx[3][0] + Cxx[1][3]*Cxx[2][0]*Cxx[3][1] - Cxx[1][0]*Cxx[2][3]*Cxx[3][1] - Cxx[1][1]*Cxx[2][0]*Cxx[3][3] + Cxx[1][0]*Cxx[2][1]*Cxx[3][3];
-	inv_Cxx[2][1] = Cxx[0][3]*Cxx[2][1]*Cxx[3][0] - Cxx[0][1]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][0]*Cxx[3][1] + Cxx[0][0]*Cxx[2][3]*Cxx[3][1] + Cxx[0][1]*Cxx[2][0]*Cxx[3][3] - Cxx[0][0]*Cxx[2][1]*Cxx[3][3];
-	inv_Cxx[2][2] = Cxx[0][1]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][1]*Cxx[3][0] + Cxx[0][3]*Cxx[1][0]*Cxx[3][1] - Cxx[0][0]*Cxx[1][3]*Cxx[3][1] - Cxx[0][1]*Cxx[1][0]*Cxx[3][3] + Cxx[0][0]*Cxx[1][1]*Cxx[3][3];
-	inv_Cxx[2][3] = Cxx[0][3]*Cxx[1][1]*Cxx[2][0] - Cxx[0][1]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][0]*Cxx[2][1] + Cxx[0][0]*Cxx[1][3]*Cxx[2][1] + Cxx[0][1]*Cxx[1][0]*Cxx[2][3] - Cxx[0][0]*Cxx[1][1]*Cxx[2][3];
-	inv_Cxx[3][0] = Cxx[1][2]*Cxx[2][1]*Cxx[3][0] - Cxx[1][1]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][0]*Cxx[3][1] + Cxx[1][0]*Cxx[2][2]*Cxx[3][1] + Cxx[1][1]*Cxx[2][0]*Cxx[3][2] - Cxx[1][0]*Cxx[2][1]*Cxx[3][2];
-	inv_Cxx[3][1] = Cxx[0][1]*Cxx[2][2]*Cxx[3][0] - Cxx[0][2]*Cxx[2][1]*Cxx[3][0] + Cxx[0][2]*Cxx[2][0]*Cxx[3][1] - Cxx[0][0]*Cxx[2][2]*Cxx[3][1] - Cxx[0][1]*Cxx[2][0]*Cxx[3][2] + Cxx[0][0]*Cxx[2][1]*Cxx[3][2];
-	inv_Cxx[3][2] = Cxx[0][2]*Cxx[1][1]*Cxx[3][0] - Cxx[0][1]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][0]*Cxx[3][1] + Cxx[0][0]*Cxx[1][2]*Cxx[3][1] + Cxx[0][1]*Cxx[1][0]*Cxx[3][2] - Cxx[0][0]*Cxx[1][1]*Cxx[3][2];
-	inv_Cxx[3][3] = Cxx[0][1]*Cxx[1][2]*Cxx[2][0] - Cxx[0][2]*Cxx[1][1]*Cxx[2][0] + Cxx[0][2]*Cxx[1][0]*Cxx[2][1] - Cxx[0][0]*Cxx[1][2]*Cxx[2][1] - Cxx[0][1]*Cxx[1][0]*Cxx[2][2] + Cxx[0][0]*Cxx[1][1]*Cxx[2][2];
-
-	inv_Cxx[0][0] /= determinant;
-	inv_Cxx[0][1] /= determinant;
-	inv_Cxx[0][2] /= determinant;
-	inv_Cxx[0][3] /= determinant;
-	inv_Cxx[1][0] /= determinant;
-	inv_Cxx[1][1] /= determinant;
-	inv_Cxx[1][2] /= determinant;
-	inv_Cxx[1][3] /= determinant;
-	inv_Cxx[2][0] /= determinant;
-	inv_Cxx[2][1] /= determinant;
-	inv_Cxx[2][2] /= determinant;
-	inv_Cxx[2][3] /= determinant;
-	inv_Cxx[3][0] /= determinant;
-	inv_Cxx[3][1] /= determinant;
-	inv_Cxx[3][2] /= determinant;
-	inv_Cxx[3][3] /= determinant;
-
-}
-
-
-	
-__kernel void EstimateAR4Models(__global float* AR1_Estimates, 
-                                __global float* AR2_Estimates, 
-								__global float* AR3_Estimates, 
-								__global float* AR4_Estimates, 
-								__global const float* fMRI_Volumes, 
-								__global const float* Mask, 
-								__private int DATA_W, 
-								__private int DATA_H, 
-								__private int DATA_D, 
-								__private int DATA_T,
-								__private int INVALID_TIMEPOINTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-        return;
-
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
-	{
-        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-
-		return;
-	}
-
-    int t = 0;
-	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-	float c0 = 0.0f;
-    float c1 = 0.0f;
-    float c2 = 0.0f;
-    float c3 = 0.0f;
-    float c4 = 0.0f;
-
-    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
-    c0 += old_value_1 * old_value_1;
-    old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
-    c0 += old_value_2 * old_value_2;
-    c1 += old_value_2 * old_value_1;
-    old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
-    c0 += old_value_3 * old_value_3;
-    c1 += old_value_3 * old_value_2;
-    c2 += old_value_3 * old_value_1;
-    old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
-    c0 += old_value_4 * old_value_4;
-    c1 += old_value_4 * old_value_3;
-    c2 += old_value_4 * old_value_2;
-    c3 += old_value_4 * old_value_1;
-
-    // Estimate c0, c1, c2, c3, c4
-    for (t = 4 + INVALID_TIMEPOINTS; t < DATA_T; t++)
-    {
-        // Read data into shared memory
-        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
-        
-        // Sum and multiply the values in shared memory
-        c0 += old_value_5 * old_value_5;
-        c1 += old_value_5 * old_value_4;
-        c2 += old_value_5 * old_value_3;
-        c3 += old_value_5 * old_value_2;
-        c4 += old_value_5 * old_value_1;
-
-		// Save old values
-        old_value_1 = old_value_2;
-        old_value_2 = old_value_3;
-        old_value_3 = old_value_4;
-        old_value_4 = old_value_5;
-    }
-
-    c0 /= ((float)DATA_T - 1.0f - (float)INVALID_TIMEPOINTS);
-    c1 /= ((float)DATA_T - 2.0f - (float)INVALID_TIMEPOINTS);
-    c2 /= ((float)DATA_T - 3.0f - (float)INVALID_TIMEPOINTS);
-    c3 /= ((float)DATA_T - 4.0f - (float)INVALID_TIMEPOINTS);
-    c4 /= ((float)DATA_T - 5.0f - (float)INVALID_TIMEPOINTS);
-
-    // Calculate alphas
-    float4 r, alphas;
-
-    if (c0 != 0.0f)
-    {
-        r.x = c1/c0;
-        r.y = c2/c0;
-        r.z = c3/c0;
-        r.w = c4/c0;
-
-        float matrix[4][4];
-        matrix[0][0] = 1.0f;
-        matrix[1][0] = r.x + 0.001f;
-        matrix[2][0] = r.y + 0.001f;
-        matrix[3][0] = r.z + 0.001f;
-
-        matrix[0][1] = r.x + 0.001f;
-        matrix[1][1] = 1.0f;
-        matrix[2][1] = r.x + 0.001f;
-        matrix[3][1] = r.y + 0.001f;
-
-        matrix[0][2] = r.y + 0.001f;
-        matrix[1][2] = r.x + 0.001f;
-        matrix[2][2] = 1.0f;
-        matrix[3][2] = r.x + 0.001f;
-
-        matrix[0][3] = r.z + 0.001f;
-        matrix[1][3] = r.y + 0.001f;
-        matrix[2][3] = r.x + 0.001f;
-        matrix[3][3] = 1.0f;
-
-		float inv_matrix[4][4];
-
-        Invert_4x4(matrix, inv_matrix);
-
-        alphas.x = inv_matrix[0][0] * r.x + inv_matrix[0][1] * r.y + inv_matrix[0][2] * r.z + inv_matrix[0][3] * r.w;
-        alphas.y = inv_matrix[1][0] * r.x + inv_matrix[1][1] * r.y + inv_matrix[1][2] * r.z + inv_matrix[1][3] * r.w;
-        alphas.z = inv_matrix[2][0] * r.x + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
-        alphas.w = inv_matrix[3][0] * r.x + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
-
-        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.x;
-		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.y;
-		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.z;
-		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.w;
-    }
-    else
-    {
-		AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-        AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-    }
-}
-
-
-__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, 
-                                __global float* fMRI_Volumes, 
-								__global const float* AR1_Estimates, 
-								__global const float* AR2_Estimates, 
-								__global const float* AR3_Estimates, 
-								__global const float* AR4_Estimates, 
-								__global const float* Mask, 
-								__private int DATA_W, 
-								__private int DATA_H, 
-								__private int DATA_D, 
-								__private int DATA_T,
-								__private int INVALID_TIMEPOINTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
-        return;
-
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
-		return;
-
-    int t = 0;
-	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-    float4 alphas;
-	alphas.x = AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.y = AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.z = AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.w = AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-
-	/*
-	float mean = 0.0f;
-	
-	for (int t = 0; t < DATA_T; t++)
-	{ 
-		mean += fMRI_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)];
-	}
-	mean /= (float)DATA_T;
-
-	for (int t = 0; t < DATA_T; t++)
-	{
-		fMRI_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] -= mean;
-	}
-	*/
-
-    // Calculate the whitened timeseries
-
-    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];	
-    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)] = old_value_1;
-    old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
-    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)] = old_value_2  - alphas.x * old_value_1;
-    old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
-    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)] = old_value_3 - alphas.x * old_value_2 - alphas.y * old_value_1;
-    old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
-    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)] = old_value_4 - alphas.x * old_value_3 - alphas.y * old_value_2 - alphas.z * old_value_1;
-
-    for (t = 4 + INVALID_TIMEPOINTS; t < DATA_T; t++)
-    {
-        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
-
-        Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
-
-		// Save old values
-        old_value_1 = old_value_2;
-        old_value_2 = old_value_3;
-        old_value_3 = old_value_4;
-        old_value_4 = old_value_5;
-    }
-
-	/*
-	for (int t = 0; t < DATA_T; t++)
-	{
-		Whitened_fMRI_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] += mean;
-	}
-	*/
-}
-
-__kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Volumes, 
-                                                __global const float* Whitened_fMRI_Volumes, 
-												__global const float* AR1_Estimates, 
-												__global const float* AR2_Estimates, 
-												__global const float* AR3_Estimates, 
-												__global const float* AR4_Estimates, 
-												__global const float* Mask, 
-												__constant unsigned short int *c_Permutation_Vector, 
-												__private int DATA_W, 
-												__private int DATA_H, 
-												__private int DATA_D, 
-												__private int DATA_T)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
-        return;
-
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
-		return;
-
-    int t = 0;
-	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
-	float4 alphas;
-	alphas.x = AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.y = AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.z = AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.w = AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-
-    old_value_1 = Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[0], DATA_W, DATA_H, DATA_D)];
-	old_value_2 = alphas.x * old_value_1  + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[1], DATA_W, DATA_H, DATA_D)];
-	old_value_3 = alphas.x * old_value_2  + alphas.y * old_value_1 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[2], DATA_W, DATA_H, DATA_D)];
-	old_value_4 = alphas.x * old_value_3  + alphas.y * old_value_2 + alphas.z * old_value_1 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[3], DATA_W, DATA_H, DATA_D)];
-
-    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)] =  old_value_1;
-    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)] =  old_value_2;
-    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 2, DATA_W, DATA_H, DATA_D)] =  old_value_3;
-    Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)] =  old_value_4;
-
-    // Read the data in a permuted order and apply an inverse whitening transform
-    for (t = 4; t < DATA_T; t++)
-    {
-        // Calculate the unwhitened, permuted, timeseries
-        old_value_5 = alphas.x * old_value_1 + alphas.y * old_value_2 + alphas.z * old_value_3 + alphas.w * old_value_4 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
-			
-        Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5;
-
-        // Save old values
-		old_value_1 = old_value_2;
-        old_value_2 = old_value_3;
-        old_value_3 = old_value_4;
-        old_value_4 = old_value_5;
-    }
-}
-
-__kernel void GeneratePermutedVolumesSecondLevel(__global float* Permuted_Volumes, 
-	                                             __global const float* Volumes, 
-												 __global const float* Mask, 
-												 __constant unsigned short int *c_Permutation_Vector, 
-												 __private int DATA_W, 
-												 __private int DATA_H, 
-												 __private int DATA_D, 
-												 __private int NUMBER_OF_SUBJECTS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
-        return;
-
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
-		return;
-
-    for (int v = 0; v < NUMBER_OF_SUBJECTS; v++)
-	{        					
-        Permuted_Volumes[Calculate4DIndex(x, y, z, v, DATA_W, DATA_H, DATA_D)] = Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[v], DATA_W, DATA_H, DATA_D)];
-    }
-}
-
-__kernel void ThresholdVolume(__global float* Thresholded_Volume, 
-	                          __global const float* Volume, 
-							  __private float threshold, 
-							  __private int DATA_W, 
-							  __private int DATA_H, 
-							  __private int DATA_D)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-        return;
-
-	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] >= threshold )
-	{
-		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
-	}
-	else
-	{
-		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.001f;
-	}
-}
-
-
-__kernel void RemoveLinearFit(__global float* Residual_Volumes, 
-                              __global const float* Volumes, 
-							  __global const float* Beta_Volumes, 
-							  __global const float* Mask, 
-							  __constant float *c_X_Detrend, 
-							  __private int DATA_W, 
-							  __private int DATA_H, 
-							  __private int DATA_D, 
-							  __private int NUMBER_OF_VOLUMES, 
-							  __private int NUMBER_OF_REGRESSORS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-	{
-		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-		{
-			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		}
-
-		return;
-	}
-	
-	float eps;
-	float beta[10];
-
-	// Load beta values into regressors
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{ 
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
-	}
-
-	// Calculate the residual
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{ 			
-			eps -= beta[r] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
-		}
-		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-	}
-}
-
-__kernel void RemoveMean(__global float* Volumes, 
-					     __private int DATA_W, 
-						 __private int DATA_H, 
-						 __private int DATA_D, 
-						 __private int NUMBER_OF_VOLUMES)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-
-	float mean = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		mean += Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-	}
-	mean /= (float)NUMBER_OF_VOLUMES;
-	
-	// Calculate the residual
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] -= mean;
-	}
-
-}

@@ -30,7 +30,7 @@ close all
 
 % Set some paths, depending on Windows or Linux
 if ispc
-    addpath('C:\nifti_matlab') % Change to your folder for nifti matlab
+    addpath('D:\nifti_matlab') % Change to your folder for nifti matlab
     basepath = '../test_data/fcon1000/classic/';
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab') % Change to your folder for nifti matlab
@@ -40,21 +40,23 @@ end
 
 % Select study and subject
 
-%study = 'Cambridge';
-%subject = 'sub00156'
+study = 'Cambridge';
+subject = 'sub00156'
 %subject = 'sub00294'
 %subject = 'sub01361'
-study = 'Beijing';
-subject = 'sub00440'
+
+%study = 'Beijing';
+%subject = 'sub00440'
 %subject = 'sub01018'
 %subject = 'sub01244'
+
 %study = 'ICBM';
 %subject = 'sub00448'
 %subject = 'sub00623'
 %subject = 'sub02382'
 
 % Set voxel size to work with (1 mm or 2 mm)
-voxel_size = 2;
+voxel_size = 1;
 
 % Select OpenCL platform and OpenCL device
 % (use GetOpenCLInfo to see your platforms and devices)
@@ -65,12 +67,20 @@ opencl_device = 0;
 number_of_iterations_for_parametric_image_registration = 10;
 number_of_iterations_for_nonparametric_image_registration = 10;
 coarsest_scale = 8/voxel_size;
-MM_T1_Z_CUT = 50*voxel_size; % Number of slices to cut from the initial T1 volume
+
+% Number of slices to cut from the initial T1 volume
+if (strcmp(study,'Cambridge')) 
+    MM_T1_Z_CUT = 30; 
+elseif (strcmp(study,'Beijing'))
+    MM_T1_Z_CUT = 50; 
+elseif (strcmp(study,'ICBM')) 
+    MM_T1_Z_CUT = 10;    
+end
+    
 
 % Load MNI template with skull
 MNI_nii = load_nii(['../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
 MNI = double(MNI_nii.img);
-MNI = MNI/max(MNI(:));
 [MNI_sy MNI_sx MNI_sz] = size(MNI);
 MNI_size = size(MNI);
 MNI_size
@@ -81,21 +91,17 @@ MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
 % Load MNI template without skull
 MNI_brain_nii = load_nii(['../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain.nii']);
 MNI_brain = double(MNI_brain_nii.img);
-MNI_brain = MNI_brain/max(MNI_brain(:));
 
 % Load MNI brain mask
 MNI_brain_mask_nii = load_nii(['../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm_brain_mask.nii']);
 MNI_brain_mask = double(MNI_brain_mask_nii.img);
-MNI_brain_mask = MNI_brain_mask/max(MNI_brain_mask(:));
 
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
 
 % Load T1 volume
 T1_nii = load_nii([basepath study '/'  subject '/anat/mprage_skullstripped.nii.gz']);
-
 T1 = double(T1_nii.img);
-T1 = T1/max(T1(:));
 [T1_sy T1_sx T1_sz] = size(T1);
 T1_size = size(T1);
 T1_size
@@ -151,7 +157,6 @@ affine_registration_parameters
 % Look at sagittal results
 slice = round(0.55*MNI_sy);
 figure; imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray; title('Original T1 volume, after interpolation to MNI voxel size and z cut')
-figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))')); colormap gray; title('Original skullstripped T1 volume')
 figure; imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray; title('Aligned T1 volume, parametric registration')
 figure; imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray; title('Aligned T1 volume, parametric + non-parametric registration')
 figure; imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray; title('MNI volume')
@@ -159,7 +164,6 @@ figure; imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray; title('M
 % Look at axial results
 slice = round(0.47*MNI_sz);
 figure; imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray; title('Original T1 volume, after interpolation to MNI voxel size and z cut')
-figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray; title('Original skullstripped T1 volume')
 figure; imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray; title('Aligned T1 volume, parametric registration')
 figure; imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray; title('Aligned T1 volume, parametric + non-parametric registration')
 figure; imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray; title('MNI volume')
