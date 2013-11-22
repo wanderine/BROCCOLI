@@ -39,6 +39,11 @@ int Calculate4DIndex(int x, int y, int z, int t, int DATA_W, int DATA_H, int DAT
 	return x + y * DATA_W + z * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D;
 }
 
+int Calculate5DIndex(int x, int y, int z, int t, int v, int DATA_W, int DATA_H, int DATA_D, int VALUES)
+{
+	return x + y * DATA_W + z * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D + v * DATA_W * DATA_H * DATA_D * VALUES;
+}
+
 // For parametric image registration
 void GetParameterIndices(int* i, int* j, int parameter)
 {
@@ -5596,6 +5601,295 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 	}
 }
 
+__kernel void CalculateGLMResiduals(__global float* Residuals,
+		                            __global const float* Volumes,
+		                            __global const float* Beta_Volumes,
+		                            __global const float* Mask,
+		                            __constant float *c_X_GLM,
+		                            __private int DATA_W,
+		                            __private int DATA_H,
+		                            __private int DATA_D,
+		                            __private int NUMBER_OF_VOLUMES,
+		                            __private int NUMBER_OF_REGRESSORS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+	// Calculate the residual
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+}
+
+__kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statistical_Maps,
+		                                       	   	   	 __global float* Residuals,
+		                                       	   	   	 __global float* Residual_Variances,
+		                                       	   	   	 __global const float* Volumes,
+		                                       	   	   	 __global const float* Beta_Volumes,
+		                                       	   	   	 __global const float* Mask,
+		                                       	   	   	 __global const float* d_X_GLM,
+		                                       	   	   	 __global const float* d_GLM_Scalars,
+		                                       	   	   	 __global const float* d_Voxel_Numbers,
+		                                       	   	   	 __constant float* c_Contrasts,
+		                                       	   	   	 __constant float* c_Censored_Timepoints,
+		                                       	   	   	 __private int DATA_W,
+		                                       	   	   	 __private int DATA_H,
+		                                       	   	   	 __private int DATA_D,
+		                                       	   	   	 __private int NUMBER_OF_VOLUMES,
+		                                       	   	   	 __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   	 __private int NUMBER_OF_CONTRASTS,
+		                                       	   	   	 __private int NUMBER_OF_CENSORED_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+    // Get the specific voxel number for this brain voxel
+    int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+
+	// Calculate the mean of the error eps, using voxel-specific design models
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		eps *= c_Censored_Timepoints[v];
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+	//meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
+	meaneps /= ((float)NUMBER_OF_VOLUMES);
+
+
+	// Now calculate the variance of eps, using voxel-specific design models
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+		//vareps += (eps - meaneps) * (eps - meaneps);
+	}
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
+	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
+
+	// Loop over contrasts and calculate t-values, using a voxel-specific GLM scalar
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * d_GLM_Scalars[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)]);
+	}
+}
+
+__kernel void CalculateStatisticalMapsGLMFTestFirstLevel(__global float* Statistical_Maps,
+		                                       	   	   	 __global float* Residuals,
+		                                       	   	   	 __global float* Residual_Variances,
+		                                       	   	   	 __global const float* Volumes,
+		                                       	   	   	 __global const float* Beta_Volumes,
+		                                       	   	   	 __global const float* Mask,
+		                                       	   	   	 __global const float* d_X_GLM,
+		                                       	   	   	 __global const float* d_GLM_Scalars,
+		                                       	   	   	 __global const float* d_Voxel_Numbers,
+		                                       	   	   	 __constant float* c_Contrasts,
+		                                       	   	   	 __constant float* c_Censored_Timepoints,
+		                                       	   	   	 __private int DATA_W,
+		                                       	   	   	 __private int DATA_H,
+		                                       	   	   	 __private int DATA_D,
+		                                       	   	   	 __private int NUMBER_OF_VOLUMES,
+		                                       	   	   	 __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   	 __private int NUMBER_OF_CONTRASTS,
+		                                       	   	   	 __private int NUMBER_OF_CENSORED_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+    // Get the specific voxel number for this brain voxel
+    int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+
+	// Calculate the mean of the error eps, using voxel-specific design models
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		eps *= c_Censored_Timepoints[v];
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+	//meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
+	meaneps /= ((float)NUMBER_OF_VOLUMES);
+
+
+	// Now calculate the variance of eps, using voxel-specific design models
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+	}
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
+	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
+
+	// Calculate matrix vector product C*beta (minus u)
+	float cbeta[25];
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		cbeta[c] = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+	}
+
+	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		beta[c] = 0.0f;
+		for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+		{
+			//beta[c] += 1.0f/vareps * c_ctxtxc_GLM[cc + c * NUMBER_OF_CONTRASTS] * cbeta[cc];
+			beta[c] += 1.0f/vareps * d_GLM_Scalars[Calculate4DIndex(x,y,z,cc + c * NUMBER_OF_CONTRASTS,DATA_W,DATA_H,DATA_D)] * cbeta[cc];
+		}
+	}
+
+	// Finally calculate (C*beta)^T * temp
+	float scalar = 0.0f;
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		scalar += cbeta[c] * beta[c];
+	}
+
+	// Save F-value
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
+}
+
 // Unoptimized kernel for calculating t-values, not a problem for regular first and second level analysis
 
 __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
@@ -5695,7 +5989,7 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 		{
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
 		}
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);		
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
 	}
 }
 

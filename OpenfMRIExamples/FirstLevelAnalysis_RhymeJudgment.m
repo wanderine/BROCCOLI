@@ -39,7 +39,7 @@ if ispc
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/OpenfMRI/';    
-    opencl_platform = 1; 
+    opencl_platform = 2; 
     opencl_device = 0;
     %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
@@ -57,13 +57,13 @@ end
 
 voxel_size = 2;
 beta_space = 0; % 0 = EPI, 1 = MNI
-save_as_nifti = 0; % Save statistical map as nifti file or not
+save_as_nifti = 1; % Save statistical map as nifti file or not
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
 %--------------------------------------------------------------------------------------
 
-use_temporal_derivatives = 0;
+use_temporal_derivatives = 1;
 regress_motion = 1;
 regress_confounds = 0;
 
@@ -175,7 +175,6 @@ end
     
 xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
-xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 
 %--------------------------------------------------------------------------------------
 % Load confound regressors
@@ -287,7 +286,7 @@ legend('X','Y','Z')
 if beta_space == 1
     slice = round(0.5*MNI_sz);
 else
-   slice = round(EPI_sz/2); 
+   slice = round(EPI_sz/2);  -6.046
 end
 
 
@@ -352,11 +351,11 @@ figure
 imagesc(design_matrix1); colormap gray
 title('Design matrix')
 
-%figure
-%imagesc(ar1_estimates(:,:,30)); colorbar
+figure
+imagesc(ar1_estimates(:,:,slice)); colorbar
 
-%figure
-%imagesc(ar2_estimates(:,:,30)); colorbar
+figure
+imagesc(ar2_estimates(:,:,slice)); colorbar
  
 %figure
 %imagesc(ar3_estimates(:,:,30)); colorbar
@@ -395,8 +394,10 @@ if save_as_nifti == 1
 	new_file.original.hdr.dime.bitpix = 32;
 
 	new_file.img = single(statistical_maps_flipped);    
-	filename = ['BROCCOLI_statistical_map.nii'];
+	filename = ['BROCCOLI_statistical_map_10co_iterations.nii'];
+    %filename = ['BROCCOLI_statistical_map_no_whitening.nii'];
 	save_nii(new_file,filename);
-end
+
+end
 
 

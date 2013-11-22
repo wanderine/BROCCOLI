@@ -50,7 +50,7 @@ end
 
 study = 'RhymeJudgment/ds003';
 
-subject = 1; %5 has bad skullstrip
+subject = 1; 
 
 if subject < 10
     subject = ['/sub00' num2str(subject)];
@@ -234,7 +234,6 @@ for regressor = 1:2
     X_GLM(:,regressor) = temp(1:st);
 end
 
-
 X_GLM(:,3) = ones(st,1);
 X_GLM(:,4) = -(st-1)/2:(st-1)/2; a = X_GLM(:,4); X_GLM(:,4) = X_GLM(:,4) / max(a(:));
 X_GLM(:,5) = X_GLM(:,4) .* X_GLM(:,4); a = X_GLM(:,5); X_GLM(:,5) = X_GLM(:,5) / max(a(:));
@@ -247,26 +246,69 @@ xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
 %-----------------------------------------------------------------------
 
 contrasts = zeros(3,size(X_GLM,2));
-contrasts(1,:) = [1 0 0 4 -3 0];
-contrasts(2,:) = [0 1 0 -2 0 0];
-contrasts(3,:) = [1 3 0 0 0 2];
+contrasts(1,:) = [1 0 0 0 0 0];
+contrasts(2,:) = [0 1 0 0 0 0];
+contrasts(3,:) = [1 0 0 1 0 0];
 
 ctxtxc_GLM = inv(contrasts*inv(X_GLM'*X_GLM)*contrasts')
 
 %-----------------------------------------------------------------------
-% Calculate statistical maps
+% Allocate memory
 %-----------------------------------------------------------------------
 
-[sy sx sz st] = size(fMRI_volumes)
-
-statistical_maps_cpu = zeros(sy,sx,sz);
+statistical_maps_cpu_no_whitening = zeros(sy,sx,sz);
+statistical_maps_cpu_co = zeros(sy,sx,sz);
+betas_cpu_no_whitening = zeros(sy,sx,sz,size(X_GLM,2));
 betas_cpu = zeros(sy,sx,sz,size(X_GLM,2));
+
 residuals_cpu = zeros(sy,sx,sz,st);
+residuals_cpu_co = zeros(sy,sx,sz,st-4);
+residual_variances_cpu_no_whitening = zeros(sy,sx,sz);
 residual_variances_cpu = zeros(sy,sx,sz);
+residual_variances_cpu_co = zeros(sy,sx,sz);
 ar1_estimates_cpu = zeros(sy,sx,sz);
 ar2_estimates_cpu = zeros(sy,sx,sz);
 ar3_estimates_cpu = zeros(sy,sx,sz);
 ar4_estimates_cpu = zeros(sy,sx,sz);
+ar1_estimates_cpu_co = zeros(sy,sx,sz);
+ar2_estimates_cpu_co = zeros(sy,sx,sz);
+ar3_estimates_cpu_co = zeros(sy,sx,sz);
+ar4_estimates_cpu_co = zeros(sy,sx,sz);
+
+%-----------------------------------------------------------------------
+% Calculate statistical maps, no whitening
+%-----------------------------------------------------------------------
+
+% Loop over voxels
+disp('Calculating statistical maps, no whitening')
+tic
+for x = 1:sx
+    for y = 1:sy
+        for z = 1:sz
+            if brain_mask(y,x,z) == 1
+                
+                % Calculate beta values
+                timeseries = squeeze(fMRI_volumes(y,x,z,:));                
+                beta = xtxxt_GLM * timeseries;
+                betas_cpu_no_whitening(y,x,z,:) = beta;
+                
+                % Calculate t-values and residuals                
+                residuals = timeseries - X_GLM*beta;
+                residual_variances_cpu_no_whitening(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - 1);
+                
+                % F-test
+                statistical_maps_cpu_no_whitening(y,x,z) = (contrasts*beta)' * 1/residual_variances_cpu_no_whitening(y,x,z) * ctxtxc_GLM * (contrasts*beta) / size(contrasts,1);
+                
+            end
+        end
+    end
+end
+toc
+
+%-----------------------------------------------------------------------
+% Calculate statistical maps, Cochrane-Orcutt
+%-----------------------------------------------------------------------
+
 
 whitened_fMRI_volumes = fMRI_volumes;
 
@@ -290,7 +332,7 @@ for it = 1:1
     % Calculate statistical maps
     
     % Loop over voxels
-    disp('Calculating statistical maps')
+    disp('Doing Cochrane-Orcutt iterations')
     tic
     for x = 1:sx
         for y = 1:sy
@@ -306,13 +348,8 @@ for it = 1:1
                     % Calculate t-values and residuals, using original data and the original model
                     timeseries = squeeze(fMRI_volumes(y,x,z,:));
                     residuals = timeseries - X_GLM*beta;
-                    residuals_cpu(y,x,z,:) = residuals;
-                    residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - size(X_GLM,2) - 1);
-                    %residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - 1);
+                    residuals_cpu(y,x,z,:) = residuals;                                                            
                     
-                    %F-test
-                    statistical_maps_cpu(y,x,z) = (contrasts*beta)' * 1/residual_variances_cpu(y,x,z) * ctxtxc_GLM * (contrasts*beta) / size(contrasts,1);
-                                
                 end
             end
         end
@@ -420,12 +457,12 @@ for it = 1:1
     smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
     ar1_estimates_cpu = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
     ar1_estimates_cpu = ar1_estimates_cpu .* brain_mask;
-
+    
     smoothed_volume = convn(ar2_estimates_cpu .* brain_mask,smoothing_filter_xx,'same');
     smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
     ar2_estimates_cpu = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
     ar2_estimates_cpu = ar2_estimates_cpu .* brain_mask;
-
+    
     smoothed_volume = convn(ar3_estimates_cpu .* brain_mask,smoothing_filter_xx,'same');
     smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
     ar3_estimates_cpu = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
@@ -436,6 +473,12 @@ for it = 1:1
     ar4_estimates_cpu = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
     ar4_estimates_cpu = ar4_estimates_cpu .* brain_mask;
     toc
+    
+    %ar1_estimates_cpu = ar1_estimates_cpu * 0;
+    %ar2_estimates_cpu = ar2_estimates_cpu * 0;
+    %ar3_estimates_cpu = ar3_estimates_cpu * 0;
+    %ar4_estimates_cpu = ar4_estimates_cpu * 0;
+    
     % Apply whitening to data
     
     % Loop over voxels
@@ -503,7 +546,7 @@ for it = 1:1
                             old_value_3 = old_value_4;
                             old_value_4 = old_value_5;
                             
-                        end                                                                        
+                        end
                         
                     end
                     
@@ -523,6 +566,158 @@ for it = 1:1
     
 end
 
+INVALID_TIMEPOINTS = 4;
+
+
+% Loop over voxels
+disp('Calculating statistical maps, Cochrane-Orcutt')
+tic
+for x = 1:sx
+    for y = 1:sy
+        for z = 1:sz
+            if brain_mask(y,x,z) == 1
+                
+                % Calculate beta values, using whitened data and the whitened voxel-specific models
+                whitened_timeseries = squeeze(whitened_fMRI_volumes(y,x,z,(INVALID_TIMEPOINTS+1):end));
+                whitened_xtxxt_GLM = squeeze(whitened_xtxxt_GLMs(y,x,z,:,(INVALID_TIMEPOINTS+1):end));
+                beta = whitened_xtxxt_GLM * whitened_timeseries;
+                betas_cpu(y,x,z,:) = beta;
+                
+                % Calculate t-values and residuals, using whitened data and the whitened voxel-specific models
+                whitened_X_GLM = squeeze(whitened_X_GLMs_cpu(y,x,z,(INVALID_TIMEPOINTS+1):end,:));
+                residuals = whitened_timeseries - whitened_X_GLM*beta;
+                residuals_cpu_co(y,x,z,:) = residuals;
+                residual_variances_cpu_co(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - 1);
+                
+                % F-test
+                contrast_values = inv(contrasts*inv(whitened_X_GLM'*whitened_X_GLM)*contrasts');  
+                statistical_maps_cpu_co(y,x,z) = (contrasts*beta)' * 1/residual_variances_cpu_co(y,x,z) * contrast_values * (contrasts*beta) / size(contrasts,1);
+                
+            end
+        end
+    end
+end
+toc
+
+% Estimate auto correlation from residuals
+% Loop over voxels
+disp('Estimating AR parameters,co')
+tic
+for x = 1:sx
+    for y = 1:sy
+        for z = 1:sz
+            if brain_mask(y,x,z) == 1
+                
+                c0 = 0; c1 = 0; c2 = 0; c3 = 0; c4 = 0;
+                
+                old_value_1 = residuals_cpu_co(y,x,z,1);
+                c0 = c0 + old_value_1 * old_value_1;
+                
+                old_value_2 = residuals_cpu_co(y,x,z,2);
+                c0 = c0 + old_value_2 * old_value_2;
+                c1 = c1 + old_value_2 * old_value_1;
+                
+                old_value_3 = residuals_cpu_co(y,x,z,3);
+                c0 = c0 + old_value_3 * old_value_3;
+                c1 = c1 + old_value_3 * old_value_2;
+                c2 = c2 + old_value_3 * old_value_1;
+                
+                old_value_4 = residuals_cpu_co(y,x,z,4);
+                c0 = c0 + old_value_4 * old_value_4;
+                c1 = c1 + old_value_4 * old_value_3;
+                c2 = c2 + old_value_4 * old_value_2;
+                c3 = c3 + old_value_4 * old_value_1;
+                
+                % Estimate c0, c1, c2, c3, c4
+                for t = 1:(st-INVALID_TIMEPOINTS)
+                    
+                    % Read old value
+                    old_value_5 = residuals_cpu_co(y,x,z,t);
+                    
+                    % Sum and multiply the values
+                    c0 = c0 + old_value_5 * old_value_5;
+                    c1 = c1 + old_value_5 * old_value_4;
+                    c2 = c2 + old_value_5 * old_value_3;
+                    c3 = c3 + old_value_5 * old_value_2;
+                    c4 = c4 + old_value_5 * old_value_1;
+                    
+                    % Save old values
+                    old_value_1 = old_value_2;
+                    old_value_2 = old_value_3;
+                    old_value_3 = old_value_4;
+                    old_value_4 = old_value_5;
+                end
+                
+                c0 = c0 / (st - 1 - INVALID_TIMEPOINTS);
+                c1 = c1 / (st - 2 - INVALID_TIMEPOINTS);
+                c2 = c2 / (st - 3 - INVALID_TIMEPOINTS);
+                c3 = c3 / (st - 4 - INVALID_TIMEPOINTS);
+                c4 = c4 / (st - 5 - INVALID_TIMEPOINTS);
+                
+                r1 = c1/c0;
+                r2 = c2/c0;
+                r3 = c3/c0;
+                r4 = c4/c0;
+                
+                R = zeros(4,4);
+                R(1,1) = 1;
+                R(1,2) = r1;
+                R(1,3) = r2;
+                R(1,4) = r3;
+                
+                R(2,1) = r1;
+                R(2,2) = 1;
+                R(2,3) = r1;
+                R(2,4) = r2;
+                
+                R(3,1) = r2;
+                R(3,2) = r1;
+                R(3,3) = 1;
+                R(3,4) = r1;
+                
+                R(4,1) = r3;
+                R(4,2) = r2;
+                R(4,3) = r1;
+                R(4,4) = 1;
+                
+                % Get AR parameters
+                AR = inv(R) * [r1; r2; r3; r4];
+                ar1_estimates_cpu_co(y,x,z) = AR(1);
+                ar2_estimates_cpu_co(y,x,z) = AR(2);
+                ar3_estimates_cpu_co(y,x,z) = AR(3);
+                ar4_estimates_cpu_co(y,x,z) = AR(4);
+                
+            end
+        end
+    end
+end
+toc
+
+% Smooth AR estimates, using normalized convolution
+disp('Smoothing AR parameters, co')
+tic
+smoothed_volume = convn(ar1_estimates_cpu_co .* brain_mask,smoothing_filter_xx,'same');
+smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
+ar1_estimates_cpu_co = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
+ar1_estimates_cpu_co = ar1_estimates_cpu_co .* brain_mask;
+
+smoothed_volume = convn(ar2_estimates_cpu_co.* brain_mask,smoothing_filter_xx,'same');
+smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
+ar2_estimates_cpu_co = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
+ar2_estimates_cpu_co = ar2_estimates_cpu_co .* brain_mask;
+
+smoothed_volume = convn(ar3_estimates_cpu_co .* brain_mask,smoothing_filter_xx,'same');
+smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
+ar3_estimates_cpu_co = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
+ar3_estimates_cpu_co = ar3_estimates_cpu_co .* brain_mask;
+
+smoothed_volume = convn(ar4_estimates_cpu_co .* brain_mask,smoothing_filter_xx,'same');
+smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
+ar4_estimates_cpu_co = convn(smoothed_volume,smoothing_filter_zz,'same') ./ (smoothed_mask+0.01);
+ar4_estimates_cpu_co = ar4_estimates_cpu_co .* brain_mask;
+
+
+
 tic
 [betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ...
     ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl, ...
@@ -538,25 +733,41 @@ for r = 1:size(X_GLM,2)
     betas_opencl(:,:,:,r) = betas_opencl(:,:,:,r) .* brain_mask;
 end
 
+statistical_maps_cpu_co = statistical_maps_cpu_co .* brain_mask;
+statistical_maps_opencl = statistical_maps_opencl .* brain_mask;
+
 figure
 imagesc([betas_cpu(:,:,slice,1) betas_opencl(:,:,slice,1)]); colorbar
 title('Beta')
 
-figure
+figure(1)
 imagesc([betas_cpu(:,:,slice,1) - betas_opencl(:,:,slice,1)]); colorbar
 title('Beta diff')
 
 figure
-imagesc([residual_variances_cpu(:,:,slice) residual_variances_opencl(:,:,slice)]); colorbar
+imagesc([residual_variances_cpu_co(:,:,slice) residual_variances_opencl(:,:,slice)]); colorbar
 title('Residual variances')
 
 figure
-imagesc([statistical_maps_cpu(:,:,slice) statistical_maps_opencl(:,:,slice)]); colorbar
+imagesc([residual_variances_cpu_co(:,:,slice) - residual_variances_opencl(:,:,slice)]); colorbar
+title('Residual variances diff')
+
+for slice = 20:20
+figure(1)
+imagesc([statistical_maps_cpu_co(:,:,slice)  statistical_maps_opencl(:,:,slice)]); colorbar
 title('Statistical map')
+pause(1)
+end
+
+slice = 20;
 
 figure
-imagesc([statistical_maps_cpu(:,:,slice) - statistical_maps_opencl(:,:,slice)]); colorbar
+imagesc([statistical_maps_cpu_co(:,:,slice) - statistical_maps_opencl(:,:,slice)]); colorbar
 title('Statistical map diff')
+
+figure
+imagesc([ (statistical_maps_cpu_co(:,:,slice) - statistical_maps_opencl(:,:,slice)) ./ statistical_maps_cpu_co(:,:,slice)]); colorbar
+title('Relative statistical map diff')
 
 figure
 imagesc([ar1_estimates_cpu(:,:,slice) ar1_estimates_opencl(:,:,slice) ]); colorbar
@@ -583,8 +794,9 @@ residual_max_error = max(abs(residuals_cpu(:) - residuals_opencl(:)))
 residual_variances_tot_error = sum(abs(residual_variances_cpu(:) - residual_variances_opencl(:)))
 residual_variances_max_error = max(abs(residual_variances_cpu(:) - residual_variances_opencl(:)))
 
-stat_tot_error = sum(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
-stat_max_error = max(abs(statistical_maps_cpu(:) - statistical_maps_opencl(:)))
+stat_tot_error = sum(abs(statistical_maps_cpu_co(:) - statistical_maps_opencl(:)))
+stat_max_error = max(abs(statistical_maps_cpu_co(:) - statistical_maps_opencl(:)))
+stat_mean_error = sum(abs(statistical_maps_cpu_co(:) - statistical_maps_opencl(:)))/sum(brain_mask(:))
 
 % for slice = 1:sz
 %    a = betas_cpu(:,:,slice,1);
