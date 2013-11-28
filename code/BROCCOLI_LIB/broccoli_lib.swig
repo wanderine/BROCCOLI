@@ -11,6 +11,8 @@
 
 %include "broccoli_lib.h"
 
+typedef unsigned int cl_uint;
+
 %extend Coords3D
 {
     int __getitem__(int i) const
