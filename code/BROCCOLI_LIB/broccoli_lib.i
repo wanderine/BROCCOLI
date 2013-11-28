@@ -8,7 +8,8 @@
 
 %include exception.i
 
-%typemap(in) float * {
+%typemap(in) float *
+{
     /* Check if is a list */
     if (PyList_Check($input)) {
         int size = PyList_Size($input);
@@ -39,6 +40,14 @@
         PyErr_SetString(PyExc_TypeError,"not a list");
         return NULL;
     }
+}
+
+%typemap(out) int *
+{
+  $result = PyList_New(200);
+  for (int i = 0; i < 200; ++i) {
+      PyList_SetItem($result, i, PyInt_FromLong($1[i]));
+  }
 }
 
 %ignore Coords3D::operator[];
