@@ -14,7 +14,7 @@
         return (*$self)[i];
     }
     
-    void __setitem(int i, int v)
+    void __setitem__(int i, int v)
     {
         (*$self)[i] = v;
     }
