@@ -7,8 +7,41 @@
 /* Parse the header file to generate wrappers */
 
 %include exception.i
-%ignore Coords3D::operator[];
 
+%typemap(in) float * {
+    /* Check if is a list */
+    if (PyList_Check($input)) {
+        int size = PyList_Size($input);
+        int i = 0;
+        $1 = (float*) malloc((size)*sizeof(float *));
+        for (i = 0; i < size; i++)
+        {
+            PyObject *o = PyList_GetItem($input,i);
+            if (PyFloat_Check(o))
+            {
+                $1[i] = (float)PyFloat_AsDouble(PyList_GetItem($input,i));
+            }
+            else if (PyInt_Check(o))
+            {
+                $1[i] = (float)PyInt_AsLong(PyList_GetItem($input,i));
+            }
+            else
+            {
+                PyErr_SetString(PyExc_TypeError,"list must contain only numbers");
+                free($1);
+                return NULL;
+            }
+        }
+        $1[i] = 0;
+    }
+    else 
+    {
+        PyErr_SetString(PyExc_TypeError,"not a list");
+        return NULL;
+    }
+}
+
+%ignore Coords3D::operator[];
 %include "broccoli_lib.h"
 
 typedef unsigned int cl_uint;

@@ -4,7 +4,7 @@ BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 OPENCL_DIRECTORY=/usr/include/CL #Containing opencl.h
 PYTHON_DIRECTORY=/usr/include/python2.7
 
-swig -c++ -python broccoli_lib.swig
+swig -c++ -python broccoli_lib.i
 
 # Compile BROCCOLI
 nvcc -I${OPENCL_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -O3 -m64 -Xcompiler -fPIC -c -o broccoli_lib.o broccoli_lib.cpp
