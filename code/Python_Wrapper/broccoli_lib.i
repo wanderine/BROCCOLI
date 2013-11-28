@@ -1,7 +1,7 @@
 %module broccoli
 %{
   /* Includes the header in the wrapper code */
-  #include "broccoli_lib.h"
+  #include "../BROCCOLI_LIB/broccoli_lib.h"
 %}
  
 /* Parse the header file to generate wrappers */
@@ -51,7 +51,7 @@
 }
 
 %ignore Coords3D::operator[];
-%include "broccoli_lib.h"
+%include "../BROCCOLI_LIB/broccoli_lib.h"
 
 typedef unsigned int cl_uint;
 
