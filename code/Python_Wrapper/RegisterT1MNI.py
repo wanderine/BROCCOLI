@@ -48,6 +48,14 @@ class BROCCOLI_EXT(broccoli.BROCCOLI_LIB):
       args.append(real)
       args.append(imag)
     broccoli.BROCCOLI_LIB.SetNonParametricImageRegistrationFilters(self, *args)
+    
+  def SetProjectionTensorMatrixFilters(self, filters):
+    self.SetProjectionTensorMatrixFirstFilter(*filters[0])
+    self.SetProjectionTensorMatrixSecondFilter(*filters[1])
+    self.SetProjectionTensorMatrixThirdFilter(*filters[2])
+    self.SetProjectionTensorMatrixFourthFilter(*filters[3])
+    self.SetProjectionTensorMatrixFifthFilter(*filters[4])
+    self.SetProjectionTensorMatrixSixthFilter(*filters[5])
 
   def printErrors(self):
     print("Get platform IDs error is %d" % self.GetOpenCLPlatformIDsError())
@@ -107,6 +115,8 @@ def registerT1MNI(
   BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_Parametric_Registration)
   BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_NonParametric_Registration)
   
+  BROCCOLI.SetFilterDirections(*h_Filter_Directions)
+  
 if __name__ == "__main__":
   size3 = [1, 1, 1]
   size1 = [1]
@@ -118,8 +128,8 @@ if __name__ == "__main__":
     data,
     [Array(data, size3) for i in range(3)],
     [Array(data, size3) for i in range(6)],
-    [Array(data, size3) for i in range(6)],
-    [Array(data, size3) for i in range(3)],
+    [data for i in range(6)],
+    [data for i in range(3)],
     10,
     10,
     10,
