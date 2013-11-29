@@ -30,24 +30,42 @@ class BROCCOLI_EXT(broccoli.BROCCOLI_LIB):
     self.SetMNIVoxelSizeY(array.dimensions[1])
     self.SetMNIVoxelSizeZ(array.dimensions[2])
     self.SetInputMNIVolume(array.data)
+    
+  def SetParametricImageRegistrationFilters(self, filters):
+    args = []
+    for i in range(3):
+      real = [c.real for c in filters[i].data]
+      imag = [c.imag for c in filters[i].data]
+      args.append(real)
+      args.append(imag)
+    broccoli.BROCCOLI_LIB.SetParametricImageRegistrationFilters(self, *args)
+    
+  def SetNonParametricImageRegistrationFilters(self, filters):
+    args = []
+    for i in range(6):
+      real = [c.real for c in filters[i].data]
+      imag = [c.imag for c in filters[i].data]
+      args.append(real)
+      args.append(imag)
+    broccoli.BROCCOLI_LIB.SetNonParametricImageRegistrationFilters(self, *args)
 
-def printErrors(BROCCOLI):
-  print("Get platform IDs error is %d" % BROCCOLI.GetOpenCLPlatformIDsError())
-  print("Get device IDs error is %d" % BROCCOLI.GetOpenCLDeviceIDsError())
-  print("Create context error is %d" % BROCCOLI.GetOpenCLCreateContextError())
-  print("Get create context info error is %d" % BROCCOLI.GetOpenCLContextInfoError())
-  print("Create command queue error is %d" % BROCCOLI.GetOpenCLCreateCommandQueueError())
-  print("Create program error is %d" % BROCCOLI.GetOpenCLCreateProgramError())
-  print("Build program error is %d" % BROCCOLI.GetOpenCLBuildProgramError())
-  print("Get program build info error is %d" % BROCCOLI.GetOpenCLProgramBuildInfoError())
-  
-  numOpenKernels = BROCCOLI.GetNumberOfOpenCLKernels()
-  createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors()
-  
-  for i in range(numOpenKernels):
-    error = createKernelErrors[i]
-    if error:
-      print("Run kernel error %d is %d" % (i, error))
+  def printErrors(self):
+    print("Get platform IDs error is %d" % self.GetOpenCLPlatformIDsError())
+    print("Get device IDs error is %d" % self.GetOpenCLDeviceIDsError())
+    print("Create context error is %d" % self.GetOpenCLCreateContextError())
+    print("Get create context info error is %d" % self.GetOpenCLContextInfoError())
+    print("Create command queue error is %d" % self.GetOpenCLCreateCommandQueueError())
+    print("Create program error is %d" % self.GetOpenCLCreateProgramError())
+    print("Build program error is %d" % self.GetOpenCLBuildProgramError())
+    print("Get program build info error is %d" % self.GetOpenCLProgramBuildInfoError())
+    
+    numOpenKernels = self.GetNumberOfOpenCLKernels()
+    createKernelErrors = self.GetOpenCLCreateKernelErrors()
+    
+    for i in range(numOpenKernels):
+      error = createKernelErrors[i]
+      if error:
+        print("Run kernel error %d is %d" % (i, error))
 
 def registerT1MNI(
     h_T1_Data,          # Array
@@ -70,7 +88,7 @@ def registerT1MNI(
   ok = BROCCOLI.GetOpenCLInitiated()
   
   if ok == 0:
-    printErrors(BROCCOLI)
+    BROCCOLI.printErrors()
     print("OpenCL initialization failed, aborting")
     return
 
@@ -85,6 +103,9 @@ def registerT1MNI(
   BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION)
   BROCCOLI.SetNumberOfIterationsForNonParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION)
   BROCCOLI.SetImageRegistrationFilterSize(h_Quadrature_Filter_Parametric_Registration[0].dimensions[0])
+  
+  BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_Parametric_Registration)
+  BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_NonParametric_Registration)
   
 if __name__ == "__main__":
   size3 = [1, 1, 1]
