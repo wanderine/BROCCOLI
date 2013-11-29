@@ -107,7 +107,7 @@ def registerT1MNI(
   BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain)
   BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask)
   
-  BROCCOLI.SetInterpolationMode(1) # Linear
+  BROCCOLI.SetInterpolationMode(broccoli.LINEAR) # Linear
   BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION)
   BROCCOLI.SetNumberOfIterationsForNonParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION)
   BROCCOLI.SetImageRegistrationFilterSize(h_Quadrature_Filter_Parametric_Registration[0].dimensions[0])

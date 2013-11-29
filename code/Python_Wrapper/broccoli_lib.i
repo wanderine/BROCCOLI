@@ -51,6 +51,7 @@
 }
 
 %ignore Coords3D::operator[];
+%include "../BROCCOLI_LIB/broccoli_constants.h"
 %include "../BROCCOLI_LIB/broccoli_lib.h"
 
 typedef unsigned int cl_uint;
