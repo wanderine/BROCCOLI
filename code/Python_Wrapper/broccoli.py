@@ -1,72 +1,42 @@
 from broccoli_base import *
 import numpy
-
-def floatArrayFromList(lst):
-  if isinstance(lst, numpy.ndarray):
-    lst = lst.flatten()
-    
-  n = len(lst)
-  array = floatArray(n)
-    
-  for i in range(n):
-    array[i] = float(lst[i])
-  return array
-
-class Array:
-  def __init__(self, data, dimensions = None, voxel_sizes = None):
-    self.data = data
-    if dimensions is None:
-      self.dimensions = data.shape
-    else:
-      self.dimensions = dimensions
-    if voxel_sizes:
-      self.voxel_sizes = voxel_sizes
-    else:
-      self.voxel_sizes = [1 for i in self.dimensions]
-      
-  def toFloatArray(self):
-    return floatArrayFromList(self.data)
-  
-def arrayFromNifti(img, voxel_sizes = None):
-  return Array(img.get_data(), img.shape, voxel_sizes)
     
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
+
+def packArray(array):
+  return array.astype(numpy.float32).flatten()
     
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
-  def SetT1Data(self, array):
-    self.SetT1Width(array.dimensions[0])
-    self.SetT1Height(array.dimensions[1])
-    self.SetT1Depth(array.dimensions[2])
-    self.SetT1VoxelSizeX(array.voxel_sizes[0])
-    self.SetT1VoxelSizeY(array.voxel_sizes[1])
-    self.SetT1VoxelSizeZ(array.voxel_sizes[2])
-    self.SetInputT1Volume(array.toFloatArray())
+  def SetT1Data(self, array, voxel_sizes):
+    self.SetT1Width(array.shape[0])
+    self.SetT1Height(array.shape[1])
+    self.SetT1Depth(array.shape[2])
+    self.SetT1VoxelSizeX(voxel_sizes[0])
+    self.SetT1VoxelSizeY(voxel_sizes[1])
+    self.SetT1VoxelSizeZ(voxel_sizes[2])
+    self.SetInputT1Volume(packArray(array))
     
-  def SetMNIData(self, array):
-    self.SetMNIWidth(array.dimensions[0])
-    self.SetMNIHeight(array.dimensions[1])
-    self.SetMNIDepth(array.dimensions[2])
-    self.SetMNIVoxelSizeX(array.voxel_sizes[0])
-    self.SetMNIVoxelSizeY(array.voxel_sizes[1])
-    self.SetMNIVoxelSizeZ(array.voxel_sizes[2])
-    self.SetInputMNIVolume(array.toFloatArray())
+  def SetMNIData(self, array, voxel_sizes):
+    self.SetMNIWidth(array.shape[0])
+    self.SetMNIHeight(array.shape[1])
+    self.SetMNIDepth(array.shape[2])
+    self.SetMNIVoxelSizeX(voxel_sizes[0])
+    self.SetMNIVoxelSizeY(voxel_sizes[1])
+    self.SetMNIVoxelSizeZ(voxel_sizes[2])
+    self.SetInputMNIVolume(packArray(array))
     
   def SetParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(3):
-      real = floatArrayFromList([c.real for c in filters[i][0].data.flatten()])
-      imag = floatArrayFromList([c.imag for c in filters[i][0].data.flatten()])
-      args.append(real)
-      args.append(imag)
+      args.append(packArray(numpy.real(filters[i][0])))
+      args.append(packArray(numpy.imag(filters[i][0])))
     BROCCOLI_LIB_BASE.SetParametricImageRegistrationFilters(self, *args)
     
   def SetNonParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(6):
-      real = floatArrayFromList([c.real for c in filters[i][0].data.flatten()])
-      imag = floatArrayFromList([c.imag for c in filters[i][0].data.flatten()])
-      args.append(real)
-      args.append(imag)
+      args.append(packArray(numpy.real(filters[i][0])))
+      args.append(packArray(numpy.imag(filters[i][0])))
     BROCCOLI_LIB_BASE.SetNonParametricImageRegistrationFilters(self, *args)
     
   def SetProjectionTensorMatrixFilters(self, filters):

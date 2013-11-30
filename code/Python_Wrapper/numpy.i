@@ -668,12 +668,10 @@
   (DATA_TYPE IN_ARRAY1[ANY])
   (PyArrayObject* array=NULL, int is_new_object=0)
 {
-  npy_intp size[1] = { $1_dim0 };
   array = obj_to_array_contiguous_allow_conversion($input,
                                                    DATA_TYPECODE,
                                                    &is_new_object);
-  if (!array || !require_dimensions(array, 1) ||
-      !require_size(array, size, 1)) SWIG_fail;
+  if (!array || !require_dimensions(array, 1)) SWIG_fail;
   $1 = ($1_ltype) array_data(array);
 }
 %typemap(freearg)

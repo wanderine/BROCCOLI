@@ -7,7 +7,9 @@ from operator import mul
 
 def registerT1MNI(
     h_T1_Data,          # Array
+    h_T1_Voxel_Sizes,   # 3 elements
     h_MNI_Data,         # Array
+    h_MNI_Voxel_Sizes,   # 3 elements
     h_MNI_Brain,        # double
     h_MNI_Brain_Mask,   # double
     h_Quadrature_Filter_Parametric_Registration,            # 3 elements, complex arrays
@@ -39,26 +41,26 @@ def registerT1MNI(
   
   ## Set constants
   NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12
-  MNI_DATA_SIZE = reduce(mul, h_MNI_Data.dimensions, 1)
+  MNI_DATA_SIZE = reduce(mul, h_MNI_Data.shape, 1)
   
   ## Pass input parameters to BROCCOLI
   print("Setting up input parameters...")
   
-  BROCCOLI.SetT1Data(h_T1_Data)
-  BROCCOLI.SetMNIData(h_MNI_Data)
-  BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain.toFloatArray())
-  BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask.toFloatArray())
+  BROCCOLI.SetT1Data(h_T1_Data, h_T1_Voxel_Sizes)
+  BROCCOLI.SetMNIData(h_MNI_Data, h_MNI_Voxel_Sizes)
+  BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain.flatten())
+  BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask.flatten())
   
   BROCCOLI.SetInterpolationMode(broccoli.LINEAR) # Linear
   BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION)
   BROCCOLI.SetNumberOfIterationsForNonParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION)
   
-  BROCCOLI.SetImageRegistrationFilterSize(h_Quadrature_Filter_Parametric_Registration[0][0].dimensions[0])
+  BROCCOLI.SetImageRegistrationFilterSize(h_Quadrature_Filter_Parametric_Registration[0][0].shape[0])
   BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_Parametric_Registration)
   BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_NonParametric_Registration)
   
   BROCCOLI.SetProjectionTensorMatrixFilters(h_Projection_Tensor)
-  BROCCOLI.SetFilterDirections(*h_Filter_Directions)
+  BROCCOLI.SetFilterDirections(*[broccoli.packArray(a) for a in h_Filter_Directions])
   
   BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE)
   BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT)
@@ -66,54 +68,54 @@ def registerT1MNI(
   ## Set up output parameters
   print("Setting up output parameters...")
   
-  h_Aligned_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
+  h_Aligned_T1_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
   BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume)
   
-  h_Aligned_T1_Volume_NonParametric = broccoli.floatArray(MNI_DATA_SIZE)
+  h_Aligned_T1_Volume_NonParametric = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
   BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric)
   
-  h_Skullstripped_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
+  h_Skullstripped_T1_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
   BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume)
   
-  h_Interpolated_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
+  h_Interpolated_T1_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
   BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume)
 
   # Not used in broccoli_lib.cpp  
-  # h_Downsampled_Volume = broccoli.floatArray(MNI_DATA_SIZE)
+  # h_Downsampled_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
   # BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
   
-  h_Registration_Parameters = broccoli.floatArray(12)
+  h_Registration_Parameters = numpy.empty(12, dtype=numpy.float32)
   BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters)
   
   # Not used in broccoli_lib.cpp
-  # h_Quadrature_Filter_Response = [broccoli.cl_float2Array(10) for i in range(6)]
+  # h_Quadrature_Filter_Response = [broccoli.cl_float2Array(10, dtype=numpy.float32) for i in range(6)]
   # BROCCOLI.SetOutputQuadratureFilterResponses(*h_Quadrature_Filter_Response)
   
-  # h_OutputTensor = [broccoli.floatArray(10) for i in range(6)]
+  # h_OutputTensor = [numpy.empty(10, dtype=numpy.float32) for i in range(6)]
   # BROCCOLI.SetOutputTensorComponents(*h_OutputTensor)
   
-  # h_Displacement_Field = [broccoli.floatArray(10) for i in range(3)]
+  # h_Displacement_Field = [numpy.empty(10, dtype=numpy.float32) for i in range(3)]
   # BROCCOLI.SetOutputDisplacementField(*h_Displacement_Field)
   
-  h_Phase_Differences = broccoli.floatArray(10)
+  h_Phase_Differences = numpy.empty(10, dtype=numpy.float32)
   BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences)
   
-  h_Phase_Certainties = broccoli.floatArray(10)
+  h_Phase_Certainties = numpy.empty(10, dtype=numpy.float32)
   BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties)
   
-  h_Phase_Gradients = broccoli.floatArray(10)
+  h_Phase_Gradients = numpy.empty(10, dtype=numpy.float32)
   BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients)
   
-  h_Slice_Sums = broccoli.floatArray(10)
+  h_Slice_Sums = numpy.empty(10, dtype=numpy.float32)
   BROCCOLI.SetOutputSliceSums(h_Slice_Sums)
   
-  h_Top_Slice = broccoli.floatArray(10)
+  h_Top_Slice = numpy.empty(10, dtype=numpy.float32)
   BROCCOLI.SetOutputTopSlice(h_Top_Slice)
   
-  h_A_Matrix = broccoli.floatArray(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS)
+  h_A_Matrix = numpy.empty(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, dtype=numpy.float32)
   BROCCOLI.SetOutputAMatrix(h_A_Matrix)
   
-  h_h_Vector = broccoli.floatArray(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS)
+  h_h_Vector = numpy.empty(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, dtype=numpy.float32)
   BROCCOLI.SetOutputHVector(h_h_Vector)
 
   ## Perform registration
@@ -141,26 +143,27 @@ if __name__ == "__main__":
   MM_T1_Z_CUT = 30
   
   MNI_nni = nifti1.load('../../brain_templates/MNI152_T1_%dmm.nii' % voxel_size)
-  MNI = broccoli.arrayFromNifti(MNI_nni, MNI_voxel_sizes)
+  MNI = MNI_nni.get_data()
   
   MNI_brain_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain.nii' % voxel_size)
-  MNI_brain = broccoli.arrayFromNifti(MNI_brain_nii, MNI_voxel_sizes)
+  MNI_brain = MNI_brain_nii.get_data()
   
   MNI_brain_mask_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain_mask.nii' % voxel_size)
-  MNI_brain_mask = broccoli.arrayFromNifti(MNI_brain_mask_nii, MNI_voxel_sizes)
+  MNI_brain_mask = MNI_brain_mask_nii.get_data()
   
   T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
-  T1 = broccoli.arrayFromNifti(T1_nni, MNI_voxel_sizes)
+  T1 = T1_nni.get_data()
+  T1_voxel_sizes = MNI_voxel_sizes
   
   filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
   filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
   
-  parametric_filters = [[broccoli.Array(d) for d in filters_parametric_mat['f%d_parametric_registration' % (i+1)]] for i in range(3)]
-  nonparametric_filters = [[broccoli.Array(d) for d in filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)]] for i in range(6)]
+  parametric_filters = [filters_parametric_mat['f%d_parametric_registration' % (i+1)] for i in range(3)]
+  nonparametric_filters = [filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)] for i in range(6)]
   
-  results = registerT1MNI(T1, MNI, MNI_brain, MNI_brain_mask, parametric_filters, nonparametric_filters,
+  results = registerT1MNI(T1, T1_voxel_sizes, MNI, MNI_voxel_sizes, MNI_brain, MNI_brain_mask, parametric_filters, nonparametric_filters,
                 [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)], 
-                [broccoli.floatArrayFromList(filters_nonparametric_mat['filter_directions_%s' % d][0]) for d in ['x', 'y', 'z']],
+                [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']],
                 number_of_iterations_for_parametric_image_registration,
                 number_of_iterations_for_nonparametric_image_registration,
                 coarsest_scale,
