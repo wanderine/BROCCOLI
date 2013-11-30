@@ -3,6 +3,8 @@ import numpy
 import scipy
 from nibabel import nifti1
 
+from operator import mul
+
 def floatArrayFromList(lst):
   n = len(lst)
   array = broccoli.floatArray(n)
@@ -129,6 +131,7 @@ def registerT1MNI(
   
   ## Set constants
   NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12
+  MNI_DATA_SIZE = reduce(mul, h_MNI_Data.dimensions, 1)
   
   ## Pass input parameters to BROCCOLI
   print("Setting up input parameters")
@@ -153,19 +156,21 @@ def registerT1MNI(
   ## Set up output parameters
   print("Setting up output parameters")
   
-  h_Aligned_T1_Volume = broccoli.floatArray(10)
+  
+  
+  h_Aligned_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume)
   
-  h_Aligned_T1_Volume_NonParametric = broccoli.floatArray(10)
+  h_Aligned_T1_Volume_NonParametric = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric)
   
-  h_Skullstripped_T1_Volume = broccoli.floatArray(10)
+  h_Skullstripped_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume)
   
-  h_Interpolated_T1_Volume = broccoli.floatArray(10)
+  h_Interpolated_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume)
   
-  h_Downsampled_Volume = broccoli.floatArray(10)
+  h_Downsampled_Volume = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
   
   h_Registration_Parameters = broccoli.floatArray(10)
