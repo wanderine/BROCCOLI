@@ -33,9 +33,6 @@ def arrayFromNifti(img, voxel_sizes = None):
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
     
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
-  def __init__(self, opencl_platform, opencl_device):
-    BROCCOLI_LIB_BASE.__init__(self, opencl_platform, opencl_device)
-    
   def SetT1Data(self, array):
     self.SetT1Width(array.dimensions[0])
     self.SetT1Height(array.dimensions[1])

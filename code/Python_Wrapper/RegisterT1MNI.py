@@ -22,7 +22,12 @@ def registerT1MNI(
     OPENCL_DEVICE,          # int
   ):
   
-  BROCCOLI = broccoli.BROCCOLI_LIB(OPENCL_PLATFORM, OPENCL_DEVICE)
+  BROCCOLI = broccoli.BROCCOLI_LIB()
+  BROCCOLI.GetOpenCLInfo()
+  print(BROCCOLI.GetOpenCLDeviceInfoChar())
+  print("Initializing OpenCL...")
+  
+  BROCCOLI.OpenCLInitiate(OPENCL_PLATFORM, OPENCL_DEVICE)
   ok = BROCCOLI.GetOpenCLInitiated()
   
   if ok == 0:
@@ -37,7 +42,7 @@ def registerT1MNI(
   MNI_DATA_SIZE = reduce(mul, h_MNI_Data.dimensions, 1)
   
   ## Pass input parameters to BROCCOLI
-  print("Setting up input parameters")
+  print("Setting up input parameters...")
   
   BROCCOLI.SetT1Data(h_T1_Data)
   BROCCOLI.SetMNIData(h_MNI_Data)
@@ -54,9 +59,12 @@ def registerT1MNI(
   
   BROCCOLI.SetProjectionTensorMatrixFilters(h_Projection_Tensor)
   BROCCOLI.SetFilterDirections(*h_Filter_Directions)
+  
+  BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE)
+  BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT)
     
   ## Set up output parameters
-  print("Setting up output parameters")
+  print("Setting up output parameters...")
   
   h_Aligned_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume)
@@ -109,10 +117,10 @@ def registerT1MNI(
   BROCCOLI.SetOutputHVector(h_h_Vector)
 
   ## Perform registration
-  print("Performing registration")
+  print("Performing registration...")
   BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper()
   
-  print("\n##  Registration performed  ##\n")
+  print("\n##  Registration performed!  ##\n")
   BROCCOLI.printRunErrors()
   
 if __name__ == "__main__":
@@ -122,6 +130,7 @@ if __name__ == "__main__":
   study = 'Cambridge'
   subject = 'sub00156'
   voxel_size = 2
+  MNI_voxel_sizes = [voxel_size] * 3
   
   number_of_iterations_for_parametric_image_registration = 10
   number_of_iterations_for_nonparametric_image_registration = 15
@@ -129,16 +138,16 @@ if __name__ == "__main__":
   MM_T1_Z_CUT = 30
   
   MNI_nni = nifti1.load('../../brain_templates/MNI152_T1_%dmm.nii' % voxel_size)
-  MNI = broccoli.arrayFromNifti(MNI_nni)
+  MNI = broccoli.arrayFromNifti(MNI_nni, MNI_voxel_sizes)
   
   MNI_brain_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain.nii' % voxel_size)
-  MNI_brain = broccoli.arrayFromNifti(MNI_brain_nii)
+  MNI_brain = broccoli.arrayFromNifti(MNI_brain_nii, MNI_voxel_sizes)
   
   MNI_brain_mask_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain_mask.nii' % voxel_size)
-  MNI_brain_mask = broccoli.arrayFromNifti(MNI_brain_mask_nii)
+  MNI_brain_mask = broccoli.arrayFromNifti(MNI_brain_mask_nii, MNI_voxel_sizes)
   
   T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
-  T1 = broccoli.arrayFromNifti(T1_nni)
+  T1 = broccoli.arrayFromNifti(T1_nni, MNI_voxel_sizes)
   
   filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
   filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
