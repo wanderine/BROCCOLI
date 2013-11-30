@@ -5,101 +5,6 @@ from nibabel import nifti1
 
 from operator import mul
 
-def floatArrayFromList(lst):
-  n = len(lst)
-  array = broccoli.floatArray(n)
-  
-  if isinstance(lst, numpy.ndarray):
-    lst = lst.flatten()
-    
-  for i in range(n):
-    array[i] = float(lst[i])
-  return array
-
-class Array:
-  def __init__(self, data, dimensions = None, voxel_sizes = None):
-    self.data = data
-    if dimensions is None:
-      self.dimensions = data.shape
-    else:
-      self.dimensions = dimensions
-    if voxel_sizes:
-      self.voxel_sizes = voxel_sizes
-    else:
-      self.voxel_sizes = [1 for i in self.dimensions]
-      
-  def toFloatArray(self):
-    return floatArrayFromList(self.data)
-  
-def arrayFromNifti(img, voxel_sizes = None):
-  return Array(img.get_data(), img.shape, voxel_sizes)
-    
-class BROCCOLI_EXT(broccoli.BROCCOLI_LIB):
-  def __init__(self, opencl_platform, opencl_device):
-    broccoli.BROCCOLI_LIB.__init__(self, opencl_platform, opencl_device)
-    
-  def SetT1Data(self, array):
-    self.SetT1Width(array.dimensions[0])
-    self.SetT1Height(array.dimensions[1])
-    self.SetT1Depth(array.dimensions[2])
-    self.SetT1VoxelSizeX(array.dimensions[0])
-    self.SetT1VoxelSizeY(array.dimensions[1])
-    self.SetT1VoxelSizeZ(array.dimensions[2])
-    self.SetInputT1Volume(array.toFloatArray())
-    
-  def SetMNIData(self, array):
-    self.SetMNIWidth(array.dimensions[0])
-    self.SetMNIHeight(array.dimensions[1])
-    self.SetMNIDepth(array.dimensions[2])
-    self.SetMNIVoxelSizeX(array.dimensions[0])
-    self.SetMNIVoxelSizeY(array.dimensions[1])
-    self.SetMNIVoxelSizeZ(array.dimensions[2])
-    self.SetInputMNIVolume(array.toFloatArray())
-    
-  def SetParametricImageRegistrationFilters(self, filters):
-    args = []
-    for i in range(3):
-      real = floatArrayFromList([c.real for c in filters[i][0].data.flatten()])
-      imag = floatArrayFromList([c.imag for c in filters[i][0].data.flatten()])
-      args.append(real)
-      args.append(imag)
-    broccoli.BROCCOLI_LIB.SetParametricImageRegistrationFilters(self, *args)
-    
-  def SetNonParametricImageRegistrationFilters(self, filters):
-    args = []
-    for i in range(6):
-      real = floatArrayFromList([c.real for c in filters[i][0].data.flatten()])
-      imag = floatArrayFromList([c.imag for c in filters[i][0].data.flatten()])
-      args.append(real)
-      args.append(imag)
-    broccoli.BROCCOLI_LIB.SetNonParametricImageRegistrationFilters(self, *args)
-    
-  def SetProjectionTensorMatrixFilters(self, filters):
-    self.SetProjectionTensorMatrixFirstFilter(*filters[0])
-    self.SetProjectionTensorMatrixSecondFilter(*filters[1])
-    self.SetProjectionTensorMatrixThirdFilter(*filters[2])
-    self.SetProjectionTensorMatrixFourthFilter(*filters[3])
-    self.SetProjectionTensorMatrixFifthFilter(*filters[4])
-    self.SetProjectionTensorMatrixSixthFilter(*filters[5])
-
-  def printErrors(self):
-    print("Get platform IDs error is %d" % self.GetOpenCLPlatformIDsError())
-    print("Get device IDs error is %d" % self.GetOpenCLDeviceIDsError())
-    print("Create context error is %d" % self.GetOpenCLCreateContextError())
-    print("Get create context info error is %d" % self.GetOpenCLContextInfoError())
-    print("Create command queue error is %d" % self.GetOpenCLCreateCommandQueueError())
-    print("Create program error is %d" % self.GetOpenCLCreateProgramError())
-    print("Build program error is %d" % self.GetOpenCLBuildProgramError())
-    print("Get program build info error is %d" % self.GetOpenCLProgramBuildInfoError())
-    
-    numOpenKernels = self.GetNumberOfOpenCLKernels()
-    createKernelErrors = self.GetOpenCLCreateKernelErrors()
-    
-    for i in range(numOpenKernels):
-      error = createKernelErrors[i]
-      if error:
-        print("Run kernel error %d is %d" % (i, error))
-
 def registerT1MNI(
     h_T1_Data,          # Array
     h_MNI_Data,         # Array
@@ -117,7 +22,7 @@ def registerT1MNI(
     OPENCL_DEVICE,          # int
   ):
   
-  BROCCOLI = BROCCOLI_EXT(OPENCL_PLATFORM, OPENCL_DEVICE)
+  BROCCOLI = broccoli.BROCCOLI_LIB(OPENCL_PLATFORM, OPENCL_DEVICE)
   ok = BROCCOLI.GetOpenCLInitiated()
   
   if ok == 0:
@@ -223,26 +128,26 @@ if __name__ == "__main__":
   MM_T1_Z_CUT = 30
   
   MNI_nni = nifti1.load('../../brain_templates/MNI152_T1_%dmm.nii' % voxel_size)
-  MNI = arrayFromNifti(MNI_nni)
+  MNI = broccoli.arrayFromNifti(MNI_nni)
   
   MNI_brain_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain.nii' % voxel_size)
-  MNI_brain = arrayFromNifti(MNI_brain_nii)
+  MNI_brain = broccoli.arrayFromNifti(MNI_brain_nii)
   
   MNI_brain_mask_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain_mask.nii' % voxel_size)
-  MNI_brain_mask = arrayFromNifti(MNI_brain_mask_nii)
+  MNI_brain_mask = broccoli.arrayFromNifti(MNI_brain_mask_nii)
   
   T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
-  T1 = arrayFromNifti(T1_nni)
+  T1 = broccoli.arrayFromNifti(T1_nni)
   
   filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
   filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
   
-  parametric_filters = [[Array(d) for d in filters_parametric_mat['f%d_parametric_registration' % (i+1)]] for i in range(3)]
-  nonparametric_filters = [[Array(d) for d in filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)]] for i in range(6)]
+  parametric_filters = [[broccoli.Array(d) for d in filters_parametric_mat['f%d_parametric_registration' % (i+1)]] for i in range(3)]
+  nonparametric_filters = [[broccoli.Array(d) for d in filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)]] for i in range(6)]
   
   registerT1MNI(T1, MNI, MNI_brain, MNI_brain_mask, parametric_filters, nonparametric_filters,
                 [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)], 
-                [floatArrayFromList(filters_nonparametric_mat['filter_directions_%s' % d][0]) for d in ['x', 'y', 'z']],
+                [broccoli.floatArrayFromList(filters_nonparametric_mat['filter_directions_%s' % d][0]) for d in ['x', 'y', 'z']],
                 number_of_iterations_for_parametric_image_registration,
                 number_of_iterations_for_nonparametric_image_registration,
                 coarsest_scale,

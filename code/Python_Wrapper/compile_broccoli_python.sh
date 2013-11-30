@@ -16,4 +16,4 @@ gcc -fPIC -I${OPENCL_DIRECTORY} -I${PYTHON_DIRECTORY} -I${BROCCOLI_LIB_DIRECTORY
 
 # Make a library
 
-g++ -fPIC -shared -o _broccoli.so -lOpenCL broccoli_lib_wrap.o ${BROCCOLI_LIB_DIRECTORY}/broccoli_lib.o
+g++ -fPIC -shared -o _broccoli_base.so -lOpenCL broccoli_lib_wrap.o ${BROCCOLI_LIB_DIRECTORY}/broccoli_lib.o

@@ -1,4 +1,4 @@
-%module broccoli
+%module broccoli_base
 %{
   /* Includes the header in the wrapper code */
   #include "../BROCCOLI_LIB/broccoli_lib.h"
