@@ -2,11 +2,11 @@ from broccoli_base import *
 import numpy
 
 def floatArrayFromList(lst):
-  n = len(lst)
-  array = floatArray(n)
-  
   if isinstance(lst, numpy.ndarray):
     lst = lst.flatten()
+    
+  n = len(lst)
+  array = floatArray(n)
     
   for i in range(n):
     array[i] = float(lst[i])

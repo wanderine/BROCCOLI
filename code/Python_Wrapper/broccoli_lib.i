@@ -6,12 +6,18 @@
  
 /* Parse the header file to generate wrappers */
 
+%{
+  #define SWIG_FILE_WITH_INIT
+%}
+
 %include exception.i
+%include "numpy.i"
+%init %{
+  import_array();
+%}
 
-%include carrays.i
-%array_class(float, floatArray);
-%array_class(cl_float2, cl_float2Array);
-
+%numpy_typemaps(float, NPY_FLOAT, int)
+%apply (float IN_ARRAY1[ANY]) {(float* data)};
 
 %typemap(out) int *
 {

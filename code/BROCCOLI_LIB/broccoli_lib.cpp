@@ -1775,6 +1775,7 @@ void BROCCOLI_LIB::SetInputEPIVolume(float* data)
 
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
+    printf("\n\n\nRandom sample of input T1 data: %f, %f, %f, %f, %f\n\n\n", data[0], data[100], data[1000], data[30000], data[100000]);
 	h_T1_Volume = data;
 }
 
