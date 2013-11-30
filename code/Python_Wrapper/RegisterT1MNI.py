@@ -1,10 +1,16 @@
 import broccoli
+import numpy
+from nibabel import nifti1
 
 def floatArrayFromList(lst):
   n = len(lst)
   array = broccoli.floatArray(n)
+  
+  if isinstance(lst, numpy.ndarray):
+    lst = lst.flatten()
+  
   for i in range(n):
-    array[i] = lst[i]
+    array[i] = float(lst[i])
   return array
 
 class Array:
@@ -16,8 +22,11 @@ class Array:
     else:
       self.voxel_sizes = [1 for i in dimensions]
       
-  def asFloatArray(self):
+  def toFloatArray(self):
     return floatArrayFromList(self.data)
+  
+def arrayFromNifti(img, voxel_sizes = None):
+  return Array(img.get_data(), img.shape, voxel_sizes)
     
 class BROCCOLI_EXT(broccoli.BROCCOLI_LIB):
   def __init__(self, opencl_platform, opencl_device):
@@ -30,7 +39,7 @@ class BROCCOLI_EXT(broccoli.BROCCOLI_LIB):
     self.SetT1VoxelSizeX(array.dimensions[0])
     self.SetT1VoxelSizeY(array.dimensions[1])
     self.SetT1VoxelSizeZ(array.dimensions[2])
-    self.SetInputT1Volume(array.asFloatArray())
+    self.SetInputT1Volume(array.toFloatArray())
     
   def SetMNIData(self, array):
     self.SetMNIWidth(array.dimensions[0])
@@ -39,7 +48,7 @@ class BROCCOLI_EXT(broccoli.BROCCOLI_LIB):
     self.SetMNIVoxelSizeX(array.dimensions[0])
     self.SetMNIVoxelSizeY(array.dimensions[1])
     self.SetMNIVoxelSizeZ(array.dimensions[2])
-    self.SetInputMNIVolume(array.asFloatArray())
+    self.SetInputMNIVolume(array.toFloatArray())
     
   def SetParametricImageRegistrationFilters(self, filters):
     args = []
@@ -120,8 +129,8 @@ def registerT1MNI(
   
   BROCCOLI.SetT1Data(h_T1_Data)
   BROCCOLI.SetMNIData(h_MNI_Data)
-  BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain)
-  BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask)
+  BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain.toFloatArray())
+  BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask.toFloatArray())
   
   BROCCOLI.SetInterpolationMode(broccoli.LINEAR) # Linear
   BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION)
@@ -191,14 +200,33 @@ def registerT1MNI(
 
   
 if __name__ == "__main__":
+  
+  study = 'Cambridge'
+  subject = 'sub00156'
+  voxel_size = 2
+  
+  number_of_iterations_for_parametric_image_registration = 10
+  number_of_iterations_for_nonparametric_image_registration = 15
+  coarsest_scale = 8 / voxel_size
+  MM_T1_Z_CUT = 30
+  
+  MNI_nni = nifti1.load('../../brain_templates/MNI152_T1_%dmm.nii' % voxel_size)
+  MNI = arrayFromNifti(MNI_nni)
+  
+  MNI_brain_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain.nii' % voxel_size)
+  MNI_brain = arrayFromNifti(MNI_brain_nii)
+  
+  MNI_brain_mask_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain_mask.nii' % voxel_size)
+  MNI_brain_mask = arrayFromNifti(MNI_brain_mask_nii)
+  
   size3 = [3, 1, 1]
   size1 = [3]
   data = [1.0, 2.9, 3.7]
-  registerT1MNI(
-    Array(data, size3),
-    Array(data, size3),
-    floatArrayFromList(data),
-    floatArrayFromList(data),
+  
+  T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
+  T1 = arrayFromNifti(T1_nni)
+  
+  registerT1MNI(T1, MNI, MNI_brain, MNI_brain_mask,
     [Array(data, size3) for i in range(3)],
     [Array(data, size3) for i in range(6)],
     [[1, 1, 1, 0, 0, 0] for i in range(6)],
