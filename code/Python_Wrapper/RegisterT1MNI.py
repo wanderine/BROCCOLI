@@ -125,7 +125,7 @@ def registerT1MNI(
   
 if __name__ == "__main__":
   opencl_platform = 0
-  opencl_device = 1
+  opencl_device = 0
   
   study = 'Cambridge'
   subject = 'sub00156'
