@@ -12,8 +12,6 @@ def floatArrayFromList(lst):
   if isinstance(lst, numpy.ndarray):
     lst = lst.flatten()
     
-  print(type(lst), type(lst[0]))
-  
   for i in range(n):
     array[i] = float(lst[i])
   return array
@@ -150,13 +148,10 @@ def registerT1MNI(
   BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_NonParametric_Registration)
   
   BROCCOLI.SetProjectionTensorMatrixFilters(h_Projection_Tensor)
-  print(h_Filter_Directions)
   BROCCOLI.SetFilterDirections(*h_Filter_Directions)
     
   ## Set up output parameters
   print("Setting up output parameters")
-  
-  
   
   h_Aligned_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume)
@@ -211,11 +206,12 @@ def registerT1MNI(
   ## Perform registration
   print("Performing registration")
   BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper()
-
+  
+  print("\n##  Registration performed  ##\n")
   
 if __name__ == "__main__":
   opencl_platform = 0
-  opencl_device = 1
+  opencl_device = 0
   
   study = 'Cambridge'
   subject = 'sub00156'
@@ -242,20 +238,15 @@ if __name__ == "__main__":
   T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
   T1 = arrayFromNifti(T1_nni)
   
-  filters_parametric = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
-  filters_nonparametric = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
+  filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
+  filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
   
-  print(filters_parametric.keys())
-  print(filters_nonparametric.keys())
-  
-  print(type(filters_parametric['f1_parametric_registration']))
-  
-  parametric_filters = [[Array(d) for d in filters_parametric['f%d_parametric_registration' % (i+1)]] for i in range(3)]
-  nonparametric_filters = [[Array(d) for d in filters_nonparametric['f%d_nonparametric_registration' % (i+1)]] for i in range(6)]
+  parametric_filters = [[Array(d) for d in filters_parametric_mat['f%d_parametric_registration' % (i+1)]] for i in range(3)]
+  nonparametric_filters = [[Array(d) for d in filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)]] for i in range(6)]
   
   registerT1MNI(T1, MNI, MNI_brain, MNI_brain_mask, parametric_filters, nonparametric_filters,
-                [filters_nonparametric['m%d' % (i+1)][0] for i in range(6)], 
-                [floatArrayFromList(filters_nonparametric['filter_directions_%s' % d][0]) for d in ['x', 'y', 'z']],
+                [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)], 
+                [floatArrayFromList(filters_nonparametric_mat['filter_directions_%s' % d][0]) for d in ['x', 'y', 'z']],
                 number_of_iterations_for_parametric_image_registration,
                 number_of_iterations_for_nonparametric_image_registration,
                 coarsest_scale,
