@@ -26,7 +26,7 @@ def registerT1MNI(
   ok = BROCCOLI.GetOpenCLInitiated()
   
   if ok == 0:
-    BROCCOLI.printErrors()
+    BROCCOLI.printSetupErrors()
     print("OpenCL initialization failed, aborting")
     return
 
@@ -113,10 +113,11 @@ def registerT1MNI(
   BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper()
   
   print("\n##  Registration performed  ##\n")
+  BROCCOLI.printRunErrors()
   
 if __name__ == "__main__":
   opencl_platform = 0
-  opencl_device = 0
+  opencl_device = 1
   
   study = 'Cambridge'
   subject = 'sub00156'

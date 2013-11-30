@@ -80,7 +80,7 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetProjectionTensorMatrixFifthFilter(*filters[4])
     self.SetProjectionTensorMatrixSixthFilter(*filters[5])
 
-  def printErrors(self):
+  def printSetupErrors(self):
     print("Get platform IDs error is %d" % self.GetOpenCLPlatformIDsError())
     print("Get device IDs error is %d" % self.GetOpenCLDeviceIDsError())
     print("Create context error is %d" % self.GetOpenCLCreateContextError())
@@ -97,3 +97,14 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
       error = createKernelErrors[i]
       if error:
         print("Run kernel error %d is %d" % (i, error))
+        
+  def printRunErrors(self):
+    numOpenKernels = self.GetNumberOfOpenCLKernels()
+    createBufferErrors = self.GetOpenCLCreateBufferErrors()
+    runKernelErrors = self.GetOpenCLRunKernelErrors()
+    
+    for i in range(numOpenKernels):
+      if createBufferErrors[i]:
+        print("Create buffer error %d is %d" % (i, createBufferErrors[i]))
+      if runKernelErrors[i]:
+        print("Run kernel error %d is %d" % (i, runKernelErrors[i]))
