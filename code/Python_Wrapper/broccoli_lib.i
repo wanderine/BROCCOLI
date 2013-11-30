@@ -10,6 +10,7 @@
 
 %include carrays.i
 %array_class(float, floatArray);
+%array_class(cl_float2, cl_float2Array);
 
 
 %typemap(out) int *

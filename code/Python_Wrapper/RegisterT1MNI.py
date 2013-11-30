@@ -112,6 +112,9 @@ def registerT1MNI(
 
   print("OpenCL initialization successful, proceeding...")
   
+  ## Set constants
+  NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12
+  
   ## Pass input parameters to BROCCOLI
   print("Setting up input parameters")
   
@@ -130,12 +133,61 @@ def registerT1MNI(
   
   BROCCOLI.SetProjectionTensorMatrixFilters(h_Projection_Tensor)
   BROCCOLI.SetFilterDirections(*h_Filter_Directions)
-  
+    
   ## Set up output parameters
   print("Setting up output parameters")
   
   h_Aligned_T1_Volume = broccoli.floatArray(10)
   BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume)
+  
+  h_Aligned_T1_Volume_NonParametric = broccoli.floatArray(10)
+  BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric)
+  
+  h_Skullstripped_T1_Volume = broccoli.floatArray(10)
+  BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume)
+  
+  h_Interpolated_T1_Volume = broccoli.floatArray(10)
+  BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume)
+  
+  h_Downsampled_Volume = broccoli.floatArray(10)
+  BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
+  
+  h_Registration_Parameters = broccoli.floatArray(10)
+  BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters)
+  
+  h_Quadrature_Filter_Response = [broccoli.cl_float2Array(10) for i in range(6)]
+  BROCCOLI.SetOutputQuadratureFilterResponses(*h_Quadrature_Filter_Response)
+  
+  h_OutputTensor = [broccoli.floatArray(10) for i in range(6)]
+  BROCCOLI.SetOutputTensorComponents(*h_OutputTensor)
+  
+  h_Displacement_Field = [broccoli.floatArray(10) for i in range(3)]
+  BROCCOLI.SetOutputDisplacementField(*h_Displacement_Field)
+  
+  h_Phase_Differences = broccoli.floatArray(10)
+  BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences)
+  
+  h_Phase_Certainties = broccoli.floatArray(10)
+  BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties)
+  
+  h_Phase_Gradients = broccoli.floatArray(10)
+  BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients)
+  
+  h_Slice_Sums = broccoli.floatArray(10)
+  BROCCOLI.SetOutputSliceSums(h_Slice_Sums)
+  
+  h_Top_Slice = broccoli.floatArray(10)
+  BROCCOLI.SetOutputTopSlice(h_Top_Slice)
+  
+  h_A_Matrix = broccoli.floatArray(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS)
+  BROCCOLI.SetOutputAMatrix(h_A_Matrix)
+  
+  h_h_Vector = broccoli.floatArray(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS)
+  BROCCOLI.SetOutputHVector(h_h_Vector)
+
+  ## Perform registration
+  print("Performing registration")
+  BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper();
 
   
 if __name__ == "__main__":
