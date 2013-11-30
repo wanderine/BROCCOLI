@@ -231,10 +231,6 @@ if __name__ == "__main__":
   MNI_brain_mask_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain_mask.nii' % voxel_size)
   MNI_brain_mask = arrayFromNifti(MNI_brain_mask_nii)
   
-  size3 = [3, 1, 1]
-  size1 = [3]
-  data = [1.0, 2.9, 3.7]
-  
   T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
   T1 = arrayFromNifti(T1_nni)
   
