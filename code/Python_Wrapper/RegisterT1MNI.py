@@ -123,6 +123,9 @@ def registerT1MNI(
   print("\n##  Registration performed!  ##\n")
   BROCCOLI.printRunErrors()
   
+  return (h_Aligned_T1_Volume, h_Aligned_T1_Volume_NonParametric, h_Skullstripped_T1_Volume, h_Interpolated_T1_Volume, 
+          h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients, h_Slice_Sums, h_Top_Slice, h_A_Matrix, h_h_Vector)
+  
 if __name__ == "__main__":
   opencl_platform = 0
   opencl_device = 0
@@ -155,7 +158,7 @@ if __name__ == "__main__":
   parametric_filters = [[broccoli.Array(d) for d in filters_parametric_mat['f%d_parametric_registration' % (i+1)]] for i in range(3)]
   nonparametric_filters = [[broccoli.Array(d) for d in filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)]] for i in range(6)]
   
-  registerT1MNI(T1, MNI, MNI_brain, MNI_brain_mask, parametric_filters, nonparametric_filters,
+  results = registerT1MNI(T1, MNI, MNI_brain, MNI_brain_mask, parametric_filters, nonparametric_filters,
                 [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)], 
                 [broccoli.floatArrayFromList(filters_nonparametric_mat['filter_directions_%s' % d][0]) for d in ['x', 'y', 'z']],
                 number_of_iterations_for_parametric_image_registration,
@@ -164,3 +167,6 @@ if __name__ == "__main__":
                 MM_T1_Z_CUT,
                 opencl_platform,
                 opencl_device)
+
+  for r in results:
+    print(r)
