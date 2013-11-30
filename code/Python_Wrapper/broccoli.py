@@ -37,18 +37,18 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetT1Width(array.dimensions[0])
     self.SetT1Height(array.dimensions[1])
     self.SetT1Depth(array.dimensions[2])
-    self.SetT1VoxelSizeX(array.dimensions[0])
-    self.SetT1VoxelSizeY(array.dimensions[1])
-    self.SetT1VoxelSizeZ(array.dimensions[2])
+    self.SetT1VoxelSizeX(array.voxel_sizes[0])
+    self.SetT1VoxelSizeY(array.voxel_sizes[1])
+    self.SetT1VoxelSizeZ(array.voxel_sizes[2])
     self.SetInputT1Volume(array.toFloatArray())
     
   def SetMNIData(self, array):
     self.SetMNIWidth(array.dimensions[0])
     self.SetMNIHeight(array.dimensions[1])
     self.SetMNIDepth(array.dimensions[2])
-    self.SetMNIVoxelSizeX(array.dimensions[0])
-    self.SetMNIVoxelSizeY(array.dimensions[1])
-    self.SetMNIVoxelSizeZ(array.dimensions[2])
+    self.SetMNIVoxelSizeX(array.voxel_sizes[0])
+    self.SetMNIVoxelSizeY(array.voxel_sizes[1])
+    self.SetMNIVoxelSizeZ(array.voxel_sizes[2])
     self.SetInputMNIVolume(array.toFloatArray())
     
   def SetParametricImageRegistrationFilters(self, filters):
