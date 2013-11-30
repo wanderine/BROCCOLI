@@ -187,7 +187,7 @@ def registerT1MNI(
 
   ## Perform registration
   print("Performing registration")
-  BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper();
+  BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper()
 
   
 if __name__ == "__main__":
