@@ -169,21 +169,23 @@ def registerT1MNI(
   
   h_Interpolated_T1_Volume = broccoli.floatArray(MNI_DATA_SIZE)
   BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume)
+
+  # Not used in broccoli_lib.cpp  
+  # h_Downsampled_Volume = broccoli.floatArray(MNI_DATA_SIZE)
+  # BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
   
-  h_Downsampled_Volume = broccoli.floatArray(MNI_DATA_SIZE)
-  BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
-  
-  h_Registration_Parameters = broccoli.floatArray(10)
+  h_Registration_Parameters = broccoli.floatArray(12)
   BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters)
   
-  h_Quadrature_Filter_Response = [broccoli.cl_float2Array(10) for i in range(6)]
-  BROCCOLI.SetOutputQuadratureFilterResponses(*h_Quadrature_Filter_Response)
+  # Not used in broccoli_lib.cpp
+  # h_Quadrature_Filter_Response = [broccoli.cl_float2Array(10) for i in range(6)]
+  # BROCCOLI.SetOutputQuadratureFilterResponses(*h_Quadrature_Filter_Response)
   
-  h_OutputTensor = [broccoli.floatArray(10) for i in range(6)]
-  BROCCOLI.SetOutputTensorComponents(*h_OutputTensor)
+  # h_OutputTensor = [broccoli.floatArray(10) for i in range(6)]
+  # BROCCOLI.SetOutputTensorComponents(*h_OutputTensor)
   
-  h_Displacement_Field = [broccoli.floatArray(10) for i in range(3)]
-  BROCCOLI.SetOutputDisplacementField(*h_Displacement_Field)
+  # h_Displacement_Field = [broccoli.floatArray(10) for i in range(3)]
+  # BROCCOLI.SetOutputDisplacementField(*h_Displacement_Field)
   
   h_Phase_Differences = broccoli.floatArray(10)
   BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences)
@@ -213,7 +215,7 @@ def registerT1MNI(
   
 if __name__ == "__main__":
   opencl_platform = 0
-  opencl_device = 0
+  opencl_device = 1
   
   study = 'Cambridge'
   subject = 'sub00156'
