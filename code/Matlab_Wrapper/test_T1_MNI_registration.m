@@ -48,7 +48,7 @@ elseif isunix
     mex RegisterT1MNI.cpp -lOpenCL -lBROCCOLI_LIB -I/opt/cuda/include/ -I/opt/cuda/include/CL -L/usr/lib -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB -L/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB    -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB/Eigen
     
     opencl_platform = 0;  % 0 Intel, 1 AMD, 2 Nvidia
-    opencl_device = 1;
+    opencl_device = 0;
 end
 
 %------------------------------------
@@ -71,9 +71,10 @@ coarsest_scale = 8/voxel_size;
 MM_T1_Z_CUT = 30;
 
 %% Only used in Octave for compatibility with Matlab
-do_braindead_shortcircuit_evaluation()
-do_braindead_shortcircuit_evaluation(1)
-do_braindead_shortcircuit_evaluation()
+if exist('do_braindead_shortcircuit_evaluation', 'builtin')
+  do_braindead_shortcircuit_evaluation(1);
+  warning('off', 'Octave:possible-matlab-short-circuit-operator');
+end
 
 % Load MNI template, with skull
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_' num2str(voxel_size) 'mm.nii']);
