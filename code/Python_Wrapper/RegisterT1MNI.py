@@ -25,8 +25,8 @@ def registerT1MNI(
   ):
   
   BROCCOLI = broccoli.BROCCOLI_LIB()
-  BROCCOLI.GetOpenCLInfo()
-  print(BROCCOLI.GetOpenCLDeviceInfoChar())
+  # BROCCOLI.GetOpenCLInfo()
+  # print(BROCCOLI.GetOpenCLDeviceInfoChar())
   print("Initializing OpenCL...")
   
   BROCCOLI.OpenCLInitiate(OPENCL_PLATFORM, OPENCL_DEVICE)
@@ -153,7 +153,7 @@ if __name__ == "__main__":
   
   T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
   T1 = T1_nni.get_data()
-  T1_voxel_sizes = MNI_voxel_sizes
+  T1_voxel_sizes = [int(0.6 * s) for s in MNI_voxel_sizes]
   
   filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
   filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
