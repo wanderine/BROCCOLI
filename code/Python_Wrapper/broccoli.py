@@ -4,23 +4,30 @@ import numpy
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
 def packArray(array):
-  return array.astype(numpy.float32).flatten()
+  return array.astype(numpy.float32)
+
+def packVolume(array):
+  print(array.shape)
+  t = array.transpose((2, 0, 1))
+  t = numpy.fliplr(t)
+  # t[4][3][2] = 10
+  return packArray(t)
     
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def SetEPIData(self, array, voxel_sizes):
-    BROCCOLI_LIB_BASE.SetInputEPIData(self, packArray(array))
+    BROCCOLI_LIB_BASE.SetInputEPIData(self, packVolume(array))
     self.SetEPIVoxelSizeX(voxel_sizes[0])
     self.SetEPIVoxelSizeY(voxel_sizes[1])
     self.SetEPIVoxelSizeZ(voxel_sizes[2])
     
   def SetT1Data(self, array, voxel_sizes):
-    BROCCOLI_LIB_BASE.SetInputT1Data(self, packArray(array))
+    BROCCOLI_LIB_BASE.SetInputT1Data(self, packVolume(array))
     self.SetT1VoxelSizeX(voxel_sizes[0])
     self.SetT1VoxelSizeY(voxel_sizes[1])
     self.SetT1VoxelSizeZ(voxel_sizes[2])
     
   def SetMNIData(self, array, voxel_sizes):
-    BROCCOLI_LIB_BASE.SetInputMNIData(self, packArray(array))
+    BROCCOLI_LIB_BASE.SetInputMNIData(self, packVolume(array))
     self.SetMNIVoxelSizeX(voxel_sizes[0])
     self.SetMNIVoxelSizeY(voxel_sizes[1])
     self.SetMNIVoxelSizeZ(voxel_sizes[2])
@@ -28,15 +35,15 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def SetParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(3):
-      args.append(packArray(numpy.real(filters[i][0])))
-      args.append(packArray(numpy.imag(filters[i][0])))
+      args.append(packArray(numpy.real(filters[i][0])).flatten())
+      args.append(packArray(numpy.imag(filters[i][0])).flatten())
     BROCCOLI_LIB_BASE.SetParametricImageRegistrationFilters(self, *args)
     
   def SetNonParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(6):
-      args.append(packArray(numpy.real(filters[i][0])))
-      args.append(packArray(numpy.imag(filters[i][0])))
+      args.append(packArray(numpy.real(filters[i][0])).flatten())
+      args.append(packArray(numpy.imag(filters[i][0])).flatten())
     BROCCOLI_LIB_BASE.SetNonParametricImageRegistrationFilters(self, *args)
     
   def SetProjectionTensorMatrixFilters(self, filters):

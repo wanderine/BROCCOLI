@@ -1775,7 +1775,37 @@ void BROCCOLI_LIB::SetInputEPIVolume(float* data)
 
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
-    printf("\n\n\nRandom sample of input T1 data: %f, %f, %f, %f, %f\n\n\n", data[0], data[100], data[1000], data[30000], data[100000]);
+    printf("\n\n\nRandom sample of input T1 data: %f, %f, %f, %f, %f\n", data[0], data[100], data[1000], data[1003298], data[1003497]);
+    
+    float maxF = 0;
+    int maxI = -1;
+    int maxCount = 0;
+    const int N = T1_DATA_W * T1_DATA_H * T1_DATA_D;
+    for (int i = 0; i < N; ++i)
+    {
+        if (data[i] > maxF)
+        {
+            maxF = data[i];
+            maxI = i;
+        }
+        if (data[i] >= 490)
+        {
+            ++maxCount;
+        }
+    }
+    
+    printf("Maximal element is %g at %d = (%d, %d, %d)\n", maxF, maxI, maxI % T1_DATA_W, (maxI / T1_DATA_W) % T1_DATA_H, maxI / T1_DATA_W / T1_DATA_H);\
+    printf("Number of maximal elements: %d\n", maxCount);
+    
+    int i = 0;
+    while (fabs(data[i]) < 1e-8)
+    {
+        ++i;
+    }
+    printf("Sizes are %d, %d, %d\n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
+    printf("First nonzero element is %g at %d = (%d, %d, %d)\n", data[i], i, i % T1_DATA_W, (i / T1_DATA_W) % T1_DATA_H, i / T1_DATA_W / T1_DATA_H);
+    printf("Next element is %g at %d\n", data[i+1], i+1);
+    printf("Neighbors are %g, %g, %g\n\n\n", data[i+1], data[i + T1_DATA_W], data[i + T1_DATA_W * T1_DATA_H]);
 	h_T1_Volume = data;
 }
 

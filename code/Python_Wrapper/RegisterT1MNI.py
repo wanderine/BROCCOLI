@@ -48,8 +48,8 @@ def registerT1MNI(
   
   BROCCOLI.SetT1Data(h_T1_Data, h_T1_Voxel_Sizes)
   BROCCOLI.SetMNIData(h_MNI_Data, h_MNI_Voxel_Sizes)
-  BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain.flatten())
-  BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask.flatten())
+  BROCCOLI.SetInputMNIBrainData(broccoli.packArray(h_MNI_Brain))
+  BROCCOLI.SetInputMNIBrainMaskData(broccoli.packArray(h_MNI_Brain_Mask))
   
   BROCCOLI.SetInterpolationMode(broccoli.LINEAR) # Linear
   BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION)
