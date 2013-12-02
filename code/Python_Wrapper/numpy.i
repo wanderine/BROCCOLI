@@ -1378,9 +1378,8 @@
   (DATA_TYPE INPLACE_ARRAY1[ANY])
   (PyArrayObject* array=NULL)
 {
-  npy_intp size[1] = { $1_dim0 };
   array = obj_to_array_no_conversion($input, DATA_TYPECODE);
-  if (!array || !require_dimensions(array,1) || !require_size(array, size, 1) ||
+  if (!array || !require_dimensions(array,1) ||
       !require_contiguous(array) || !require_native(array)) SWIG_fail;
   $1 = ($1_ltype) array_data(array);
 }
