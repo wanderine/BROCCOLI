@@ -46,6 +46,9 @@ def registerT1MNI(
   ## Pass input parameters to BROCCOLI
   print("Setting up input parameters...")
   
+  print("T1 size is %s" % ' x '.join([str(i) for i in h_T1_Data.shape]))
+  print("MNI size is %s" % ' x '.join([str(i) for i in h_MNI_Data.shape]))
+  
   BROCCOLI.SetT1Data(h_T1_Data, h_T1_Voxel_Sizes)
   BROCCOLI.SetMNIData(h_MNI_Data, h_MNI_Voxel_Sizes)
   BROCCOLI.SetInputMNIBrainData(broccoli.packArray(h_MNI_Brain))
@@ -68,23 +71,23 @@ def registerT1MNI(
   ## Set up output parameters
   print("Setting up output parameters...")
   
-  h_Aligned_T1_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
+  h_Aligned_T1_Volume = broccoli.createOutputArray(h_MNI_Data.shape)
   BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume)
   
-  h_Aligned_T1_Volume_NonParametric = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
+  h_Aligned_T1_Volume_NonParametric = broccoli.createOutputArray(h_MNI_Data.shape)
   BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric)
   
-  h_Skullstripped_T1_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
+  h_Skullstripped_T1_Volume = broccoli.createOutputArray(h_MNI_Data.shape)
   BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume)
   
-  h_Interpolated_T1_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
+  h_Interpolated_T1_Volume = broccoli.createOutputArray(h_MNI_Data.shape)
   BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume)
 
   # Not used in broccoli_lib.cpp  
   # h_Downsampled_Volume = numpy.empty(MNI_DATA_SIZE, dtype=numpy.float32)
   # BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
   
-  h_Registration_Parameters = numpy.empty(12, dtype=numpy.float32)
+  h_Registration_Parameters = broccoli.createOutputArray(12)
   BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters)
   
   # Not used in broccoli_lib.cpp
@@ -97,19 +100,19 @@ def registerT1MNI(
   # h_Displacement_Field = [numpy.empty(10, dtype=numpy.float32) for i in range(3)]
   # BROCCOLI.SetOutputDisplacementField(*h_Displacement_Field)
   
-  h_Phase_Differences = numpy.empty(10, dtype=numpy.float32)
+  h_Phase_Differences = broccoli.createOutputArray(h_MNI_Data.shape)
   BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences)
   
-  h_Phase_Certainties = numpy.empty(10, dtype=numpy.float32)
+  h_Phase_Certainties = broccoli.createOutputArray(h_MNI_Data.shape)
   BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties)
   
-  h_Phase_Gradients = numpy.empty(10, dtype=numpy.float32)
+  h_Phase_Gradients = broccoli.createOutputArray(h_MNI_Data.shape)
   BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients)
   
-  h_Slice_Sums = numpy.empty(10, dtype=numpy.float32)
+  h_Slice_Sums = broccoli.createOutputArray(h_MNI_Data.shape[2])
   BROCCOLI.SetOutputSliceSums(h_Slice_Sums)
   
-  h_Top_Slice = numpy.empty(10, dtype=numpy.float32)
+  h_Top_Slice = broccoli.createOutputArray(1)
   BROCCOLI.SetOutputTopSlice(h_Top_Slice)
   
   h_A_Matrix = numpy.empty(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, dtype=numpy.float32)

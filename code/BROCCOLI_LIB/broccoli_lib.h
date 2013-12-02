@@ -940,7 +940,7 @@ class BROCCOLI_LIB
 		float		*h_Mask;
 		float		*h_EPI_Mask;
 		float		*h_Smoothed_EPI_Mask;
-		float		*h_T1_Volume;
+        float       *h_T1_Volume;
 		float		*h_MNI_Volume;
 		float		*h_MNI_Brain_Volume;
 		float	    *h_EPI_Volume;

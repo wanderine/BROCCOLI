@@ -12,7 +12,7 @@ pushd ${BROCCOLI_LIB_DIRECTORY}
 ./compile_broccoli_library.sh
 popd
 
-gcc -fPIC -I${OPENCL_DIRECTORY} -I${PYTHON_DIRECTORY} -I${BROCCOLI_LIB_DIRECTORY} -I${BROCCOLI_LIB_DIRECTORY}/Eigen -o broccoli_lib_wrap.o -c broccoli_lib_wrap.cxx
+gcc -fPIC -O3 -I${OPENCL_DIRECTORY} -I${PYTHON_DIRECTORY} -I${BROCCOLI_LIB_DIRECTORY} -I${BROCCOLI_LIB_DIRECTORY}/Eigen -o broccoli_lib_wrap.o -c broccoli_lib_wrap.cxx
 
 # Make a library
 

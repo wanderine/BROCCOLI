@@ -1775,37 +1775,6 @@ void BROCCOLI_LIB::SetInputEPIVolume(float* data)
 
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
-    printf("\n\n\nRandom sample of input T1 data: %f, %f, %f, %f, %f\n", data[0], data[100], data[1000], data[1003298], data[1003497]);
-    
-    float maxF = 0;
-    int maxI = -1;
-    int maxCount = 0;
-    const int N = T1_DATA_W * T1_DATA_H * T1_DATA_D;
-    for (int i = 0; i < N; ++i)
-    {
-        if (data[i] > maxF)
-        {
-            maxF = data[i];
-            maxI = i;
-        }
-        if (data[i] >= 490)
-        {
-            ++maxCount;
-        }
-    }
-    
-    printf("Maximal element is %g at %d = (%d, %d, %d)\n", maxF, maxI, maxI % T1_DATA_W, (maxI / T1_DATA_W) % T1_DATA_H, maxI / T1_DATA_W / T1_DATA_H);\
-    printf("Number of maximal elements: %d\n", maxCount);
-    
-    int i = 0;
-    while (fabs(data[i]) < 1e-8)
-    {
-        ++i;
-    }
-    printf("Sizes are %d, %d, %d\n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
-    printf("First nonzero element is %g at %d = (%d, %d, %d)\n", data[i], i, i % T1_DATA_W, (i / T1_DATA_W) % T1_DATA_H, i / T1_DATA_W / T1_DATA_H);
-    printf("Next element is %g at %d\n", data[i+1], i+1);
-    printf("Neighbors are %g, %g, %g\n\n\n", data[i+1], data[i + T1_DATA_W], data[i + T1_DATA_W * T1_DATA_H]);
 	h_T1_Volume = data;
 }
 
@@ -5717,11 +5686,11 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstripWrapper()
 	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy data to T1 volume and MNI volume
-	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
-
+    clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+    clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
+ 
 	// Interpolate T1 volume to MNI resolution and make sure it has the same size
-	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
+    ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
 
 	clReleaseMemObject(d_T1_Volume);
 

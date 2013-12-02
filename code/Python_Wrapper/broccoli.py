@@ -3,15 +3,17 @@ import numpy
     
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
+
 def packArray(array):
-  return array.astype(numpy.float32)
+  return numpy.ascontiguousarray(array, dtype=numpy.float32)
 
 def packVolume(array):
-  print(array.shape)
   t = array.transpose((2, 0, 1))
   t = numpy.fliplr(t)
-  # t[4][3][2] = 10
   return packArray(t)
+
+def createOutputArray(shape, dtype=numpy.float32):
+  return numpy.empty(shape=shape, dtype=dtype).flatten()
     
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def SetEPIData(self, array, voxel_sizes):

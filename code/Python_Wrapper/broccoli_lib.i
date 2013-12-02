@@ -17,7 +17,7 @@
 %}
 
 %numpy_typemaps(float, NPY_FLOAT, int)
-%apply (float* IN_ARRAY3, int DIM1, int DIM2, int DIM3) {(float* input, int size_w, int size_h, int size_d)}
+%apply (float* INPLACE_ARRAY3, int DIM1, int DIM2, int DIM3) {(float* input, int size_w, int size_h, int size_d)}
 %apply (float INPLACE_ARRAY1[ANY]) {(float* )}
 
 %typemap(out) int *
