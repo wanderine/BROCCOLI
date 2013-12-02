@@ -7,23 +7,23 @@ def packArray(array):
   return array.astype(numpy.float32).flatten()
     
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
+  def SetEPIData(self, array, voxel_sizes):
+    BROCCOLI_LIB_BASE.SetInputEPIData(self, packArray(array))
+    self.SetEPIVoxelSizeX(voxel_sizes[0])
+    self.SetEPIVoxelSizeY(voxel_sizes[1])
+    self.SetEPIVoxelSizeZ(voxel_sizes[2])
+    
   def SetT1Data(self, array, voxel_sizes):
-    self.SetT1Width(array.shape[0])
-    self.SetT1Height(array.shape[1])
-    self.SetT1Depth(array.shape[2])
+    BROCCOLI_LIB_BASE.SetInputT1Data(self, packArray(array))
     self.SetT1VoxelSizeX(voxel_sizes[0])
     self.SetT1VoxelSizeY(voxel_sizes[1])
     self.SetT1VoxelSizeZ(voxel_sizes[2])
-    self.SetInputT1Volume(packArray(array))
     
   def SetMNIData(self, array, voxel_sizes):
-    self.SetMNIWidth(array.shape[0])
-    self.SetMNIHeight(array.shape[1])
-    self.SetMNIDepth(array.shape[2])
+    BROCCOLI_LIB_BASE.SetInputMNIData(self, packArray(array))
     self.SetMNIVoxelSizeX(voxel_sizes[0])
     self.SetMNIVoxelSizeY(voxel_sizes[1])
     self.SetMNIVoxelSizeZ(voxel_sizes[2])
-    self.SetInputMNIVolume(packArray(array))
     
   def SetParametricImageRegistrationFilters(self, filters):
     args = []
