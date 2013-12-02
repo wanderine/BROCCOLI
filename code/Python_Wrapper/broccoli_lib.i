@@ -33,6 +33,35 @@
 
 typedef unsigned int cl_uint;
 
+%apply (float* IN_ARRAY3, int DIM1, int DIM2, int DIM3) {(float* input, int size_w, int size_h, int size_d)}
+
+%extend BROCCOLI_LIB
+{
+    void setInputEPIData(float* input, int size_w, int size_h, int size_d)
+    {
+        $self->SetInputEPIVolume(input);
+        $self->SetEPIWidth(size_w);
+        $self->SetEPIHeight(size_h);
+        $self->SetEPIDepth(size_d);
+    }
+    
+    void setInputT1Data(float* input, int size_w, int size_h, int size_d)
+    {
+        $self->SetInputT1Volume(input);
+        $self->SetT1Width(size_w);
+        $self->SetT1Height(size_h);
+        $self->SetT1Depth(size_d);
+    }
+    
+    void setInputMNIData(float* input, int size_w, int size_h, int size_d)
+    {
+        $self->SetInputMNIVolume(input);
+        $self->SetMNIWidth(size_w);
+        $self->SetMNIHeight(size_h);
+        $self->SetMNIDepth(size_d);
+    }
+}
+
 %extend Coords3D
 {
     int __getitem__(int i) const
