@@ -36,28 +36,38 @@ typedef unsigned int cl_uint;
 
 %extend BROCCOLI_LIB
 {
-    void setInputEPIData(float* input, int size_w, int size_h, int size_d)
+    void SetInputEPIData(float* input, int size_w, int size_h, int size_d)
     {
-        $self->SetInputEPIVolume(input);
         $self->SetEPIWidth(size_w);
         $self->SetEPIHeight(size_h);
         $self->SetEPIDepth(size_d);
+        $self->SetInputEPIVolume(input);
     }
     
-    void setInputT1Data(float* input, int size_w, int size_h, int size_d)
+    void SetInputT1Data(float* input, int size_w, int size_h, int size_d)
     {
-        $self->SetInputT1Volume(input);
         $self->SetT1Width(size_w);
         $self->SetT1Height(size_h);
         $self->SetT1Depth(size_d);
+        $self->SetInputT1Volume(input);
     }
     
-    void setInputMNIData(float* input, int size_w, int size_h, int size_d)
+    void SetInputMNIData(float* input, int size_w, int size_h, int size_d)
     {
-        $self->SetInputMNIVolume(input);
         $self->SetMNIWidth(size_w);
         $self->SetMNIHeight(size_h);
         $self->SetMNIDepth(size_d);
+        $self->SetInputMNIVolume(input);
+    }
+    
+    void SetInputMNIBrainData(float* input, int size_w, int size_h, int size_d)
+    {
+        $self->SetInputMNIBrainVolume(input);
+    }
+    
+    void SetInputMNIBrainMaskData(float* input, int size_w, int size_h, int size_d)
+    {
+        $self->SetInputMNIBrainMask(input);
     }
 }
 
