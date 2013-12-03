@@ -3,6 +3,11 @@ import numpy
     
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
+# TODO: Check that passing arrays to C method as 1D packed arrays is the same as passing arays using the 3D array wrappers
+# TODO: Check that packing (packVolume) and unpacking (unpackOutputVolume) results in the original input array
+# TODO: Transpose and reshape until the two conditions above are not met
+
+
 """
   This is a hack to prevent Python from free()-ing arrays
   that have been packed and then passed to C
