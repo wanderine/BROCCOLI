@@ -111,7 +111,6 @@ private:
 class BROCCOLI_LIB
 {
 	public:
-
 		// Constructor & destructor
 		BROCCOLI_LIB();
 		BROCCOLI_LIB(cl_uint platform, cl_uint device);

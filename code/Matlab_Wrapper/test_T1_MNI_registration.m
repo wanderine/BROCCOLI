@@ -153,6 +153,9 @@ for s = 1:N
     normalization_times(s) = etime(clock,start);
             
     registration_parameters_opencl
+    size(interpolated_T1_opencl)
+    size(aligned_T1_opencl)
+    size(aligned_T1_nonparametric_opencl)
             
     % Show some nice results
     if show_results == 1
@@ -170,6 +173,8 @@ for s = 1:N
         figure(7); imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
         figure(8); imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
     end
+    
+    k = waitforbuttonpress 
         
     % Save normalized volume as a Matlab file
     if save_warped_volume_matlab == 1

@@ -3,7 +3,15 @@ import numpy
 import scipy
 from nibabel import nifti1
 
+import matplotlib.pyplot as plot
+import matplotlib.cm as cm
+
 from operator import mul
+
+def flatSize(a):
+  if hasattr(a, 'shape'):
+    a = a.shape
+  return reduce(mul, a, 1)
 
 def registerT1MNI(
     h_T1_Data,          # Array
@@ -41,7 +49,19 @@ def registerT1MNI(
   
   ## Set constants
   NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12
-  MNI_DATA_SIZE = reduce(mul, h_MNI_Data.shape, 1)
+  MNI_DATA_SIZE = flatSize(h_MNI_Data)
+  
+  MNI_DATA_SHAPE = h_MNI_Data.shape
+  T1_DATA_SHAPE = h_T1_Data.shape
+  T1_INTERPOLATED_DATA_SHAPE = [int(round(float(T1_DATA_SHAPE[i]) * T1_voxel_sizes[i] / MNI_voxel_sizes[i])) for i in range(3)]
+  
+  ## Make all arrays contiguous
+  h_T1_Data = broccoli.packArray(h_T1_Data)
+  h_MNI_Data = broccoli.packArray(h_MNI_Data)
+  h_MNI_Brain = broccoli.packArray(h_MNI_Brain)
+  h_MNI_Brain_Mask = broccoli.packArray(h_MNI_Brain_Mask)
+  
+  print(h_T1_Data.flags)
   
   ## Pass input parameters to BROCCOLI
   print("Setting up input parameters...")
@@ -50,9 +70,10 @@ def registerT1MNI(
   print("MNI size is %s" % ' x '.join([str(i) for i in h_MNI_Data.shape]))
   
   BROCCOLI.SetT1Data(h_T1_Data, h_T1_Voxel_Sizes)
+  BROCCOLI.debugT1Data()
   BROCCOLI.SetMNIData(h_MNI_Data, h_MNI_Voxel_Sizes)
-  BROCCOLI.SetInputMNIBrainData(broccoli.packArray(h_MNI_Brain))
-  BROCCOLI.SetInputMNIBrainMaskData(broccoli.packArray(h_MNI_Brain_Mask))
+  BROCCOLI.SetInputMNIBrainData(h_MNI_Brain)
+  BROCCOLI.SetInputMNIBrainMaskData(h_MNI_Brain_Mask)
   
   BROCCOLI.SetInterpolationMode(broccoli.LINEAR) # Linear
   BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION)
@@ -71,16 +92,16 @@ def registerT1MNI(
   ## Set up output parameters
   print("Setting up output parameters...")
   
-  h_Aligned_T1_Volume = broccoli.createOutputArray(h_MNI_Data.shape)
+  h_Aligned_T1_Volume = broccoli.createOutputArray(MNI_DATA_SHAPE)
   BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume)
   
-  h_Aligned_T1_Volume_NonParametric = broccoli.createOutputArray(h_MNI_Data.shape)
+  h_Aligned_T1_Volume_NonParametric = broccoli.createOutputArray(MNI_DATA_SHAPE)
   BROCCOLI.SetOutputAlignedT1VolumeNonParametric(h_Aligned_T1_Volume_NonParametric)
   
-  h_Skullstripped_T1_Volume = broccoli.createOutputArray(h_MNI_Data.shape)
+  h_Skullstripped_T1_Volume = broccoli.createOutputArray(MNI_DATA_SHAPE)
   BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume)
   
-  h_Interpolated_T1_Volume = broccoli.createOutputArray(h_MNI_Data.shape)
+  h_Interpolated_T1_Volume = broccoli.createOutputArray(MNI_DATA_SHAPE)
   BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume)
 
   # Not used in broccoli_lib.cpp  
@@ -115,25 +136,57 @@ def registerT1MNI(
   h_Top_Slice = broccoli.createOutputArray(1)
   BROCCOLI.SetOutputTopSlice(h_Top_Slice)
   
-  h_A_Matrix = numpy.empty(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, dtype=numpy.float32)
+  h_A_Matrix = broccoli.createOutputArray(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS)
   BROCCOLI.SetOutputAMatrix(h_A_Matrix)
   
-  h_h_Vector = numpy.empty(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS, dtype=numpy.float32)
+  h_h_Vector = broccoli.createOutputArray(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS)
   BROCCOLI.SetOutputHVector(h_h_Vector)
-
+    
   ## Perform registration
   print("Performing registration...")
   BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper()
   
-  print("\n##  Registration performed!  ##\n")
-  BROCCOLI.printRunErrors()
+  """
+  slice = round(0.55*MNI_sy);
+        figure(1); imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray
+        %figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))')); colormap gray
+        figure(2); imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray    
+        figure(3); imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
+        figure(4); imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray
+    
+        slice = round(0.47*MNI_sz);
+        figure(5); imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
+        %figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
+        figure(6); imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray
+        figure(7); imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
+        figure(8); imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
+  
+  """
+  sliceY = round(0.55 * h_MNI_Data.shape[0])
+  sliceZ = round(0.47 * h_MNI_Data.shape[2])
+  
+  plot_results = (
+    broccoli.unpackOutputVolume(h_Interpolated_T1_Volume, MNI_DATA_SHAPE),
+    broccoli.unpackOutputVolume(h_Aligned_T1_Volume, MNI_DATA_SHAPE),
+    h_MNI_Brain,
+    broccoli.unpackOutputVolume(h_Aligned_T1_Volume_NonParametric, MNI_DATA_SHAPE),
+  )
+  
+  for r in plot_results:
+    print(r.shape)
+  
+  for volume in plot_results:
+    plot.imshow(volume.transpose((2, 1, 0))[sliceY], cmap = cm.Greys_r)
+    plot.show()
+    plot.imshow(volume[sliceZ], cmap = cm.Greys_r)
+    plot.show()
   
   return (h_Aligned_T1_Volume, h_Aligned_T1_Volume_NonParametric, h_Skullstripped_T1_Volume, h_Interpolated_T1_Volume, 
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients, h_Slice_Sums, h_Top_Slice, h_A_Matrix, h_h_Vector)
   
 if __name__ == "__main__":
   opencl_platform = 0
-  opencl_device = 1
+  opencl_device = 0
   
   study = 'Cambridge'
   subject = 'sub00156'
@@ -174,5 +227,4 @@ if __name__ == "__main__":
                 opencl_platform,
                 opencl_device)
 
-  for r in results:
-    print(r)
+  

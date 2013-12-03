@@ -5686,7 +5686,10 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstripWrapper()
 	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy data to T1 volume and MNI volume
+    printf("h_T1_Volume (%d x %d x %d) at %#010x\n", T1_DATA_W, T1_DATA_H, T1_DATA_D, h_T1_Volume);
+    printf("Last value is %g\n", h_T1_Volume[T1_DATA_W * T1_DATA_H * T1_DATA_D]);
     clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+    printf("h_MNI_Volume (%d x %d x %d) at %#010x\n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, h_MNI_Brain_Volume);
     clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
  
 	// Interpolate T1 volume to MNI resolution and make sure it has the same size

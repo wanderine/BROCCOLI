@@ -3,33 +3,57 @@ import numpy
     
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
+"""
+  This is a hack to prevent Python from free()-ing arrays
+  that have been packed and then passed to C
+"""
+_input_arrays = []
 
 def packArray(array):
   return numpy.ascontiguousarray(array, dtype=numpy.float32)
 
 def packVolume(array):
-  t = array.transpose((2, 0, 1))
+  t = array.transpose((1, 0, 2))
   t = numpy.fliplr(t)
   return packArray(t)
 
 def createOutputArray(shape, dtype=numpy.float32):
   return numpy.empty(shape=shape, dtype=dtype).flatten()
+
+def unpackOutputArray(array, shape):
+  if len(shape) == 3:
+    t_shape = (shape[2], shape[0], shape[1])
+    t = array.reshape(t_shape)
+    return t.transpose((2, 0, 1))
+  else:
+    return array.reshape(shape)
+  
+def unpackOutputVolume(array, shape = None):
+  if shape:
+    array = unpackOutputArray(array, shape)
+  return numpy.fliplr(array).transpose((1, 0, 2))
     
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def SetEPIData(self, array, voxel_sizes):
-    BROCCOLI_LIB_BASE.SetInputEPIData(self, packVolume(array))
+    t = packVolume(array)
+    _input_arrays.append(t)
+    BROCCOLI_LIB_BASE.SetInputEPIData(self, t)
     self.SetEPIVoxelSizeX(voxel_sizes[0])
     self.SetEPIVoxelSizeY(voxel_sizes[1])
     self.SetEPIVoxelSizeZ(voxel_sizes[2])
     
   def SetT1Data(self, array, voxel_sizes):
-    BROCCOLI_LIB_BASE.SetInputT1Data(self, packVolume(array))
+    t = packVolume(array)
+    _input_arrays.append(t)
+    BROCCOLI_LIB_BASE.SetInputT1Data(self, t)
     self.SetT1VoxelSizeX(voxel_sizes[0])
     self.SetT1VoxelSizeY(voxel_sizes[1])
     self.SetT1VoxelSizeZ(voxel_sizes[2])
     
   def SetMNIData(self, array, voxel_sizes):
-    BROCCOLI_LIB_BASE.SetInputMNIData(self, packVolume(array))
+    t = packVolume(array)
+    _input_arrays.append(t)
+    BROCCOLI_LIB_BASE.SetInputMNIData(self, t)
     self.SetMNIVoxelSizeX(voxel_sizes[0])
     self.SetMNIVoxelSizeY(voxel_sizes[1])
     self.SetMNIVoxelSizeZ(voxel_sizes[2])

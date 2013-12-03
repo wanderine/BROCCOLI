@@ -46,6 +46,7 @@ typedef unsigned int cl_uint;
     
     void SetInputT1Data(float* input, int size_w, int size_h, int size_d)
     {
+        printf("SWIG: Last value is %f\n", input[size_w * size_h * size_d - 1]);
         $self->SetT1Width(size_w);
         $self->SetT1Height(size_h);
         $self->SetT1Depth(size_d);
