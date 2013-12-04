@@ -94,7 +94,7 @@ def registerT1MNI(
   BROCCOLI.SetImageRegistrationFilterSize(h_Quadrature_Filter_Parametric_Registration[0][0].shape[0])
   BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_Parametric_Registration)
   BROCCOLI.SetNonParametricImageRegistrationFilters(h_Quadrature_Filter_NonParametric_Registration)
-  
+
   BROCCOLI.SetProjectionTensorMatrixFilters(h_Projection_Tensor)
   BROCCOLI.SetFilterDirections(*[broccoli.packArray(a) for a in h_Filter_Directions])
   
@@ -196,7 +196,7 @@ def registerT1MNI(
   
 if __name__ == "__main__":
   opencl_platform = 0
-  opencl_device = 0
+  opencl_device = 1
   
   study = 'Cambridge'
   subject = 'sub00156'
@@ -207,6 +207,7 @@ if __name__ == "__main__":
   number_of_iterations_for_nonparametric_image_registration = 15
   coarsest_scale = 8 / voxel_size
   MM_T1_Z_CUT = 30
+  #MM_T1_Z_CUT = 120
   
   MNI_nni = nifti1.load('../../brain_templates/MNI152_T1_%dmm.nii' % voxel_size)
   MNI = MNI_nni.get_data()

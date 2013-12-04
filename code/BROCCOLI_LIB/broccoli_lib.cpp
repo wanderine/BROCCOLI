@@ -1976,6 +1976,9 @@ void BROCCOLI_LIB::SetNonParametricImageRegistrationFilters(float* qf1r, float* 
 	h_Quadrature_Filter_5_NonParametric_Registration_Imag = qf5i;
 	h_Quadrature_Filter_6_NonParametric_Registration_Real = qf6r;
 	h_Quadrature_Filter_6_NonParametric_Registration_Imag = qf6i;
+    
+    printf("Setting filters: %g, %g, %g, %g\n", qf1r[0], qf1i[0], qf2r[3], qf2i[3]);
+    printf("Setting filters: %g, %g, %g, %g\n", qf1r[3], qf1i[3], qf2r[0], qf2i[0]);
 }
 
 void SetNonParametricImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* q3r, float* q3i, float* qf4r, float* qf4i, float* qf5r, float* qf5i, float* q6r, float* q6i);
@@ -4640,6 +4643,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	int x_diff = T1_DATA_W_INTERPOLATED - MNI_DATA_W;
 	int y_diff = T1_DATA_H_INTERPOLATED - MNI_DATA_H;
 	int z_diff = T1_DATA_D_INTERPOLATED - MNI_DATA_D;
+    printf("Differences are %d, %d, %d\n", x_diff, y_diff, z_diff);
 
 	// Set all values to zero
 	SetMemory(d_MNI_T1_Volume, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
@@ -4669,6 +4673,8 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	// Check where the top of the brain is in the moved T1 volume
 	int top_slice;
 	CalculateTopBrainSlice(top_slice, d_MNI_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, MM_T1_Z_CUT_);
+    
+    printf("Top slice is %d\n", top_slice);
 
 	int diff;
 	if (MNI_VOXEL_SIZE_X == 1.0f)
@@ -4729,6 +4735,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 
 void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut)
 {
+    printf("CalculateTopBrainSlice: %d\n", z_cut);
 	SetGlobalAndLocalWorkSizesCalculateMagnitudes(DATA_W, DATA_H, DATA_D);
 	SetGlobalAndLocalWorkSizesCalculateSum(DATA_W, DATA_H, DATA_D);
 
@@ -4778,6 +4785,7 @@ void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_
 	for (int z = DATA_D - 1; z >= (DATA_D - z_cut - 4 - 1); z--)
 	{
 		h_Sums[z] = h_Sums[DATA_D - 1 - z_cut - 4 - 1];
+        printf("Sum at %d is %g\n", z, h_Sums[z]);
 	}
 	for (int z = (int)round((float)DATA_D/2.0); z >= 0; z--)
 	{
@@ -4800,6 +4808,7 @@ void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_
 	for (int z = 1; z < DATA_D; z++)
 	{
 		h_Derivatives[z] = h_Sums[z-1] - h_Sums[z];
+        printf("Derivative at %d is %g\n", z, h_Derivatives[z]);
 	}
 
 	// Find max derivative

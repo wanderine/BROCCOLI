@@ -83,15 +83,15 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def SetParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(3):
-      args.append(packArray(numpy.real(filters[i][0])).flatten())
-      args.append(packArray(numpy.imag(filters[i][0])).flatten())
+      args.append(packVolume(numpy.real(filters[i])))
+      args.append(packVolume(numpy.imag(filters[i])))
     BROCCOLI_LIB_BASE.SetParametricImageRegistrationFilters(self, *args)
     
   def SetNonParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(6):
-      args.append(packArray(numpy.real(filters[i][0])).flatten())
-      args.append(packArray(numpy.imag(filters[i][0])).flatten())
+      args.append(packVolume(numpy.real(filters[i])))
+      args.append(packVolume(numpy.imag(filters[i])))
     BROCCOLI_LIB_BASE.SetNonParametricImageRegistrationFilters(self, *args)
     
   def SetProjectionTensorMatrixFilters(self, filters):
