@@ -13,6 +13,20 @@ def flatSize(a):
     a = a.shape
   return reduce(mul, a, 1)
 
+def plotVolume(data):
+  sliceY = int(round(0.45 * data.shape[0]))
+  
+  # Data is first ordered [y][x][z]
+  plot.imshow(numpy.flipud(data[sliceY].transpose()), cmap = cm.Greys_r, interpolation="nearest")
+  plot.show()
+  
+  sliceZ = int(round(0.46 * data.shape[2]))
+  
+  # We want it ordered [z][x][y]
+  data_t = data.transpose()
+  plot.imshow(numpy.fliplr(data_t[sliceZ]).transpose(), cmap = cm.Greys_r, interpolation="nearest")
+  plot.show()
+
 def registerT1MNI(
     h_T1_Data,          # Array
     h_T1_Voxel_Sizes,   # 3 elements
@@ -46,6 +60,7 @@ def registerT1MNI(
     return
 
   print("OpenCL initialization successful, proceeding...")
+  plotVolume(h_MNI_Brain)  
   
   ## Set constants
   NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12
@@ -61,8 +76,6 @@ def registerT1MNI(
   h_MNI_Brain = broccoli.packArray(h_MNI_Brain)
   h_MNI_Brain_Mask = broccoli.packArray(h_MNI_Brain_Mask)
   
-  print(h_T1_Data.flags)
-  
   ## Pass input parameters to BROCCOLI
   print("Setting up input parameters...")
   
@@ -70,7 +83,6 @@ def registerT1MNI(
   print("MNI size is %s" % ' x '.join([str(i) for i in h_MNI_Data.shape]))
   
   BROCCOLI.SetT1Data(h_T1_Data, h_T1_Voxel_Sizes)
-  BROCCOLI.debugT1Data()
   BROCCOLI.SetMNIData(h_MNI_Data, h_MNI_Voxel_Sizes)
   BROCCOLI.SetInputMNIBrainData(h_MNI_Brain)
   BROCCOLI.SetInputMNIBrainMaskData(h_MNI_Brain_Mask)
@@ -162,8 +174,6 @@ def registerT1MNI(
         figure(8); imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
   
   """
-  sliceY = round(0.55 * h_MNI_Data.shape[0])
-  sliceZ = round(0.47 * h_MNI_Data.shape[2])
   
   plot_results = (
     broccoli.unpackOutputVolume(h_Interpolated_T1_Volume, MNI_DATA_SHAPE),
@@ -173,13 +183,7 @@ def registerT1MNI(
   )
   
   for r in plot_results:
-    print(r.shape)
-  
-  for volume in plot_results:
-    plot.imshow(volume.transpose((2, 1, 0))[sliceY], cmap = cm.Greys_r)
-    plot.show()
-    plot.imshow(volume[sliceZ], cmap = cm.Greys_r)
-    plot.show()
+    plotVolume(r)
   
   return (h_Aligned_T1_Volume, h_Aligned_T1_Volume_NonParametric, h_Skullstripped_T1_Volume, h_Interpolated_T1_Volume, 
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients, h_Slice_Sums, h_Top_Slice, h_A_Matrix, h_h_Vector)

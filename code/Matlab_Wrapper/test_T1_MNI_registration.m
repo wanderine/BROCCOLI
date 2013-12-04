@@ -93,6 +93,13 @@ MNI_brain_mask = double(MNI_brain_mask_nii.img);
 % Load quadrature filters
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
+
+slice = round(0.55*MNI_sy);
+figure(1); imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
+slice = round(0.47*MNI_sz);
+figure(2); imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
+
+show_results = 0
     
 dirs = dir([basepath study]);
 

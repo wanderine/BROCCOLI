@@ -1776,11 +1776,40 @@ void BROCCOLI_LIB::SetInputEPIVolume(float* data)
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
 	h_T1_Volume = data;
+    
+    int maxI = 0;
+    float maxF = 0;
+    
+    for (int l = 0; l < T1_DATA_W * T1_DATA_H * T1_DATA_D; ++l)
+    {
+        if (data[l] > maxF)
+        {
+            maxF = data[l];
+            maxI = l;
+        }
+    }
+    printf("Max T1 element is %g at %d\n", maxF, maxI);
+    printf("Coordinates %d, %d, %d\n", maxI % T1_DATA_W, (maxI / T1_DATA_W) % T1_DATA_H, maxI / T1_DATA_W / T1_DATA_H);
 }
 
 void BROCCOLI_LIB::SetInputMNIVolume(float* data)
 {
 	h_MNI_Volume = data;
+    
+    
+    int maxI = 0;
+    float maxF = 0;
+    
+    for (int l = 0; l < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; ++l)
+    {
+        if (data[l] > maxF)
+        {
+            maxF = data[l];
+            maxI = l;
+        }
+    }
+    printf("Max MNI element is %g at %d\n", maxF, maxI);
+    printf("Coordinates %d, %d, %d\n", maxI % MNI_DATA_W, (maxI / MNI_DATA_W) % MNI_DATA_H, maxI / MNI_DATA_W / MNI_DATA_H);
 }
 
 void BROCCOLI_LIB::SetInputMNIBrainVolume(float* data)

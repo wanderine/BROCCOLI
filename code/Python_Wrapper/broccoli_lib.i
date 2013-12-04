@@ -17,7 +17,7 @@
 %}
 
 %numpy_typemaps(float, NPY_FLOAT, int)
-%apply (float* INPLACE_ARRAY3, int DIM1, int DIM2, int DIM3) {(float* input, int size_w, int size_h, int size_d)}
+%apply (float* INPLACE_ARRAY3, int DIM1, int DIM2, int DIM3) {(float* input, int size_d, int size_h, int size_w)}
 %apply (float INPLACE_ARRAY1[ANY]) {(float* )}
 
 %typemap(out) int *
@@ -36,7 +36,7 @@ typedef unsigned int cl_uint;
 
 %extend BROCCOLI_LIB
 {
-    void SetInputEPIData(float* input, int size_w, int size_h, int size_d)
+    void SetInputEPIData(float* input, int size_d, int size_h, int size_w)
     {
         $self->SetEPIWidth(size_w);
         $self->SetEPIHeight(size_h);
@@ -44,16 +44,16 @@ typedef unsigned int cl_uint;
         $self->SetInputEPIVolume(input);
     }
     
-    void SetInputT1Data(float* input, int size_w, int size_h, int size_d)
+    void SetInputT1Data(float* input, int size_d, int size_h, int size_w)
     {
-        printf("SWIG: Last value is %f\n", input[size_w * size_h * size_d - 1]);
+        printf("SWIG: Last value is %f\n", input[size_d * size_h * size_d - 1]);
         $self->SetT1Width(size_w);
         $self->SetT1Height(size_h);
         $self->SetT1Depth(size_d);
         $self->SetInputT1Volume(input);
     }
     
-    void SetInputMNIData(float* input, int size_w, int size_h, int size_d)
+    void SetInputMNIData(float* input, int size_d, int size_h, int size_w)
     {
         $self->SetMNIWidth(size_w);
         $self->SetMNIHeight(size_h);
@@ -61,12 +61,12 @@ typedef unsigned int cl_uint;
         $self->SetInputMNIVolume(input);
     }
     
-    void SetInputMNIBrainData(float* input, int size_w, int size_h, int size_d)
+    void SetInputMNIBrainData(float* input, int size_d, int size_h, int size_w)
     {
         $self->SetInputMNIBrainVolume(input);
     }
     
-    void SetInputMNIBrainMaskData(float* input, int size_w, int size_h, int size_d)
+    void SetInputMNIBrainMaskData(float* input, int size_d, int size_h, int size_w)
     {
         $self->SetInputMNIBrainMask(input);
     }

@@ -3,10 +3,9 @@ import numpy
     
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
-# TODO: Check that passing arrays to C method as 1D packed arrays is the same as passing arays using the 3D array wrappers
-# TODO: Check that packing (packVolume) and unpacking (unpackOutputVolume) results in the original input array
-# TODO: Transpose and reshape until the two conditions above are not met
-
+# DONE: Check that passing arrays to C method as 1D packed arrays is the same as passing arays using the 3D array wrappers
+# DONE: Check that packing (packVolume) and unpacking (unpackOutputVolume) results in the original input array
+# DONE: Transpose and reshape until the two conditions above are not met
 
 """
   This is a hack to prevent Python from free()-ing arrays
@@ -14,11 +13,18 @@ BROCCOLI_LIB_BASE = BROCCOLI_LIB
 """
 _input_arrays = []
 
+_pack_permutation = (2, 0, 1)
+_unpack_permutation = numpy.argsort(_pack_permutation)
+
+def _permute(permutation, array):
+  n = len(array)
+  return [array[permutation[i]] for i in range(n)] 
+
 def packArray(array):
   return numpy.ascontiguousarray(array, dtype=numpy.float32)
 
 def packVolume(array):
-  t = array.transpose((1, 0, 2))
+  t = array.transpose(_pack_permutation)
   t = numpy.fliplr(t)
   return packArray(t)
 
@@ -26,17 +32,13 @@ def createOutputArray(shape, dtype=numpy.float32):
   return numpy.empty(shape=shape, dtype=dtype).flatten()
 
 def unpackOutputArray(array, shape):
-  if len(shape) == 3:
-    t_shape = (shape[2], shape[0], shape[1])
-    t = array.reshape(t_shape)
-    return t.transpose((2, 0, 1))
-  else:
-    return array.reshape(shape)
+  return array.reshape(shape)
   
 def unpackOutputVolume(array, shape = None):
   if shape:
-    array = unpackOutputArray(array, shape)
-  return numpy.fliplr(array).transpose((1, 0, 2))
+    t_shape = _permute(_pack_permutation, shape)
+    array = unpackOutputArray(array, t_shape)
+  return numpy.fliplr(array).transpose(_unpack_permutation)
     
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def SetEPIData(self, array, voxel_sizes):
