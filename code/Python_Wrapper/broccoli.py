@@ -26,7 +26,9 @@ def packArray(array):
 def packVolume(array):
   t = array.transpose(_pack_permutation)
   t = numpy.fliplr(t)
-  return packArray(t)
+  t = packArray(t.flatten())
+  _input_arrays.append(t)
+  return t
 
 def createOutputArray(shape, dtype=numpy.float32):
   return numpy.empty(shape=shape, dtype=dtype).flatten()
@@ -38,29 +40,42 @@ def unpackOutputVolume(array, shape = None):
   if shape:
     t_shape = _permute(_pack_permutation, shape)
     array = unpackOutputArray(array, t_shape)
-  return numpy.fliplr(array).transpose(_unpack_permutation)
+    array = numpy.fliplr(array)
+  return array.transpose(_unpack_permutation)
     
-class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
+class BROCCOLI_LIB(BROCCOLI_LIB_BASE): 
   def SetEPIData(self, array, voxel_sizes):
+    self.SetEPIHeight(array.shape[0])
+    self.SetEPIWidth(array.shape[1])
+    self.SetEPIDepth(array.shape[2])
+
     t = packVolume(array)
-    _input_arrays.append(t)
-    BROCCOLI_LIB_BASE.SetInputEPIData(self, t)
+    self.SetInputEPIVolume(t)
+
     self.SetEPIVoxelSizeX(voxel_sizes[0])
     self.SetEPIVoxelSizeY(voxel_sizes[1])
     self.SetEPIVoxelSizeZ(voxel_sizes[2])
     
   def SetT1Data(self, array, voxel_sizes):
+    self.SetT1Height(array.shape[0])
+    self.SetT1Width(array.shape[1])
+    self.SetT1Depth(array.shape[2])
+
     t = packVolume(array)
-    _input_arrays.append(t)
-    BROCCOLI_LIB_BASE.SetInputT1Data(self, t)
+    self.SetInputT1Volume(t)
+
     self.SetT1VoxelSizeX(voxel_sizes[0])
     self.SetT1VoxelSizeY(voxel_sizes[1])
     self.SetT1VoxelSizeZ(voxel_sizes[2])
     
   def SetMNIData(self, array, voxel_sizes):
+    self.SetMNIHeight(array.shape[0])
+    self.SetMNIWidth(array.shape[1])
+    self.SetMNIDepth(array.shape[2])
+
     t = packVolume(array)
-    _input_arrays.append(t)
-    BROCCOLI_LIB_BASE.SetInputMNIData(self, t)
+    self.SetInputMNIVolume(t)
+
     self.SetMNIVoxelSizeX(voxel_sizes[0])
     self.SetMNIVoxelSizeY(voxel_sizes[1])
     self.SetMNIVoxelSizeZ(voxel_sizes[2])

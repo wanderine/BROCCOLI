@@ -60,7 +60,6 @@ def registerT1MNI(
     return
 
   print("OpenCL initialization successful, proceeding...")
-  plotVolume(h_MNI_Brain)  
   
   ## Set constants
   NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12
@@ -84,8 +83,9 @@ def registerT1MNI(
   
   BROCCOLI.SetT1Data(h_T1_Data, h_T1_Voxel_Sizes)
   BROCCOLI.SetMNIData(h_MNI_Data, h_MNI_Voxel_Sizes)
-  BROCCOLI.SetInputMNIBrainData(h_MNI_Brain)
-  BROCCOLI.SetInputMNIBrainMaskData(h_MNI_Brain_Mask)
+
+  BROCCOLI.SetInputMNIBrainVolume(broccoli.packVolume(h_MNI_Brain))
+  BROCCOLI.SetInputMNIBrainMask(broccoli.packVolume(h_MNI_Brain_Mask))
   
   BROCCOLI.SetInterpolationMode(broccoli.LINEAR) # Linear
   BROCCOLI.SetNumberOfIterationsForParametricImageRegistration(NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION)
@@ -121,6 +121,8 @@ def registerT1MNI(
   # BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
   
   h_Registration_Parameters = broccoli.createOutputArray(12)
+  h_Registration_Parameters[3] = 1
+  print(h_Registration_Parameters)
   BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters)
   
   # Not used in broccoli_lib.cpp
@@ -175,6 +177,10 @@ def registerT1MNI(
   
   """
   
+  print(h_Registration_Parameters)
+  print(h_Top_Slice)
+  print(h_Slice_Sums)
+  
   plot_results = (
     broccoli.unpackOutputVolume(h_Interpolated_T1_Volume, MNI_DATA_SHAPE),
     broccoli.unpackOutputVolume(h_Aligned_T1_Volume, MNI_DATA_SHAPE),
@@ -213,7 +219,7 @@ if __name__ == "__main__":
   
   T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
   T1 = T1_nni.get_data()
-  T1_voxel_sizes = [int(0.6 * s) for s in MNI_voxel_sizes]
+  T1_voxel_sizes = [1.2000, 1.1979, 1.1979]
   
   filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
   filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
