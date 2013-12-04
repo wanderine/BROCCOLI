@@ -1776,40 +1776,11 @@ void BROCCOLI_LIB::SetInputEPIVolume(float* data)
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
 	h_T1_Volume = data;
-    
-    int maxI = 0;
-    float maxF = 0;
-    
-    for (int l = 0; l < T1_DATA_W * T1_DATA_H * T1_DATA_D; ++l)
-    {
-        if (data[l] > maxF)
-        {
-            maxF = data[l];
-            maxI = l;
-        }
-    }
-    printf("Max T1 element is %g at %d\n", maxF, maxI);
-    printf("Coordinates %d, %d, %d\n", maxI % T1_DATA_W, (maxI / T1_DATA_W) % T1_DATA_H, maxI / T1_DATA_W / T1_DATA_H);
 }
 
 void BROCCOLI_LIB::SetInputMNIVolume(float* data)
 {
 	h_MNI_Volume = data;
-    
-    
-    int maxI = 0;
-    float maxF = 0;
-    
-    for (int l = 0; l < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; ++l)
-    {
-        if (data[l] > maxF)
-        {
-            maxF = data[l];
-            maxI = l;
-        }
-    }
-    printf("Max MNI element is %g at %d\n", maxF, maxI);
-    printf("Coordinates %d, %d, %d\n", maxI % MNI_DATA_W, (maxI / MNI_DATA_W) % MNI_DATA_H, maxI / MNI_DATA_W / MNI_DATA_H);
 }
 
 void BROCCOLI_LIB::SetInputMNIBrainVolume(float* data)
@@ -1976,9 +1947,6 @@ void BROCCOLI_LIB::SetNonParametricImageRegistrationFilters(float* qf1r, float* 
 	h_Quadrature_Filter_5_NonParametric_Registration_Imag = qf5i;
 	h_Quadrature_Filter_6_NonParametric_Registration_Real = qf6r;
 	h_Quadrature_Filter_6_NonParametric_Registration_Imag = qf6i;
-    
-    printf("Setting filters: %g, %g, %g, %g\n", qf1r[0], qf1i[0], qf2r[3], qf2i[3]);
-    printf("Setting filters: %g, %g, %g, %g\n", qf1r[3], qf1i[3], qf2r[0], qf2i[0]);
 }
 
 void SetNonParametricImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* q3r, float* q3i, float* qf4r, float* qf4i, float* qf5r, float* qf5i, float* q6r, float* q6i);
@@ -4643,7 +4611,6 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	int x_diff = T1_DATA_W_INTERPOLATED - MNI_DATA_W;
 	int y_diff = T1_DATA_H_INTERPOLATED - MNI_DATA_H;
 	int z_diff = T1_DATA_D_INTERPOLATED - MNI_DATA_D;
-    printf("Differences are %d, %d, %d\n", x_diff, y_diff, z_diff);
 
 	// Set all values to zero
 	SetMemory(d_MNI_T1_Volume, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
@@ -4674,8 +4641,6 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	int top_slice;
 	CalculateTopBrainSlice(top_slice, d_MNI_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, MM_T1_Z_CUT_);
     
-    printf("Top slice is %d\n", top_slice);
-
 	int diff;
 	if (MNI_VOXEL_SIZE_X == 1.0f)
 	{
@@ -4735,7 +4700,6 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 
 void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut)
 {
-    printf("CalculateTopBrainSlice: %d\n", z_cut);
 	SetGlobalAndLocalWorkSizesCalculateMagnitudes(DATA_W, DATA_H, DATA_D);
 	SetGlobalAndLocalWorkSizesCalculateSum(DATA_W, DATA_H, DATA_D);
 
@@ -4785,7 +4749,6 @@ void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_
 	for (int z = DATA_D - 1; z >= (DATA_D - z_cut - 4 - 1); z--)
 	{
 		h_Sums[z] = h_Sums[DATA_D - 1 - z_cut - 4 - 1];
-        printf("Sum at %d is %g\n", z, h_Sums[z]);
 	}
 	for (int z = (int)round((float)DATA_D/2.0); z >= 0; z--)
 	{
@@ -4808,7 +4771,6 @@ void BROCCOLI_LIB::CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_
 	for (int z = 1; z < DATA_D; z++)
 	{
 		h_Derivatives[z] = h_Sums[z-1] - h_Sums[z];
-        printf("Derivative at %d is %g\n", z, h_Derivatives[z]);
 	}
 
 	// Find max derivative
@@ -5724,10 +5686,7 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstripWrapper()
 	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy data to T1 volume and MNI volume
-    printf("h_T1_Volume (%d x %d x %d) at %#010x\n", T1_DATA_W, T1_DATA_H, T1_DATA_D, h_T1_Volume);
-    printf("Last value is %g\n", h_T1_Volume[T1_DATA_W * T1_DATA_H * T1_DATA_D]);
     clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
-    printf("h_MNI_Volume (%d x %d x %d) at %#010x\n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, h_MNI_Brain_Volume);
     clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
  
 	// Interpolate T1 volume to MNI resolution and make sure it has the same size
