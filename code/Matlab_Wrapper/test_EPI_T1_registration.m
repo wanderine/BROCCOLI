@@ -128,9 +128,9 @@ for s = 1:N
     [EPI_sy EPI_sx EPI_sz] = size(EPI);
     [EPI_sy EPI_sx EPI_sz]
         
-    EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
-    EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
-    EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+    EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2)
+    EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3)
+    EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4)
     
     % Run registration
     tic
@@ -143,6 +143,8 @@ for s = 1:N
         m1, m2, m3, m4, m5, m6, ...
         number_of_iterations_for_parametric_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform, opencl_device);
     toc
+    
+    registration_parameters_opencl
             
     % Show some nice results
     if show_results == 1

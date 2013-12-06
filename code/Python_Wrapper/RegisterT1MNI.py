@@ -22,7 +22,7 @@ def plotVolume(data):
   plot.imshow(numpy.flipud(data[sliceY].transpose()), cmap = cm.Greys_r, interpolation="nearest")
   plot.show()
   
-  sliceZ = int(round(0.46 * data.shape[2]))
+  sliceZ = int(round(0.47 * data.shape[2])) - 1
   
   # We want it ordered [z][x][y]
   data_t = data.transpose()
