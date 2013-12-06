@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import broccoli
 import numpy
 import scipy
