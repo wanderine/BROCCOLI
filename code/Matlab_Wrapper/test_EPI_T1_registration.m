@@ -40,14 +40,13 @@ if ispc
     opencl_platform = 2; % 0 Nvidia, 1 Intel, 2 AMD
     opencl_device = 0;
 elseif isunix
-    addpath('/home/andek/Research_projects/nifti_matlab')
-    basepath = '/data/andek/BROCCOLI_test_data/';
-    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';
+    addpath('/home/miha/Delo/BROCCOLI/nifti')
+    basepath = '/home/miha/Programiranje/BROCCOLI/test_data/fcon1000/classic/';
+    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';        
     
-    %mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
-    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/opt/cuda/include/ -I/opt/cuda/include/CL -L/usr/lib -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB -L/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB    -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB/Eigen
     
-    opencl_platform = 2;  % 0 Intel, 1 AMD, 2 Nvidia
+    opencl_platform = 0;  % 0 Intel, 1 AMD, 2 Nvidia
     opencl_device = 0;
 end
 
@@ -69,6 +68,12 @@ number_of_iterations_for_parametric_image_registration = 20;
 coarsest_scale = 8/voxel_size;
 MM_EPI_Z_CUT = 30;
 
+%% Only used in Octave for compatibility with Matlab
+if exist('do_braindead_shortcircuit_evaluation', 'builtin')
+  do_braindead_shortcircuit_evaluation(1);
+  warning('off', 'Octave:possible-matlab-short-circuit-operator');
+end
+
 % Load quadrature filters
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
@@ -87,7 +92,7 @@ for s = 1:N
     %close all
     
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  || (strcmp(study,'Baltimore')) )
-        T1_nii = load_nii([basepath study '/' subject '/anat/mprage_skullstripped.nii.gz']);
+        T1_nii = load_nii([basepath study '/' subject '/anat/mprage_skullstripped.nii']);
     elseif ( strcmp(study,'OpenfMRI'))
         T1_nii = load_nii([basepath study '/' substudy '/highres' subject '.nii.gz']);
     end
@@ -112,7 +117,7 @@ for s = 1:N
     
     
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) || (strcmp(study,'Baltimore')) )
-        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);
+        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii']);
     elseif ( strcmp(study,'OpenfMRI'))
         EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
     end
