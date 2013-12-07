@@ -71,6 +71,9 @@ def registerT1MNI(
   h_T1_Data = broccoli.packArray(h_T1_Data)
   h_EPI_Data = broccoli.packArray(h_EPI_Data)
   
+  h_EPI_Voxel_Sizes = [round(i) for i in h_EPI_Voxel_Sizes]
+  h_T1_Voxel_Sizes = [round(i) for i in h_T1_Voxel_Sizes]
+  
   ## Pass input parameters to BROCCOLI
   print("Setting up input parameters...")
   
@@ -152,7 +155,7 @@ if __name__ == "__main__":
   args = parser.parse_args()
   
   (T1, T1_voxel_sizes) = broccoli.load_T1(args.t1_file)
-  (EPI, EPI_voxel_sizes) = broccol.load_EPI(args.epi_file)
+  (EPI, EPI_voxel_sizes) = broccoli.load_EPI(args.epi_file)
   
   coarsest_scale = int(round(8 / T1_voxel_sizes[0]))
   
