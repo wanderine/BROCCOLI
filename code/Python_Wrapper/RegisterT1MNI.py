@@ -240,8 +240,8 @@ if __name__ == "__main__":
   parser.add_argument('--iterations-parametric', type=int, default=10)
   parser.add_argument('--iterations-nonparametric', type=int, default=15)
   
-  parser.add_argument('--filters-parametric', type=str, default="../Matlab_Wrapper/filters_for_parametric_registration.mat")
-  parser.add_argument('--filters-nonparametric', type=str, default="../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
+  parser.add_argument('--filters-parametric-file', type=str, default="../Matlab_Wrapper/filters_for_parametric_registration.mat")
+  parser.add_argument('--filters-nonparametric-file', type=str, default="../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
   
   parser.add_argument('--mm-t1-z-cut', type=int, default=30)
   
@@ -252,8 +252,8 @@ if __name__ == "__main__":
   
   coarsest_scale = int(round(8 / MNI_voxel_sizes[0]))
   
-  filters_parametric_mat = scipy.io.loadmat(args.filters_parametric)
-  filters_nonparametric_mat = scipy.io.loadmat(args.filters_nonparametric)
+  filters_parametric_mat = scipy.io.loadmat(args.filters_parametric_file)
+  filters_nonparametric_mat = scipy.io.loadmat(args.filters_nonparametric_file)
   
   parametric_filters = [filters_parametric_mat['f%d_parametric_registration' % (i+1)] for i in range(3)]
   nonparametric_filters = [filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)] for i in range(6)]
