@@ -5,6 +5,8 @@ import numpy
 import scipy
 from nibabel import nifti1
 
+import argparse
+
 import matplotlib.pyplot as plot
 import matplotlib.cm as cm
 
@@ -195,34 +197,60 @@ def registerT1MNI(
   
   return (h_Aligned_T1_Volume, h_Aligned_T1_Volume_NonParametric, h_Skullstripped_T1_Volume, h_Interpolated_T1_Volume, 
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients, h_Slice_Sums, h_Top_Slice, h_A_Matrix, h_h_Vector)
+
+def load_MNI_templates(mni_file, mni_brain_file = None, mni_brain_mask_file = None):
+  if not mni_brain_file:
+    mni_brain_file = mni_file.replace('.nii', '_brain.nii')
+  if not mni_brain_mask_file:
+    mni_brain_mask_file = mni_file.replace('.nii', '_brain_mask.nii')
+  MNI_nni = nifti1.load(mni_file)
+  MNI = MNI_nni.get_data()
+  
+  MNI_brain_nii = nifti1.load(mni_brain_file)
+  MNI_brain = MNI_brain_nii.get_data()
+  
+  MNI_brain_mask_nii = nifti1.load(mni_brain_mask_file)
+  MNI_brain_mask = MNI_brain_mask_nii.get_data()
+  
+  voxel_sizes = MNI_nni.get_header()['pixdim'][1:4]
+    
+  return MNI, MNI_brain, MNI_brain_mask, voxel_sizes
+
+def load_T1(t1_file):
+  T1_nni = nifti1.load(t1_file)
+  T1 = T1_nni.get_data()
+  T1_voxel_sizes = T1_nni.get_header()['pixdim'][1:4]
+  return T1, T1_voxel_sizes
   
 if __name__ == "__main__":
+  
+  parser = argparse.ArgumentParser(description='Performs T1 MNI registration')
+  
+  parser.add_argument('--opencl_platform', type=int, default=0)
+  parser.add_argument('--opencl_device', type=int, default=0)
+  
+  parser.add_argument('--mni_file', type=str)
+  parser.add_argument('--mni_brain_file', type=str, default='')
+  parser.add_argument('--mni_brain_mask_file', type=str, default='')
+  parser.add_argument('--t1_file', type=str)
+  
+  parser.parse_args()
+  
   opencl_platform = 0
   opencl_device = 0
   
   study = 'Cambridge'
   subject = 'sub00156'
   voxel_size = 2
-  MNI_voxel_sizes = [voxel_size] * 3
   
   number_of_iterations_for_parametric_image_registration = 10
   number_of_iterations_for_nonparametric_image_registration = 15
   coarsest_scale = 8 / voxel_size
   MM_T1_Z_CUT = 30
   #MM_T1_Z_CUT = 120
-  
-  MNI_nni = nifti1.load('../../brain_templates/MNI152_T1_%dmm.nii' % voxel_size)
-  MNI = MNI_nni.get_data()
-  
-  MNI_brain_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain.nii' % voxel_size)
-  MNI_brain = MNI_brain_nii.get_data()
-  
-  MNI_brain_mask_nii = nifti1.load('../../brain_templates/MNI152_T1_%dmm_brain_mask.nii' % voxel_size)
-  MNI_brain_mask = MNI_brain_mask_nii.get_data()
-  
-  T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
-  T1 = T1_nni.get_data()
-  T1_voxel_sizes = T1_nni.get_header()['pixdim'][1:4]
+
+  (MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes) = load_MNI_templates('../../brain_templates/MNI152_T1_%dmm.nii' % voxel_size)
+  (T1, T1_voxel_sizes) = load_T1('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
   
   filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
   filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
