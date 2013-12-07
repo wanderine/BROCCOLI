@@ -201,30 +201,6 @@ def registerT1MNI(
   return (h_Aligned_T1_Volume, h_Aligned_T1_Volume_NonParametric, h_Skullstripped_T1_Volume, h_Interpolated_T1_Volume, 
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients, h_Slice_Sums, h_Top_Slice, h_A_Matrix, h_h_Vector)
 
-def load_MNI_templates(mni_file, mni_brain_file = None, mni_brain_mask_file = None):
-  if not mni_brain_file:
-    mni_brain_file = mni_file.replace('.nii', '_brain.nii')
-  if not mni_brain_mask_file:
-    mni_brain_mask_file = mni_file.replace('.nii', '_brain_mask.nii')
-  MNI_nni = nifti1.load(mni_file)
-  MNI = MNI_nni.get_data()
-  
-  MNI_brain_nii = nifti1.load(mni_brain_file)
-  MNI_brain = MNI_brain_nii.get_data()
-  
-  MNI_brain_mask_nii = nifti1.load(mni_brain_mask_file)
-  MNI_brain_mask = MNI_brain_mask_nii.get_data()
-  
-  voxel_sizes = MNI_nni.get_header()['pixdim'][1:4]
-    
-  return MNI, MNI_brain, MNI_brain_mask, voxel_sizes
-
-def load_T1(t1_file):
-  T1_nni = nifti1.load(t1_file)
-  T1 = T1_nni.get_data()
-  T1_voxel_sizes = T1_nni.get_header()['pixdim'][1:4]
-  return T1, T1_voxel_sizes
-  
 if __name__ == "__main__":
   
   parser = argparse.ArgumentParser(description='Performs T1 MNI registration')
@@ -247,8 +223,8 @@ if __name__ == "__main__":
   
   args = parser.parse_args()
   
-  (MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes) = load_MNI_templates(args.mni_file)
-  (T1, T1_voxel_sizes) = load_T1(args.t1_file)
+  (MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes) = broccoli.load_MNI_templates(args.mni_file)
+  (T1, T1_voxel_sizes) = broccoli.load_T1(args.t1_file)
   
   coarsest_scale = int(round(8 / MNI_voxel_sizes[0]))
   

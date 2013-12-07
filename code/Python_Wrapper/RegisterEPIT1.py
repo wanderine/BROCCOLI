@@ -5,6 +5,8 @@ import numpy
 import scipy
 from nibabel import nifti1
 
+import argparse
+
 import matplotlib.pyplot as plot
 import matplotlib.cm as cm
 
@@ -131,28 +133,31 @@ def registerT1MNI(
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients)
   
 if __name__ == "__main__":
-  opencl_platform = 0
-  opencl_device = 0
+  parser = argparse.ArgumentParser(description='Performs T1 MNI registration')
   
-  study = 'Cambridge'
-  subject = 'sub00156'
+  parser.add_argument('--opencl-platform', type=int, default=0)
+  parser.add_argument('--opencl-device', type=int, default=0)
   
-  number_of_iterations_for_parametric_image_registration = 20
-  voxel_size = 1
-  coarsest_scale = 8 / voxel_size
-  MM_EPI_Z_CUT = 30
+  parser.add_argument('--epi-file', type=str, required=True)
+  parser.add_argument('--t1-file', type=str, required=True)
   
-  T1_nni = nifti1.load('../../test_data/fcon1000/classic/%s/%s/anat/mprage_skullstripped.nii.gz' % (study, subject))
-  T1 = T1_nni.get_data()
-  T1_voxel_sizes = T1_nni.get_header()['pixdim'][1:4]
+  parser.add_argument('--iterations-parametric', type=int, default=10)
+  parser.add_argument('--iterations-nonparametric', type=int, default=15)
   
-  EPI_nii = nifti1.load('../../test_data/fcon1000/classic/%s/%s/func/rest.nii' % (study, subject));
-  EPI = EPI_nii.get_data()
-  EPI = EPI.transpose()[0].transpose()
-  T1_voxel_sizes = T1_nni.get_header()['pixdim'][2:5]
+  parser.add_argument('--filters-parametric-file', type=str, default="../Matlab_Wrapper/filters_for_parametric_registration.mat")
+  parser.add_argument('--filters-nonparametric-file', type=str, default="../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
   
-  filters_parametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_parametric_registration.mat")
-  filters_nonparametric_mat = scipy.io.loadmat("../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
+  parser.add_argument('--mm-epi-z-cut', type=int, default=30)
+  
+  args = parser.parse_args()
+  
+  (T1, T1_voxel_sizes) = broccoli.load_T1(args.t1_file)
+  (EPI, EPI_voxel_sizes) = broccol.load_EPI(args.epi_file)
+  
+  coarsest_scale = int(round(8 / T1_voxel_sizes[0]))
+  
+  filters_parametric_mat = scipy.io.loadmat(args.filters_parametric_file)
+  filters_nonparametric_mat = scipy.io.loadmat(args.filters_nonparametric_file)
   
   parametric_filters = [filters_parametric_mat['f%d_parametric_registration' % (i+1)] for i in range(3)]
   nonparametric_filters = [filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)] for i in range(6)]
@@ -160,10 +165,10 @@ if __name__ == "__main__":
   results = registerT1MNI(EPI, EPI_voxel_sizes, T1, T1_voxel_sizes, parametric_filters, nonparametric_filters,
                 [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)], 
                 [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']],
-                number_of_iterations_for_parametric_image_registration,
+                args.iterations_parametric,
                 coarsest_scale,
-                MM_EPI_Z_CUT,
-                opencl_platform,
-                opencl_device)
+                args.mm_epi_z_cut,
+                args.opencl_platform,
+                args.opencl_device)
 
   

@@ -1,11 +1,44 @@
 from broccoli_base import *
+
 import numpy
+from nibabel import nifti1
     
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
 # DONE: Check that passing arrays to C method as 1D packed arrays is the same as passing arays using the 3D array wrappers
 # DONE: Check that packing (packVolume) and unpacking (unpackOutputVolume) results in the original input array
 # DONE: Transpose and reshape until the two conditions above are not met
+
+def load_MNI_templates(mni_file, mni_brain_file = None, mni_brain_mask_file = None):
+  if not mni_brain_file:
+    mni_brain_file = mni_file.replace('.nii', '_brain.nii')
+  if not mni_brain_mask_file:
+    mni_brain_mask_file = mni_file.replace('.nii', '_brain_mask.nii')
+  MNI_nni = nifti1.load(mni_file)
+  MNI = MNI_nni.get_data()
+  
+  MNI_brain_nii = nifti1.load(mni_brain_file)
+  MNI_brain = MNI_brain_nii.get_data()
+  
+  MNI_brain_mask_nii = nifti1.load(mni_brain_mask_file)
+  MNI_brain_mask = MNI_brain_mask_nii.get_data()
+  
+  voxel_sizes = MNI_nni.get_header()['pixdim'][1:4]
+    
+  return MNI, MNI_brain, MNI_brain_mask, voxel_sizes
+
+def load_T1(t1_file):
+  T1_nni = nifti1.load(t1_file)
+  T1 = T1_nni.get_data()
+  T1_voxel_sizes = T1_nni.get_header()['pixdim'][1:4]
+  return T1, T1_voxel_sizes
+  
+def load_EPI(epi_file):
+  EPI_nni = nifti1.load(epi_file)
+  EPI = EPI_nni.get_data()
+  EPI = EPI.transpose()[0].transpose()
+  EPI_voxel_sizes = EPI_nni.get_header()['pixdim'][2:5]
+  return EPI, EPI_voxel_sizes
 
 """
   This is a hack to prevent Python from free()-ing arrays
