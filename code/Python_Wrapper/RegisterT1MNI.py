@@ -128,8 +128,6 @@ def registerT1MNI(
   # BROCCOLI.SetOutputDownsampledVolume(h_Downsampled_Volume)
   
   h_Registration_Parameters = broccoli.createOutputArray(12)
-  h_Registration_Parameters[3] = 1
-  print(h_Registration_Parameters)
   BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters)
   
   # Not used in broccoli_lib.cpp
