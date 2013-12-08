@@ -4,7 +4,7 @@ STUDY=Cambridge
 # SUBJECT=sub00156
 CL_ARGS="--opencl-platform 0 --opencl-device 0"
 
-MNI_FILE="../../brain_templates/MNI152_T1_2mm.nii.gz"
+MNI_FILE="../../brain_templates/MNI152_T1_2mm.nii"
 
 PARAMETRIC_FILTERS_FILE="../Matlab_Wrapper/filters_for_parametric_registration.mat"
 NONPARAMETRIC_FILTERS_FILE="../Matlab_Wrapper/filters_for_nonparametric_registration.mat"
