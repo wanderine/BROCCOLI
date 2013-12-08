@@ -48,6 +48,7 @@ def registerT1MNI(
     MM_T1_Z_CUT,            # int
     OPENCL_PLATFORM,        # int
     OPENCL_DEVICE,          # int
+    show_results = False,
   ):
   
   BROCCOLI = broccoli.BROCCOLI_LIB()
@@ -164,18 +165,29 @@ def registerT1MNI(
   ## Perform registration
   print("Performing registration...")
   BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper()
+  
+  print("Registration done, unpacking output volumes...")
+  
+  h_Aligned_T1_Volume = broccoli.unpackOutputVolume(h_Aligned_T1_Volume, MNI_DATA_SHAPE)
+  h_Interpolated_T1_Volume = broccoli.unpackOutputVolume(h_Interpolated_T1_Volume, MNI_DATA_SHAPE)
+  h_Aligned_T1_Volume_NonParametric = broccoli.unpackOutputVolume(h_Aligned_T1_Volume_NonParametric, MNI_DATA_SHAPE)
+  h_Skullstripped_T1_Volume = broccoli.unpackOutputVolume(h_Skullstripped_T1_Volume, MNI_DATA_SHAPE)
+  h_Phase_Differences = broccoli.unpackOutputVolume(h_Phase_Differences, MNI_DATA_SHAPE)
+  h_Phase_Certainties = broccoli.unpackOutputVolume(h_Phase_Certainties, MNI_DATA_SHAPE)
+  h_Phase_Gradients = broccoli.unpackOutputVolume(h_Phase_Gradients, MNI_DATA_SHAPE)
     
   print(h_Registration_Parameters)
   
-  plot_results = (
-    broccoli.unpackOutputVolume(h_Interpolated_T1_Volume, MNI_DATA_SHAPE),
-    broccoli.unpackOutputVolume(h_Aligned_T1_Volume, MNI_DATA_SHAPE),
-    h_MNI_Brain,
-    broccoli.unpackOutputVolume(h_Aligned_T1_Volume_NonParametric, MNI_DATA_SHAPE),
-  )
-  
-  for r in plot_results:
-    plotVolume(r)
+  if show_results:    
+    plot_results = (
+      h_Interpolated_T1_Volume,
+      h_Aligned_T1_Volume,
+      h_MNI_Brain,
+      h_Aligned_T1_Volume_NonParametric,
+    )
+    
+    for r in plot_results:
+      plotVolume(r)
   
   return (h_Aligned_T1_Volume, h_Aligned_T1_Volume_NonParametric, h_Skullstripped_T1_Volume, h_Interpolated_T1_Volume, 
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients, h_Slice_Sums, h_Top_Slice, h_A_Matrix, h_h_Vector)
@@ -199,6 +211,7 @@ if __name__ == "__main__":
   parser.add_argument('--filters-nonparametric-file', type=str, default="../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
   
   parser.add_argument('--mm-t1-z-cut', type=int, default=30)
+  parser.add_argument('--show-results', action='store_true')
   
   args = parser.parse_args()
   
@@ -221,6 +234,7 @@ if __name__ == "__main__":
                 coarsest_scale,
                 args.mm_t1_z_cut,
                 args.opencl_platform,
-                args.opencl_device)
+                args.opencl_device,
+                args.show_results)
 
   

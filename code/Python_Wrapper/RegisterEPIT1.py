@@ -45,6 +45,7 @@ def registerT1MNI(
     MM_EPI_Z_CUT,            # int
     OPENCL_PLATFORM,        # int
     OPENCL_DEVICE,          # int
+    show_results = False,
   ):
   
   BROCCOLI = broccoli.BROCCOLI_LIB()
@@ -121,16 +122,26 @@ def registerT1MNI(
   print("Performing registration...")
   BROCCOLI.PerformRegistrationEPIT1Wrapper()
   
+  print("Registration done, unpacking output volumes...")
+
+  h_Interpolated_EPI_Volume = broccoli.unpackOutputVolume(h_Interpolated_EPI_Volume, T1_DATA_SHAPE)
+  h_Aligned_EPI_Volume = broccoli.unpackOutputVolume(h_Aligned_EPI_Volume, T1_DATA_SHAPE)
+  
+  h_Phase_Differences = broccoli.unpackOutputVolume(h_Phase_Differences, T1_DATA_SHAPE)
+  h_Phase_Certainties = broccoli.unpackOutputVolume(h_Phase_Certainties, T1_DATA_SHAPE)
+  h_Phase_Gradients = broccoli.unpackOutputVolume(h_Phase_Gradients, T1_DATA_SHAPE)
+  
   print(h_Registration_Parameters)
   
-  plot_results = (
-    broccoli.unpackOutputVolume(h_Interpolated_EPI_Volume, T1_DATA_SHAPE),
-    broccoli.unpackOutputVolume(h_Aligned_EPI_Volume, T1_DATA_SHAPE),
-    h_T1_Data,
-  )
-  
-  for r in plot_results:
-    plotVolume(r)
+  if show_results:
+    plot_results = (
+      h_Interpolated_EPI_Volume,
+      h_Aligned_EPI_Volume,
+      h_T1_Data,
+    )
+    
+    for r in plot_results:
+      plotVolume(r)
   
   return (h_Aligned_EPI_Volume, h_Interpolated_EPI_Volume, 
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients)
@@ -150,13 +161,14 @@ if __name__ == "__main__":
   parser.add_argument('--filters-nonparametric-file', type=str, default="../Matlab_Wrapper/filters_for_nonparametric_registration.mat")
   
   parser.add_argument('--mm-epi-z-cut', type=int, default=30)
+  parser.add_argument('--show-results', action='store_true')
   
   args = parser.parse_args()
   
   (T1, T1_voxel_sizes) = broccoli.load_T1(args.t1_file)
   (EPI, EPI_voxel_sizes) = broccoli.load_EPI(args.epi_file)
   
-  coarsest_scale = int(round(8 / T1_voxel_sizes[0]))
+  coarsest_scale = 8
   
   filters_parametric_mat = scipy.io.loadmat(args.filters_parametric_file)
   filters_nonparametric_mat = scipy.io.loadmat(args.filters_nonparametric_file)
@@ -171,6 +183,7 @@ if __name__ == "__main__":
                 coarsest_scale,
                 args.mm_epi_z_cut,
                 args.opencl_platform,
-                args.opencl_device)
+                args.opencl_device,
+                args.show_results)
 
   
