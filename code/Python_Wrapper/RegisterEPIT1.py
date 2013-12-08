@@ -144,8 +144,7 @@ if __name__ == "__main__":
   parser.add_argument('--epi-file', type=str, required=True)
   parser.add_argument('--t1-file', type=str, required=True)
   
-  parser.add_argument('--iterations-parametric', type=int, default=10)
-  parser.add_argument('--iterations-nonparametric', type=int, default=15)
+  parser.add_argument('--iterations-parametric', type=int, default=20)
   
   parser.add_argument('--filters-parametric-file', type=str, default="../Matlab_Wrapper/filters_for_parametric_registration.mat")
   parser.add_argument('--filters-nonparametric-file', type=str, default="../Matlab_Wrapper/filters_for_nonparametric_registration.mat")

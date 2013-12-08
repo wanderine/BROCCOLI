@@ -166,27 +166,8 @@ def registerT1MNI(
   ## Perform registration
   print("Performing registration...")
   BROCCOLI.PerformRegistrationT1MNINoSkullstripWrapper()
-  
-  """
-  slice = round(0.55*MNI_sy);
-        figure(1); imagesc(flipud(squeeze(interpolated_T1_opencl(slice,:,:))')); colormap gray
-        %figure; imagesc(flipud(squeeze(skullstripped_T1_opencl(slice,:,:))')); colormap gray
-        figure(2); imagesc(flipud(squeeze(aligned_T1_opencl(slice,:,:))')); colormap gray    
-        figure(3); imagesc(flipud(squeeze(MNI_brain(slice,:,:))')); colormap gray
-        figure(4); imagesc(flipud(squeeze(aligned_T1_nonparametric_opencl(slice,:,:))')); colormap gray
     
-        slice = round(0.47*MNI_sz);
-        figure(5); imagesc(squeeze(interpolated_T1_opencl(:,:,slice))); colormap gray
-        %figure; imagesc(squeeze(skullstripped_T1_opencl(:,:,slice))); colormap gray
-        figure(6); imagesc(squeeze(aligned_T1_opencl(:,:,slice))); colormap gray
-        figure(7); imagesc(squeeze((MNI_brain(:,:,slice)))); colormap gray
-        figure(8); imagesc(squeeze(aligned_T1_nonparametric_opencl(:,:,slice))); colormap gray
-  
-  """
-  
   print(h_Registration_Parameters)
-  print(h_Top_Slice)
-  print(h_Slice_Sums)
   
   plot_results = (
     broccoli.unpackOutputVolume(h_Interpolated_T1_Volume, MNI_DATA_SHAPE),
