@@ -11,4 +11,5 @@ reg = registration.RegistrationT1MNI(
     filters_nonparametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_nonparametric_registration.mat',
 )
 
-reg.run()
+results = reg.run()
+print(results)

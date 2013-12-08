@@ -1,5 +1,6 @@
-from nipype.interfaces.base import TraitedSpec, BaseInterface, File
+from nipype.interfaces.base import TraitedSpec, BaseInterface, File, isdefined, traits
 from nipype.utils.filemanip import split_filename
+
 import scipy.io
 import os.path as op
 import nibabel as nb
@@ -18,6 +19,7 @@ class RegistrationT1MNIInputSpec(CommonRegistrationInputSpec):
     mni_file = File(exists=True, desc="Input MNI file", mandatory=True)
     mni_brain_file = File(exists=True, desc="Input MNI Brain file")
     mni_brain_mask_file = File(exists=True, desc="Input MNI Brain Mask file")
+    base_name = traits.Str(value='output', desc='base_name that all output files will start with', usedefault=True)
 
 class RegistrationT1MNIOutputSpec(TraitedSpec):
     aligned_t1_file = File(exists=False)
@@ -50,9 +52,16 @@ class RegistrationT1MNI(BaseInterface):
 
         MNI_nni = nb.load(self.inputs.mni_file)
         aligned_T1_nni = nb.Nifti1Image(Aligned_T1_Volume, None, MNI_nni.get_header())
-        nb.save(aligned_T1_nni, self.outputs.aligned_t1_file)
+        nb.save(aligned_T1_nni, self.inputs.base_name + '_aligned.nii')
 
         interpolated_T1_nni = nb.Nifti1Image(Interpolated_T1_Volume, None, MNI_nni.get_header())
-        nb.save(interpolated_T1_nni, self.outputs.interpolated_t1_file)
+        nb.save(interpolated_T1_nni, self.inputs.base_name + '_interpolated.nii')
 
         return runtime
+      
+      
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        for k in outputs.keys():
+            outputs[k] = self.inputs.base_name + '_' + k.replace('_t1_file', '.nii')
+        return outputs

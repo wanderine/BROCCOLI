@@ -5,6 +5,7 @@ from nibabel import nifti1
 
 import os
 import site
+import shutil
 
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
@@ -87,21 +88,16 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
       self.OpenCLInitiate(*args)
       
   def OpenCLInitiate(self, platform, device):
+    if not os.path.exists('broccoli_lib_kernel.cpp'):
+      for s in site.getsitepackages():
+        if os.path.exists(os.path.join(s, 'broccoli/broccoli_lib_kernel.cpp')):
+          shutil.copy(os.path.join(s, 'broccoli/broccoli_lib_kernel.cpp'), os.getcwd())
+          break
+      
     if os.path.exists('broccoli_lib_kernel.cpp'):
       BROCCOLI_LIB_BASE.OpenCLInitiate(self, platform, device)
     else:
-      current_directory = os.getcwd()
-      found = False
-      for s in site.getsitepackages():
-        if os.path.exists(os.path.join(s, 'broccoli/broccoli_lib_kernel.cpp')):
-          found = True
-          os.chdir(os.path.join(s, 'broccoli'))
-          BROCCOLI_LIB_BASE.OpenCLInitiate(self, platform, device)
-          os.chdir(current_directory)
-          break
-      
-      if not found:
-        raise RuntimeError('could not find broccoli_lib_kernel.cpp in current directory or in site-packages')
+      raise RuntimeError('could not find broccoli_lib_kernel.cpp in current directory or in site-packages')
     
   def SetEPIData(self, array, voxel_sizes):
     self.SetEPIHeight(array.shape[0])
