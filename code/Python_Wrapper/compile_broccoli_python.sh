@@ -17,3 +17,11 @@ gcc -fPIC -O3 -I${OPENCL_DIRECTORY} -I${PYTHON_DIRECTORY} -I${BROCCOLI_LIB_DIREC
 # Make a library
 
 g++ -fPIC -shared -o _broccoli_base.so -lOpenCL broccoli_lib_wrap.o ${BROCCOLI_LIB_DIRECTORY}/broccoli_lib.o
+
+if [ -d "broccoli" ]; then
+  mv broccoli_base.py broccoli
+  mv _broccoli_base.so broccoli
+fi
+
+echo "BROCCOLI Python module has been compiled"
+echo "To install it, run 'python setup.py install' as root"

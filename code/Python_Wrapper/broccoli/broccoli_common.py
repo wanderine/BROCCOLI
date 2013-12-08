@@ -2,7 +2,7 @@ from broccoli_base import *
 
 import numpy
 from nibabel import nifti1
-    
+
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
 # DONE: Check that passing arrays to C method as 1D packed arrays is the same as passing arays using the 3D array wrappers
