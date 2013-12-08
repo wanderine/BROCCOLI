@@ -9,7 +9,7 @@ setup(name='BROCCOLI',
       author='Anders Eklund',
       author_email='andek034@gmail.com',
       url='https://github.com/wanderine/BROCCOLI',
-      packages=['broccoli'],
+      packages=['broccoli', 'nipype.interfaces.broccoli'],
       data_files=[(get_python_lib() + '/broccoli', ['broccoli/_broccoli_base.so'])],
       scripts=['RegisterEPIT1.py', 'RegisterT1MNI.py']
      )
