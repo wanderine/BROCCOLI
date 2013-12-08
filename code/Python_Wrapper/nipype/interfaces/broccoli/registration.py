@@ -6,7 +6,6 @@ import nibabel as nb
 import numpy as np
 
 import broccoli
-from RegisterT1MNI import RegisterT1MNI
 
 class CommonRegistrationInputSpec(TraitedSpec):
     filters_parametric = File(exists=True, mandatory=True,
@@ -23,8 +22,8 @@ class RegistrationT1MNIInputSpec(CommonRegistrationInputSpec):
     mni_brain_mask_file = File(exists=True, desc="Input MNI Brain Mask file")
 
 class RegistrationT1MNIOutputSpec(TraitedSpec):
-  aligned_t1_file = File(exists=False)
-  interpolated_t1_file = File(exists=False)
+    aligned_t1_file = File(exists=False)
+    interpolated_t1_file = File(exists=False)
 
 class RegistrationT1MNI(BaseInterface):
     input_spec = RegistrationT1MNIInputSpec
@@ -44,7 +43,7 @@ class RegistrationT1MNI(BaseInterface):
         filter_directions = [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']]
 
         (Aligned_T1_Volume, Aligned_T1_Volume_NonParametric, Skullstripped_T1_Volume, Interpolated_T1_Volume,
-          Registration_Parameters, Phase_Differences, Phase_Certainties, Phase_Gradients, Slice_Sums, Top_Slice, A_Matrix, h_Vector) = RegisterT1MNI(
+        Registration_Parameters, Phase_Differences, Phase_Certainties, Phase_Gradients, Slice_Sums, Top_Slice, A_Matrix, h_Vector) = broccoli.RegisterT1MNI(
             T1_data, T1_voxel_sizes,
             MNI_data, MNI_voxel_sizes, MNI_brain_data, MNI_brain_mask_data,
             filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
