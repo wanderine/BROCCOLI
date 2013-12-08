@@ -12,25 +12,6 @@ import matplotlib.cm as cm
 
 from operator import mul
 
-def flatSize(a):
-  if hasattr(a, 'shape'):
-    a = a.shape
-  return reduce(mul, a, 1)
-
-def plotVolume(data):
-  sliceY = int(round(0.45 * data.shape[0]))
-
-  # Data is first ordered [y][x][z]
-  plot.imshow(numpy.flipud(data[sliceY].transpose()), cmap = cm.Greys_r, interpolation="nearest")
-  plot.show()
-
-  sliceZ = int(round(0.62 * data.shape[2])) - 1
-
-  # We want it ordered [z][x][y]
-  data_t = data.transpose()
-  plot.imshow(numpy.fliplr(data_t[sliceZ]).transpose(), cmap = cm.Greys_r, interpolation="nearest")
-  plot.show()
-
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(description='Performs T1 MNI registration')
 
