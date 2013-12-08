@@ -3,6 +3,9 @@ from broccoli_base import *
 import numpy
 from nibabel import nifti1
 
+import os
+import site
+
 BROCCOLI_LIB_BASE = BROCCOLI_LIB
 
 # DONE: Check that passing arrays to C method as 1D packed arrays is the same as passing arays using the 3D array wrappers
@@ -76,7 +79,30 @@ def unpackOutputVolume(array, shape = None):
     array = numpy.fliplr(array)
   return array.transpose(_unpack_permutation)
     
-class BROCCOLI_LIB(BROCCOLI_LIB_BASE): 
+class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
+  def __init__(self, *args):
+    BROCCOLI_LIB_BASE.__init__(self)
+    
+    if len(args) == 2:
+      self.OpenCLInitiate(*args)
+      
+  def OpenCLInitiate(self, platform, device):
+    if os.path.exists('broccoli_lib_kernel.cpp'):
+      BROCCOLI_LIB_BASE.OpenCLInitiate(self, platform, device)
+    else:
+      current_directory = os.getcwd()
+      found = False
+      for s in site.getsitepackages():
+        if os.path.exists(os.path.join(s, 'broccoli/broccoli_lib_kernel.cpp')):
+          found = True
+          os.chdir(os.path.join(s, 'broccoli'))
+          BROCCOLI_LIB_BASE.OpenCLInitiate(self, platform, device)
+          os.chdir(current_directory)
+          break
+      
+      if not found:
+        raise RuntimeError('could not find broccoli_lib_kernel.cpp in current directory or in site-packages')
+    
   def SetEPIData(self, array, voxel_sizes):
     self.SetEPIHeight(array.shape[0])
     self.SetEPIWidth(array.shape[1])

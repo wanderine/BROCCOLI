@@ -30,7 +30,6 @@ class RegistrationT1MNI(BaseInterface):
     def _run_interface(self, runtime):
         T1_data, T1_voxel_sizes = broccoli.load_T1(self.inputs.t1_file)
         MNI_data, MNI_brain_data, MNI_brain_mask_data, MNI_voxel_sizes = broccoli.load_MNI_templates(self.inputs.mni_file)
-        print(MNI_voxel_sizes)
 
         filters_parametric_mat = scipy.io.loadmat(self.inputs.filters_parametric)
         filters_nonparametric_mat = scipy.io.loadmat(self.inputs.filters_nonparametric)
@@ -46,7 +45,7 @@ class RegistrationT1MNI(BaseInterface):
             T1_data, T1_voxel_sizes,
             MNI_data, MNI_voxel_sizes, MNI_brain_data, MNI_brain_mask_data,
             filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
-            10, 15, coarsest_scale, 30, 0, 0, False,
+            10, 15, int(round(8 / MNI_voxel_sizes[0])), 30, 0, 0, False,
         )
 
         MNI_nni = nb.load(self.inputs.mni_file)
