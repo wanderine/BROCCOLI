@@ -20,7 +20,7 @@ elseif isunix
     basepath_SPM_Segment = '/data/andek/BROCCOLI_test_data/SPM/normalization/segment';
     basepath_FSL = '/data/andek/BROCCOLI_test_data/FSL/normalization';
     basepath_AFNI = '/data/andek/BROCCOLI_test_data/AFNI/normalization';    
-    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';    
+    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization_10its';    
 end
 
 N = 198;    % Number of subjects
@@ -31,7 +31,7 @@ show_SPM_Normalize = 0;
 show_SPM_Segment = 0;
 show_FSL = 0;
 show_AFNI = 0;
-show_BROCCOLI = 1;
+show_BROCCOLI = 0;
 
 % Load MNI brain template
 MNI_nii = load_nii(['../../brain_templates/MNI152_T1_1mm_brain.nii']);
@@ -151,7 +151,7 @@ mean_T1_volume_FSL = zeros(182,218,182);
 disp('FSL')
 for s = 1:N
     s
-    T1 = load_nii([basepath_FSL '/FSL_warped_'  num2str(s) '.nii.gz']);
+    T1 = load_nii([basepath_FSL '/FSL_warped_subject'  num2str(s) '.nii.gz']);
     T1 = double(T1.img);
     T1 = T1/max(T1(:));
     if show_FSL == 1
@@ -174,7 +174,7 @@ if calculate_std == 1
     std_T1_volume_FSL = zeros(182,218,182);
     for s = 1:N
         s
-        T1 = load_nii([basepath_FSL '/FSL_warped_'  num2str(s) '.nii.gz']);
+        T1 = load_nii([basepath_FSL '/FSL_warped_subject'  num2str(s) '.nii.gz']);
         T1 = double(T1.img);
         T1 = T1/max(T1(:));    
         std_T1_volume_FSL = std_T1_volume_FSL + sqrt((T1 - MNI) .* (T1 - MNI));
@@ -336,7 +336,7 @@ text(5,340,'L','Color','White','FontSize',18)
 text(460,430,'z = 13mm','Color','White','FontSize',18)
 
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_.png
-export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_.png -png -native
+%export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_.png -png -native
 
 % Show voxel-wise standard deviation
 if calculate_std == 1
@@ -362,7 +362,7 @@ text(450,225,'F','Color','White','FontSize',18)
 text(575,380,'x = 8mm','Color','White','FontSize',18)
 
 %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_.png
-export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_.png -png -native
+%export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_.png -png -native
 
 % Show voxel-wise standard deviation
 if calculate_std == 1
@@ -372,6 +372,46 @@ if calculate_std == 1
     axis off
     %print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/sagittal_std.png
 end
+
+figure(5)
+%image([ flipud(squeeze(MNI(85,:,:))')*50 flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 flipud(squeeze(mean_T1_volume_SPM_Segment(85,:,:))')*75    ; flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 flipud(squeeze(mean_T1_volume_AFNI_Sinc(85,:,:))')*75 flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75 ; zeros(30,654) ]); colormap gray
+%image([ flipud(MNI(:,:,85)')*50  flipud(mean_T1_volume_SPM_Normalize(:,:,85)')*75 flipud(mean_T1_volume_SPM_Segment(:,:,85)')*75   ; flipud(mean_T1_volume_FSL(:,:,85)')*75 flipud(mean_T1_volume_AFNI_Sinc(:,:,85)')*75  flipud(mean_T1_volume_BROCCOLI(:,:,85)')*75 ; zeros(15,546) ]); colormap gray
+%image([ [flipud(MNI(:,:,85)')*50 zeros(1,36)]  [flipud(squeeze(MNI(85,:,:))')*50 zeros(36,1)] [flipud(mean_T1_volume_SPM_Normalize(:,:,85)')*75 zeros(1,36)] [flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 zeros(36,1)]]); colormap gray
+MNI_axial = [flipud(MNI(10:end-10,:,85)')*50 zeros(218,1)];
+MNI_sagittal = [zeros(18,218); flipud(squeeze(MNI(85,:,:))')*50 ; zeros(18,218)];
+SPM_Normalize_axial = [flipud(mean_T1_volume_SPM_Normalize(10:end-10,:,85)')*75 zeros(218,1)];
+SPM_Normalize_sagittal = [zeros(18,218); flipud(squeeze(mean_T1_volume_SPM_Normalize(85,:,:))')*75 ; zeros(18,218)];
+SPM_Segment_axial = [flipud(mean_T1_volume_SPM_Segment(10:end-10,:,85)')*75 zeros(218,1)];
+SPM_Segment_sagittal = [zeros(18,218); flipud(squeeze(mean_T1_volume_SPM_Segment(85,:,:))')*75 ; zeros(18,218)];
+FSL_axial = [flipud(mean_T1_volume_FSL(10:end-10,:,85)')*75 zeros(218,1)];
+FSL_sagittal = [zeros(18,218); flipud(squeeze(mean_T1_volume_FSL(85,:,:))')*75 ; zeros(18,218)];
+AFNI_axial = [flipud(mean_T1_volume_AFNI_Sinc(10:end-10,:,85)')*75 zeros(218,1)];
+AFNI_sagittal = [zeros(18,218); flipud(squeeze(mean_T1_volume_AFNI_Sinc(85,:,:))')*75 ; zeros(18,218)];
+BROCCOLI_axial = [flipud(mean_T1_volume_BROCCOLI(10:end-10,:,85)')*75 zeros(218,1)];
+BROCCOLI_sagittal = [zeros(18,218); flipud(squeeze(mean_T1_volume_BROCCOLI(85,:,:))')*75 ; zeros(18,218)];
+
+
+
+image([zeros(30,804); zeros(218,20) MNI_axial MNI_sagittal SPM_Normalize_axial SPM_Normalize_sagittal zeros(218,20); zeros(218,20) SPM_Segment_axial SPM_Segment_sagittal FSL_axial FSL_sagittal zeros(218,20); zeros(218,20) AFNI_axial AFNI_sagittal BROCCOLI_axial BROCCOLI_sagittal zeros(218,20); zeros(30,804)]); colormap gray
+axis equal
+axis off
+text(10,30,'A','Color','White','FontSize',17)
+text(400,30,'B','Color','White','FontSize',17)
+text(10,260,'C','Color','White','FontSize',17)
+text(400,260,'D','Color','White','FontSize',17)
+text(10,490,'E','Color','White','FontSize',17)
+text(400,490,'F','Color','White','FontSize',17)
+
+text(10,140,'L','Color','White','FontSize',16)
+text(10,360,'L','Color','White','FontSize',16)
+text(10,580,'L','Color','White','FontSize',16)
+
+text(265,700,'x = 8mm','Color','White','FontSize',16)
+text(88,700,'z = 13mm','Color','White','FontSize',16)
+
+%print -dpng /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/axial_.png
+export_fig /home/andek/Dropbox/Dokument/VirginiaTech/papers/Frontiers_in_NeuroInformatics_Parallel/combined.png -png -native
+
 
 % Calculate mean and standard deviation of correlation
 mean(correlation_SPM_Normalize)
