@@ -13,4 +13,5 @@ __all__ = [
   'unpackOutputVolume',
   'registerT1MNI',
   'registerEPIT1',
+  'performMotionCorrection',
 ]
