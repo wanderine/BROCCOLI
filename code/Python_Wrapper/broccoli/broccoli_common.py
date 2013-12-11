@@ -111,7 +111,20 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetMNIVoxelSizeX(voxel_sizes[0])
     self.SetMNIVoxelSizeY(voxel_sizes[1])
     self.SetMNIVoxelSizeZ(voxel_sizes[2])
-    
+
+  def SetfMRIData(self, array, voxel_sizes):
+    self.SetEPIHeight(array.shape[0])
+    self.SetEPIWidth(array.shape[1])
+    self.SetEPIDepth(array.shape[2])
+    self.SetEPITimepoints(array.shape[3])
+
+    t = self.packVolume(array)
+    self.SetInputfMRIVolumes(array)
+
+    self.SetEPIVoxelSizeX(voxel_sizes[0])
+    self.SetEPIVoxelSizeY(voxel_sizes[1])
+    self.SetEPIVoxelSizeZ(voxel_sizes[2])
+
   def SetParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(3):

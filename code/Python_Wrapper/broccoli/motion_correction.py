@@ -31,11 +31,7 @@ def performMotionCorrection(
   
   FILTER_SIZE = len(h_Quadrature_Filters[0])
   
-  BROCCOLI.SetEPIWidth(DATA_W)
-  BROCCOLI.SetEPIHeight(DATA_H)
-  BROCCOLI.SetEPIDepth(DATA_D)
-  BROCCOLI.SetEPITimepoints(DATA_T)
-  BROCCOLI.SetInputfMRIVolumes(BROCCOLI.packVolume(h_fMRI_Volumes))
+  BROCCOLI.SetfMRIData(h_fMRI_Volumes)
   
   BROCCOLI.SetImageRegistrationFilterSize(FILTER_SIZE)
   BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filters)
