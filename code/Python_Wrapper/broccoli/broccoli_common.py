@@ -45,6 +45,7 @@ def load_EPI(epi_file):
   return EPI, EPI_voxel_sizes
 
 _pack_permutation = (2, 0, 1)
+_pack_permutation_4d = (3, 2, 0, 1)
 _unpack_permutation = numpy.argsort(_pack_permutation)
 
 def _permute(permutation, array):
@@ -137,7 +138,10 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     return numpy.ascontiguousarray(array, dtype=numpy.float32)
 
   def packVolume(self, array):
-    t = array.transpose(_pack_permutation)
+    if len(array.shape) == 3:
+      t = array.transpose(_pack_permutation)
+    elif len(array.shape) == 4:
+      t = array.transpose(_pack_permutation_4d)
     t = numpy.fliplr(t)
     t = self.packArray(t.flatten())
     self._input_arrays.append(t)
@@ -151,7 +155,10 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     
   def unpackOutputVolume(self, array, shape = None):
     if shape:
-      t_shape = _permute(_pack_permutation, shape)
+      if len(shape) == 3:
+        t_shape = _permute(_pack_permutation, shape)
+      elif len(shape) == 4:
+        t_shape = _permute(_pack_permutation_4d, shape)
       array = self.unpackOutputArray(array, t_shape)
       array = numpy.fliplr(array)
     return array.transpose(_unpack_permutation)
