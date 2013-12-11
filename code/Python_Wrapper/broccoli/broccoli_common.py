@@ -44,12 +44,6 @@ def load_EPI(epi_file):
   EPI_voxel_sizes = EPI_nni.get_header()['pixdim'][2:5]
   return EPI, EPI_voxel_sizes
 
-"""
-  This is a hack to prevent Python from free()-ing arrays
-  that have been packed and then passed to C
-"""
-_input_arrays = []
-
 _pack_permutation = (2, 0, 1)
 _unpack_permutation = numpy.argsort(_pack_permutation)
 
@@ -57,32 +51,14 @@ def _permute(permutation, array):
   n = len(array)
   return [array[permutation[i]] for i in range(n)] 
 
-def packArray(array):
-  return numpy.ascontiguousarray(array, dtype=numpy.float32)
-
-def packVolume(array):
-  t = array.transpose(_pack_permutation)
-  t = numpy.fliplr(t)
-  t = packArray(t.flatten())
-  _input_arrays.append(t)
-  return t
-
-def createOutputArray(shape, dtype=numpy.float32):
-  return numpy.empty(shape=shape, dtype=dtype).flatten()
-
-def unpackOutputArray(array, shape):
-  return array.reshape(shape)
-  
-def unpackOutputVolume(array, shape = None):
-  if shape:
-    t_shape = _permute(_pack_permutation, shape)
-    array = unpackOutputArray(array, t_shape)
-    array = numpy.fliplr(array)
-  return array.transpose(_unpack_permutation)
-    
 class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def __init__(self, *args):
     BROCCOLI_LIB_BASE.__init__(self)
+    """
+      This is a hack to prevent Python from free()-ing arrays
+      that have been packed and then passed to C
+    """
+    self._input_arrays = []
     
     if len(args) == 2:
       self.OpenCLInitiate(*args)
@@ -104,7 +80,7 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetEPIWidth(array.shape[1])
     self.SetEPIDepth(array.shape[2])
 
-    t = packVolume(array)
+    t = self.packVolume(array)
     self.SetInputEPIVolume(t)
 
     self.SetEPIVoxelSizeX(voxel_sizes[0])
@@ -116,7 +92,7 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetT1Width(array.shape[1])
     self.SetT1Depth(array.shape[2])
 
-    t = packVolume(array)
+    t = self.packVolume(array)
     self.SetInputT1Volume(t)
 
     self.SetT1VoxelSizeX(voxel_sizes[0])
@@ -128,7 +104,7 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetMNIWidth(array.shape[1])
     self.SetMNIDepth(array.shape[2])
 
-    t = packVolume(array)
+    t = self.packVolume(array)
     self.SetInputMNIVolume(t)
 
     self.SetMNIVoxelSizeX(voxel_sizes[0])
@@ -138,15 +114,15 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def SetParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(3):
-      args.append(packVolume(numpy.real(filters[i])))
-      args.append(packVolume(numpy.imag(filters[i])))
+      args.append(self.packVolume(numpy.real(filters[i])))
+      args.append(self.packVolume(numpy.imag(filters[i])))
     BROCCOLI_LIB_BASE.SetParametricImageRegistrationFilters(self, *args)
     
   def SetNonParametricImageRegistrationFilters(self, filters):
     args = []
     for i in range(6):
-      args.append(packVolume(numpy.real(filters[i])))
-      args.append(packVolume(numpy.imag(filters[i])))
+      args.append(self.packVolume(numpy.real(filters[i])))
+      args.append(self.packVolume(numpy.imag(filters[i])))
     BROCCOLI_LIB_BASE.SetNonParametricImageRegistrationFilters(self, *args)
     
   def SetProjectionTensorMatrixFilters(self, filters):
@@ -156,6 +132,30 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetProjectionTensorMatrixFourthFilter(*filters[3])
     self.SetProjectionTensorMatrixFifthFilter(*filters[4])
     self.SetProjectionTensorMatrixSixthFilter(*filters[5])
+    
+  def packArray(self, array):
+    return numpy.ascontiguousarray(array, dtype=numpy.float32)
+
+  def packVolume(self, array):
+    t = array.transpose(_pack_permutation)
+    t = numpy.fliplr(t)
+    t = self.packArray(t.flatten())
+    self._input_arrays.append(t)
+    return t
+
+  def createOutputArray(self, shape, dtype=numpy.float32):
+    return numpy.empty(shape=shape, dtype=dtype).flatten()
+
+  def unpackOutputArray(self, array, shape):
+    return array.reshape(shape)
+    
+  def unpackOutputVolume(self, array, shape = None):
+    if shape:
+      t_shape = _permute(_pack_permutation, shape)
+      array = self.unpackOutputArray(array, t_shape)
+      array = numpy.fliplr(array)
+    return array.transpose(_unpack_permutation)
+
 
   def printSetupErrors(self):
     print("Get platform IDs error is %d" % self.GetOpenCLPlatformIDsError())
