@@ -13,3 +13,14 @@ reg = registration.RegistrationT1MNI(
 
 results = reg.run()
 print(results)
+
+reg = registration.RegistrationEPIT1(
+    epi_file = BROCCOLI_DIR + '/test_data/fcon1000/classic/Cambridge/sub00156/func/rest.nii.gz',
+    t1_file = BROCCOLI_DIR + '/test_data/fcon1000/classic/Cambridge/sub00156/anat/mprage_skullstripped.nii.gz',
+    filters_parametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_parametric_registration.mat',
+    filters_nonparametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_nonparametric_registration.mat',
+)
+
+results = reg.run()
+print(results)
+

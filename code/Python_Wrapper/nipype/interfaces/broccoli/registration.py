@@ -75,11 +75,11 @@ class RegistrationEPIT1OutputSpec(TraitedSpec):
     interpolated_epi_file = File(exists=False)
 
 class RegistrationEPIT1(BaseInterface):
-    input_spec = RegistrationT1MNIInputSpec
+    input_spec = RegistrationEPIT1InputSpec
     output_spec = RegistrationEPIT1OutputSpec
     
     def _run_interface(self, runtime):
-        EPI_data, EPI_voxel_sizes = broccoli.load_EPI_templates(self.inputs.epi_file)
+        EPI_data, EPI_voxel_sizes = broccoli.load_EPI(self.inputs.epi_file)
         T1_data, T1_voxel_sizes = broccoli.load_T1(self.inputs.t1_file)
 
         filters_parametric_mat = scipy.io.loadmat(self.inputs.filters_parametric)
