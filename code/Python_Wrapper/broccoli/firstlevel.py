@@ -48,15 +48,28 @@ def performFirstLevelAnalysis(
   BROCCOLI.SetMMT1ZCUT(mm_T1_z_cut)  
   BROCCOLI.SetMMEPIZCUT(mm_EPI_z_cut)
   
+  NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID = 6
+  NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE = 12
+ 
+  T1_MNI_registration_parameters = BROCCOLI.createOutputArray(NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE)
+  BROCCOLI.SetOutputT1MNIRegistrationParameters(T1_MNI_registration_parameters)
   
-  ## TODO: Determine the sizes of all output arrays here
-  BROCCOLI.SetOutputT1MNIRegistrationParameters(h_T1_MNI_Registration_Parameters);
-  BROCCOLI.SetOutputEPIT1RegistrationParameters(h_EPI_T1_Registration_Parameters);
-  BROCCOLI.SetOutputEPIMNIRegistrationParameters(h_EPI_MNI_Registration_Parameters);
-  BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
-  BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
-  BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
-  BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
-  BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
+  EPI_T1_registration_parameters = BROCCOLI.createOutputArray(NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID)
+  BROCCOLI.SetOutputEPIT1RegistrationParameters(EPI_T1_registration_parameters)
+  
+  EPI_MNI_registration_parameters = BROCCOLI.createOutputArray(NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE)
+  BROCCOLI.SetOutputEPIMNIRegistrationParameters(EPI_MNI_registration_parameters)
+  
+  motion_corrected_fMRI_data = BROCCOLI.createOutputArray(fMRI_data.shape)
+  BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(motion_corrected_fMRI_data)
+  
+  motion_parameters = BROCCOLI.createOutputArray(NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID * fMRI_data.shape[3])
+  BROCCOLI.SetOutputMotionParameters(motion_parameters)
+  
+  BROCCOLI.SetEPISmoothingAmount(EPI_smoothing)
+  BROCCOLI.SetARSmoothingAmount(AR_smoothing)
+  
+  smoother_fMRI_data = BROCCOLI.createOutputArray(fMRI_data.shape)
+  BROCCOLI.SetOutputSmoothedfMRIVolumes(smoother_fMRI_data)
 
   BROCCOLI.PerformFirstLevelAnalysisWrapper()
