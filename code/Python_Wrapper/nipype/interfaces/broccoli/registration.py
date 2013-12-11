@@ -59,9 +59,56 @@ class RegistrationT1MNI(BaseInterface):
 
         return runtime
       
-      
     def _list_outputs(self):
         outputs = self.output_spec().get()
         for k in outputs.keys():
             outputs[k] = self.inputs.base_name + '_' + k.replace('_t1_file', '.nii')
+        return outputs
+      
+class RegistrationEPIT1InputSpec(CommonRegistrationInputSpec):
+    epi_file = File(exist=True, desc="Input EPI file", mandatory=True)
+    t1_file = File(exists=True, desc="Input T1 file", mandatory=True)
+    base_name = traits.Str(value='output', desc='base_name that all output files will start with', usedefault=True)
+
+class RegistrationEPIT1OutputSpec(TraitedSpec):
+    aligned_epi_file = File(exists=False)
+    interpolated_epi_file = File(exists=False)
+
+class RegistrationEPIT1(BaseInterface):
+    input_spec = RegistrationT1MNIInputSpec
+    output_spec = RegistrationEPIT1OutputSpec
+    
+    def _run_interface(self, runtime):
+        EPI_data, EPI_voxel_sizes = broccoli.load_EPI_templates(self.inputs.epi_file)
+        T1_data, T1_voxel_sizes = broccoli.load_T1(self.inputs.t1_file)
+
+        filters_parametric_mat = scipy.io.loadmat(self.inputs.filters_parametric)
+        filters_nonparametric_mat = scipy.io.loadmat(self.inputs.filters_nonparametric)
+
+        filters_parametric = [filters_parametric_mat['f%d_parametric_registration' % (i+1)] for i in range(3)]
+        filters_nonparametric = [filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)] for i in range(6)]
+
+        projection_tensor = [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)]
+        filter_directions = [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']]
+
+        (Aligned_EPI_Volume, Interpolated_EPI_Volume,
+          Registration_Parameters, Phase_Differences, Phase_Certainties, Phase_Gradients) = broccoli.registerEPIT1(
+            EPI_data, EPI_voxel_sizes, T1_data, T1_voxel_sizes,
+            filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
+            20, int(round(8.0 / T1_voxel_sizes[0])), 20, 0, 0, False,
+        )
+
+        T1_nni = nb.load(self.inputs.t1_file)
+        aligned_EPI_nni = nb.Nifti1Image(Aligned_EPI_Volume, None, T1_nni.get_header())
+        nb.save(aligned_EPI_nni, self.inputs.base_name + '_aligned.nii')
+
+        interpolated_EPI_nni = nb.Nifti1Image(Interpolated_EPI_Volume, None, T1_nni.get_header())
+        nb.save(interpolated_EPI_nni, self.inputs.base_name + '_interpolated.nii')
+
+        return runtime
+    
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        for k in outputs.keys():
+            outputs[k] = self.inputs.base_name + '_' + k.replace('_epi_file', '.nii')
         return outputs
