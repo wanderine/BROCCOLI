@@ -134,7 +134,7 @@ for s = 1:1
         
         % Plot true and estimated translations in the x-direction
         figure
-        if  (sum(abs(motion_parameters_cpu(:,1))) ~= 0)
+        if  (run_Matlab_equivalent == 1)
             plot(motion_parameters_cpu(:,1),'r')
             hold on
             plot(motion_parameters_opencl(:,1),'b')
@@ -147,7 +147,7 @@ for s = 1:1
     
         % Plot true and estimated translations in the y-direction
         figure
-        if  (sum(abs(motion_parameters_cpu(:,2))) ~= 0)
+        if  (run_Matlab_equivalent == 1)
             plot(motion_parameters_cpu(:,2),'r')
             hold on
             plot(motion_parameters_opencl(:,2),'b')
@@ -160,7 +160,7 @@ for s = 1:1
     
         % Plot true and estimated translations in the z-direction
         figure
-        if  (sum(abs(motion_parameters_cpu(:,3))) ~= 0)
+        if  (run_Matlab_equivalent == 1)
             plot(motion_parameters_cpu(:,3),'r')
             hold on
             plot(motion_parameters_opencl(:,3),'b')
@@ -173,7 +173,7 @@ for s = 1:1
         
         % Plot true and estimated rotations in the x-direction
         figure
-        if  ( sum(abs(rotations_cpu(:,1))) ~= 0)
+        if  (run_Matlab_equivalent == 1)
             plot(rotations_cpu(:,1),'r')
             hold on
             plot(motion_parameters_opencl(:,4),'b')
@@ -186,7 +186,7 @@ for s = 1:1
       
         % Plot true and estimated rotations in the y-direction
         figure
-        if  ( sum(abs(rotations_cpu(:,2))) ~= 0)
+        if  (run_Matlab_equivalent == 1)
             plot(rotations_cpu(:,2),'r')
             hold on
             plot(motion_parameters_opencl(:,5),'b')
@@ -199,7 +199,7 @@ for s = 1:1
         
         % Plot true and estimated rotations in the z-direction
         figure
-        if  ( sum(abs(rotations_cpu(:,3))) ~= 0)
+        if  (run_Matlab_equivalent == 1)
             plot(rotations_cpu(:,3),'r')
             hold on
             plot(motion_parameters_opencl(:,6),'b')
