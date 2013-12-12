@@ -67,7 +67,7 @@ run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comp
 motion_correction_times = zeros(198,1);
 
 % Loop over subjects
-for s = 1:198
+for s = 1:1
     
     s
     
@@ -125,24 +125,8 @@ for s = 1:198
     end
     
     % Save estimated motion parameters as Matlab file
-    if save_estimated_motion_parameters == 1    
-        
-        if add_shading == 1
-        
-            filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_shading.mat'];
-            
-        else
-            
-            if noise_level == 0
-                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_no_noise.mat'];
-            elseif noise_level == 0.01
-                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_1percent_noise.mat'];
-            elseif noise_level == 0.02
-                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_random_motion_2percent_noise.mat'];
-            end
-            
-        end
-        
+    if save_estimated_motion_parameters == 1            
+        filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_original_motion.mat'];        
         save(filename,'motion_parameters_opencl');
     end
         
@@ -150,52 +134,82 @@ for s = 1:198
         
         % Plot true and estimated translations in the x-direction
         figure
-        plot(motion_parameters_cpu(:,1),'r')
-        hold on
-        plot(motion_parameters_opencl(:,1),'b')
-        hold off
-        legend('Estimated x translations CPU','Estimated x translations OpenCL')
+        if  (sum(abs(motion_parameters_cpu(:,1))) ~= 0)
+            plot(motion_parameters_cpu(:,1),'r')
+            hold on
+            plot(motion_parameters_opencl(:,1),'b')
+            hold off
+            legend('Estimated x translations CPU','Estimated x translations OpenCL')
+        else
+            plot(motion_parameters_opencl(:,1),'b')            
+            legend('Estimated x translations OpenCL')
+        end
     
         % Plot true and estimated translations in the y-direction
         figure
-        plot(motion_parameters_cpu(:,2),'r')
-        hold on
-        plot(motion_parameters_opencl(:,2),'b')
-        hold off
-        legend('Estimated y translations CPU','Estimated y translations OpenCL')
+        if  (sum(abs(motion_parameters_cpu(:,2))) ~= 0)
+            plot(motion_parameters_cpu(:,2),'r')
+            hold on
+            plot(motion_parameters_opencl(:,2),'b')
+            hold off
+            legend('Estimated y translations CPU','Estimated y translations OpenCL')
+        else        
+            plot(motion_parameters_opencl(:,2),'b')            
+            legend('Estimated y translations OpenCL')
+        end
     
         % Plot true and estimated translations in the z-direction
         figure
-        plot(motion_parameters_cpu(:,3),'r')
-        hold on
-        plot(motion_parameters_opencl(:,3),'b')
-        hold off
-        legend('Estimated z translations CPU','Estimated z translations OpenCL')
+        if  (sum(abs(motion_parameters_cpu(:,3))) ~= 0)
+            plot(motion_parameters_cpu(:,3),'r')
+            hold on
+            plot(motion_parameters_opencl(:,3),'b')
+            hold off
+            legend('Estimated z translations CPU','Estimated z translations OpenCL')
+        else
+            plot(motion_parameters_opencl(:,3),'b')            
+            legend('Estimated z translations OpenCL')
+        end
         
         % Plot true and estimated rotations in the x-direction
         figure
-        plot(rotations_cpu(:,1),'r')
-        hold on
-        plot(motion_parameters_opencl(:,4),'b')
-        hold off
-        legend('Estimated x rotations CPU','Estimated x rotations OpenCL')
+        if  ( sum(abs(rotations_cpu(:,1))) ~= 0)
+            plot(rotations_cpu(:,1),'r')
+            hold on
+            plot(motion_parameters_opencl(:,4),'b')
+            hold off
+            legend('Estimated x rotations CPU','Estimated x rotations OpenCL')
+        else            
+            plot(motion_parameters_opencl(:,4),'b')
+            legend('Estimated x rotations OpenCL')
+        end
       
         % Plot true and estimated rotations in the y-direction
         figure
-        plot(rotations_cpu(:,2),'r')
-        hold on
-        plot(motion_parameters_opencl(:,5),'b')
-        hold off
-        legend('Estimated y rotations CPU','Estimated y rotations OpenCL')
+        if  ( sum(abs(rotations_cpu(:,2))) ~= 0)
+            plot(rotations_cpu(:,2),'r')
+            hold on
+            plot(motion_parameters_opencl(:,5),'b')
+            hold off
+            legend('Estimated y rotations CPU','Estimated y rotations OpenCL')    
+        else
+            plot(motion_parameters_opencl(:,5),'b')            
+            legend('Estimated y rotations OpenCL')
+        end
         
         % Plot true and estimated rotations in the z-direction
         figure
-        plot(rotations_cpu(:,3),'r')
-        hold on
-        plot(motion_parameters_opencl(:,6),'b')
-        hold off
-        legend('Estimated z rotations CPU','Estimated z rotations OpenCL')
-    
+        if  ( sum(abs(rotations_cpu(:,3))) ~= 0)
+            plot(rotations_cpu(:,3),'r')
+            hold on
+            plot(motion_parameters_opencl(:,6),'b')
+            hold off
+            legend('Estimated z rotations CPU','Estimated z rotations OpenCL')
+        else
+            plot(motion_parameters_opencl(:,6),'b')            
+            legend('Estimated z rotations OpenCL')
+        end
+        
     end   
     
     %pause
