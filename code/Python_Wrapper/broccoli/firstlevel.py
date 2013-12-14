@@ -1,4 +1,4 @@
-import broccoli.common as broccoli
+import broccoli_common as broccoli
 
 def performFirstLevelAnalysis(
   fMRI_data, fMRI_voxel_sizes,

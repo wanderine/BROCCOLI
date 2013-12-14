@@ -1,6 +1,7 @@
 from broccoli_common import *
 from registration import *
 from motion_correction import *
+from firstlevel import *
 
 __all__ = [
   'BROCCOLI_LIB',

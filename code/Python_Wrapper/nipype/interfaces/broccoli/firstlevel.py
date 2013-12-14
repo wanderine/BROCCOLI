@@ -44,30 +44,32 @@ class FirstLevelAnalysis(BaseInterface):
     input_spec = FirstLevelAnalysisInputSpec
     output_spec = FirstLevelAnalysisOutputSpec
     
-    def load_regressor(self, filename, samples):
+    def load_regressor(self, filename, st, samples):
         d = np.loadtxt(filename)
-        hr = np.empty(shape=(samples * len(d),))
+        hr = np.zeros(samples * st)
         tr = 2
         
         for row in d:
             start = int(round(row[0] * samples / tr))
             duration = int(round(row[1] * samples / tr))
             for i in range(duration):
-              hr[start + i] = row[2]
+                hr[start + i] = row[2]
         
-        return scipy.signal.decimate(hr, samples)
-        
+        lr = scipy.signal.decimate(hr, samples)
+        return lr
     
-    def load_regressors(self):
+    def load_regressors(self, st):
         files = [f for f in os.listdir(self.inputs.GLM_path) if op.isfile(op.join(self.inputs.GLM_path, f))]
-        data = [self.load_regressor(f, 100000) for f in files]
-        return np.array(data)
+        data = [self.load_regressor(op.join(self.inputs.GLM_path, f), st, 10) for f in files]
+        return np.array(data).transpose()
         
     def _run_interface(self, runtime):
         
-        MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes = broccoli.load_MNI_templates(self.inputs.MNI_file, self.inputs.MNI_brain_file, self.inputs.mni_brain_mask_file)
+        MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes = broccoli.load_MNI_templates(self.inputs.MNI_file, self.inputs.MNI_brain_file, self.inputs.MNI_brain_mask_file)
         fMRI, fMRI_voxel_sizes = broccoli.load_EPI(self.inputs.fMRI_file, only_volume=False)
         T1, T1_voxel_sizes = broccoli.load_T1(self.inputs.T1_file)
+        
+        print(fMRI.shape)
         
         filters_parametric_mat = scipy.io.loadmat(self.inputs.filters_parametric)
         filters_nonparametric_mat = scipy.io.loadmat(self.inputs.filters_nonparametric)
@@ -76,15 +78,28 @@ class FirstLevelAnalysis(BaseInterface):
         projection_tensor = [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)]
         filter_directions = [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']]
         
-        X_GLM = self.load_regressors()
-        xtxxt_GLM = np.linalg.inv(X_GLM.transpose() * X_GLM) * X_GLM.transpose()
+        X_GLM = self.load_regressors(fMRI.shape[3])
+        print(X_GLM.shape)
+        xtx = np.linalg.inv(np.dot(X_GLM.T, X_GLM))
+        print(xtx.shape)
+        xtxxt_GLM = xtx.dot(X_GLM.T)
 
         confounds = 1
         if self.inputs.regress_confounds:
             confounds = np.loadtxt(self.inputs.confounds_file)
 
         contrasts = np.array([[1, 0], [1, 0], [1, 0], [1, 0]])
-        ctxtxc_GLM = [contrasts[i:i+1].transpose() * np.linalg.inv(X_GLM.transpose() * X_GLM) * contrasts[0:1] for i in range(len(contrasts))]
+        print(contrasts)
+        
+        print(contrasts[0:1])
+        print(X_GLM.T.dot(X_GLM))
+        print(xtx)
+        print(contrasts[0:1].T)
+        
+        ctxtxc_GLM = [contrasts[i:i+1].dot(xtx).dot(contrasts[i:i+1].T) for i in range(len(contrasts))]
+        
+        print(self.inputs.opencl_platform)
+        print(type(self.inputs.opencl_platform))
         
         broccoli.performFirstLevelAnalysis(
             fMRI, fMRI_voxel_sizes, T1, T1_voxel_sizes, MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes,
