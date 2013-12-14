@@ -90,8 +90,9 @@ class FirstLevelAnalysis(BaseInterface):
             fMRI, fMRI_voxel_sizes, T1, T1_voxel_sizes, MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes,
             filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
             self.inputs.iterations_parametric, self.inputs.iterations_nonparametric, self.inputs.iterations_motion_correction, 4, 4, 0, 0,
-            self.inputs.regress_motion, self.inputs.EPI_smoothing, self.inputs.AR_smoothing, X_GLM, xtxxt_GLM, contrasts, ctxtxc_GLM,
-            self.inputs.use_temporal_derivatives, getattr(broccoli, self.inputs.beta_space), 
+            self.inputs.regress_motion, self.inputs.EPI_smoothing, self.inputs.AR_smoothing, X_GLM, xtxxt_GLM.transpose(), contrasts, ctxtxc_GLM,
+            self.inputs.use_temporal_derivatives, getattr(broccoli, self.inputs.beta_space), confounds, self.inputs.regress_confounds,
+            self.inputs.opencl_platform, self.inputs.opencl_device,
         )
       
         return runtime
