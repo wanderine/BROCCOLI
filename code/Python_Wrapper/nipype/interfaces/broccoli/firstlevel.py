@@ -1,7 +1,9 @@
-from nipype.interfaces.base import TraitedSpec, BaseInterface, BaseInterfaceInputSpec, File, isdefined, traits
+from nipype.interfaces.base import TraitedSpec, BaseInterface, BaseInterfaceInputSpec, File, Directory, isdefined, traits
 from nipype.utils.filemanip import split_filename
 
 import scipy.io
+import scipy.signal
+import os
 import os.path as op
 import nibabel as nb
 import numpy as np
@@ -15,6 +17,7 @@ class FirstLevelAnalysisInputSpec(base.BroccoliInputSpec):
     MNI_brain_file = File(exists=True)
     MNI_brain_mask_file = File(exists=True)
     T1_file = File(exists=True, mandatory=True)
+    GLM_path = Directory(exists=True, mandatory=True)
     
     filters_parametric = File(exists=True, mandatory=True,
                               desc='Matlab file with filters for parametric registration')
@@ -41,6 +44,25 @@ class FirstLevelAnalysis(BaseInterface):
     input_spec = FirstLevelAnalysisInputSpec
     output_spec = FirstLevelAnalysisOutputSpec
     
+    def load_regressor(self, filename, samples):
+        d = np.loadtxt(filename)
+        hr = np.empty(shape=(samples * len(d),))
+        tr = 2
+        
+        for row in d:
+            start = int(round(row[0] * samples / tr))
+            duration = int(round(row[1] * samples / tr))
+            for i in range(duration):
+              hr[start + i] = row[2]
+        
+        return scipy.signal.decimate(hr, samples)
+        
+    
+    def load_regressors(self):
+        files = [f for f in os.listdir(self.inputs.GLM_path) if op.isfile(op.join(self.inputs.GLM_path, f))]
+        data = [self.load_regressor(f, 100000) for f in files]
+        return np.array(data)
+        
     def _run_interface(self, runtime):
         
         MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes = broccoli.load_MNI_templates(self.inputs.MNI_file, self.inputs.MNI_brain_file, self.inputs.mni_brain_mask_file)
@@ -53,6 +75,10 @@ class FirstLevelAnalysis(BaseInterface):
         filters_nonparametric = [filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)] for i in range(6)]
         projection_tensor = [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)]
         filter_directions = [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']]
+        
+        X_GLM = self.load_regressors()
+        xtxxt_GLM = np.linalg.inv(X_GLM.transpose() * X_GLM) * X_GLM.transpose()
+
         
         broccoli.performFirstLevelAnalysis()
       
