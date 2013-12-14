@@ -79,7 +79,19 @@ class FirstLevelAnalysis(BaseInterface):
         X_GLM = self.load_regressors()
         xtxxt_GLM = np.linalg.inv(X_GLM.transpose() * X_GLM) * X_GLM.transpose()
 
+        confounds = 1
+        if self.inputs.regress_confounds:
+            confounds = np.loadtxt(self.inputs.confounds_file)
+
+        contrasts = np.array([[1, 0], [1, 0], [1, 0], [1, 0]])
+        ctxtxc_GLM = [contrasts[i:i+1].transpose() * np.linalg.inv(X_GLM.transpose() * X_GLM) * contrasts[0:1] for i in range(len(contrasts))]
         
-        broccoli.performFirstLevelAnalysis()
+        broccoli.performFirstLevelAnalysis(
+            fMRI, fMRI_voxel_sizes, T1, T1_voxel_sizes, MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes,
+            filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
+            self.inputs.iterations_parametric, self.inputs.iterations_nonparametric, self.inputs.iterations_motion_correction, 4, 4, 0, 0,
+            self.inputs.regress_motion, self.inputs.EPI_smoothing, self.inputs.AR_smoothing, X_GLM, xtxxt_GLM, contrasts, ctxtxc_GLM,
+            self.inputs.use_temporal_derivatives, getattr(broccoli, self.inputs.beta_space), 
+        )
       
         return runtime
