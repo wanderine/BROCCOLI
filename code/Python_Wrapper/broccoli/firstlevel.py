@@ -69,7 +69,84 @@ def performFirstLevelAnalysis(
   BROCCOLI.SetEPISmoothingAmount(EPI_smoothing)
   BROCCOLI.SetARSmoothingAmount(AR_smoothing)
   
-  smoother_fMRI_data = BROCCOLI.createOutputArray(fMRI_data.shape)
-  BROCCOLI.SetOutputSmoothedfMRIVolumes(smoother_fMRI_data)
+  smoothed_fMRI_data = BROCCOLI.createOutputArray(fMRI_data.shape)
+  BROCCOLI.SetOutputSmoothedfMRIVolumes(smoothed_fMRI_data)
+  
+  BROCCOLI.SetTemporalDerivatives(use_temporal_derivatives)
+  BROCCOLI.SetRegressMotion(regress_motion)
+  BROCCOLI.SetRegressConfounds(regress_confounds)
+  BROCCOLI.SetBetaSpace(beta_space)
+  
+  number_of_GLM_regressors = X_GLM.shape[1]
+  number_of_confound_regressors = X_GLM_confounds.shape[1]
+  
+  NUMBER_OF_DETRENDING_REGRESSORS = 4
+  NUMBER_OF_MOTION_REGRESSORS = 6
+  number_of_contrasts = len(contrasts)
+
+  if regress_confounds == 1:
+      BROCCOLI.SetNumberOfConfoundRegressors(number_of_confound_regressors)
+      BROCCOLI.SetConfoundRegressors(X_GLM_confounds)
+
+  BROCCOLI.SetNumberOfGLMRegressors(number_of_GLM_regressors)
+  BROCCOLI.SetNumberOfContrasts(number_of_contrasts)
+  BROCCOLI.SetDesignMatrix(X_GLM, xtxxt_GLM)
+  
+  number_of_total_GLM_regressors = number_of_GLM_regressors * (use_temporal_derivatives+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS * regress_motion + number_of_confound_regressors * regress_confounds;
+  design_matrix_shape = (number_of_total_GLM_regressors, fMRI_data.shape[3])
+  
+  design_matrix1 = BROCCOLI.createOutputArray(design_matrix_shape)
+  design_matrix2 = BROCCOLI.createOutputArray(design_matrix_shape)
+  BROCCOLI.SetOutputDesignMatrix(design_matrix1, design_matrix2)
+  
+  BROCCOLI.SetContrasts(contrasts)
+  BROCCOLI.SetGLMScalars(ctxtxc_GLM)
+  
+  
+  if beta_space == broccoli.MNI:
+      beta_shape = MNI_data.shape + (number_of_total_GLM_regressors,)
+      statistical_maps_shape = MNI_data.shape + (number_of_contrasts,)
+      residual_variances_shape = MNI_data.shape
+  elif beta_space == broccoli.EPI:
+      beta_shape = fMRI_data.shape + (number_of_total_GLM_regressors,)
+      statistical_maps_shape = fMRI_data.shape + (number_of_contrasts,)
+      residual_variances_shape = fMRI_data.shape
+  
+  beta_volumes = BROCCOLI.createOutputArray(beta_shape)
+  BROCCOLI.SetOutputBetaVolumes(beta_volumes)
+  
+  residuals = BROCCOLI.createOutputArray(fMRI_data.shape)
+  BROCCOLI.SetOutputResiduals(residuals)
+  
+  residual_variances = BROCCOLI.createOutputArray(residual_variances_shape)
+  BROCCOLI.SetOutputResidualVariances(residual_variances)
+  
+  statistical_maps = BROCCOLI.createOutputArray(statistical_maps_shape)
+  BROCCOLI.SetOutputStatisticalMaps(statistical_maps)
+  
+  ar_shape = fMRI_data.shape[0:3]
+  ar_estimates = [BROCCOLI.createOutputArray(ar_shape) for i in range(4)]
+  BROCCOLI.SetOutputAREstimates(*ar_estimates)
+  
+  whitened_models = BROCCOLI.createOutputArray(fMRI_data.shape + (number_of_total_GLM_regressors,))
+  BROCCOLI.SetOutputWhitenedModels(whitened_models)
+
+  aligned_T1_Volume = BROCCOLI.createOutputArray(MNI_data.shape)
+  BROCCOLI.SetOutputAlignedT1Volume(aligned_T1_Volume)
+  
+  aligned_T1_Volume_nonparametric = BROCCOLI.createOutputArray(MNI_data.shape)
+  BROCCOLI.SetOutputAlignedT1VolumeNonParametric(aligned_T1_Volume_nonparametric)
+  
+  aligned_EPI_volume = BROCCOLI.createOutputArray(MNI_data.shape)
+  BROCCOLI.SetOutputAlignedEPIVolume(aligned_EPI_volume)
+
+  cluster_indices = BROCCOLI.createOutputArray(fMRI_data.shape[0:3], dtype=numpy.int32)
+  BROCCOLI.SetOutputClusterIndices(cluster_indices)
+  
+  EPI_mask = BROCCOLI.createOutputArray(fMRI_data.shape[0:3])
+  BROCCOLI.SetOutputEPIMask(EPI_mask)
 
   BROCCOLI.PerformFirstLevelAnalysisWrapper()
+  
+  return (T1_MNI_registration_parameters, EPI_T1_registration_parameters, EPI_MNI_registration_parameters,
+         motion_corrected_fMRI_data, motion_parameters, smoothed_fMRI_data)

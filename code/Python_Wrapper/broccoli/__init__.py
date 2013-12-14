@@ -14,4 +14,5 @@ __all__ = [
   'registerT1MNI',
   'registerEPIT1',
   'performMotionCorrection',
+  'performFirstLevelAnalysis',
 ]
