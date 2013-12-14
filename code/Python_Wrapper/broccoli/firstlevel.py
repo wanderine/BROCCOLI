@@ -1,4 +1,5 @@
 import broccoli_common as broccoli
+import numpy
 
 def performFirstLevelAnalysis(
   fMRI_data, fMRI_voxel_sizes,
@@ -78,19 +79,21 @@ def performFirstLevelAnalysis(
   BROCCOLI.SetBetaSpace(beta_space)
   
   number_of_GLM_regressors = X_GLM.shape[1]
-  number_of_confound_regressors = X_GLM_confounds.shape[1]
   
   NUMBER_OF_DETRENDING_REGRESSORS = 4
   NUMBER_OF_MOTION_REGRESSORS = 6
   number_of_contrasts = len(contrasts)
 
   if regress_confounds == 1:
+      number_of_confound_regressors = X_GLM_confounds.shape[1]
       BROCCOLI.SetNumberOfConfoundRegressors(number_of_confound_regressors)
       BROCCOLI.SetConfoundRegressors(X_GLM_confounds)
+  else:
+      number_of_confound_regressors = 0
 
   BROCCOLI.SetNumberOfGLMRegressors(number_of_GLM_regressors)
   BROCCOLI.SetNumberOfContrasts(number_of_contrasts)
-  BROCCOLI.SetDesignMatrix(X_GLM, xtxxt_GLM)
+  BROCCOLI.SetDesignMatrix(BROCCOLI.packVolume(X_GLM), BROCCOLI.packVolume(xtxxt_GLM))
   
   number_of_total_GLM_regressors = number_of_GLM_regressors * (use_temporal_derivatives+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS * regress_motion + number_of_confound_regressors * regress_confounds;
   design_matrix_shape = (number_of_total_GLM_regressors, fMRI_data.shape[3])
@@ -99,8 +102,9 @@ def performFirstLevelAnalysis(
   design_matrix2 = BROCCOLI.createOutputArray(design_matrix_shape)
   BROCCOLI.SetOutputDesignMatrix(design_matrix1, design_matrix2)
   
-  BROCCOLI.SetContrasts(contrasts)
-  BROCCOLI.SetGLMScalars(ctxtxc_GLM)
+  ctxtxc_GLM = numpy.array(ctxtxc_GLM)
+  BROCCOLI.SetContrasts(BROCCOLI.packVolume(contrasts))
+  BROCCOLI.SetGLMScalars(BROCCOLI.packVolume(ctxtxc_GLM))
   
   
   if beta_space == broccoli.MNI:

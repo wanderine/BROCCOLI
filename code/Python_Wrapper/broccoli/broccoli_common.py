@@ -156,6 +156,8 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
       t = array.transpose(_pack_permutation)
     elif len(array.shape) == 4:
       t = array.transpose(_pack_permutation_4d)
+    else:
+      t = array
     t = numpy.fliplr(t)
     t = self.packArray(t.flatten())
     self._input_arrays.append(t)

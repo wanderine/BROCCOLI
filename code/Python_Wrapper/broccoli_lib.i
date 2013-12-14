@@ -18,6 +18,7 @@
 
 %numpy_typemaps(float, NPY_FLOAT, int)
 %apply (float INPLACE_ARRAY1[ANY]) {(float* )}
+%apply (int INPLACE_ARRAY1[ANY]) {(int* )}
 
 %typemap(out) int *
 {
