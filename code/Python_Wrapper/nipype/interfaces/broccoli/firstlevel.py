@@ -7,8 +7,9 @@ import nibabel as nb
 import numpy as np
 
 import broccoli
+import base
 
-class FirstLevelAnalysisInputSpec(BaseInterfaceInputSpec):
+class FirstLevelAnalysisInputSpec(base.BroccoliInputSpec):
     fMRI_file = File(exists=True, mandatory=True)
     MNI_file = File(exists=True, mandatory=True)
     MNI_brain_file = File(exists=True)
@@ -52,5 +53,7 @@ class FirstLevelAnalysis(BaseInterface):
         filters_nonparametric = [filters_nonparametric_mat['f%d_nonparametric_registration' % (i+1)] for i in range(6)]
         projection_tensor = [filters_nonparametric_mat['m%d' % (i+1)][0] for i in range(6)]
         filter_directions = [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']]
+        
+        broccoli.performFirstLevelAnalysis()
       
         return runtime

@@ -7,8 +7,9 @@ import nibabel as nb
 import numpy as np
 
 import broccoli
+import base
 
-class CommonRegistrationInputSpec(TraitedSpec):
+class CommonRegistrationInputSpec(base.BroccoliInputSpec):
     filters_parametric = File(exists=True, mandatory=True,
                               desc='Matlab file with filters for parametric registration')
     filters_nonparametric = File(exists=True, mandatory=True,
@@ -19,7 +20,6 @@ class RegistrationT1MNIInputSpec(CommonRegistrationInputSpec):
     mni_file = File(exists=True, desc="Input MNI file", mandatory=True)
     mni_brain_file = File(exists=True, desc="Input MNI Brain file")
     mni_brain_mask_file = File(exists=True, desc="Input MNI Brain Mask file")
-    base_name = traits.Str(value='output', desc='base_name that all output files will start with', usedefault=True)
 
 class RegistrationT1MNIOutputSpec(TraitedSpec):
     aligned_t1_file = File(exists=False)
@@ -47,7 +47,7 @@ class RegistrationT1MNI(BaseInterface):
             T1_data, T1_voxel_sizes,
             MNI_data, MNI_voxel_sizes, MNI_brain_data, MNI_brain_mask_data,
             filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
-            10, 15, int(round(8 / MNI_voxel_sizes[0])), 30, 0, 0, False,
+            10, 15, int(round(8 / MNI_voxel_sizes[0])), 30, self.inputs.opencl_platform, self.inputs.opencl_device, self.input.show_results,
         )
 
         MNI_nni = nb.load(self.inputs.mni_file)
