@@ -24,18 +24,18 @@ class FirstLevelAnalysisInputSpec(base.BroccoliInputSpec):
     filters_nonparametric = File(exists=True, mandatory=True,
                                  desc='Matlab file with filters for nonparametric registration')
     
-    iterations_parametric = traits.Int(15)
-    iterations_nonparametric = traits.Int(10)
-    iterations_motion_correction = traits.Int(3)
+    iterations_parametric = traits.Int(15, usedefault=True)
+    iterations_nonparametric = traits.Int(10, usedefault=True)
+    iterations_motion_correction = traits.Int(3, usedefault=True)
     
     beta_space = traits.Enum('EPI', 'MNI', desc='either EPI or MNI', usedefault=True)
     
-    regress_motion = traits.Bool()
-    regress_confounds = traits.Bool()
-    use_temporal_derivatives = traits.Bool()
+    regress_motion = traits.Bool(usedefault=True)
+    regress_confounds = traits.Bool(usedefault=True)
+    use_temporal_derivatives = traits.Bool(usedefault=True)
     
-    EPI_smoothing = traits.Float(5.5)
-    AR_smoothing = traits.Float(7.0)
+    EPI_smoothing = traits.Float(5.5, usedefault=True)
+    AR_smoothing = traits.Float(7.0, usedefault=True)
     
 class FirstLevelAnalysisOutputSpec(TraitedSpec):
     pass
@@ -69,8 +69,6 @@ class FirstLevelAnalysis(BaseInterface):
         fMRI, fMRI_voxel_sizes = broccoli.load_EPI(self.inputs.fMRI_file, only_volume=False)
         T1, T1_voxel_sizes = broccoli.load_T1(self.inputs.T1_file)
         
-        print(fMRI.shape)
-        
         filters_parametric_mat = scipy.io.loadmat(self.inputs.filters_parametric)
         filters_nonparametric_mat = scipy.io.loadmat(self.inputs.filters_nonparametric)
         filters_parametric = [filters_parametric_mat['f%d_parametric_registration' % (i+1)] for i in range(3)]
@@ -79,9 +77,7 @@ class FirstLevelAnalysis(BaseInterface):
         filter_directions = [filters_nonparametric_mat['filter_directions_%s' % d][0] for d in ['x', 'y', 'z']]
         
         X_GLM = self.load_regressors(fMRI.shape[3])
-        print(X_GLM.shape)
         xtx = np.linalg.inv(np.dot(X_GLM.T, X_GLM))
-        print(xtx.shape)
         xtxxt_GLM = xtx.dot(X_GLM.T)
 
         confounds = 1
@@ -89,17 +85,11 @@ class FirstLevelAnalysis(BaseInterface):
             confounds = np.loadtxt(self.inputs.confounds_file)
 
         contrasts = np.array([[1, 0], [1, 0], [1, 0], [1, 0]])
-        print(contrasts)
-        
-        print(contrasts[0:1])
-        print(X_GLM.T.dot(X_GLM))
-        print(xtx)
-        print(contrasts[0:1].T)
-        
         ctxtxc_GLM = [contrasts[i:i+1].dot(xtx).dot(contrasts[i:i+1].T) for i in range(len(contrasts))]
         
-        print(self.inputs.opencl_platform)
-        print(type(self.inputs.opencl_platform))
+        fMRI_voxel_sizes = [int(round(v)) for v in T1_voxel_sizes]
+        T1_voxel_sizes = [int(round(v)) for v in T1_voxel_sizes]
+        MNI_voxel_sizes = [int(round(v)) for v in T1_voxel_sizes]
         
         broccoli.performFirstLevelAnalysis(
             fMRI, fMRI_voxel_sizes, T1, T1_voxel_sizes, MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes,

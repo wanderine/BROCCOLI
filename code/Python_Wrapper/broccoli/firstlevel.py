@@ -39,7 +39,7 @@ def performFirstLevelAnalysis(
   BROCCOLI.SetImageRegistrationFilterSize(parametric_filters[0][0].shape[0])
   BROCCOLI.SetParametricImageRegistrationFilters(parametric_filters)
   BROCCOLI.SetProjectionTensorMatrixFilters(projection_tensor)
-  BROCCOLI.SetFilterDirections(filter_directions)
+  BROCCOLI.SetFilterDirections(*[BROCCOLI.packArray(f) for f in filter_directions])
   
   
   BROCCOLI.SetNumberOfIterationsForMotionCorrection(iterations_motion_correction)

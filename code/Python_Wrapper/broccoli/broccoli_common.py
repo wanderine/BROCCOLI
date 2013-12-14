@@ -120,7 +120,7 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     self.SetEPITimepoints(array.shape[3])
 
     t = self.packVolume(array)
-    self.SetInputfMRIVolumes(array)
+    self.SetInputfMRIVolumes(t)
 
     self.SetEPIVoxelSizeX(voxel_sizes[0])
     self.SetEPIVoxelSizeY(voxel_sizes[1])
