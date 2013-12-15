@@ -55,6 +55,9 @@ class FirstLevelAnalysis(BroccoliInterface):
             for i in range(duration):
                 hr[start + i] = row[2]
         
+        print(hr.shape)
+        print(np.count_nonzero(hr))
+        print(hr)
         lr = scipy.signal.decimate(hr, samples)
         return lr
     
@@ -78,6 +81,7 @@ class FirstLevelAnalysis(BroccoliInterface):
         
         X_GLM = self.load_regressors(fMRI.shape[3])
         xtx = np.linalg.inv(np.dot(X_GLM.T, X_GLM))
+        print(xtx)
         xtxxt_GLM = xtx.dot(X_GLM.T)
 
         confounds = 1
