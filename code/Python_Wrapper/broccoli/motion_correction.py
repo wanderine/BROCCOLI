@@ -60,9 +60,12 @@ def performMotionCorrection(
     h_Motion_Parameters[i] = - h_Motion_Parameters[i]
   
   if show_results:
+    plot.hold(True)
     for p in h_Motion_Parameters:
+      plot.figure()
       plot.plot(p)
-      plot.show()
+      plot.draw()
+    plot.show()
       
   h_Motion_Corrected_fMRI_Volumes = BROCCOLI.unpackOutputVolume(h_Motion_Corrected_fMRI_Volumes, fMRI_DATA_SHAPE)
   h_Phase_Differences = BROCCOLI.unpackOutputVolume(h_Phase_Differences, VOLUME_SHAPE)
