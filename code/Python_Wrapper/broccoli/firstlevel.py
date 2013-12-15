@@ -107,7 +107,7 @@ def performFirstLevelAnalysis(
       BROCCOLI.SetNumberOfConfoundRegressors(number_of_confound_regressors)
       BROCCOLI.SetConfoundRegressors(X_GLM_confounds)
   else:
-      number_of_confound_regressors = 0
+      number_of_confound_regressors = 1
 
   BROCCOLI.SetNumberOfGLMRegressors(number_of_GLM_regressors)
   BROCCOLI.SetNumberOfContrasts(number_of_contrasts)
@@ -124,6 +124,11 @@ def performFirstLevelAnalysis(
   BROCCOLI.SetContrasts(BROCCOLI.packVolume(contrasts))
   BROCCOLI.SetGLMScalars(BROCCOLI.packVolume(ctxtxc_GLM))
   
+  print("ctxtxc_GLM : ", ctxtxc_GLM)
+  print("Number of GLM regressors : ", number_of_GLM_regressors)
+  print("Number of confound regressors : ", number_of_confound_regressors) 
+  print("Number of total GLM regressors : ", number_of_total_GLM_regressors) 
+  print("Number of contrasts : ", number_of_contrasts)
   
   if beta_space == broccoli.MNI:
       beta_shape = MNI_data.shape + (number_of_total_GLM_regressors,)
@@ -172,6 +177,10 @@ def performFirstLevelAnalysis(
   BROCCOLI.PerformFirstLevelAnalysisWrapper()
   print("First level analysis performed!")
   
+  print("T1_MNI_registration_parameters = ", T1_MNI_registration_parameters)
+  print("EPI_T1_registration_parameters = ", EPI_T1_registration_parameters)
+  print("EPI_MNI_registration_parameters = ", EPI_MNI_registration_parameters)
+  
   motion_corrected_fMRI_data = BROCCOLI.unpackOutputVolume(motion_corrected_fMRI_data, fMRI_data.shape)
   
   motion_parameters = BROCCOLI.unpackOutputArray(motion_parameters, shape=(NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID, fMRI_data.shape[3]))
@@ -218,18 +227,17 @@ def performFirstLevelAnalysis(
   
   
   if beta_space == broccoli.MNI:
-      slice = int(MNI_brain_data.shape[2] / 2) + 1
+      slice = int(MNI_brain_data.shape[2] / 2)
   else:
-      slice = int(fMRI_data.shape[2] / 2) + 1
+      slice = int(fMRI_data.shape[2] / 2)
   
-  plot.imshow(numpy.flipud(MNI_brain_data[:,slice,:]), cmap = cm.Greys_r, interpolation="nearest")
+  plot.imshow(numpy.flipud(MNI_brain_data[:,:,slice]), cmap = cm.Greys_r, interpolation="nearest")
   plot.draw()
   plot.figure()
   
   print(statistical_maps.shape)
   print(statistical_maps[..., 0].shape)
-  map1 = statistical_maps[..., 0]
-  plot.imshow(numpy.flipud(map1[:,:,slice]), interpolation="nearest")
+  plot.imshow(numpy.flipud(statistical_maps[:,:,slice,0]), interpolation="nearest")
   plot.draw()
   plot.figure()
 

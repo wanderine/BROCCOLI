@@ -18,6 +18,14 @@ interface = firstlevel.FirstLevelAnalysis(
     fMRI_file = os.path.join(SUBJECT_DIR, 'BOLD/task001_run001/bold.nii'),
     GLM_path = os.path.join(SUBJECT_DIR, 'model/model001/onsets/task001_run001'),
     
+    
+    use_temporal_derivatives = True,
+    regress_motion = True,
+    regress_confounds = False,
+
+    EPI_smoothing = 6.0,
+    AR_smoothing = 7.0,
+    
     opencl_device = 0,
     show_results = True,
 )
