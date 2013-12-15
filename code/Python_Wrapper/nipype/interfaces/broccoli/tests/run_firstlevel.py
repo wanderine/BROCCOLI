@@ -14,11 +14,12 @@ interface = firstlevel.FirstLevelAnalysis(
     filters_parametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_parametric_registration.mat',
     filters_nonparametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_nonparametric_registration.mat',
     
-    T1_file = os.path.join(SUBJECT_DIR, 'anatomy/highres001_brain.nii.gz'),
-    fMRI_file = os.path.join(SUBJECT_DIR, 'BOLD/task001_run001/bold.nii.gz'),
+    T1_file = os.path.join(SUBJECT_DIR, 'anatomy/highres001_brain.nii'),
+    fMRI_file = os.path.join(SUBJECT_DIR, 'BOLD/task001_run001/bold.nii'),
     GLM_path = os.path.join(SUBJECT_DIR, 'model/model001/onsets/task001_run001'),
     
     opencl_device = 0,
+    show_results = True,
 )
 
 

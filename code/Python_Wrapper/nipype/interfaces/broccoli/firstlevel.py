@@ -9,9 +9,9 @@ import nibabel as nb
 import numpy as np
 
 import broccoli
-import base
+from base import BroccoliInputSpec, BroccoliInterface
 
-class FirstLevelAnalysisInputSpec(base.BroccoliInputSpec):
+class FirstLevelAnalysisInputSpec(BroccoliInputSpec):
     fMRI_file = File(exists=True, mandatory=True)
     MNI_file = File(exists=True, mandatory=True)
     MNI_brain_file = File(exists=True)
@@ -99,7 +99,7 @@ class FirstLevelAnalysis(BroccoliInterface):
             self.inputs.iterations_parametric, self.inputs.iterations_nonparametric, self.inputs.iterations_motion_correction, 4, 4, 0, 0,
             self.inputs.regress_motion, self.inputs.EPI_smoothing, self.inputs.AR_smoothing, X_GLM, xtxxt_GLM.transpose(), contrasts, ctxtxc_GLM,
             self.inputs.use_temporal_derivatives, getattr(broccoli, self.inputs.beta_space), confounds, self.inputs.regress_confounds,
-            self.inputs.opencl_platform, self.inputs.opencl_device,
+            self.inputs.opencl_platform, self.inputs.opencl_device, self.inputs.show_results,
         )
         
         

@@ -1,6 +1,25 @@
 import broccoli_common as broccoli
 import numpy
 
+import matplotlib.pyplot as plot
+import matplotlib.cm as cm
+    
+def plotVolume(data, sliceYrel, sliceZrel):
+  sliceY = int(round(sliceYrel * data.shape[0]))
+
+  # Data is first ordered [y][x][z]
+  plot.imshow(numpy.flipud(data[sliceY].transpose()), cmap = cm.Greys_r, interpolation="nearest")
+  plot.draw()
+  plot.figure()
+
+  sliceZ = int(round(sliceZrel * data.shape[2])) - 1
+
+  # We want it ordered [z][x][y]
+  data_t = data.transpose()
+  plot.imshow(numpy.fliplr(data_t[sliceZ]).transpose(), cmap = cm.Greys_r, interpolation="nearest")
+  plot.draw()
+  plot.figure()
+
 def performFirstLevelAnalysis(
   fMRI_data, fMRI_voxel_sizes,
   T1_data, T1_voxel_sizes,
@@ -11,7 +30,7 @@ def performFirstLevelAnalysis(
   regress_motion, EPI_smoothing, AR_smoothing,
   X_GLM, xtxxt_GLM, contrasts, ctxtxc_GLM,
   use_temporal_derivatives, beta_space, X_GLM_confounds, regress_confounds,
-  opencl_platform, opencl_device,
+  opencl_platform, opencl_device, show_results = False,
   ):
     
   BROCCOLI = broccoli.BROCCOLI_LIB()
@@ -175,7 +194,12 @@ def performFirstLevelAnalysis(
   cluster_indices = BROCCOLI.unpackOutputVolume(cluster_indices, fMRI_data.shape[0:3])
   EPI_mask = BROCCOLI.unpackOutputVolume(EPI_mask, fMRI_data.shape[0:3])
   
-  
+  if show_results:
+    for volume in [aligned_T1_Volume_nonparametric, aligned_EPI_volume, MNI_brain_data]:
+      plotVolume(volume, 0.45, 0.47)
+    
+  plot.close()
+  plot.show()
   
   # TODO: Return more parameters in proper order
   return statistical_maps
