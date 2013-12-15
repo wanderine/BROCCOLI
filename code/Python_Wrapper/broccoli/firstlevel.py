@@ -133,7 +133,7 @@ def performFirstLevelAnalysis(
       residual_variances_shape = MNI_data.shape
   elif beta_space == broccoli.EPI:
       beta_shape = fMRI_data.shape + (number_of_total_GLM_regressors,)
-      statistical_maps_shape = fMRI_data.shape + (number_of_contrasts,)
+      statistical_maps_shape = fMRI_data.shape[0:3] + (number_of_contrasts,)
       residual_variances_shape = fMRI_data.shape
   
   beta_volumes = BROCCOLI.createOutputArray(beta_shape)
@@ -175,7 +175,11 @@ def performFirstLevelAnalysis(
   print("First level analysis performed!")
   
   motion_corrected_fMRI_data = BROCCOLI.unpackOutputVolume(motion_corrected_fMRI_data, fMRI_data.shape)
-  motion_parameters = BROCCOLI.unpackOutputVolume(motion_parameters, (NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID, fMRI_data.shape[3]))
+  
+  motion_parameters = BROCCOLI.unpackOutputArray(motion_parameters, shape=(NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID, fMRI_data.shape[3]))
+  for i in [2, 3, 4]:
+    motion_parameters[i] = - motion_parameters[i]
+  
   smoothed_fMRI_data = BROCCOLI.unpackOutputVolume(smoothed_fMRI_data, fMRI_data.shape)
   design_matrix1 = BROCCOLI.unpackOutputVolume(design_matrix1, design_matrix_shape)
   design_matrix2 = BROCCOLI.unpackOutputVolume(design_matrix2, design_matrix_shape)
@@ -197,7 +201,40 @@ def performFirstLevelAnalysis(
   if show_results:
     for volume in [aligned_T1_Volume_nonparametric, aligned_EPI_volume, MNI_brain_data]:
       plotVolume(volume, 0.45, 0.47)
-    
+      
+  plot.plot(motion_parameters[0],'g')
+  plot.plot(motion_parameters[1],'r')
+  plot.plot(motion_parameters[2],'b')
+  plot.title('Translation (mm)')
+  plot.legend('X','Y','Z')
+  plot.draw()
+  plot.figure()
+  
+  plot.plot(motion_parameters[3],'g')
+  plot.plot(motion_parameters[4],'r')
+  plot.plot(motion_parameters[5],'b')
+  plot.title('Rotation (degrees)')
+  plot.legend('X','Y','Z')
+  plot.draw()
+  plot.figure()
+  
+  
+  if beta_space == broccoli.MNI:
+      slice = int(MNI_brain_data.shape[2] / 2) + 1
+  else:
+      slice = int(fMRI_data.shape[2] / 2) + 1
+  
+  plot.imshow(numpy.flipud(MNI_brain_data[:,slice,:]), cmap = cm.Greys_r, interpolation="nearest")
+  plot.draw()
+  plot.figure()
+  
+  print(statistical_maps.shape)
+  print(statistical_maps[..., 0].shape)
+  map1 = statistical_maps[..., 0]
+  plot.imshow(numpy.flipud(map1[:,:,slice]), interpolation="nearest")
+  plot.draw()
+  plot.figure()
+
   plot.close()
   plot.show()
   
