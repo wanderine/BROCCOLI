@@ -155,7 +155,27 @@ def performFirstLevelAnalysis(
   BROCCOLI.PerformFirstLevelAnalysisWrapper()
   print("First level analysis performed!")
   
+  motion_corrected_fMRI_data = BROCCOLI.unpackOutputVolume(motion_corrected_fMRI_data, fMRI_data.shape)
+  motion_parameters = BROCCOLI.unpackOutputVolume(motion_parameters, (NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID, fMRI_data.shape[3]))
+  smoothed_fMRI_data = BROCCOLI.unpackOutputVolume(smoothed_fMRI_data, fMRI_data.shape)
+  design_matrix1 = BROCCOLI.unpackOutputVolume(design_matrix1, design_matrix_shape)
+  design_matrix2 = BROCCOLI.unpackOutputVolume(design_matrix2, design_matrix_shape)
+  
+  beta_volumes = BROCCOLI.unpackOutputVolume(beta_volumes, beta_shape)
+  residuals = BROCCOLI.unpackOutputVolume(residuals, fMRI_data.shape)
+  residual_variances = BROCCOLI.unpackOutputVolume(residual_variances, residual_variances_shape)
   statistical_maps = BROCCOLI.unpackOutputVolume(statistical_maps, statistical_maps_shape)
+  
+  ar_estimates = [BROCCOLI.unpackOutputVolume(i, ar_shape) for i in ar_estimates]
+  whitened_models = BROCCOLI.unpackOutputVolume(whitened_models, fMRI_data.shape + (number_of_total_GLM_regressors,))
+  
+  aligned_T1_Volume = BROCCOLI.unpackOutputVolume(aligned_T1_Volume, MNI_data.shape)
+  aligned_T1_Volume_nonparametric = BROCCOLI.unpackOutputVolume(aligned_T1_Volume_nonparametric, MNI_data.shape)
+  aligned_EPI_volume = BROCCOLI.unpackOutputVolume(aligned_EPI_volume, MNI_data.shape)
+  cluster_indices = BROCCOLI.unpackOutputVolume(cluster_indices, fMRI_data.shape[0:3])
+  EPI_mask = BROCCOLI.unpackOutputVolume(EPI_mask, fMRI_data.shape[0:3])
+  
+  
   
   # TODO: Return more parameters in proper order
   return statistical_maps
