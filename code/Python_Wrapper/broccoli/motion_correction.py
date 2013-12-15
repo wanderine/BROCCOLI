@@ -60,10 +60,9 @@ def performMotionCorrection(
     h_Motion_Parameters[i] = - h_Motion_Parameters[i]
   
   if show_results:
-    plot.hold(True)
-    for p in h_Motion_Parameters:
-      plot.figure()
-      plot.plot(p)
+    for i in range(len(h_Motion_Parameters)):
+      plot.figure(i+1)
+      plot.plot(h_Motion_Parameters[i])
       plot.draw()
     plot.show()
       
