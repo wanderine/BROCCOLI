@@ -14,9 +14,7 @@ def plotVolume(data, sliceYrel, sliceZrel):
 
   sliceZ = int(round(sliceZrel * data.shape[2])) - 1
 
-  # We want it ordered [z][x][y]
-  data_t = data.transpose()
-  plot.imshow(numpy.fliplr(data_t[sliceZ]).transpose(), cmap = cm.Greys_r, interpolation="nearest")
+  plot.imshow(numpy.fliplr(data[:,:,sliceZ]), cmap = cm.Greys_r, interpolation="nearest")
   plot.draw()
   plot.figure()
 

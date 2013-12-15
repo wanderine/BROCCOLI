@@ -14,16 +14,14 @@ def flatSize(a):
 def plotVolume(data, sliceYrel, sliceZrel):
   sliceY = int(round(sliceYrel * data.shape[0]))
 
-  # Data is first ordered [y][x][z]
+  # Data is ordered [y][x][z]
   plot.imshow(numpy.flipud(data[sliceY].transpose()), cmap = cm.Greys_r, interpolation="nearest")
   plot.draw()
   plot.figure()
 
   sliceZ = int(round(sliceZrel * data.shape[2])) - 1
 
-  # We want it ordered [z][x][y]
-  data_t = data.transpose()
-  plot.imshow(numpy.fliplr(data_t[sliceZ]).transpose(), cmap = cm.Greys_r, interpolation="nearest")
+  plot.imshow(numpy.fliplr(data[:,:,sliceZ]), cmap = cm.Greys_r, interpolation="nearest")
   plot.draw()
   plot.figure()
 
