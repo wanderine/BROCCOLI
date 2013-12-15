@@ -2,6 +2,7 @@ import broccoli_common as broccoli
 
 import matplotlib.pyplot as plot
 import matplotlib.cm as cm
+import numpy
 
 from operator import mul
 

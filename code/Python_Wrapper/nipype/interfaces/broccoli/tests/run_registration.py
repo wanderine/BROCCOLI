@@ -9,6 +9,8 @@ reg = registration.RegistrationT1MNI(
     t1_file = BROCCOLI_DIR + '/test_data/fcon1000/classic/Cambridge/sub00156/anat/mprage_skullstripped.nii.gz',
     filters_parametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_parametric_registration.mat',
     filters_nonparametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_nonparametric_registration.mat',
+    
+    show_results = True,
 )
 
 results = reg.run()
@@ -19,6 +21,8 @@ reg = registration.RegistrationEPIT1(
     t1_file = BROCCOLI_DIR + '/test_data/fcon1000/classic/Cambridge/sub00156/anat/mprage_skullstripped.nii.gz',
     filters_parametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_parametric_registration.mat',
     filters_nonparametric = BROCCOLI_DIR + '/code/Matlab_Wrapper/filters_for_nonparametric_registration.mat',
+    
+    show_results = True,
 )
 
 results = reg.run()

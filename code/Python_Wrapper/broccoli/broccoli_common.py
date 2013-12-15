@@ -182,7 +182,7 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
       array = self.unpackOutputArray(array, t_shape)
       array = numpy.fliplr(array)
       
-    if unpack:
+    if unpack is not None:
       return array.transpose(unpack)
     else:
       return array

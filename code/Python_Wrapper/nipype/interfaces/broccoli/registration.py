@@ -47,7 +47,7 @@ class RegistrationT1MNI(BaseInterface):
             T1_data, T1_voxel_sizes,
             MNI_data, MNI_voxel_sizes, MNI_brain_data, MNI_brain_mask_data,
             filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
-            10, 15, int(round(8 / MNI_voxel_sizes[0])), 30, self.inputs.opencl_platform, self.inputs.opencl_device, self.input.show_results,
+            10, 15, int(round(8 / MNI_voxel_sizes[0])), 30, self.inputs.opencl_platform, self.inputs.opencl_device, self.inputs.show_results,
         )
 
         MNI_nni = nb.load(self.inputs.mni_file)
@@ -95,7 +95,7 @@ class RegistrationEPIT1(BaseInterface):
           Registration_Parameters, Phase_Differences, Phase_Certainties, Phase_Gradients) = broccoli.registerEPIT1(
             EPI_data, EPI_voxel_sizes, T1_data, T1_voxel_sizes,
             filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
-            20, int(round(8.0 / T1_voxel_sizes[0])), 20, 0, 0, False,
+            20, int(round(8.0 / T1_voxel_sizes[0])), 20, self.inputs.opencl_platform, self.inputs.opencl_device, self.inputs.show_results,
         )
 
         T1_nni = nb.load(self.inputs.t1_file)
