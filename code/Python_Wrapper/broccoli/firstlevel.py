@@ -151,7 +151,11 @@ def performFirstLevelAnalysis(
   EPI_mask = BROCCOLI.createOutputArray(fMRI_data.shape[0:3])
   BROCCOLI.SetOutputEPIMask(EPI_mask)
 
+  print("Parameters set, now performing analysis...")
   BROCCOLI.PerformFirstLevelAnalysisWrapper()
+  print("First level analysis performed!")
   
-  return (T1_MNI_registration_parameters, EPI_T1_registration_parameters, EPI_MNI_registration_parameters,
-         motion_corrected_fMRI_data, motion_parameters, smoothed_fMRI_data)
+  statistical_maps = BROCCOLI.unpackOutputVolume(statistical_maps, statistical_maps_shape)
+  
+  # TODO: Return more parameters in proper order
+  return statistical_maps

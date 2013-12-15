@@ -38,7 +38,7 @@ class FirstLevelAnalysisInputSpec(base.BroccoliInputSpec):
     AR_smoothing = traits.Float(7.0, usedefault=True)
     
 class FirstLevelAnalysisOutputSpec(TraitedSpec):
-    pass
+    statistical_map = File()
   
 class FirstLevelAnalysis(BaseInterface):
     input_spec = FirstLevelAnalysisInputSpec
@@ -91,7 +91,9 @@ class FirstLevelAnalysis(BaseInterface):
         T1_voxel_sizes = [int(round(v)) for v in T1_voxel_sizes]
         MNI_voxel_sizes = [int(round(v)) for v in T1_voxel_sizes]
         
-        broccoli.performFirstLevelAnalysis(
+        
+        
+        statistical_maps = broccoli.performFirstLevelAnalysis(
             fMRI, fMRI_voxel_sizes, T1, T1_voxel_sizes, MNI, MNI_brain, MNI_brain_mask, MNI_voxel_sizes,
             filters_parametric, filters_nonparametric, projection_tensor, filter_directions,
             self.inputs.iterations_parametric, self.inputs.iterations_nonparametric, self.inputs.iterations_motion_correction, 4, 4, 0, 0,
@@ -99,5 +101,22 @@ class FirstLevelAnalysis(BaseInterface):
             self.inputs.use_temporal_derivatives, getattr(broccoli, self.inputs.beta_space), confounds, self.inputs.regress_confounds,
             self.inputs.opencl_platform, self.inputs.opencl_device,
         )
+        
+        
+        EPI_nni = nb.load(self.inputs.fMRI_file)
+        aligned_EPI_nni = nb.Nifti1Image(statistical_maps, None, EPI_nni.get_header())
+        nb.save(aligned_EPI_nni, self._create_filename('statistical_map.nii'))
       
         return runtime
+      
+    def _create_filename(self, name):
+        if isdefined(self.inputs.base_name):
+            return self.inputs.base_name + '_' + name
+        else:
+            return name
+            
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        for k in outputs.keys():
+            outputs[k] = self._create_filename(k + '.nii')
+        return outputs

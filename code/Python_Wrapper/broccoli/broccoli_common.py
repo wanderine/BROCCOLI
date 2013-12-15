@@ -47,7 +47,6 @@ def load_EPI(epi_file, only_volume=True):
 
 _pack_permutation = (2, 0, 1)
 _pack_permutation_4d = (3, 2, 0, 1)
-_unpack_permutation = numpy.argsort(_pack_permutation)
 
 def _permute(permutation, array):
   n = len(array)
@@ -170,14 +169,23 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
     return array.reshape(shape)
     
   def unpackOutputVolume(self, array, shape = None):
+    unpack = None
     if shape:
       if len(shape) == 3:
         t_shape = _permute(_pack_permutation, shape)
+        unpack = numpy.argsort(_pack_permutation)
       elif len(shape) == 4:
         t_shape = _permute(_pack_permutation_4d, shape)
+        unpack = numpy.argsort(_pack_permutation_4d)
+      else:
+        t_shape = shape
       array = self.unpackOutputArray(array, t_shape)
       array = numpy.fliplr(array)
-    return array.transpose(_unpack_permutation)
+      
+    if unpack:
+      return array.transpose(unpack)
+    else:
+      return array
 
 
   def printSetupErrors(self):
