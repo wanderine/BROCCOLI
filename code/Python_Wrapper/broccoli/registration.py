@@ -16,15 +16,16 @@ def plotVolume(data, sliceYrel, sliceZrel):
 
   # Data is first ordered [y][x][z]
   plot.imshow(numpy.flipud(data[sliceY].transpose()), cmap = cm.Greys_r, interpolation="nearest")
-  plot.show()
+  plot.draw()
+  plot.figure()
 
   sliceZ = int(round(sliceZrel * data.shape[2])) - 1
 
   # We want it ordered [z][x][y]
   data_t = data.transpose()
   plot.imshow(numpy.fliplr(data_t[sliceZ]).transpose(), cmap = cm.Greys_r, interpolation="nearest")
-  plot.show()
-
+  plot.draw()
+  plot.figure()
 
 def registerEPIT1(
     h_EPI_Data,
@@ -140,6 +141,8 @@ def registerEPIT1(
 
     for r in plot_results:
       plotVolume(r, sliceY, sliceZ)
+    plot.close()
+    plot.show()
 
   return (h_Aligned_EPI_Volume, h_Interpolated_EPI_Volume,
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients)
@@ -290,6 +293,8 @@ def registerT1MNI(
 
     for r in plot_results:
       plotVolume(r, sliceY, sliceZ)
+    plot.close()
+    plot.show()
 
   return (h_Aligned_T1_Volume, h_Aligned_T1_Volume_NonParametric, h_Skullstripped_T1_Volume, h_Interpolated_T1_Volume,
           h_Registration_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients, h_Slice_Sums, h_Top_Slice, h_A_Matrix, h_h_Vector)
