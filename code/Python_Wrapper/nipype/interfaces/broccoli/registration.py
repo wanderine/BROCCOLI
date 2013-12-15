@@ -7,9 +7,9 @@ import nibabel as nb
 import numpy as np
 
 import broccoli
-import base
+from base import BroccoliInputSpec, BroccoliInterface
 
-class CommonRegistrationInputSpec(base.BroccoliInputSpec):
+class CommonRegistrationInputSpec(BroccoliInputSpec):
     filters_parametric = File(exists=True, mandatory=True,
                               desc='Matlab file with filters for parametric registration')
     filters_nonparametric = File(exists=True, mandatory=True,
@@ -25,7 +25,7 @@ class RegistrationT1MNIOutputSpec(TraitedSpec):
     aligned_t1_file = File(exists=False)
     interpolated_t1_file = File(exists=False)
 
-class RegistrationT1MNI(BaseInterface):
+class RegistrationT1MNI(BroccoliInterface):
     input_spec = RegistrationT1MNIInputSpec
     output_spec = RegistrationT1MNIOutputSpec
 
@@ -52,17 +52,17 @@ class RegistrationT1MNI(BaseInterface):
 
         MNI_nni = nb.load(self.inputs.mni_file)
         aligned_T1_nni = nb.Nifti1Image(Aligned_T1_Volume, None, MNI_nni.get_header())
-        nb.save(aligned_T1_nni, self.inputs.base_name + '_aligned.nii')
+        nb.save(aligned_T1_nni, self._get_output_filename('_aligned.nii'))
 
         interpolated_T1_nni = nb.Nifti1Image(Interpolated_T1_Volume, None, MNI_nni.get_header())
-        nb.save(interpolated_T1_nni, self.inputs.base_name + '_interpolated.nii')
+        nb.save(interpolated_T1_nni, self._get_output_filename('_interpolated.nii'))
 
         return runtime
       
     def _list_outputs(self):
         outputs = self.output_spec().get()
         for k in outputs.keys():
-            outputs[k] = self.inputs.base_name + '_' + k.replace('_t1_file', '.nii')
+            outputs[k] = self._get_output_filename(k.replace('_t1_file', '.nii'))
         return outputs
       
 class RegistrationEPIT1InputSpec(CommonRegistrationInputSpec):
@@ -74,7 +74,7 @@ class RegistrationEPIT1OutputSpec(TraitedSpec):
     aligned_epi_file = File(exists=False)
     interpolated_epi_file = File(exists=False)
 
-class RegistrationEPIT1(BaseInterface):
+class RegistrationEPIT1(BroccoliInterface):
     input_spec = RegistrationEPIT1InputSpec
     output_spec = RegistrationEPIT1OutputSpec
     
@@ -100,10 +100,10 @@ class RegistrationEPIT1(BaseInterface):
 
         T1_nni = nb.load(self.inputs.t1_file)
         aligned_EPI_nni = nb.Nifti1Image(Aligned_EPI_Volume, None, T1_nni.get_header())
-        nb.save(aligned_EPI_nni, self.inputs.base_name + '_aligned.nii')
+        nb.save(aligned_EPI_nni, self._get_output_filename('_aligned.nii'))
 
         interpolated_EPI_nni = nb.Nifti1Image(Interpolated_EPI_Volume, None, T1_nni.get_header())
-        nb.save(interpolated_EPI_nni, self.inputs.base_name + '_interpolated.nii')
+        nb.save(interpolated_EPI_nni, self._get_output_filename('_interpolated.nii'))
 
         return runtime
     

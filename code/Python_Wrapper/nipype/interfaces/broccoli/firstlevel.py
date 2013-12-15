@@ -40,7 +40,7 @@ class FirstLevelAnalysisInputSpec(base.BroccoliInputSpec):
 class FirstLevelAnalysisOutputSpec(TraitedSpec):
     statistical_map = File()
   
-class FirstLevelAnalysis(BaseInterface):
+class FirstLevelAnalysis(BroccoliInterface):
     input_spec = FirstLevelAnalysisInputSpec
     output_spec = FirstLevelAnalysisOutputSpec
     
@@ -105,18 +105,12 @@ class FirstLevelAnalysis(BaseInterface):
         
         EPI_nni = nb.load(self.inputs.fMRI_file)
         aligned_EPI_nni = nb.Nifti1Image(statistical_maps, None, EPI_nni.get_header())
-        nb.save(aligned_EPI_nni, self._create_filename('statistical_map.nii'))
+        nb.save(aligned_EPI_nni, self._get_output_filename('statistical_map.nii'))
       
         return runtime
-      
-    def _create_filename(self, name):
-        if isdefined(self.inputs.base_name):
-            return self.inputs.base_name + '_' + name
-        else:
-            return name
             
     def _list_outputs(self):
         outputs = self.output_spec().get()
         for k in outputs.keys():
-            outputs[k] = self._create_filename(k + '.nii')
+            outputs[k] = self._get_output_filename(k + '.nii')
         return outputs

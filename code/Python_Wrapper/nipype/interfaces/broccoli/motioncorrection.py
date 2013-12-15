@@ -7,9 +7,9 @@ import nibabel as nb
 import numpy as np
 
 import broccoli
-import base
+from base import BroccoliInputSpec, BroccoliInterface
 
-class MotionCorrectionInputSpec(base.BroccoliInputSpec):
+class MotionCorrectionInputSpec(BroccoliInputSpec):
     filters_parametric = File(exists=True, mandatory=True,
                               desc='Matlab file with filters for parametric registration')
     fmri_file = File(exists=True, desc='Input fMRI file', mandatory = True)
@@ -17,7 +17,7 @@ class MotionCorrectionInputSpec(base.BroccoliInputSpec):
 class MotionCorrectionOutputSpec(TraitedSpec):
     motion_corrected_fmri_file = File()
 
-class MotionCorrection(BaseInterface):
+class MotionCorrection(BroccoliInterface):
     input_spec = MotionCorrectionInputSpec
     output_spec = MotionCorrectionOutputSpec
 
@@ -32,8 +32,8 @@ class MotionCorrection(BaseInterface):
             fMRI_data, filters_parametric, 10, self.inputs.opencl_platform, self.inputs.opencl_device, self.inputs.show_results,
         )
 
-        corrected_fMRI_nni = nb.Nifti1Image(Motion_Corrected_fMRI_Volumes, None, fMRI_nni.get_header())
-        nb.save(corrected_fMRI_nni, self.inputs.base_name + '_motion_corrected.nii')
+        corrected_fMRI_nii = nb.Nifti1Image(Motion_Corrected_fMRI_Volumes, None, fMRI_nii.get_header())
+        nb.save(corrected_fMRI_nii, self._get_output_filename('_motion_corrected.nii'))
 
         return runtime
       
@@ -41,5 +41,5 @@ class MotionCorrection(BaseInterface):
     def _list_outputs(self):
         outputs = self.output_spec().get()
         for k in outputs.keys():
-            outputs[k] = self.inputs.base_name + '_' + k.replace('_t1_file', '.nii')
+            outputs[k] = self._get_output_filename(k.replace('_fmri_file', '.nii'))
         return outputs
