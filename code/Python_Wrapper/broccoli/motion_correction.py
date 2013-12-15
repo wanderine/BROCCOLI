@@ -1,4 +1,5 @@
 import broccoli_common as broccoli
+import matplotlib.pyplot as plot
 
 def performMotionCorrection(
   h_fMRI_Volumes,
@@ -40,7 +41,7 @@ def performMotionCorrection(
   h_Motion_Corrected_fMRI_Volumes = BROCCOLI.createOutputArray(fMRI_DATA_SHAPE)
   BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes)
   
-  h_Motion_Parameters = BROCCOLI.createOutputArray(6 * DATA_T)
+  h_Motion_Parameters = BROCCOLI.createOutputArray((6, DATA_T))
   BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters)
   
   h_Phase_Differences = BROCCOLI.createOutputArray(VOLUME_SHAPE)
@@ -53,5 +54,11 @@ def performMotionCorrection(
   BROCCOLI.SetOutputPhaseGradients(h_Phase_Gradients)
         
   BROCCOLI.PerformMotionCorrectionWrapper()
+  
+  h_Motion_Parameters = BROCCOLI.unpackOutputVolume(h_Motion_Parameters, shape=(6, DATA_T))
+  if show_results:
+    for p in h_Motion_Parameters:
+      plot.plot(p)
+      plot.show()
   
   return h_Motion_Corrected_fMRI_Volumes, h_Motion_Parameters, h_Phase_Differences, h_Phase_Certainties, h_Phase_Gradients

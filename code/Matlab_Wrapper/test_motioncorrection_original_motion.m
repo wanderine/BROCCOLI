@@ -49,6 +49,8 @@ if ismiha
       do_braindead_shortcircuit_evaluation(1);
       warning('off', 'Octave:possible-matlab-short-circuit-operator');
     end
+    
+    test_data_dir = '/data/miha/BROCCOLI/motion_correction'
 else
     if ispc
         addpath('D:\nifti_matlab')
@@ -68,6 +70,8 @@ else
         opencl_platform = 2; % 0 Intel, 1 AMD, 2 Nvidia
         opencl_device = 0;
     end
+    
+    test_data_dir = '/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/'
 end
 
 %study = 'Oulu';
@@ -79,7 +83,7 @@ study = 'Cambridge';
 
 save_motion_corrected_data_Matlab = 0;  % Save motion corrected data as a Matlab file or not
 save_motion_corrected_data_Nifti = 1;   % Save motion corrected data as a Nifti file or not
-plot_results = 0;                       % Plot true and estimated motion parameters or not
+plot_results = 1;                       % Plot true and estimated motion parameters or not
 save_estimated_motion_parameters = 0;   % Save estimated motion parameters as a Matlab file or not
 run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comparison to OpenCL algorithm
 
@@ -95,14 +99,14 @@ for s = 1:1
     % Load fMRI data
     if ispc
         if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-            EPI_nii = load_nii([basepath study '/rest' num2str(s) '.nii.gz']);
+            EPI_nii = load_nii([basepath study '/rest' num2str(s) '.nii']);
         elseif ( strcmp(study,'OpenfMRI'))
-            EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(s) '.nii.gz']);
+            EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(s) '.nii']);
         end
     elseif isunix
         dirs = dir([basepath study]);
         subject = dirs(s+2).name % Skip . and .. 'folders'
-        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);                
+        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii']);                
     end
     
     fMRI_volumes = double(EPI_nii.img);        
@@ -128,7 +132,7 @@ for s = 1:1
         
     % Save motion corrected data as Matlab file
     if save_motion_corrected_data_Matlab == 1                        
-        filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.mat'];
+        filename = [BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.mat'];
         motion_corrected_volumes_opencl = single(motion_corrected_volumes_opencl);
         save(filename,'motion_corrected_volumes_opencl');
     end
@@ -139,13 +143,13 @@ for s = 1:1
         new_file.hdr.dime.datatype = 16;
         new_file.hdr.dime.bitpix = 16;
         new_file.img = single(motion_corrected_volumes_opencl);            
-        filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.nii'];                        
+        filename = [test_data_dir '/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.nii'];                        
         save_nii(new_file,filename);
     end
     
     % Save estimated motion parameters as Matlab file
     if save_estimated_motion_parameters == 1            
-        filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_original_motion.mat'];        
+        filename = [test_data_dir '/BROCCOLI_motion_parameters_subject_' num2str(s) '_original_motion.mat'];        
         save(filename,'motion_parameters_opencl');
     end
         
@@ -233,6 +237,8 @@ for s = 1:1
     
     %pause
     %close all
+    
+    k = waitforbuttonpress
     
 end
 
