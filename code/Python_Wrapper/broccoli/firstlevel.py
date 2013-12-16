@@ -185,8 +185,6 @@ def performFirstLevelAnalysis(
   motion_corrected_fMRI_data = BROCCOLI.unpackOutputVolume(motion_corrected_fMRI_data, fMRI_data.shape)
   
   motion_parameters = BROCCOLI.unpackOutputArray(motion_parameters, shape=(NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID, fMRI_data.shape[3]))
-  for i in [2, 3, 4]:
-    motion_parameters[i] = - motion_parameters[i]
   
   smoothed_fMRI_data = BROCCOLI.unpackOutputVolume(smoothed_fMRI_data, fMRI_data.shape)
   design_matrix1 = BROCCOLI.unpackOutputVolume(design_matrix1, design_matrix_shape)
