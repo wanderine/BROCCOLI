@@ -1828,12 +1828,14 @@ void BROCCOLI_LIB::SetInputMNIVolume(float* data)
 void BROCCOLI_LIB::SetInputMNIBrainVolume(float* data)
 {
 	h_MNI_Brain_Volume = data;
+        debugVolumeInfo("MNI Brain", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, data);
 }
 
 
 void BROCCOLI_LIB::SetInputMNIBrainMask(float* data)
 {
 	h_MNI_Brain_Mask = data;
+        debugVolumeInfo("MNI Brain Mask", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputFirstLevelResults(float* data)
