@@ -56,8 +56,6 @@ def performMotionCorrection(
   BROCCOLI.PerformMotionCorrectionWrapper()
   
   h_Motion_Parameters = BROCCOLI.unpackOutputArray(h_Motion_Parameters, shape=(6, DATA_T))
-  for i in [1, 2, 4, 5]:
-    h_Motion_Parameters[i] = - h_Motion_Parameters[i]
   
   if show_results:
     for p in h_Motion_Parameters:
