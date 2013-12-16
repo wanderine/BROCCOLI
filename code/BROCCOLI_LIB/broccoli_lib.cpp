@@ -59,25 +59,6 @@ float round( float d )
     return floor( d + 0.5f );
 }
 
-void debugVolumeInfo(const char* name, int W, int H, int D, float* volume)
-{
-    printf("%s sizes: %d, %d, %d\n", name, W, H, D);
-    
-    float maxF = 0;
-    int maxI = 0;
-    
-    for (int i = 0; i < W*H*D; ++i)
-    {
-        if (volume[i] > maxF)
-        {
-            maxI = i;
-            maxF = volume[i];
-        }
-    }
-    
-    printf("%s maximum element: %d => %f\n", maxI, maxF);
-}
-
 void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume)
 {
     printf("%s sizes: %d, %d, %d, %d\n", name, W, H, D, T);
@@ -95,6 +76,12 @@ void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume
     }
     
     printf("%s maximum element: %d => %f\n", maxI, maxF);
+    printf("%s maximum element at (%d, %d, %d, %d)\n", maxI % W, (maxI/W)%H, (maxI/W/H)%D, (maxI/W/H/D));
+}
+
+void debugVolumeInfo(const char* name, int W, int H, int D, float* volume)
+{
+    debugVolumeInfo(name, W, H, D, 1, volume);
 }
 
 // Constructors
