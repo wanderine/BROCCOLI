@@ -59,6 +59,44 @@ float round( float d )
     return floor( d + 0.5f );
 }
 
+void debugVolumeInfo(const char* name, int W, int H, int D, float* volume)
+{
+    printf("%s sizes: %d, %d, %d\n", name, W, H, D);
+    
+    float maxF = 0;
+    int maxI = 0;
+    
+    for (int i = 0; i < W*H*D; ++i)
+    {
+        if (volume[i] > maxF)
+        {
+            maxI = i;
+            maxF = volume[i];
+        }
+    }
+    
+    printf("%s maximum element: %d => %f\n", maxI, maxF);
+}
+
+void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume)
+{
+    printf("%s sizes: %d, %d, %d, %d\n", name, W, H, D, T);
+    
+    float maxF = 0;
+    int maxI = 0;
+    
+    for (int i = 0; i < W*H*D*T; ++i)
+    {
+        if (volume[i] > maxF)
+        {
+            maxI = i;
+            maxF = volume[i];
+        }
+    }
+    
+    printf("%s maximum element: %d => %f\n", maxI, maxF);
+}
+
 // Constructors
 
 BROCCOLI_LIB::BROCCOLI_LIB()
@@ -1766,21 +1804,25 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 void BROCCOLI_LIB::SetInputfMRIVolumes(float* data)
 {
 	h_fMRI_Volumes = data;
+        debugVolumeInfo("fMRI", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, data);
 }
 
 void BROCCOLI_LIB::SetInputEPIVolume(float* data)
 {
 	h_EPI_Volume = data;
+        debugVolumeInfo("EPI", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
 	h_T1_Volume = data;
+        debugVolumeInfo("T1", T1_DATA_W, T1_DATA_H, T1_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputMNIVolume(float* data)
 {
 	h_MNI_Volume = data;
+        debugVolumeInfo("MNI", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputMNIBrainVolume(float* data)
