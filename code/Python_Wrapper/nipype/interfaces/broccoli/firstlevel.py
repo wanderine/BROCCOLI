@@ -81,7 +81,7 @@ class FirstLevelAnalysis(BroccoliInterface):
         
         X_GLM = self.load_regressors(fMRI.shape[3])
         xtx = np.linalg.inv(np.dot(X_GLM.T, X_GLM))
-        print(xtx)
+        # print(xtx)
         xtxxt_GLM = xtx.dot(X_GLM.T)
 
         confounds = 1

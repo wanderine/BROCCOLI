@@ -153,11 +153,11 @@ class BROCCOLI_LIB(BROCCOLI_LIB_BASE):
   def packVolume(self, array):
     if len(array.shape) == 3:
       t = array.transpose(_pack_permutation)
+      t = numpy.fliplr(t)
     elif len(array.shape) == 4:
       t = array.transpose(_pack_permutation_4d)
     else:
       t = array
-    t = numpy.fliplr(t)
     t = self.packArray(t.flatten())
     self._input_arrays.append(t)
     return t

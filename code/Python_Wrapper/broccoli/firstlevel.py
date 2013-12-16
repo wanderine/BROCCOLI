@@ -124,8 +124,8 @@ def performFirstLevelAnalysis(
   BROCCOLI.SetContrasts(BROCCOLI.packVolume(contrasts))
   BROCCOLI.SetGLMScalars(BROCCOLI.packVolume(ctxtxc_GLM))
   
-  print("ctxtxc_GLM : ", ctxtxc_GLM)
-  print("xtxxt_GLM: ", xtxxt_GLM)
+  # print("ctxtxc_GLM : ", ctxtxc_GLM)
+  # print("xtxxt_GLM: ", xtxxt_GLM)
   print("Number of GLM regressors : ", number_of_GLM_regressors)
   print("Number of confound regressors : ", number_of_confound_regressors) 
   print("Number of total GLM regressors : ", number_of_total_GLM_regressors) 

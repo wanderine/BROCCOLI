@@ -635,11 +635,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     }
     else if (BROCCOLI.GetOpenCLInitiated() == 1)
     {
-        BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
-        BROCCOLI.SetInputT1Volume(h_T1_Volume);
-        BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
-        BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
-        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
         BROCCOLI.SetEPIWidth(EPI_DATA_W);
         BROCCOLI.SetEPIHeight(EPI_DATA_H);
         BROCCOLI.SetEPIDepth(EPI_DATA_D);
@@ -650,6 +645,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetMNIWidth(MNI_DATA_W);
         BROCCOLI.SetMNIHeight(MNI_DATA_H);
         BROCCOLI.SetMNIDepth(MNI_DATA_D);
+        
+        BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
+        BROCCOLI.SetInputT1Volume(h_T1_Volume);
+        BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
+        BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
+        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
+        
         BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
         BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
         BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);       
