@@ -41,7 +41,7 @@ def load_EPI(epi_file, only_volume=True):
   EPI_nni = nifti1.load(epi_file)
   EPI = EPI_nni.get_data()
   if only_volume:
-    EPI = EPI.transpose()[0].transpose()
+    EPI = EPI[...,0]
   EPI_voxel_sizes = EPI_nni.get_header()['pixdim'][2:5]
   return EPI, EPI_voxel_sizes
 
