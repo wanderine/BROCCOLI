@@ -44,7 +44,10 @@ def performFirstLevelAnalysis(
 
   print("OpenCL initialization successful, proceeding...")
   
+  fMRI_data = numpy.flipud(fMRI_data)
   
+  brain_max = MNI_brain_data.max()
+  MNI_brain_data = MNI_brain_data / brain_max
 
   BROCCOLI.SetfMRIData(fMRI_data, fMRI_voxel_sizes)
   BROCCOLI.SetT1Data(T1_data, T1_voxel_sizes)
