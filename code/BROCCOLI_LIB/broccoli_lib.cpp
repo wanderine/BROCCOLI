@@ -61,6 +61,7 @@ float round( float d )
 
 void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume)
 {
+#ifndef NDEBUG
     printf("%s sizes: %d, %d, %d, %d => %d\n", name, W, H, D, T, W*H*D*T);
     
     float maxF = 0;
@@ -79,6 +80,7 @@ void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume
     
     printf("%s maximum element: %d => %f\n", name, maxI, maxF);
     printf("%s maximum element at (%d, %d, %d, %d)\n", name, maxI % W, (maxI/W)%H, (maxI/W/H)%D, (maxI/W/H/D));
+#endif
 }
 
 void debugVolumeInfo(const char* name, int W, int H, int D, float* volume)
