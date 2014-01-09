@@ -28,21 +28,46 @@ clear all
 clc
 close all
 
-if ispc
-    %addpath('D:\nifti_matlab')
-    addpath('D:\nifti_matlab')
-    basepath = 'D:\OpenfMRI\';    
-    opencl_platform = 2; % 0 Nvidia, 1 Intel, 2 AMD
-    opencl_device = 1;
-    %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
-    mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
-elseif isunix
-    addpath('/home/andek/Research_projects/nifti_matlab')
-    basepath = '/data/andek/OpenfMRI/';    
-    opencl_platform = 2; 
+ismiha = 0
+
+if ismiha
+    addpath('/home/miha/Delo/BROCCOLI/nifti')
+    basepath = '/data/miha/OpenfMRI/';
+    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';
+    
+    mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/opt/cuda/include/ -I/opt/cuda/include/CL -L/usr/lib -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB -L/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB    -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB/Eigen
+    
+    opencl_platform = 0;  % 0 Intel, 1 AMD, 2 Nvidia
     opencl_device = 0;
-    %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
-    mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+    
+    
+    %% Only used in Octave for compatibility with Matlab
+    if exist('do_braindead_shortcircuit_evaluation', 'builtin')
+      do_braindead_shortcircuit_evaluation(1);
+      warning('off', 'Octave:possible-matlab-short-circuit-operator');
+      
+      % We need this for 'decimate'
+      pkg load signal
+    end
+    
+    test_data_dir = '/data/miha/BROCCOLI/motion_correction'
+else
+    if ispc
+        %addpath('D:\nifti_matlab')
+        addpath('D:\nifti_matlab')
+        basepath = 'D:\OpenfMRI\';    
+        opencl_platform = 2; % 0 Nvidia, 1 Intel, 2 AMD
+        opencl_device = 1;
+        %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+        mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib    -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+    elseif isunix
+        addpath('/home/andek/Research_projects/nifti_matlab')
+        basepath = '/data/andek/OpenfMRI/';    
+        opencl_platform = 2; 
+        opencl_device = 0;
+        %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+        mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+    end
 end
 
 study = 'RhymeJudgment/ds003';
@@ -89,7 +114,7 @@ load filters_for_nonparametric_registration.mat
 % Load T1 volume
 %--------------------------------------------------------------------------------------
 
-T1_nii = load_nii([basepath study subject '/anatomy/highres001_brain.nii.gz']);
+T1_nii = load_nii([basepath study subject '/anatomy/highres001_brain.nii']);
 T1 = double(T1_nii.img);
 
 [T1_sy T1_sx T1_sz] = size(T1);
@@ -103,7 +128,7 @@ T1_voxel_size_z = T1_nii.hdr.dime.pixdim(4);
 % Load fMRI data
 %--------------------------------------------------------------------------------------
 
-EPI_nii = load_nii([basepath study subject '/BOLD/task001_run001/bold.nii.gz']);
+EPI_nii = load_nii([basepath study subject '/BOLD/task001_run001/bold.nii']);
 fMRI_volumes = double(EPI_nii.img);
 [sy sx sz st] = size(fMRI_volumes);
 
@@ -145,7 +170,9 @@ MNI_voxel_size_z = MNI_nii.hdr.dime.pixdim(4);
 %--------------------------------------------------------------------------------------
 
 % Make high resolution regressors first
-X_GLM_highres = zeros(st*100000,2);
+
+highres_factor = 10
+X_GLM_highres = zeros(st*highres_factor,2);
 X_GLM = zeros(st,2);
 
 for regressor = 1:2
@@ -159,8 +186,8 @@ for regressor = 1:2
     values = text{3};
 
     for i = 1:length(onsets)    
-        start = round(onsets(i)*100000/TR); 
-        activity_length = round(durations(i)*100000/TR);
+        start = round(onsets(i)*highres_factor/TR); 
+        activity_length = round(durations(i)*highres_factor/TR);
         value = values(i);
 
         for j = 1:activity_length
@@ -169,7 +196,7 @@ for regressor = 1:2
     end
     
     % Downsample
-    temp = decimate(X_GLM_highres(:,regressor),100000);
+    temp = decimate(X_GLM_highres(:,regressor),highres_factor);
     X_GLM(:,regressor) = temp(1:st);
 end
     
@@ -399,5 +426,7 @@ if save_as_nifti == 1
 	save_nii(new_file,filename);
 
 end
+
+k = waitforbuttonpress
 
 

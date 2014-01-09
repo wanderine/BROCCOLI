@@ -28,14 +28,25 @@ clear all
 clc
 close all
 
-if ispc
+ismiha = 0
+
+if ismiha
+    addpath('/home/miha/Delo/BROCCOLI/nifti')
+    basepath = '/home/miha/Programiranje/BROCCOLI/test_data/fcon1000/classic/';
+    basepath_BROCCOLI = '/data/miha/BROCCOLI_test_data/BROCCOLI/normalization';        
+    
+    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/opt/cuda/include/ -I/opt/cuda/include/CL -L/usr/lib -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB -L/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB    -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB/Eigen
+    
+    opencl_platform = 0;  % 0 Intel, 1 AMD, 2 Nvidia
+    opencl_device = 0;
+elseif ispc
     addpath('D:\nifti_matlab')
     addpath('D:\BROCCOLI_test_data')
     %basepath = 'D:\BROCCOLI_test_data\';
     basepath = 'D:\';
     
-    %mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
-    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+    %mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     
     opencl_platform = 2; % 0 Nvidia, 1 Intel, 2 AMD
     opencl_device = 0;
@@ -45,11 +56,13 @@ elseif isunix
     basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';
     
     %mex -g RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
-    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release    -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+    mex RegisterEPIT1.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
     
-    opencl_platform = 2;  % 0 Intel, 1 AMD, 2 Nvidia
+    opencl_platform = 2; % 0 Intel, 1 AMD, 2 Nvidia
     opencl_device = 0;
 end
+
+
 
 %------------------------------------
 
@@ -69,6 +82,12 @@ number_of_iterations_for_parametric_image_registration = 20;
 coarsest_scale = 8/voxel_size;
 MM_EPI_Z_CUT = 30;
 
+%% Only used in Octave for compatibility with Matlab
+if exist('do_braindead_shortcircuit_evaluation', 'builtin')
+  do_braindead_shortcircuit_evaluation(1);
+  warning('off', 'Octave:possible-matlab-short-circuit-operator');
+end
+
 % Load quadrature filters
 load filters_for_parametric_registration.mat
 load filters_for_nonparametric_registration.mat
@@ -87,7 +106,7 @@ for s = 1:N
     %close all
     
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu'))  || (strcmp(study,'Baltimore')) )
-        T1_nii = load_nii([basepath study '/' subject '/anat/mprage_skullstripped.nii.gz']);
+        T1_nii = load_nii([basepath study '/' subject '/anat/mprage_skullstripped.nii']);
     elseif ( strcmp(study,'OpenfMRI'))
         T1_nii = load_nii([basepath study '/' substudy '/highres' subject '.nii.gz']);
     end
@@ -112,7 +131,7 @@ for s = 1:N
     
     
     if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) || (strcmp(study,'Baltimore')) )
-        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);
+        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii']);
     elseif ( strcmp(study,'OpenfMRI'))
         EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(subject) '.nii.gz']);
     end
@@ -123,9 +142,9 @@ for s = 1:N
     [EPI_sy EPI_sx EPI_sz] = size(EPI);
     [EPI_sy EPI_sx EPI_sz]
         
-    EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
-    EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
-    EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+    EPI_voxel_size_x = EPI_nii.hdr.dime.pixdim(2)
+    EPI_voxel_size_y = EPI_nii.hdr.dime.pixdim(3)
+    EPI_voxel_size_z = EPI_nii.hdr.dime.pixdim(4)
     
     % Run registration
     tic
@@ -138,6 +157,8 @@ for s = 1:N
         m1, m2, m3, m4, m5, m6, ...
         number_of_iterations_for_parametric_image_registration,coarsest_scale,MM_EPI_Z_CUT,opencl_platform, opencl_device);
     toc
+    
+    registration_parameters_opencl
             
     % Show some nice results
     if show_results == 1

@@ -111,7 +111,6 @@ private:
 class BROCCOLI_LIB
 {
 	public:
-
 		// Constructor & destructor
 		BROCCOLI_LIB();
 		BROCCOLI_LIB(cl_uint platform, cl_uint device);
@@ -119,7 +118,7 @@ class BROCCOLI_LIB
 
 		// Set functions for GUI / Wrappers
 
-		void SetOpenCLPlatform(int N);
+		// void SetOpenCLPlatform(int N);
 
 
 		void SetMask(float* input);
@@ -226,7 +225,7 @@ class BROCCOLI_LIB
 		void SetOutputT1MNIRegistrationParameters(float* output);
 		void SetOutputEPIT1RegistrationParameters(float* output);
 		void SetOutputEPIMNIRegistrationParameters(float* output);
-		void SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3);
+		// void SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3);
 		void SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3, cl_float2* qfr4, cl_float2* qfr5, cl_float2* qfr6);
 		void SetOutputTensorComponents(float*, float*, float*,float*, float*, float*);
 		void SetOutputDisplacementField(float*, float*, float*);
@@ -255,15 +254,20 @@ class BROCCOLI_LIB
 		void SetOutputAMatrix(float*);
 		void SetOutputHVector(float*);
 
-		void SetfMRIDataFilename(std::string filename);
+                /**
+                 * In oldstuff
+                
+		// void SetfMRIDataFilename(std::string filename);
 
-		void SetfMRIDataSliceLocationX(int location);
-		void SetfMRIDataSliceLocationY(int location);
-		void SetfMRIDataSliceLocationZ(int location);
-		void SetfMRIDataSliceTimepoint(int timepoint);
+		// void SetfMRIDataSliceLocationX(int location);
+		// void SetfMRIDataSliceLocationY(int location);
+		// void SetfMRIDataSliceLocationZ(int location);
+		// void SetfMRIDataSliceTimepoint(int timepoint);
 
-		void SetDataType(int type);
-		void SetFileType(int type);
+		// void SetDataType(int type);
+		// void SetFileType(int type);
+		
+		*/
 
 		void SetSignificanceLevel(float value);
 
@@ -272,9 +276,13 @@ class BROCCOLI_LIB
 		int GetOpenCLInitiated();
 		int GetNumberOfOpenCLKernels();
 
-		int GetfMRIDataSliceLocationX();
-		int GetfMRIDataSliceLocationY();
-		int GetfMRIDataSliceLocationZ();
+                /**
+                 * In oldstuff
+                 * 
+		// int GetfMRIDataSliceLocationX();
+		// int GetfMRIDataSliceLocationY();
+		// int GetfMRIDataSliceLocationZ();
+		*/
 
 		// EPI data
 		float GetEPIVoxelSizeX();
@@ -291,14 +299,18 @@ class BROCCOLI_LIB
 		int GetT1Width();
 		int GetT1Height();
 		int GetT1Depth();
-		int GetT1Timepoints();
+		// int GetT1Timepoints();
 
-		float GetT1VoxelSizeX();
-		float GetT1VoxelSizeY();
-		float GetT1VoxelSizeZ();
+                /**
+                 * Nowhere
+                
+		// float GetT1VoxelSizeX();
+		// float GetT1VoxelSizeY();
+		// float GetT1VoxelSizeZ();
+		*/
 
 		float GetSignificanceThreshold();
-		std::string GetfMRIDataFilename();
+		// std::string GetfMRIDataFilename();
 
 		int GetNumberOfSignificantlyActiveVoxels();
 		int GetNumberOfSignificantlyActiveClusters();
@@ -345,12 +357,12 @@ class BROCCOLI_LIB
 		double GetProcessingTimeInterpolation();
 
 		// Read functions
-		void ReadfMRIDataRAW();
-		void ReadfMRIDataNIFTI();
-		void ReadNIFTIHeader();
+		// void ReadfMRIDataRAW();
+		// void ReadfMRIDataNIFTI();
+		// void ReadNIFTIHeader();
 
 		// Write functions
-		void WritefMRIDataNIFTI();
+		// void WritefMRIDataNIFTI();
 
 		// Wrappers
 		void ChangeT1VolumeResolutionAndSizeWrapper();
@@ -377,9 +389,9 @@ class BROCCOLI_LIB
 		void PerformSecondLevelAnalysisWrapper();
 		void ApplyPermutationTestFirstLevelWrapper();
 
-		void CalculateSlicesfMRIData();
-		void CalculateSlicesPreprocessedfMRIData();
-		void CalculateSlicesActivityData();
+		// void CalculateSlicesfMRIData();
+		// void CalculateSlicesPreprocessedfMRIData();
+		// void CalculateSlicesActivityData();
 
 		void GetOpenCLInfo();
 		void OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
@@ -927,7 +939,7 @@ class BROCCOLI_LIB
 		float		*h_Mask;
 		float		*h_EPI_Mask;
 		float		*h_Smoothed_EPI_Mask;
-		float		*h_T1_Volume;
+        float       *h_T1_Volume;
 		float		*h_MNI_Volume;
 		float		*h_MNI_Brain_Volume;
 		float	    *h_EPI_Volume;

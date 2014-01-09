@@ -30,26 +30,49 @@ clear all
 clc
 close all
 
-% Compile the Matlab wrapper to get a mex-file
-if ispc
-    addpath('D:\nifti_matlab')
-    addpath('D:\BROCCOLI_test_data')
-    basepath = 'D:\BROCCOLI_test_data\';
-    %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
-    mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
-    
-    opencl_platform = 0;
-    opencl_device = 1;
-elseif isunix
-    addpath('/home/andek/Research_projects/nifti_matlab')
-    basepath = '/data/andek/BROCCOLI_test_data/';
-    %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
-    mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
-    
-    opencl_platform = 2; % 0 Intel, 1 AMD, 2 Nvidia
-    opencl_device = 0;
-end
+ismiha = 0
 
+% Compile the Matlab wrapper to get a mex-file
+if ismiha
+    addpath('/home/miha/Delo/BROCCOLI/nifti')
+    basepath = '/home/miha/Programiranje/BROCCOLI/test_data/fcon1000/classic/';
+    basepath_BROCCOLI = '/data/andek/BROCCOLI_test_data/BROCCOLI/normalization';
+    
+    mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/opt/cuda/include/ -I/opt/cuda/include/CL -L/usr/lib -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB -L/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB    -I/home/miha/Programiranje/BROCCOLI/code/BROCCOLI_LIB/Eigen
+    
+    opencl_platform = 0;  % 0 Intel, 1 AMD, 2 Nvidia
+    opencl_device = 0;
+    
+    
+    %% Only used in Octave for compatibility with Matlab
+    if exist('do_braindead_shortcircuit_evaluation', 'builtin')
+      do_braindead_shortcircuit_evaluation(1);
+      warning('off', 'Octave:possible-matlab-short-circuit-operator');
+    end
+    
+    test_data_dir = '/data/miha/BROCCOLI/motion_correction'
+else
+    if ispc
+        addpath('D:\nifti_matlab')
+        addpath('D:\BROCCOLI_test_data')
+        basepath = 'D:\BROCCOLI_test_data\';
+        %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Debug/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+        mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
+        
+        opencl_platform = 0;
+        opencl_device = 1;
+    elseif isunix
+        addpath('/home/andek/Research_projects/nifti_matlab')
+        basepath = '/data/andek/BROCCOLI_test_data/';
+        %mex -g MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug
+        mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
+        
+        opencl_platform = 2; % 0 Intel, 1 AMD, 2 Nvidia
+        opencl_device = 0;
+    end
+    
+    test_data_dir = '/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/'
+end
 
 %study = 'Oulu';
 %study = 'ICBM';
@@ -60,7 +83,7 @@ study = 'Cambridge';
 
 save_motion_corrected_data_Matlab = 0;  % Save motion corrected data as a Matlab file or not
 save_motion_corrected_data_Nifti = 1;   % Save motion corrected data as a Nifti file or not
-plot_results = 0;                       % Plot true and estimated motion parameters or not
+plot_results = 1;                       % Plot true and estimated motion parameters or not
 save_estimated_motion_parameters = 0;   % Save estimated motion parameters as a Matlab file or not
 run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comparison to OpenCL algorithm
 
@@ -76,14 +99,14 @@ for s = 1:1
     % Load fMRI data
     if ispc
         if ( (strcmp(study,'Beijing')) || (strcmp(study,'Cambridge')) || (strcmp(study,'ICBM')) || (strcmp(study,'Oulu')) )
-            EPI_nii = load_nii([basepath study '/rest' num2str(s) '.nii.gz']);
+            EPI_nii = load_nii([basepath study '/rest' num2str(s) '.nii']);
         elseif ( strcmp(study,'OpenfMRI'))
-            EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(s) '.nii.gz']);
+            EPI_nii = load_nii([basepath study '\' substudy '/bold' num2str(s) '.nii']);
         end
     elseif isunix
         dirs = dir([basepath study]);
         subject = dirs(s+2).name % Skip . and .. 'folders'
-        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);                
+        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii']);                
     end
     
     fMRI_volumes = double(EPI_nii.img);        
@@ -109,7 +132,7 @@ for s = 1:1
         
     % Save motion corrected data as Matlab file
     if save_motion_corrected_data_Matlab == 1                        
-        filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.mat'];
+        filename = [BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.mat'];
         motion_corrected_volumes_opencl = single(motion_corrected_volumes_opencl);
         save(filename,'motion_corrected_volumes_opencl');
     end
@@ -120,13 +143,13 @@ for s = 1:1
         new_file.hdr.dime.datatype = 16;
         new_file.hdr.dime.bitpix = 16;
         new_file.img = single(motion_corrected_volumes_opencl);            
-        filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.nii'];                        
+        filename = [test_data_dir '/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_original_motion.nii'];                        
         save_nii(new_file,filename);
     end
     
     % Save estimated motion parameters as Matlab file
     if save_estimated_motion_parameters == 1            
-        filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_parameters_subject_' num2str(s) '_original_motion.mat'];        
+        filename = [test_data_dir '/BROCCOLI_motion_parameters_subject_' num2str(s) '_original_motion.mat'];        
         save(filename,'motion_parameters_opencl');
     end
         
@@ -214,6 +237,8 @@ for s = 1:1
     
     %pause
     %close all
+    
+    k = waitforbuttonpress
     
 end
 

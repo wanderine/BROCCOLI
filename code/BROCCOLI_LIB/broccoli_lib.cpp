@@ -59,6 +59,35 @@ float round( float d )
     return floor( d + 0.5f );
 }
 
+void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume)
+{
+#ifndef NDEBUG
+    printf("%s sizes: %d, %d, %d, %d => %d\n", name, W, H, D, T, W*H*D*T);
+    
+    float maxF = 0;
+    int maxI = 0;
+    
+    for (int i = 0; i < W*H*D*T; ++i)
+    {
+        if (volume[i] > maxF)
+        {
+            maxI = i;
+            maxF = volume[i];
+      //      printf("New maximum: %g at %d of %d\n", maxF, maxI, W*H*D);
+      //      printf("At positions (%d, %d, %d, %d)\n", maxI % W, (maxI/W)%H, (maxI/W/H)%D, (maxI/W/H/D));
+        }
+    }
+    
+    printf("%s maximum element: %d => %f\n", name, maxI, maxF);
+    printf("%s maximum element at (%d, %d, %d, %d)\n", name, maxI % W, (maxI/W)%H, (maxI/W/H)%D, (maxI/W/H/D));
+#endif
+}
+
+void debugVolumeInfo(const char* name, int W, int H, int D, float* volume)
+{
+    debugVolumeInfo(name, W, H, D, 1, volume);
+}
+
 // Constructors
 
 BROCCOLI_LIB::BROCCOLI_LIB()
@@ -1766,32 +1795,38 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 void BROCCOLI_LIB::SetInputfMRIVolumes(float* data)
 {
 	h_fMRI_Volumes = data;
+        debugVolumeInfo("fMRI", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, data);
 }
 
 void BROCCOLI_LIB::SetInputEPIVolume(float* data)
 {
 	h_EPI_Volume = data;
+        debugVolumeInfo("EPI", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
 	h_T1_Volume = data;
+        debugVolumeInfo("T1", T1_DATA_W, T1_DATA_H, T1_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputMNIVolume(float* data)
 {
 	h_MNI_Volume = data;
+        debugVolumeInfo("MNI", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputMNIBrainVolume(float* data)
 {
 	h_MNI_Brain_Volume = data;
+        debugVolumeInfo("MNI Brain", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, data);
 }
 
 
 void BROCCOLI_LIB::SetInputMNIBrainMask(float* data)
 {
 	h_MNI_Brain_Mask = data;
+        debugVolumeInfo("MNI Brain Mask", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, data);
 }
 
 void BROCCOLI_LIB::SetInputFirstLevelResults(float* data)
@@ -4640,7 +4675,7 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	// Check where the top of the brain is in the moved T1 volume
 	int top_slice;
 	CalculateTopBrainSlice(top_slice, d_MNI_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, MM_T1_Z_CUT_);
-
+    
 	int diff;
 	if (MNI_VOXEL_SIZE_X == 1.0f)
 	{
@@ -5686,11 +5721,11 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstripWrapper()
 	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy data to T1 volume and MNI volume
-	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
-
+    clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+    clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
+ 
 	// Interpolate T1 volume to MNI resolution and make sure it has the same size
-	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
+    ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
 
 	clReleaseMemObject(d_T1_Volume);
 
