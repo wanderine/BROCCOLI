@@ -28,6 +28,8 @@ clear all
 clc
 close all
 
+ismiha = 0
+
 if ismiha
     addpath('/home/miha/Delo/BROCCOLI/nifti')
     basepath = '/home/miha/Programiranje/BROCCOLI/test_data/fcon1000/classic/';

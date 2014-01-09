@@ -30,7 +30,7 @@ clear all
 clc
 close all
 
-ismiha = 1
+ismiha = 0
 
 % Compile the Matlab wrapper to get a mex-file
 if ismiha

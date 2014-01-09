@@ -28,7 +28,7 @@ clear all
 clc
 close all
 
-ismiha = 1
+ismiha = 0
 
 if ismiha
     addpath('/home/miha/Delo/BROCCOLI/nifti')
