@@ -256,7 +256,7 @@ class BROCCOLI_LIB
 
                 /**
                  * In oldstuff
-                
+
 		// void SetfMRIDataFilename(std::string filename);
 
 		// void SetfMRIDataSliceLocationX(int location);
@@ -266,7 +266,7 @@ class BROCCOLI_LIB
 
 		// void SetDataType(int type);
 		// void SetFileType(int type);
-		
+
 		*/
 
 		void SetSignificanceLevel(float value);
@@ -278,7 +278,7 @@ class BROCCOLI_LIB
 
                 /**
                  * In oldstuff
-                 * 
+                 *
 		// int GetfMRIDataSliceLocationX();
 		// int GetfMRIDataSliceLocationY();
 		// int GetfMRIDataSliceLocationZ();
@@ -303,7 +303,7 @@ class BROCCOLI_LIB
 
                 /**
                  * Nowhere
-                
+
 		// float GetT1VoxelSizeX();
 		// float GetT1VoxelSizeY();
 		// float GetT1VoxelSizeZ();
@@ -387,7 +387,6 @@ class BROCCOLI_LIB
 		void PerformFirstLevelAnalysisWrapper();
 		void PerformFirstLevelAnalysisBayesianWrapper();
 		void PerformSecondLevelAnalysisWrapper();
-		void ApplyPermutationTestFirstLevelWrapper();
 
 		// void CalculateSlicesfMRIData();
 		// void CalculateSlicesPreprocessedfMRIData();
@@ -427,6 +426,12 @@ class BROCCOLI_LIB
 
 		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D);
 
+		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
+		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
+		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
+
 		void ApplyPermutationTestFirstLevel(cl_mem Volumes);
 		void ApplyPermutationTestSecondLevel();
 
@@ -436,13 +441,9 @@ class BROCCOLI_LIB
 		void PerformDetrendingPriorPermutation();
 		void PerformWhiteningPriorPermutations(cl_mem Whitened_volumes, cl_mem Volumes);
 		void GeneratePermutedVolumesFirstLevel(cl_mem Permuted_Volumes, cl_mem Whitened_Volumes, int permutation);
-		void CalculateStatisticalMapsFirstLevelPermutation(cl_mem Volumes);
-
-		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
-		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
-		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
-		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
-		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
+		void CalculateStatisticalMapsFirstLevelPermutation();
+		void CalculateStatisticalMapsGLMTTestFirstLevelPermutation();
+		void CalculateStatisticalMapsGLMFTestFirstLevelPermutation();
 
 		// Permutation second level
 		void SetupPermutationTestSecondLevel(cl_mem Volumes, cl_mem Mask);

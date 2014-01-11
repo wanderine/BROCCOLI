@@ -61,8 +61,8 @@ study = 'Cambridge';
 noise_level = 0.0; % 0.01, 0.02         % Amount of Gaussian noise, the standard deviation is set to noise_level * max_intensity_value
 save_test_dataset = 0;                  % Save testing data as a nifti file or not
 save_motion_corrected_data_Matlab = 0;  % Save motion corrected data as a Matlab file or not
-save_motion_corrected_data_Nifti = 1;   % Save motion corrected data as a Nifti file or not
-plot_results = 0;                       % Plot true and estimated motion parameters or not
+save_motion_corrected_data_Nifti = 0;   % Save motion corrected data as a Nifti file or not
+plot_results = 1;                       % Plot true and estimated motion parameters or not
 save_estimated_motion_parameters = 0;   % Save estimated motion parameters as a Matlab file or not
 save_true_motion_parameters = 0;        % Save true motion parameters as a Matlab file or not
 add_shading = 0;                        % Add shading to each fMRI volume or not
@@ -71,7 +71,7 @@ run_Matlab_equivalent = 0;              % Run Matlab equivalent or not, for comp
 motion_correction_times = zeros(198,1);
 
 % Loop over subjects
-for s = 1:10
+for s = 1:1
     
     s
     
@@ -87,7 +87,7 @@ for s = 1:10
     elseif isunix
         dirs = dir([basepath study]);
         subject = dirs(s+2).name % Skip . and .. 'folders'
-        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);
+        EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);               
     end
     
     fMRI_volumes = double(EPI_nii.img);        
@@ -111,7 +111,7 @@ for s = 1:10
     y_rotations = zeros(st,1);
     z_rotations = zeros(st,1);
     
-    factor = 0.5; % standard deviation for random translations and rotations    
+    factor = 0.1; % standard deviation for random translations and rotations    
     
     [xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
         
@@ -174,7 +174,7 @@ for s = 1:10
         rz_t(:) = z_translation;                
         
         % Add rotation and translation at the same time        
-        altered_volume = interp3(xi,yi,zi,reference_volume,rx_r-rx_t,ry_r-ry_t,rz_r-rz_t,'cubic');
+        altered_volume = interp3(xi,yi,zi,reference_volume,rx_r-rx_t,ry_r-ry_t,rz_r-rz_t,'cubic');        
         % Remove 'not are numbers' from interpolation
         altered_volume(isnan(altered_volume)) = 0;        
         
@@ -207,7 +207,7 @@ for s = 1:10
         else
         
             if noise_level == 0
-                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];
+                filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_no_noise.nii'];                
             elseif noise_level == 0.01
                 filename = ['/data/andek/BROCCOLI_test_data/Cambridge/with_random_motion/cambridge_rest_subject_' num2str(s) '_with_random_motion_1percent_noise.nii'];
             elseif noise_level == 0.02
@@ -275,7 +275,7 @@ for s = 1:10
         else
         
             if noise_level == 0
-                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.nii'];
+                filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_no_noise.nii'];                
             elseif noise_level == 0.01
                 filename = ['/data/andek/BROCCOLI_test_data/BROCCOLI/motion_correction/BROCCOLI_motion_corrected_rest_subject_' num2str(s) '_random_motion_1percent_noise.nii'];
             elseif noise_level == 0.02
@@ -414,8 +414,22 @@ for s = 1:10
     mean_rotation_error_z = mean(abs(z_rotations(:) - z_rotations_opencl(:)))
     
     %pause
-    close all
+    %close all
     
 end
 
 
+%fMRI_volumes = double(EPI_nii.img);        
+%[sy sx sz st] = size(fMRI_volumes)
+    
+for t = 2:st
+    
+    figure(1)    
+    imagesc([motion_corrected_volumes_opencl(:,:,30,t)  generated_fMRI_volumes(:,:,30,t-1) ]/25); colormap gray; colorbar
+    %image([motion_corrected_volumes_opencl(:,:,30,t) - motion_corrected_volumes_opencl(:,:,30,t-1) ]/10); colormap gray; colorbar
+    %image([generated_fMRI_volumes(:,:,30,t) - generated_fMRI_volumes(:,:,30,t-1) ]); colormap gray; colorbar
+    %image([fMRI_volumes(:,:,30,t) - fMRI_volumes(:,:,30,t-1) ]); colormap gray; colorbar
+    pause(0.15)
+    
+end
+    

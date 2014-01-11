@@ -64,7 +64,7 @@ end
 %-----------------------------------------------------------------------
 
 EPI_smoothing_amount = 5.5;
-AR_smoothing_amount = 7.0;
+AR_smoothing_amount = 6.0;
 
 %-----------------------------------------------------------------------
 % Load data
@@ -327,7 +327,7 @@ end
 INVALID_TIMEPOINTS = 0;
 
 % Cochrane-Orcutt, iterate
-for it = 1:1
+for it = 1:3
     
     % Calculate statistical maps
     
@@ -770,16 +770,17 @@ imagesc([ (statistical_maps_cpu_co(:,:,slice) - statistical_maps_opencl(:,:,slic
 title('Relative statistical map diff')
 
 figure
-imagesc([ar1_estimates_cpu(:,:,slice) ar1_estimates_opencl(:,:,slice) ]); colorbar
+imagesc([ar1_estimates_cpu(:,:,slice) ar1_estimates_opencl(:,:,slice) ar1_estimates_cpu_co(:,:,slice)]); colorbar
 
 figure
-imagesc([ar2_estimates_cpu(:,:,slice) ar2_estimates_opencl(:,:,slice) ]); colorbar
+imagesc([ar2_estimates_cpu(:,:,slice) ar2_estimates_opencl(:,:,slice) ar2_estimates_cpu_co(:,:,slice)]); colorbar
 
 figure
-imagesc([ar3_estimates_cpu(:,:,slice) ar3_estimates_opencl(:,:,slice) ]); colorbar
+imagesc([ar3_estimates_cpu(:,:,slice) ar3_estimates_opencl(:,:,slice) ar3_estimates_cpu_co(:,:,slice)]); colorbar
 
 figure
-imagesc([ar4_estimates_cpu(:,:,slice) ar4_estimates_opencl(:,:,slice) ]); colorbar
+imagesc([ar4_estimates_cpu(:,:,slice) ar4_estimates_opencl(:,:,slice) ar4_estimates_cpu_co(:,:,slice)]); colorbar
+
 
 
 
