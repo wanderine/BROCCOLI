@@ -7262,6 +7262,52 @@ void BROCCOLI_LIB::PerformSmoothingWrapper()
 	clReleaseMemObject(c_Smoothing_Filter_Z);
 }
 
+void BROCCOLI_LIB::PerformSmoothingNormalizedWrapper()
+{
+	SetGlobalAndLocalWorkSizesSeparableConvolution(EPI_DATA_W,EPI_DATA_H,EPI_DATA_D);
+
+	// Allocate memory for volumes
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	d_Certainty = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Smoothed_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_Certainty, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_Smoothed_Certainty, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Smoothed_EPI_Mask, 0, NULL, NULL);
+	
+	if (SMOOTHING_TYPE == LOWPASS)
+	{
+		// Create Gaussian smoothing filters
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+
+		PerformSmoothing(d_Smoothed_Certainty, d_Certainty, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+		// Do smoothing
+		PerformSmoothingNormalized(d_Smoothed_fMRI_Volumes, d_fMRI_Volumes, d_Certainty, d_Smoothed_Certainty, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);		
+	}
+	else if (SMOOTHING_TYPE == RANDOM)
+	{
+		PerformSmoothing(d_Smoothed_Certainty, d_Certainty, h_Smoothing_Filter_X_In, h_Smoothing_Filter_Y_In, h_Smoothing_Filter_Z_In, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+		// Do smoothing
+		PerformSmoothingNormalized(d_Smoothed_fMRI_Volumes, d_fMRI_Volumes, d_Certainty, d_Smoothed_Certainty, h_Smoothing_Filter_X_In, h_Smoothing_Filter_Y_In, h_Smoothing_Filter_Z_In, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	}
+	
+	// Copy result back to host
+	clEnqueueReadBuffer(commandQueue, d_Smoothed_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Smoothed_fMRI_Volumes, 0, NULL, NULL);
+	
+	// Release memory
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Smoothed_fMRI_Volumes);
+
+	clReleaseMemObject(d_Certainty);
+	clReleaseMemObject(d_Smoothed_Certainty);
+}
+
+
 // Performs smoothing of a number of volumes
 void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes,
 		                            cl_mem d_Volumes,
@@ -7289,14 +7335,14 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes,
 	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
-	cl_mem d_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Certainty_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
-	SetMemory(d_Certainty, 1.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_Certainty_Temp, 1.0f, DATA_W * DATA_H * DATA_D);
 
 	// Set arguments for the kernels
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty_Temp);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_W);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_H);
@@ -7313,7 +7359,7 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes,
 
 	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Smoothed_Volumes);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Certainty_Temp);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_W);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_H);
@@ -7344,7 +7390,7 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Smoothed_Volumes,
 	clReleaseMemObject(d_Convolved_Rows);
 	clReleaseMemObject(d_Convolved_Columns);
 
-	clReleaseMemObject(d_Certainty);
+	clReleaseMemObject(d_Certainty_Temp);
 }
 
 // Performs smoothing of a number of volumes, normalized with certainty (brain mask)
@@ -7375,7 +7421,7 @@ void BROCCOLI_LIB::PerformSmoothingNormalized(cl_mem d_Smoothed_Volumes,
 	// Allocate temporary memory
 	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
-
+	
 	// Set arguments for the kernels
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
@@ -7419,6 +7465,8 @@ void BROCCOLI_LIB::PerformSmoothingNormalized(cl_mem d_Smoothed_Volumes,
 		clFinish(commandQueue);
 	}
 
+	MultiplyVolumes(d_Smoothed_Volumes, d_Certainty, DATA_W, DATA_H, DATA_D, DATA_T);
+
 	// Free temporary memory
 	clReleaseMemObject(c_Smoothing_Filter_X);
 	clReleaseMemObject(c_Smoothing_Filter_Y);
@@ -7426,6 +7474,25 @@ void BROCCOLI_LIB::PerformSmoothingNormalized(cl_mem d_Smoothed_Volumes,
 
 	clReleaseMemObject(d_Convolved_Rows);
 	clReleaseMemObject(d_Convolved_Columns);
+}
+
+void BROCCOLI_LIB::PerformSmoothingNormalizedPermutation()
+{	
+	// Loop over volumes
+	for (int v = 0; v < EPI_DATA_T; v++)
+	{
+		clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &v);
+		runKernelErrorSeparableConvolutionRows = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		clSetKernelArg(SeparableConvolutionColumnsKernel, 3, sizeof(int), &v);
+		runKernelErrorSeparableConvolutionColumns = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionColumnsKernel, 3, NULL, globalWorkSizeSeparableConvolutionColumns, localWorkSizeSeparableConvolutionColumns, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &v);
+		runKernelErrorSeparableConvolutionRods = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}	
 }
 
 // Performs smoothing of a number of volumes, overwrites data
@@ -7454,14 +7521,14 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Volumes,
 	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
-	cl_mem d_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Certainty_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
-	SetMemory(d_Certainty, 1.0f, DATA_W * DATA_H * DATA_D);
+	SetMemory(d_Certainty_Temp, 1.0f, DATA_W * DATA_H * DATA_D);
 
 	// Set arguments for the kernels
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volumes);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty_Temp);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &DATA_W);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &DATA_H);
@@ -7478,7 +7545,7 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Volumes,
 
 	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Volumes);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
-	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Certainty_Temp);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &DATA_W);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &DATA_H);
@@ -7509,7 +7576,7 @@ void BROCCOLI_LIB::PerformSmoothing(cl_mem d_Volumes,
 	clReleaseMemObject(d_Convolved_Rows);
 	clReleaseMemObject(d_Convolved_Columns);
 
-	clReleaseMemObject(d_Certainty);
+	clReleaseMemObject(d_Certainty_Temp);
 }
 
 // Performs smoothing of a number of volumes, overwrites data, normalized with certainty (brain mask)
@@ -7582,6 +7649,8 @@ void BROCCOLI_LIB::PerformSmoothingNormalized(cl_mem d_Volumes,
 		runKernelErrorSeparableConvolutionRods = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
+
+	MultiplyVolumes(d_Volumes, d_Certainty, DATA_W, DATA_H, DATA_D, DATA_T);
 
 	// Free temporary memory
 	clReleaseMemObject(c_Smoothing_Filter_X);
@@ -8260,15 +8329,14 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelPermutationWrapper()
 	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In , 0, NULL, NULL);
 	clFinish(commandQueue);
 
-	SegmentEPIData();
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
 
-	// Smooth mask, for normalized convolution
-	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, AR_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
-	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+	//SegmentEPIData();
 
-	h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int));
+	
+	//h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int));
 	ApplyPermutationTestFirstLevel(d_fMRI_Volumes);
-	free(h_Permutation_Matrix);
+	//free(h_Permutation_Matrix);
 
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 
@@ -8340,17 +8408,19 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelPermutationWrapper()
 	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In , 0, NULL, NULL);
 	clFinish(commandQueue);
 
-	SegmentEPIData();
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
+
+	//SegmentEPIData();
 
 	// Smooth mask, for normalized convolution
 	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, AR_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
 	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
 
-	h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int));
+	//h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int));
 	ApplyPermutationTestFirstLevel(d_fMRI_Volumes);
-	free(h_Permutation_Matrix);
+	//free(h_Permutation_Matrix);
 
-	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 
 	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
@@ -9953,11 +10023,66 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem d_Volumes,
 }
 
 
+void BROCCOLI_LIB::CleanupPermutationTestFirstLevel()
+{
+	// Free temporary memory
+	clReleaseMemObject(c_Smoothing_Filter_X);
+	clReleaseMemObject(c_Smoothing_Filter_Y);
+	clReleaseMemObject(c_Smoothing_Filter_Z);
 
+	clReleaseMemObject(d_Rows_Temp);
+	clReleaseMemObject(d_Columns_Temp);
+}
 
-void BROCCOLI_LIB::SetupPermutationTestFirstLevel(cl_mem d_Volumes, cl_mem d_Mask)
+void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	SetGlobalAndLocalWorkSizesSeparableConvolution(EPI_DATA_W,EPI_DATA_H,EPI_DATA_D);
+
+	// Smooth mask, for normalized convolution
+	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+	// Allocate memory for smoothing filters
+	c_Smoothing_Filter_X = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Y = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Z = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+
+	// Copy smoothing filters to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_X, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_X , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Y, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Y , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Z, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Z , 0, NULL, NULL);
+
+	// Allocate temporary memory for smoothing
+	d_Rows_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_Columns_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	
+	// Set arguments for the smoothing kernels
+	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Rows_Temp);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 8, sizeof(int), &EPI_DATA_T);
+
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Columns_Temp);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Rows_Temp);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_X);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 4, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 5, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 6, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 7, sizeof(int), &EPI_DATA_T);
+
+	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Columns_Temp);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Smoothed_EPI_Mask);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 8, sizeof(int), &EPI_DATA_T);
 
 	if (STATISTICAL_TEST == TTEST)
 	{
@@ -9965,8 +10090,8 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel(cl_mem d_Volumes, cl_mem d_Mas
 		SetMemory(d_Statistical_Maps, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS);
 
 		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
-		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 1, sizeof(cl_mem), &d_Volumes);
-		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 2, sizeof(cl_mem), &d_Mask);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 1, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
 		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 3, sizeof(cl_mem), &c_X_GLM);
 		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 4, sizeof(cl_mem), &c_xtxxt_GLM);
 		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel, 5, sizeof(cl_mem), &c_Contrasts);
@@ -9983,8 +10108,8 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel(cl_mem d_Volumes, cl_mem d_Mas
 		SetMemory(d_Statistical_Maps, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
 
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
-		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 1, sizeof(cl_mem), &d_Volumes);
-		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 2, sizeof(cl_mem), &d_Mask);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 1, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 3, sizeof(cl_mem), &c_X_GLM);
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 4, sizeof(cl_mem), &c_xtxxt_GLM);
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 5, sizeof(cl_mem), &c_Contrasts);
@@ -10073,7 +10198,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevelPermutation()
 
 // A small wrapper function that simply calls functions for different tests
 void BROCCOLI_LIB::CalculateStatisticalMapsSecondLevelPermutation(int p)
-{
+{	
 	// Copy a new permutation vector to constant memory
    	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 
@@ -10112,7 +10237,9 @@ void BROCCOLI_LIB::PerformWhiteningPriorPermutations(cl_mem d_Whitened_Volumes, 
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
+	// Smooth mask, for normalized convolution
 	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, AR_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
 
 	NUMBER_OF_INVALID_TIMEPOINTS = 0;
 
@@ -10180,7 +10307,12 @@ void BROCCOLI_LIB::PerformWhiteningPriorPermutations(cl_mem d_Whitened_Volumes, 
 	clEnqueueCopyBuffer(commandQueue, d_Total_AR1_Estimates, d_AR1_Estimates, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 	clEnqueueCopyBuffer(commandQueue, d_Total_AR2_Estimates, d_AR2_Estimates, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 	clEnqueueCopyBuffer(commandQueue, d_Total_AR3_Estimates, d_AR3_Estimates, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
-	clEnqueueCopyBuffer(commandQueue, d_Total_AR4_Estimates, d_AR4_Estimates, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
+	clEnqueueCopyBuffer(commandQueue, d_Total_AR4_Estimates, d_AR4_Estimates, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);	
+
+	MultiplyVolumes(d_AR1_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	MultiplyVolumes(d_AR2_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	MultiplyVolumes(d_AR3_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	MultiplyVolumes(d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Cleanup
 	clReleaseMemObject(d_Total_AR1_Estimates);
@@ -10191,12 +10323,22 @@ void BROCCOLI_LIB::PerformWhiteningPriorPermutations(cl_mem d_Whitened_Volumes, 
 
 //  Applies a permutation test for first level analysis
 void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
-{
-	// Setup parameters and memory prior to permutations, to save time in each permutation
-	SetupPermutationTestFirstLevel(d_Permuted_fMRI_Volumes, d_EPI_Mask);
+{	
+	if (STATISTICAL_TEST == TTEST)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = NUMBER_OF_CONTRASTS;
+	}
+	else if (STATISTICAL_TEST == FTEST)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = 1;
+	}
 
+	SetMemory(d_Permuted_fMRI_Volumes, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
+	SetMemory(d_Whitened_fMRI_Volumes, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
+	SetMemory(d_Detrended_fMRI_Volumes, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
+	
 	// Generate a random permutation matrix
-	GeneratePermutationMatrixFirstLevel();
+	//GeneratePermutationMatrixFirstLevel();
 
 	// Remove mean and linear, quadratic and cubic trends
 	PerformDetrending(d_Detrended_fMRI_Volumes, d_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
@@ -10204,62 +10346,42 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 	// Make the timeseries white prior to the random permutations
 	PerformWhiteningPriorPermutations(d_Whitened_fMRI_Volumes, d_Detrended_fMRI_Volumes);
 
-	// Voxel distribution
-	if (INFERENCE_MODE == VOXEL)
+	// Setup parameters and memory prior to permutations, to save time in each permutation
+	SetupPermutationTestFirstLevel();
+
+	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
 	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		// Generate new fMRI volumes, through inverse whitening and permutation
+	    GeneratePermutedVolumesFirstLevel(d_Permuted_fMRI_Volumes, d_Whitened_fMRI_Volumes, p);
+
+		// Smooth new fMRI volumes (smoothing needs to be done in each permutation, as it otherwise alters the AR parameters)
+		//PerformSmoothingNormalized(d_Permuted_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		PerformSmoothingNormalizedPermutation();
+
+		// Calculate statistical maps
+		CalculateStatisticalMapsFirstLevelPermutation();
+
+		// Voxel distribution
+		if (INFERENCE_MODE == VOXEL)
 		{
-			// Generate new fMRI volumes, through inverse whitening and permutation
-		    GeneratePermutedVolumesFirstLevel(d_Permuted_fMRI_Volumes, d_Whitened_fMRI_Volumes, p);
-
-			// Smooth new fMRI volumes (smoothing needs to be done in each permutation, as it otherwise alters the AR parameters)
-			PerformSmoothingNormalized(d_Permuted_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-
-			// Calculate statistical maps
-			CalculateStatisticalMapsFirstLevelPermutation();
-
 			// Get max test value
 			h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 		}
-	}
-	// Cluster extent distribution
-	else if (INFERENCE_MODE == CLUSTER_EXTENT)
-	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		// Cluster extent distribution
+		else if (INFERENCE_MODE == CLUSTER_EXTENT)
 		{
-			// Generate new fMRI volumes, through inverse whitening and permutation
-		    GeneratePermutedVolumesFirstLevel(d_Permuted_fMRI_Volumes, d_Whitened_fMRI_Volumes, p);
-
-			// Smooth new fMRI volumes (smoothing needs to be done in each permutation, as it otherwise alters the AR parameters)
-			PerformSmoothingNormalized(d_Permuted_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-
-			// Calculate statistical maps
-			CalculateStatisticalMapsFirstLevelPermutation();
-
 			// Calculate max cluster extent
-			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
 			h_Permutation_Distribution[p] = (float)MAX_CLUSTER_SIZE;
 
 			//ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		}
-	}
-	// Cluster mass distribution
-	else if (INFERENCE_MODE == CLUSTER_MASS)
-	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		// Cluster mass distribution
+		else if (INFERENCE_MODE == CLUSTER_MASS)
 		{
-			// Generate new fMRI volumes, through inverse whitening and permutation
-		    GeneratePermutedVolumesFirstLevel(d_Permuted_fMRI_Volumes, d_Whitened_fMRI_Volumes, p);
-
-			// Smooth new fMRI volumes (smoothing needs to be done in each permutation, as it otherwise alters the AR parameters)
-			PerformSmoothingNormalized(d_Permuted_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-
-			// Calculate statistical maps
-			CalculateStatisticalMapsFirstLevelPermutation();
-
-   			// Calculate max cluster mass
-			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			// Calculate max cluster mass
+			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
 			h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
 
@@ -10267,6 +10389,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 		}
 	}
 
+	CleanupPermutationTestFirstLevel();
 
     // Sort the maximum test values
 	std::vector<float> max_values (h_Permutation_Distribution, h_Permutation_Distribution + NUMBER_OF_PERMUTATIONS);
@@ -10274,12 +10397,20 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 
 	// Find the threshold for the specified significance level
 	SIGNIFICANCE_THRESHOLD = max_values[round((1.0f - SIGNIFICANCE_LEVEL) * (float)NUMBER_OF_PERMUTATIONS)];
-
 }
 
 //  Applies a permutation test for second level analysis
 void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
-{
+{	
+	if (STATISTICAL_TEST == TTEST)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = NUMBER_OF_CONTRASTS;
+	}
+	else if (STATISTICAL_TEST == FTEST)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = 1;
+	}
+
 	// Setup parameters and memory prior to permutations, to save time in each permutation
 	SetupPermutationTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
 
@@ -10288,44 +10419,33 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 
     // Loop over all the permutations, save the maximum test value from each permutation
 
-	// Voxel distribution
-	if (INFERENCE_MODE == VOXEL)
+	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
 	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-		{
-			// Calculate statistical maps
-			CalculateStatisticalMapsSecondLevelPermutation(p);
+		// Calculate statistical maps
+		CalculateStatisticalMapsSecondLevelPermutation(p);
 
+		// Voxel distribution
+		if (INFERENCE_MODE == VOXEL)
+		{		
 			// Calculate max test value
 			h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		}
-	}
-	// Cluster extent distribution
-	else if (INFERENCE_MODE == CLUSTER_EXTENT)
-	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-		{
-			// Calculate statistical maps
-			CalculateStatisticalMapsSecondLevelPermutation(p);
-
+		
+		// Cluster extent distribution
+		else if (INFERENCE_MODE == CLUSTER_EXTENT)
+		{		
 			// Calculate max cluster extent
-			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
 			h_Permutation_Distribution[p] = (float)MAX_CLUSTER_SIZE;
 
 			//ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		}
-	}
-	// Cluster mass distribution
-	else if (INFERENCE_MODE == CLUSTER_MASS)
-	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		// Cluster mass distribution
+		else if (INFERENCE_MODE == CLUSTER_MASS)
 		{
-			// Calculate statistical maps
-			CalculateStatisticalMapsSecondLevelPermutation(p);
-
 			// Calculate max cluster mass
-			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
 			h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
 

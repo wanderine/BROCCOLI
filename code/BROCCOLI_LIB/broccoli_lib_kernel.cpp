@@ -10535,8 +10535,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-
+		
 		n += 1.0f;
 		float delta = eps - meaneps;
 		meaneps += delta/n;
@@ -10628,8 +10627,7 @@ __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global flo
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-
+		
 		n += 1.0f;
 		float delta = eps - meaneps;
 		meaneps += delta/n;
@@ -11098,7 +11096,7 @@ __kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Vo
     for (t = 4; t < DATA_T; t++)
     {
         // Calculate the unwhitened, permuted, timeseries
-        old_value_5 = alphas.x * old_value_1 + alphas.y * old_value_2 + alphas.z * old_value_3 + alphas.w * old_value_4 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
+        old_value_5 = alphas.x * old_value_4 + alphas.y * old_value_3 + alphas.z * old_value_2 + alphas.w * old_value_1 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
 			
         Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5;
 
@@ -11193,7 +11191,7 @@ __kernel void ThresholdVolume(__global float* Thresholded_Volume,
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] >= threshold )
+	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
 	{
 		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
 	}

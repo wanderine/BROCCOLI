@@ -375,6 +375,7 @@ class BROCCOLI_LIB
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
 		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
+		void PerformSmoothingNormalizedWrapper();
 		void PerformGLMTTestFirstLevelWrapper();
 		void PerformGLMFTestFirstLevelWrapper();
 		void PerformGLMTTestSecondLevelWrapper();
@@ -436,7 +437,8 @@ class BROCCOLI_LIB
 		void ApplyPermutationTestSecondLevel();
 
 		// Permutation first level
-		void SetupPermutationTestFirstLevel(cl_mem d_Volumes, cl_mem d_Mask);
+		void SetupPermutationTestFirstLevel();
+		void CleanupPermutationTestFirstLevel();
 		void GeneratePermutationMatrixFirstLevel();
 		void PerformDetrendingPriorPermutation();
 		void PerformWhiteningPriorPermutations(cl_mem Whitened_volumes, cl_mem Volumes);
@@ -461,6 +463,7 @@ class BROCCOLI_LIB
 		void PerformSmoothingNormalized(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothing(cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingNormalized(cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void PerformSmoothingNormalizedPermutation();
 
 		//------------------------------------------------
 		// Functions for image registration
@@ -906,6 +909,7 @@ class BROCCOLI_LIB
 		// Statistical analysis variables
 		int NUMBER_OF_SUBJECTS;
 		int NUMBER_OF_CONTRASTS;
+		int NUMBER_OF_STATISTICAL_MAPS;
 		int NUMBER_OF_GLM_REGRESSORS;
 		int NUMBER_OF_MOTION_REGRESSORS;
 		int NUMBER_OF_TOTAL_GLM_REGRESSORS;
@@ -1080,6 +1084,8 @@ class BROCCOLI_LIB
 		cl_mem		d_Certainty;
 		cl_mem		d_Smoothed_Certainty;
 		cl_mem		d_Smoothed_fMRI_Volumes;
+
+		cl_mem		d_Rows_Temp, d_Columns_Temp;
 
 		cl_mem		c_Smoothing_Filter_X;
 		cl_mem		c_Smoothing_Filter_Y;

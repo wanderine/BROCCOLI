@@ -7168,13 +7168,482 @@ int LoadBetaWeights(__private float* beta,
 	return 0;
 }
 
-int CalculateBetaWeights(__private float* beta,
-		                 __private float value,
-		                 __constant float* c_xtxxt_GLM,
-		                 int v,
-		                 __constant unsigned short int* c_Permutation_Vector,
-		                 int NUMBER_OF_VOLUMES,
-		                 int NUMBER_OF_REGRESSORS)
+int CalculateBetaWeightsFirstLevel(__private float* beta,
+		                 	       __private float value,
+		                 	 	   __constant float* c_xtxxt_GLM,
+		                 	 	   int v,
+		                 	 	   int NUMBER_OF_VOLUMES,
+		                 	 	   int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+
+			break;
+
+		case 2:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+
+			break;
+
+		case 3:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+
+			break;
+
+		case 4:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+
+			break;
+
+		case 5:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+
+			break;
+
+		case 6:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+
+			break;
+
+		case 7:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+
+			break;
+
+		case 8:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+
+			break;
+
+		case 9:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+
+			break;
+
+		case 10:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+
+			break;
+
+		case 11:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+
+			break;
+
+		case 12:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+
+			break;
+
+		case 13:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			
+			break;
+
+		case 14:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			
+			break;
+
+		case 15:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			
+			break;
+
+		case 16:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			
+			break;
+
+		case 17:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			
+			break;
+
+		case 18:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			
+			break;
+
+		case 19:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+
+			break;
+
+		case 20:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			
+			break;
+
+		case 21:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			
+			break;
+
+		case 22:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+
+			break;
+
+		case 23:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + v];
+
+			break;
+
+		case 24:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + v];
+			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + v];
+			
+			break;
+
+		case 25:
+
+			beta[0] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 0 + v];
+			beta[1] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 1 + v];
+			beta[2] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 2 + v];
+			beta[3] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 3 + v];
+			beta[4] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 4 + v];
+			beta[5] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 5 + v];
+			beta[6] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 6 + v];
+			beta[7] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 7 + v];
+			beta[8] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 8 + v];
+			beta[9] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 9 + v];
+			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
+			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
+			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
+			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
+			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
+			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
+			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
+			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
+			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + v];
+			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + v];
+			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + v];
+			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + v];
+			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + v];
+			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + v];
+			beta[24] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 24 + v];
+			
+			break;
+
+
+		default:
+			1;
+			break;
+	}
+
+	return 0;
+}
+
+
+int CalculateBetaWeightsSecondLevel(__private float* beta,
+		                 	 	    __private float value,
+		                 	 	    __constant float* c_xtxxt_GLM,
+		                 	 	    int v,
+		                 	 	    __constant unsigned short int* c_Permutation_Vector,
+		                 	 	    int NUMBER_OF_VOLUMES,
+		                 	 	    int NUMBER_OF_REGRESSORS)
 {
 	switch(NUMBER_OF_REGRESSORS)
 	{
@@ -7331,7 +7800,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]];
 			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
 			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 14:
@@ -7350,7 +7819,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]];
 			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
 			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 15:
@@ -7370,7 +7839,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]];
 			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
 			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 16:
@@ -7391,7 +7860,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]];
 			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
 			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 17:
@@ -7413,7 +7882,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]];
 			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
 			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 18:
@@ -7436,7 +7905,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + c_Permutation_Vector[v]];
 			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + c_Permutation_Vector[v]];
 			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 19:
@@ -7485,7 +7954,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + c_Permutation_Vector[v]];
 			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
 			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 21:
@@ -7511,7 +7980,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[18] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 18 + c_Permutation_Vector[v]];
 			beta[19] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 19 + c_Permutation_Vector[v]];
 			beta[20] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 20 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 22:
@@ -7595,7 +8064,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[21] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 21 + c_Permutation_Vector[v]];
 			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]];
 			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 		case 25:
@@ -7625,7 +8094,7 @@ int CalculateBetaWeights(__private float* beta,
 			beta[22] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 22 + c_Permutation_Vector[v]];
 			beta[23] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 23 + c_Permutation_Vector[v]];
 			beta[24] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 24 + c_Permutation_Vector[v]];
-			
+
 			break;
 
 
@@ -9990,13 +10459,12 @@ float CalculateFTestScalar(__private float* cbeta, __private float* beta, int NU
 	
 
 
-// Not used currently, since Cochrane-Orcutt procedure is slow anyway
+
 __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global float* Statistical_Maps,
-																    __global float* Residuals,
 																	__global const float* Volumes,
-																	__global const float* Beta_Volumes,
 																	__global const float* Mask,
-																	__constant float *c_X_GLM,
+																	__constant float* c_X_GLM,
+																	__constant float* c_xtxxt_GLM,
 																	__constant float* c_Contrasts,	
 																	__constant float* c_ctxtxc_GLM,
 																	__private int DATA_W,
@@ -10022,7 +10490,42 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 	float eps, meaneps, vareps;
 	float beta[25];
 
-	LoadBetaWeights(beta, Beta_Volumes, x, y, z, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
+	// Reset beta weights
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		CalculateBetaWeightsFirstLevel(beta, value, c_xtxxt_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+	}
 
 	// Calculate the mean and variance of the error eps
 	meaneps = 0.0f;
@@ -10032,8 +10535,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-
+		
 		n += 1.0f;
 		float delta = eps - meaneps;
 		meaneps += delta/n;
@@ -10050,13 +10552,11 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 	}
 }
 
-// Not used currently, since Cochrane-Orcutt procedure is slow anyway
 __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global float* Statistical_Maps,
-																    __global float* Residuals,
 					 		                                        __global const float* Volumes,
-																	__global const float* Beta_Volumes,
 																	__global const float* Mask,
 																	__constant float* c_X_GLM,
+																	__constant float* c_xtxxt_GLM,
 																	__constant float* c_Contrasts,
 																	__constant float* c_ctxtxc_GLM,
 																	__private int DATA_W,
@@ -10082,7 +10582,42 @@ __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global flo
 	float eps, meaneps, vareps;
 	float beta[25];
 
-	LoadBetaWeights(beta, Beta_Volumes, x, y, z, DATA_W, DATA_H, DATA_D, NUMBER_OF_REGRESSORS);
+	// Reset beta weights
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		CalculateBetaWeightsFirstLevel(beta, value, c_xtxxt_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+	}
 
 	// Calculate the mean and variance of the error eps
 	meaneps = 0.0f;
@@ -10092,8 +10627,7 @@ __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global flo
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-
+		
 		n += 1.0f;
 		float delta = eps - meaneps;
 		meaneps += delta/n;
@@ -10187,7 +10721,7 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 
 		// Loop over regressors using unrolled code for performance
-		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+		CalculateBetaWeightsSecondLevel(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 	}
 
 	// Calculate the mean and variance of the error eps
@@ -10286,7 +10820,7 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 
 		// Loop over regressors using unrolled code for performance
-		CalculateBetaWeights(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+		CalculateBetaWeightsSecondLevel(beta, value, c_xtxxt_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
 	}
 
 	// Calculate the mean and variance of the error eps
@@ -10562,7 +11096,7 @@ __kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Vo
     for (t = 4; t < DATA_T; t++)
     {
         // Calculate the unwhitened, permuted, timeseries
-        old_value_5 = alphas.x * old_value_1 + alphas.y * old_value_2 + alphas.z * old_value_3 + alphas.w * old_value_4 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
+        old_value_5 = alphas.x * old_value_4 + alphas.y * old_value_3 + alphas.z * old_value_2 + alphas.w * old_value_1 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
 			
         Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5;
 
@@ -10657,7 +11191,7 @@ __kernel void ThresholdVolume(__global float* Thresholded_Volume,
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] >= threshold )
+	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
 	{
 		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
 	}

@@ -155,7 +155,7 @@ temp = zeros(1,1,9);
 temp(1,1,:) = smoothing_filter_z;
 smoothing_filter_zz = temp;
 
-volume = fMRI_volumes(:,:,:,t);
+volume = fMRI_volumes(:,:,:,1);
 smoothed_volume = convn(volume,smoothing_filter_xx,'same');
 smoothed_volume = convn(smoothed_volume,smoothing_filter_yy,'same');
 smoothed_volume = convn(smoothed_volume,smoothing_filter_zz,'same');
