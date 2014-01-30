@@ -62,13 +62,13 @@ end
 % Settings
 %-----------------------------------------------------------------------
 
-do_Matlab_permutations = 1;
+do_Matlab_permutations = 0;
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
-number_of_permutations = 2;
+number_of_permutations = 10000;
 inference_mode = 0; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
 cluster_defining_threshold = 2;
-number_of_regressors = 2;
+number_of_regressors = 1;
 
 %-----------------------------------------------------------------------
 % Load data

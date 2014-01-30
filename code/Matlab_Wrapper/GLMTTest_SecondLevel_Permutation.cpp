@@ -74,7 +74,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         mexErrMsgTxt("Too many output arguments.");
     }
     
-    /* Input arguments */
+    
+    
     
     // The data
     h_First_Level_Results_double =  (double*)mxGetData(prhs[0]);
@@ -200,16 +201,19 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     plhs[6] = mxCreateNumericArray(NUMBER_OF_DIMENSIONS,ARRAY_DIMENSIONS_OUT_PERMUTED,mxDOUBLE_CLASS, mxREAL);
     h_Permuted_First_Level_Results_double = mxGetPr(plhs[6]);  
     
+    
     // ------------------------------------------------
     
     // Allocate memory on the host
     h_First_Level_Results               = (float *)mxMalloc(FIRST_LEVEL_RESULTS_DATA_SIZE);
-    h_Permuted_First_Level_Results      = (float *)mxMalloc(FIRST_LEVEL_RESULTS_DATA_SIZE);
+    //h_Permuted_First_Level_Results      = (float *)mxMalloc(FIRST_LEVEL_RESULTS_DATA_SIZE);
+    
     
     h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
     
     h_Cluster_Indices                   = (int *)mxMalloc(MNI_DATA_SIZE_INT);
-            
+    
+    
     h_X_GLM                             = (float *)mxMalloc(GLM_SIZE);
     h_xtxxt_GLM                         = (float *)mxMalloc(GLM_SIZE);
     h_Contrasts                         = (float *)mxMalloc(CONTRAST_SIZE);    
@@ -230,14 +234,12 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     pack_double2float(h_xtxxt_GLM, h_xtxxt_GLM_double, NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_SUBJECTS);    
     pack_double2float(h_Contrasts, h_Contrasts_double, NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS);
     //pack_double2float_image(h_Contrasts, h_Contrasts_double, NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_CONTRASTS);    
-    pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_CONTRASTS);
-    
+    pack_double2float(h_ctxtxc_GLM, h_ctxtxc_GLM_double, NUMBER_OF_CONTRASTS);    
        
     //------------------------
-    
-    
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
         
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);    
+    
     // Something went wrong...
     if (BROCCOLI.GetOpenCLInitiated() == 0)
     {    
@@ -270,16 +272,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         }                
         
         mexPrintf("OPENCL initialization failed, aborting \n");        
-    }    
+    }            
     else if (BROCCOLI.GetOpenCLInitiated() == 1)
     {     
+        
         BROCCOLI.SetInputFirstLevelResults(h_First_Level_Results);        
-        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
+        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);        
         BROCCOLI.SetMNIWidth(MNI_DATA_W);
         BROCCOLI.SetMNIHeight(MNI_DATA_H);
         BROCCOLI.SetMNIDepth(MNI_DATA_D);                
         BROCCOLI.SetStatisticalTest(0); // t-test
-        BROCCOLI.SetInferenceMode(INFERENCE_MODE);
+        BROCCOLI.SetInferenceMode(INFERENCE_MODE);        
         BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
         BROCCOLI.SetNumberOfSubjects(NUMBER_OF_SUBJECTS);
         BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
@@ -318,13 +321,15 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
             }
         } 
+        
     }
     
+     
     // Print build info
     mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());     
           
     // Unpack results to Matlab
-    unpack_float2double_volumes(h_Permuted_First_Level_Results_double, h_Permuted_First_Level_Results, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);  
+    //unpack_float2double_volumes(h_Permuted_First_Level_Results_double, h_Permuted_First_Level_Results, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);  
         
     unpack_int2int_volume(h_Cluster_Indices_Out, h_Cluster_Indices, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     
@@ -333,18 +338,17 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     unpack_float2double_volume(h_Residual_Variances_double, h_Residual_Variances, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
     
     unpack_float2double_volumes(h_Residuals_double, h_Residuals, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_SUBJECTS);        
-        
+      
     unpack_float2double(h_Permutation_Distribution_double, h_Permutation_Distribution, NUMBER_OF_PERMUTATIONS);  
             
     // Free all the allocated memory on the host
         
+    //mxFree(h_Permuted_First_Level_Results);
+    
     mxFree(h_First_Level_Results);
-    mxFree(h_Permuted_First_Level_Results);
-    
-    mxFree(h_MNI_Brain_Mask);
-    
+    mxFree(h_MNI_Brain_Mask);   
     mxFree(h_Cluster_Indices);
-    
+
     mxFree(h_X_GLM);
     mxFree(h_xtxxt_GLM);
     mxFree(h_Contrasts);
@@ -356,6 +360,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Statistical_Maps);
           
     mxFree(h_Permutation_Distribution);
+     
+     
     
     return;
 }

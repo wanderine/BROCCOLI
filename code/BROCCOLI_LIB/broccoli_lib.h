@@ -217,6 +217,7 @@ class BROCCOLI_LIB
 		void SetOutputStatisticalMaps(float* output);
 		void SetOutputEPIMask(float*);
 		void SetOutputClusterIndices(int*);
+		void SetOutputLargestCluster(int*);
 		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 		void SetOutputWhitenedModels(float* whitened_models);
 
@@ -389,6 +390,10 @@ class BROCCOLI_LIB
 		void PerformFirstLevelAnalysisBayesianWrapper();
 		void PerformSecondLevelAnalysisWrapper();
 
+		void ClusterizeOpenCLWrapper();
+		void ClusterizeOpenCLWrapper2();
+		void ClusterizeOpenCLWrapper3();
+
 		// void CalculateSlicesfMRIData();
 		// void CalculateSlicesPreprocessedfMRIData();
 		// void CalculateSlicesActivityData();
@@ -401,10 +406,8 @@ class BROCCOLI_LIB
 
 		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
 		void Clusterize(int* Cluster_Indices, int& MAX_CLUSTER_SIZE, float& MAX_CLUSTER_MASS, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D, int GET_VOXEL_LABELS, int GET_CLUSTER_MASS);
-		void ClusterizeOld(int* Cluster_Indices, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D);
-		void ClusterizeOpenCL(cl_mem Cluster_Indices, int& NUMBER_OF_CLUSTERS, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
-		void CalculateClusterSizes(int* Cluster_Sizes, int* Cluster_Indices, int NUMBER_OF_CLUSTERS, float* Mask, int DATA_W, int DATA_H, int DATA_D);
-		void CalculateClusterSizesOpenCL(cl_mem Cluster_Sizes, cl_mem Cluster_Indices, int NUMBER_OF_CLUSTERS, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
+		void ClusterizeOpenCL(cl_mem Cluster_Indices, int& MAX_CLUSTER_SIZE, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
+		void ClusterizeOpenCLPermutation(int& MAX_CLUSTER_SIZE, int DATA_W, int DATA_H, int DATA_D);
 
 		//------------------------------------------------
 		// High level functions
@@ -449,6 +452,7 @@ class BROCCOLI_LIB
 
 		// Permutation second level
 		void SetupPermutationTestSecondLevel(cl_mem Volumes, cl_mem Mask);
+		void CleanupPermutationTestSecondLevel();
 		void GeneratePermutationMatrixSecondLevel();
 		void CalculateStatisticalMapsSecondLevelPermutation(int permutation);
 		void CalculateStatisticalMapsGLMTTestSecondLevelPermutation();
@@ -494,6 +498,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 
 		void SetMemory(cl_mem memory, float value, int N);
+		void SetMemoryInt(cl_mem memory, int value, int N);
 		void SetMemoryFloat2(cl_mem memory, float value, int N);
 		void CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut);
 		void MultiplyVolume(cl_mem d_Volume_1, float value, int DATA_W, int DATA_H, int DATA_D);
@@ -607,6 +612,7 @@ class BROCCOLI_LIB
 
 		// Help kernels
 		cl_kernel MemsetKernel;
+		cl_kernel MemsetIntKernel;
 		cl_kernel MemsetFloat2Kernel;
 		cl_kernel MultiplyVolumeKernel, MultiplyVolumesKernel, MultiplyVolumesOverwriteKernel;
 		cl_kernel AddVolumeKernel, AddVolumesKernel, AddVolumesOverwriteKernel;
@@ -615,7 +621,11 @@ class BROCCOLI_LIB
 		cl_kernel CalculateMaxAtomicKernel;
 		cl_kernel ThresholdVolumeKernel;
 		cl_kernel RemoveMeanKernel;
-		cl_kernel ClusterizeKernel;
+		cl_kernel SetStartClusterIndicesKernel;
+		cl_kernel ClusterizeScanKernel;
+		cl_kernel ClusterizeRelabelKernel;
+		cl_kernel CalculateClusterSizesKernel;
+		cl_kernel CalculateLargestClusterKernel;
 
 		// Convolution kernels
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel;
@@ -650,7 +660,7 @@ class BROCCOLI_LIB
 		// Create kernel errors
 
 		// Help kernels
-		cl_int createKernelErrorMemset, createKernelErrorMemsetFloat2;
+		cl_int createKernelErrorMemset, createKernelErrorMemsetInt, createKernelErrorMemsetFloat2;
 		cl_int createKernelErrorMultiplyVolume;
 		cl_int createKernelErrorMultiplyVolumes;
 		cl_int createKernelErrorMultiplyVolumesOverwrite;
@@ -658,7 +668,12 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorAddVolumes;
 		cl_int createKernelErrorAddVolumesOverwrite;
 		cl_int createKernelErrorRemoveMean;
-		cl_int createKernelErrorClusterize;
+		cl_int createKernelErrorSetStartClusterIndices;
+		cl_int createKernelErrorClusterizeScan;
+		cl_int createKernelErrorClusterizeRelabel;
+		cl_int createKernelErrorCalculateClusterSizes;
+		cl_int createKernelErrorCalculateLargestCluster;
+
 
 		// Convolution kernels
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods;
@@ -717,7 +732,7 @@ class BROCCOLI_LIB
 		// Run kernel errors
 
 		// Help kernels
-		cl_int runKernelErrorMemset, runKernelErrorMemsetFloat2;
+		cl_int runKernelErrorMemset, runKernelErrorMemsetInt, runKernelErrorMemsetFloat2;
 		cl_int runKernelErrorMultiplyVolume;
 		cl_int runKernelErrorMultiplyVolumes;
 		cl_int runKernelErrorMultiplyVolumesOverwrite;
@@ -725,7 +740,12 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorAddVolumes;
 		cl_int runKernelErrorAddVolumesOverwrite;
 		cl_int runKernelErrorRemoveMean;
-		cl_int runKernelErrorClusterize;
+		cl_int runKernelErrorSetStartClusterIndices;
+		cl_int runKernelErrorClusterizeScan;
+		cl_int runKernelErrorClusterizeRelabel;
+		cl_int runKernelErrorCalculateClusterSizes;
+		cl_int runKernelErrorCalculateLargestCluster;
+
 
 		// Convolution kernels
 		cl_int runKernelErrorSeparableConvolutionRows, runKernelErrorSeparableConvolutionColumns, runKernelErrorSeparableConvolutionRods;
@@ -1022,7 +1042,11 @@ class BROCCOLI_LIB
 		float		*h_AR3_Estimates;
 		float		*h_AR4_Estimates;
 		int			*h_Cluster_Indices;
+		int 		*h_Largest_Cluster;
 		cl_mem		 d_Cluster_Indices;
+		cl_mem		 d_Cluster_Sizes;
+		cl_mem		 d_Largest_Cluster;
+		cl_mem		 d_Updated;
 		int			*h_Cluster_Sizes;
 		float		*h_Whitened_Models;
 
