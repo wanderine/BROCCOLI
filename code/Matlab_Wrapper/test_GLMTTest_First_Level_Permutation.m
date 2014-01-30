@@ -65,10 +65,13 @@ end
 do_Matlab_permutations = 0;
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
-number_of_permutations = 100;
+number_of_permutations = 10000;
 inference_mode = 1; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
 cluster_defining_threshold = 3;
-number_of_regressors = 1;
+
+mytimes = zeros(25,1);
+
+for number_of_regressors = 1:25
 
 %-----------------------------------------------------------------------
 % Load data
@@ -604,13 +607,22 @@ end
 
 permutation_matrix = permutation_matrix - 1;
 
-tic
+
+start = clock;
 [betas_opencl, residuals_opencl, residual_variances_opencl, statistical_maps_opencl, ...
     ar1_estimates_opencl, ar2_estimates_opencl, ar3_estimates_opencl, ar4_estimates_opencl, ...
     cluster_indices, detrended_volumes_opencl, whitened_volumes_opencl, permuted_volumes_opencl, null_distribution_opencl] = ...
     GLMTTestFirstLevelPermutation(fMRI_volumes,brain_mask,smoothed_mask_data,X_GLM,xtxxt_GLM',contrasts,ctxtxc_GLM,EPI_smoothing_amount,AR_smoothing_amount,...
     EPI_voxel_size_x,EPI_voxel_size_y,EPI_voxel_size_z,uint16(permutation_matrix'),number_of_permutations,inference_mode,cluster_defining_threshold,opencl_platform,opencl_device);
-toc
+
+elapsed_time = etime(clock,start)
+
+mytimes(number_of_regressors) = elapsed_time;
+
+null_distribution_opencl = sort(null_distribution_opencl);
+threshold_opencl = null_distribution_opencl(round(0.95*number_of_permutations))
+    
+end
 
 if do_Matlab_permutations == 1
     
