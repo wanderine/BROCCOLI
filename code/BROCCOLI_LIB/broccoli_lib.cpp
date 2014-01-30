@@ -10087,6 +10087,10 @@ void BROCCOLI_LIB::CleanupPermutationTestFirstLevel()
 
 	clReleaseMemObject(d_Rows_Temp);
 	clReleaseMemObject(d_Columns_Temp);
+
+	clReleaseMemObject(d_Cluster_Sizes);
+	clReleaseMemObject(d_Largest_Cluster);
+	clReleaseMemObject(d_Updated);
 }
 
 void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
@@ -10176,6 +10180,52 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 11, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 12, sizeof(int),   &NUMBER_OF_CONTRASTS);
 	}
+
+	d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
+	d_Largest_Cluster = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
+	d_Updated = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
+
+	SetGlobalAndLocalWorkSizesClusterize(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+	clSetKernelArg(SetStartClusterIndicesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(SetStartClusterIndicesKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(SetStartClusterIndicesKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(SetStartClusterIndicesKernel, 3, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(SetStartClusterIndicesKernel, 4, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(SetStartClusterIndicesKernel, 5, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(SetStartClusterIndicesKernel, 6, sizeof(int),    &EPI_DATA_D);
+
+	clSetKernelArg(ClusterizeScanKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(ClusterizeScanKernel, 1, sizeof(cl_mem), &d_Updated);
+	clSetKernelArg(ClusterizeScanKernel, 2, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(ClusterizeScanKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(ClusterizeScanKernel, 4, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(ClusterizeScanKernel, 5, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(ClusterizeScanKernel, 6, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(ClusterizeScanKernel, 7, sizeof(int),    &EPI_DATA_D);
+
+	clSetKernelArg(ClusterizeRelabelKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(ClusterizeRelabelKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(ClusterizeRelabelKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(ClusterizeRelabelKernel, 3, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(ClusterizeRelabelKernel, 4, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(ClusterizeRelabelKernel, 5, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(ClusterizeRelabelKernel, 6, sizeof(int),    &EPI_DATA_D);
+
+	clSetKernelArg(CalculateClusterSizesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(CalculateClusterSizesKernel, 1, sizeof(cl_mem), &d_Cluster_Sizes);
+	clSetKernelArg(CalculateClusterSizesKernel, 2, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(CalculateClusterSizesKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateClusterSizesKernel, 4, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(CalculateClusterSizesKernel, 5, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateClusterSizesKernel, 6, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateClusterSizesKernel, 7, sizeof(int),    &EPI_DATA_D);
+
+	clSetKernelArg(CalculateLargestClusterKernel, 0, sizeof(cl_mem), &d_Cluster_Sizes);
+	clSetKernelArg(CalculateLargestClusterKernel, 1, sizeof(cl_mem), &d_Largest_Cluster);
+	clSetKernelArg(CalculateLargestClusterKernel, 2, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateLargestClusterKernel, 3, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateLargestClusterKernel, 4, sizeof(int),    &EPI_DATA_D);
 }
 
 void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Mask)
@@ -10480,11 +10530,12 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 		else if (INFERENCE_MODE == CLUSTER_EXTENT)
 		{
 			// Calculate max cluster extent
-			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
-			h_Permutation_Distribution[p] = (float)MAX_CLUSTER_SIZE;
 
-			//ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			ClusterizeOpenCLPermutation(MAX_CLUSTER_SIZE, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+			h_Permutation_Distribution[p] = (float)MAX_CLUSTER_SIZE;
 		}
 		// Cluster mass distribution
 		else if (INFERENCE_MODE == CLUSTER_MASS)

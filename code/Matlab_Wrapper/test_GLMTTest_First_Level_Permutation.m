@@ -65,9 +65,9 @@ end
 do_Matlab_permutations = 0;
 EPI_smoothing_amount = 5.5;
 AR_smoothing_amount = 7.0;
-number_of_permutations = 10000;
-inference_mode = 0; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
-cluster_defining_threshold = 2;
+number_of_permutations = 100;
+inference_mode = 1; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
+cluster_defining_threshold = 3;
 number_of_regressors = 1;
 
 %-----------------------------------------------------------------------
@@ -158,6 +158,8 @@ smoothed_volume = convn(smoothed_volume,smoothing_filter_zz,'same');
 
 threshold = 0.9 * mean(smoothed_volume(:));
 brain_mask = double(volume > threshold);
+brain_mask(:,:,1) = 0;
+brain_mask(:,:,end) = 0;
 brain_mask(brain_mask == 0) = 0.0001;
 
 volume = brain_mask;
