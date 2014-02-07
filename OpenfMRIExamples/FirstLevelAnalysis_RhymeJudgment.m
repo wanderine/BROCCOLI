@@ -28,7 +28,7 @@ clear all
 clc
 close all
 
-ismiha = 0
+ismiha = 0;
 
 if ismiha
     addpath('/home/miha/Delo/BROCCOLI/nifti')
@@ -63,7 +63,7 @@ else
     elseif isunix
         addpath('/home/andek/Research_projects/nifti_matlab')
         basepath = '/data/andek/OpenfMRI/';    
-        opencl_platform = 2; 
+        opencl_platform = 1; 
         opencl_device = 0;
         %mex -g ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Debug -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
         mex ../code/Matlab_Wrapper/FirstLevelAnalysis.cpp -lOpenCL -lBROCCOLI_LIB -I/usr/local/cuda-5.0/include/ -I/usr/local/cuda-5.0/include/CL -L/usr/lib -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/ -L/home/andek/cuda-workspace/BROCCOLI_LIB/Release -I/home/andek/Research_projects/BROCCOLI/BROCCOLI/code/BROCCOLI_LIB/Eigen/
@@ -82,7 +82,7 @@ end
 
 voxel_size = 2;
 beta_space = 0; % 0 = EPI, 1 = MNI
-save_as_nifti = 1; % Save statistical map as nifti file or not
+save_as_nifti = 0; % Save statistical map as nifti file or not
 
 %--------------------------------------------------------------------------------------
 % Statistical settings
@@ -114,7 +114,7 @@ load filters_for_nonparametric_registration.mat
 % Load T1 volume
 %--------------------------------------------------------------------------------------
 
-T1_nii = load_nii([basepath study subject '/anatomy/highres001_brain.nii']);
+T1_nii = load_nii([basepath study subject '/anatomy/highres001_brain.nii.gz']);
 T1 = double(T1_nii.img);
 
 [T1_sy T1_sx T1_sz] = size(T1);
@@ -128,7 +128,7 @@ T1_voxel_size_z = T1_nii.hdr.dime.pixdim(4);
 % Load fMRI data
 %--------------------------------------------------------------------------------------
 
-EPI_nii = load_nii([basepath study subject '/BOLD/task001_run001/bold.nii']);
+EPI_nii = load_nii([basepath study subject '/BOLD/task001_run001/bold.nii.gz']);
 fMRI_volumes = double(EPI_nii.img);
 [sy sx sz st] = size(fMRI_volumes);
 
@@ -233,10 +233,12 @@ end
 % Contrasts for confounding regressors are automatically set to zeros by BROCCOLI 
 %contrasts = [1  0];
     
-contrasts = [1  0;
-             1  0;
-             1  0;
-             1  0];
+%contrasts = [1  0;
+%             1  0;
+%             1  0;
+%             1  0];
+
+contrasts = [1  0];
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
@@ -427,6 +429,6 @@ if save_as_nifti == 1
 
 end
 
-k = waitforbuttonpress
+%k = waitforbuttonpress
 
 

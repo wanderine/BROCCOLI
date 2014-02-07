@@ -109,9 +109,21 @@ BROCCOLI_LIB::~BROCCOLI_LIB()
 	OpenCLCleanup();
 }
 
+void BROCCOLI_LIB::SetDebug(bool debug)
+{
+	DEBUG = debug;
+}
+
+//void BROCCOLI_LIB::SetSaveDisplacementField(bool save)
+//{
+//	DEBUG = debug;
+//}
+
 // Set some default values
 void BROCCOLI_LIB::SetStartValues()
 {
+	DEBUG = false;
+
 	EPI_Smoothing_FWHM = 8.0f;
 	AR_Smoothing_FWHM = 8.0f;
 
@@ -357,59 +369,7 @@ void BROCCOLI_LIB::SetStartValues()
 	buildProgramError = 0;
 	getProgramBuildInfoError = 0;
 
-	/*
-	 *
-	 * To do: Print the error description instead of the OpenCL error code
-	 *
-	OpenCLErrorDescriptions[0] = "CL_SUCCESS";
-	OpenCLErrorDescriptions[1] = "CL_DEVICE_NOT_FOUND";
-	OpenCLErrorDescriptions[2] = "CL_DEVICE_NOT_AVAILABLE";
-	OpenCLErrorDescriptions[3] = "CL_COMPILER_NOT_AVAILABLE";
-	OpenCLErrorDescriptions[4] = "CL_MEM_OBJECT_ALLOCATION_FAILURE";
-	OpenCLErrorDescriptions[5] = "CL_OUT_OF_RESOURCES";
-	OpenCLErrorDescriptions[6] = "CL_OUT_OF_HOST_MEMORY";
-	OpenCLErrorDescriptions[7] = "CL_PROFILING_INFO_NOT_AVAILABLE";
-	OpenCLErrorDescriptions[8] = "CL_MEM_COPY_OVERLAP";
-	OpenCLErrorDescriptions[9] = "CL_IMAGE_FORMAT_MISMATCH";
-	OpenCLErrorDescriptions[10] = "CL_IMAGE_FORMAT_NOT_SUPPORTED";
-	OpenCLErrorDescriptions[11] = "CL_BUILD_PROGRAM_FAILURE";
-	OpenCLErrorDescriptions[12] = "CL_MAP_FAILURE";
 
-	OpenCLErrorDescriptions[13] = "CL_INVALID_VALUE";
-	OpenCLErrorDescriptions[14] = "CL_INVALID_DEVICE_TYPE";
-	OpenCLErrorDescriptions[15] = "CL_INVALID_PLATFORM";
-	OpenCLErrorDescriptions[16] = "CL_INVALID_DEVICE";
-	OpenCLErrorDescriptions[17] = "CL_INVALID_CONTEXT";
-	OpenCLErrorDescriptions[18] = "CL_INVALID_QUEUE_PROPERTIES";
-	OpenCLErrorDescriptions[19] = "CL_INVALID_COMMAND_QUEUE";
-	OpenCLErrorDescriptions[20] = "CL_INVALID_HOST_PTR";
-	OpenCLErrorDescriptions[21] = "CL_INVALID_MEM_OBJECT";
-	OpenCLErrorDescriptions[22] = "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
-	OpenCLErrorDescriptions[23] = "CL_INVALID_IMAGE_SIZE";
-	OpenCLErrorDescriptions[24] = "CL_INVALID_SAMPLER";
-	OpenCLErrorDescriptions[25] = "CL_INVALID_BINARY";
-	OpenCLErrorDescriptions[26] = "CL_INVALID_BUILD_OPTIONS";
-	OpenCLErrorDescriptions[27] = "CL_INVALID_PROGRAM";
-	OpenCLErrorDescriptions[28] = "CL_INVALID_PROGRAM_EXECUTABLE";
-	OpenCLErrorDescriptions[29] = "CL_INVALID_KERNEL_NAME";
-	OpenCLErrorDescriptions[30] = "CL_INVALID_KERNEL_DEFINITION";
-	OpenCLErrorDescriptions[31] = "CL_INVALID_KERNEL";
-	OpenCLErrorDescriptions[32] = "CL_INVALID_ARG_INDEX";
-	OpenCLErrorDescriptions[33] = "CL_INVALID_ARG_VALUE";
-	OpenCLErrorDescriptions[34] = "CL_INVALID_ARG_SIZE";
-	OpenCLErrorDescriptions[35] = "CL_INVALID_KERNEL_ARGS";
-	OpenCLErrorDescriptions[36] = "CL_INVALID_WORK_DIMENSION";
-	OpenCLErrorDescriptions[37] = "CL_INVALID_WORK_GROUP_SIZE";
-	OpenCLErrorDescriptions[38] = "CL_INVALID_WORK_ITEM_SIZE";
-	OpenCLErrorDescriptions[39] = "CL_INVALID_GLOBAL_OFFSET";
-	OpenCLErrorDescriptions[40] = "CL_INVALID_EVENT_WAIT_LIST";
-	OpenCLErrorDescriptions[41] = "CL_INVALID_EVENT";
-	OpenCLErrorDescriptions[42] = "CL_INVALID_OPERATION";
-	OpenCLErrorDescriptions[43] = "CL_INVALID_GL_OBJECT";
-	OpenCLErrorDescriptions[44] = "CL_INVALID_BUFFER_SIZE";
-	OpenCLErrorDescriptions[45] = "CL_INVALID_MIP_LEVEL";
-	OpenCLErrorDescriptions[46] = "CL_INVALID_GLOBAL_WORK_SIZE";
-	*/
 
 }
 
@@ -2310,6 +2270,13 @@ void BROCCOLI_LIB::SetOutputEPIMNIRegistrationParameters(float* output)
 	h_Registration_Parameters_EPI_MNI_Out = output;
 }
 
+void BROCCOLI_LIB::SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3)
+{
+	h_Quadrature_Filter_Response_1 = qfr1;
+	h_Quadrature_Filter_Response_2 = qfr2;
+	h_Quadrature_Filter_Response_3 = qfr3;
+}
+
 void BROCCOLI_LIB::SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3, cl_float2* qfr4, cl_float2* qfr5, cl_float2* qfr6)
 {
 	h_Quadrature_Filter_Response_1 = qfr1;
@@ -2319,6 +2286,7 @@ void BROCCOLI_LIB::SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2
 	h_Quadrature_Filter_Response_5 = qfr5;
 	h_Quadrature_Filter_Response_6 = qfr6;
 }
+
 
 void BROCCOLI_LIB::SetOutputTensorComponents(float* t11, float* t12, float* t13, float* t22, float* t23, float* t33)
 {
@@ -2472,6 +2440,161 @@ const char* BROCCOLI_LIB::GetOpenCLBuildInfoChar()
 	return build_info.c_str();
 }
 
+const char* BROCCOLI_LIB::GetOpenCLErrorMessage(int error)
+{
+	switch (error)
+	{
+		case 0:
+			return "CL_SUCCESS";
+			break;
+		case -1:
+			return "CL_DEVICE_NOT_FOUND";
+			break;
+		case -2:
+			return "CL_DEVICE_NOT_AVAILABLE";
+			break;
+		case -3:
+			return "CL_COMPILER_NOT_AVAILABLE";
+			break;
+		case -4:
+			return "CL_MEM_OBJECT_ALLOCATION_FAILURE";
+			break;
+		case -5:
+			return "CL_OUT_OF_RESOURCES";
+			break;
+		case -6:
+			return "CL_OUT_OF_HOST_MEMORY";
+			break;
+		case -7:
+			return "CL_PROFILING_INFO_NOT_AVAILABLE";
+			break;
+		case -8:
+			return "CL_MEM_COPY_OVERLAP";
+			break;
+		case -9:
+			return "CL_IMAGE_FORMAT_MISMATCH";
+			break;
+		case -10:
+			return "CL_IMAGE_FORMAT_NOT_SUPPORTED";
+			break;
+		case -11:
+			return "CL_BUILD_PROGRAM_FAILURE";
+			break;
+		case -12:
+			return "CL_MAP_FAILURE";
+			break;
+
+		case -30:
+			return "CL_INVALID_VALUE";
+			break;
+		case -31:
+			return "CL_INVALID_DEVICE_TYPE";
+			break;
+		case -32:
+			return "CL_INVALID_PLATFORM";
+			break;
+		case -33:
+			return "CL_INVALID_DEVICE";
+			break;
+		case -34:
+			return "CL_INVALID_CONTEXT";
+			break;
+		case -35:
+			return "CL_INVALID_QUEUE_PROPERTIES";
+			break;
+		case -36:
+			return "CL_INVALID_COMMAND_QUEUE";
+			break;
+		case -37:
+			return "CL_INVALID_HOST_PTR";
+			break;
+		case -38:
+			return "CL_INVALID_MEM_OBJECT";
+			break;
+		case -39:
+			return "CL_INVALID_IMAGE_FORMAT_DESCRIPTOR";
+			break;
+		case -40:
+			return "CL_INVALID_IMAGE_SIZE";
+			break;
+		case -41:
+			return "CL_INVALID_SAMPLER";
+			break;
+		case -42:
+			return "CL_INVALID_BINARY";
+			break;
+		case -43:
+			return "CL_INVALID_BUILD_OPTIONS";
+			break;
+		case -44:
+			return "CL_INVALID_PROGRAM";
+			break;
+		case -45:
+			return "CL_INVALID_PROGRAM_EXECUTABLE";
+			break;
+		case -46:
+			return "CL_INVALID_KERNEL_NAME";
+			break;
+		case -47:
+			return "CL_INVALID_KERNEL_DEFINITION";
+			break;
+		case -48:
+			return "CL_INVALID_KERNEL";
+			break;
+		case -49:
+			return "CL_INVALID_ARG_INDEX";
+			break;
+		case -50:
+			return "CL_INVALID_ARG_VALUE";
+			break;
+		case -51:
+			return "CL_INVALID_ARG_SIZE";
+			break;
+		case -52:
+			return "CL_INVALID_KERNEL_ARGS";
+			break;
+		case -53:
+			return "CL_INVALID_WORK_DIMENSION";
+			break;
+		case -54:
+			return "CL_INVALID_WORK_GROUP_SIZE";
+			break;
+		case -55:
+			return "CL_INVALID_WORK_ITEM_SIZE";
+			break;
+		case -56:
+			return "CL_INVALID_GLOBAL_OFFSET";
+			break;
+		case -57:
+			return "CL_INVALID_EVENT_WAIT_LIST";
+			break;
+		case -58:
+			return "CL_INVALID_EVENT";
+			break;
+		case -59:
+			return "CL_INVALID_OPERATION";
+			break;
+		case -60:
+			return "CL_INVALID_GL_OBJECT";
+			break;
+		case -61:
+			return "CL_INVALID_BUFFER_SIZE";
+			break;
+		case -62:
+			return "CL_INVALID_MIP_LEVEL";
+			break;
+		case -63:
+			return "CL_INVALID_GLOBAL_WORK_SIZE";
+			break;
+
+		default:
+			return "Unrecognized OpenCL error message";
+	}
+
+
+
+}
+
 std::string BROCCOLI_LIB::GetOpenCLDeviceInfoString()
 {
 	return device_info;
@@ -2496,6 +2619,8 @@ int BROCCOLI_LIB::GetOpenCLPlatformIDsError()
 {
 	return getPlatformIDsError;
 }
+
+
 
 int BROCCOLI_LIB::GetOpenCLDeviceIDsError()
 {
@@ -3187,9 +3312,12 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 	// Calculate the filter responses for the reference volume (only needed once)
 	NonseparableConvolution3D(d_q11, d_q12, d_q13, d_Reference_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
 
-	//clEnqueueReadBuffer(commandQueue, d_q11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_q12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_q13, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
+	if (DEBUG)
+	{
+		clEnqueueReadBuffer(commandQueue, d_q11, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_q12, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_q13, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
+	}
 
 	// Reset the parameter vector
 	for (int p = 0; p < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; p++)
@@ -3204,9 +3332,14 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 		// Calculate the filter responses for the altered volume
 		NonseparableConvolution3D(d_q21, d_q22, d_q23, d_Aligned_Volume, c_Quadrature_Filter_1_Real, c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_3_Imag, h_Quadrature_Filter_1_Parametric_Registration_Real, h_Quadrature_Filter_1_Parametric_Registration_Imag, h_Quadrature_Filter_2_Parametric_Registration_Real, h_Quadrature_Filter_2_Parametric_Registration_Imag, h_Quadrature_Filter_3_Parametric_Registration_Real, h_Quadrature_Filter_3_Parametric_Registration_Imag, DATA_W, DATA_H, DATA_D);
 
-		//clEnqueueReadBuffer(commandQueue, d_q21, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
-		//clEnqueueReadBuffer(commandQueue, d_q22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
-		//clEnqueueReadBuffer(commandQueue, d_q23, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
+		/*
+		if ( DEBUG && (it == 0))
+		{
+			clEnqueueReadBuffer(commandQueue, d_q21, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_1, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_q22, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_2, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_q23, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(cl_float2), h_Quadrature_Filter_Response_3, 0, NULL, NULL);
+		}
+		*/
 
 		// Calculate phase differences, certainties and phase gradients in the X direction
 		clSetKernelArg(CalculatePhaseDifferencesAndCertaintiesKernel, 2, sizeof(cl_mem), &d_q11);
@@ -3243,9 +3376,12 @@ void BROCCOLI_LIB::AlignTwoVolumesParametric(float *h_Registration_Parameters_Al
 		runKernelErrorCalculatePhaseGradientsZ = clEnqueueNDRangeKernel(commandQueue, CalculatePhaseGradientsZKernel, 3, NULL, globalWorkSizeCalculatePhaseGradients, localWorkSizeCalculatePhaseGradients, 0, NULL, NULL);
 		clFinish(commandQueue);
 
-		//clEnqueueReadBuffer(commandQueue, d_Phase_Differences, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);
-		//clEnqueueReadBuffer(commandQueue, d_Phase_Gradients, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Gradients, 0, NULL, NULL);
-		//clEnqueueReadBuffer(commandQueue, d_Phase_Certainties, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
+		if ( DEBUG && (it == 0) )
+		{
+			clEnqueueReadBuffer(commandQueue, d_Phase_Differences, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Differences, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Phase_Gradients, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Gradients, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Phase_Certainties, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Phase_Certainties, 0, NULL, NULL);
+		}
 
 		// Calculate values for the A-matrix and h-vector in the Z direction
 		runKernelErrorCalculateAMatrixAndHVector2DValuesZ = clEnqueueNDRangeKernel(commandQueue, CalculateAMatrixAndHVector2DValuesZKernel, 3, NULL, globalWorkSizeCalculateAMatrixAndHVector2DValuesZ, localWorkSizeCalculateAMatrixAndHVector2DValuesZ, 0, NULL, NULL);
@@ -5791,8 +5927,12 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstripWrapper()
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume, 0, NULL, NULL);
 
+
 	// Perform non-parametric registration between tramsformed skullstripped volume and MNI brain volume
-	AlignTwoVolumesNonParametricSeveralScales(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, DISCARD_DISPLACEMENT_FIELD);
+	//if (NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION > 0)
+	//{
+		AlignTwoVolumesNonParametricSeveralScales(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, DISCARD_DISPLACEMENT_FIELD);
+	//}
 
 	// Copy the aligned T1 volume to host
 	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonParametric, 0, NULL, NULL);
@@ -6818,9 +6958,9 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 		// Write the total parameter vector to host
 
 		// Translations
-		h_Motion_Parameters_Out[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0]; // * EPI_VOXEL_SIZE_X;
-		h_Motion_Parameters_Out[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1]; // * EPI_VOXEL_SIZE_Y;
-		h_Motion_Parameters_Out[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2]; // * EPI_VOXEL_SIZE_Z;
+		h_Motion_Parameters_Out[t + 0 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[0] * EPI_VOXEL_SIZE_X;
+		h_Motion_Parameters_Out[t + 1 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[1] * EPI_VOXEL_SIZE_Y;
+		h_Motion_Parameters_Out[t + 2 * EPI_DATA_T] = h_Registration_Parameters_Motion_Correction[2] * EPI_VOXEL_SIZE_Z;
 
 		// Rotations
 		h_Motion_Parameters_Out[t + 3 * EPI_DATA_T] = h_Rotations[0];
@@ -8358,6 +8498,8 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelPermutationWrapper()
 	d_Whitened_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	d_Permuted_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
+	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
+
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
@@ -8385,7 +8527,8 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelPermutationWrapper()
 	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
 
 	//SegmentEPIData();
-
+	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+	PerformSmoothing(d_fMRI_Volumes, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 	//h_Permutation_Matrix = (unsigned short int*)malloc(NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int));
 	ApplyPermutationTestFirstLevel(d_fMRI_Volumes);
@@ -8422,6 +8565,8 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelPermutationWrapper()
 	clReleaseMemObject(d_AR2_Estimates);
 	clReleaseMemObject(d_AR3_Estimates);
 	clReleaseMemObject(d_AR4_Estimates);
+
+	clReleaseMemObject(d_Cluster_Indices);
 }
 
 
@@ -8436,6 +8581,8 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelPermutationWrapper()
 	d_Detrended_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	d_Whitened_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	d_Permuted_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
 
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
@@ -8504,6 +8651,8 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelPermutationWrapper()
 	clReleaseMemObject(d_AR2_Estimates);
 	clReleaseMemObject(d_AR3_Estimates);
 	clReleaseMemObject(d_AR4_Estimates);
+
+	clReleaseMemObject(d_Cluster_Indices);
 }
 
 // Used for testing of t-test only
@@ -9274,7 +9423,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Whitened_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
 
 	// Cochrane-Orcutt procedure, iterate
-	for (int it = 0; it < 10; it++)
+	for (int it = 0; it < 3; it++)
 	{
 		// Calculate beta values, using whitened data and the whitened voxel-specific models
 		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
@@ -10497,7 +10646,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 	SetMemory(d_Detrended_fMRI_Volumes, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T);
 
 	// Generate a random permutation matrix
-	//GeneratePermutationMatrixFirstLevel();
+	GeneratePermutationMatrixFirstLevel();
 
 	// Remove mean and linear, quadratic and cubic trends
 	PerformDetrending(d_Detrended_fMRI_Volumes, d_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
@@ -10515,7 +10664,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 
 		// Smooth new fMRI volumes (smoothing needs to be done in each permutation, as it otherwise alters the AR parameters)
 		//PerformSmoothingNormalized(d_Permuted_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-		PerformSmoothingNormalizedPermutation();
+		//PerformSmoothingNormalizedPermutation();
 
 		// Calculate statistical maps
 		CalculateStatisticalMapsFirstLevelPermutation();

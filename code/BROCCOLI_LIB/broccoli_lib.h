@@ -120,6 +120,7 @@ class BROCCOLI_LIB
 
 		// void SetOpenCLPlatform(int N);
 
+		void SetDebug(bool debug);
 
 		void SetMask(float* input);
 		void SetEPIMask(float* input);
@@ -226,7 +227,7 @@ class BROCCOLI_LIB
 		void SetOutputT1MNIRegistrationParameters(float* output);
 		void SetOutputEPIT1RegistrationParameters(float* output);
 		void SetOutputEPIMNIRegistrationParameters(float* output);
-		// void SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3);
+		void SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3);
 		void SetOutputQuadratureFilterResponses(cl_float2* qfr1, cl_float2* qfr2, cl_float2* qfr3, cl_float2* qfr4, cl_float2* qfr5, cl_float2* qfr6);
 		void SetOutputTensorComponents(float*, float*, float*,float*, float*, float*);
 		void SetOutputDisplacementField(float*, float*, float*);
@@ -320,6 +321,7 @@ class BROCCOLI_LIB
 
 		const char* GetOpenCLDeviceInfoChar();
 		const char* GetOpenCLBuildInfoChar();
+		const char* GetOpenCLErrorMessage(int error);
 
 		std::string GetOpenCLDeviceInfoString();
 		std::string GetOpenCLBuildInfoString();
@@ -877,6 +879,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
+		bool DEBUG;
 		//nifti_image *nifti_data;
 
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
