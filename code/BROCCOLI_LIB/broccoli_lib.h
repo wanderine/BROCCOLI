@@ -371,6 +371,8 @@ class BROCCOLI_LIB
 		void ChangeT1VolumeResolutionAndSizeWrapper();
 		void PerformRegistrationT1MNIWrapper();
 		void PerformRegistrationT1MNINoSkullstripWrapper();
+		void PerformRegistrationTwoVolumesWrapper();
+		void TransformVolumesNonParametricWrapper();
 		void PerformRegistrationEPIT1Wrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
@@ -405,6 +407,7 @@ class BROCCOLI_LIB
 
 	private:
 
+		void CreateCombinedDisplacementField(float* h_Registration_Parameters, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D);
 
 		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
 		void Clusterize(int* Cluster_Indices, int& MAX_CLUSTER_SIZE, float& MAX_CLUSTER_MASS, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D, int GET_VOXEL_LABELS, int GET_CLUSTER_MASS);
@@ -648,6 +651,7 @@ class BROCCOLI_LIB
 		cl_kernel CalculateTensorNormsKernel;
 		cl_kernel CalculateAMatricesAndHVectorsKernel;
 		cl_kernel CalculateDisplacementUpdateKernel;
+		cl_kernel AddParametricAndNonParametricDisplacementKernel;
 
 		// Statistical kernels
 		cl_kernel CalculateBetaWeightsGLMKernel, CalculateBetaWeightsGLMFirstLevelKernel;
@@ -703,6 +707,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateTensorNorms;
 		cl_int createKernelErrorCalculateAMatricesAndHVectors;
 		cl_int createKernelErrorCalculateDisplacementUpdate;
+		cl_int createKernelErrorAddParametricAndNonParametricDisplacement;
 
 		// Statistical kernels
 		cl_int createKernelErrorCalculateBetaWeightsGLM,  createKernelErrorCalculateBetaWeightsGLMFirstLevel;
@@ -775,6 +780,7 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateTensorNorms;
 		cl_int runKernelErrorCalculateAMatricesAndHVectors;
 		cl_int runKernelErrorCalculateDisplacementUpdate;
+		cl_int runKernelErrorAddParametricAndNonParametricDisplacement;
 
 		// Statistical kernels
 		cl_int runKernelErrorCalculateBetaWeightsGLM, runKernelErrorCalculateBetaWeightsGLMFirstLevel;

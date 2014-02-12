@@ -4780,6 +4780,44 @@ __kernel void InterpolateVolumeLinearNonParametric(__global float* Volume,
 	Volume[idx4D] = Interpolated_Value.x;
 }
 
+__kernel void AddParametricAndNonParametricDisplacement(__global float* d_Displacement_Field_X,
+		   	   	   	   	   	   	   	   	   	   	   	    __global float* d_Displacement_Field_Y,
+		   	   	   	   	   	   	   	   	   	   	   	    __global float* d_Displacement_Field_Z,
+	                                            	 	__constant float* c_Parameter_Vector,
+	                                            	 	__private int DATA_W,
+	                                            	 	__private int DATA_H,
+	                                            	 	__private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ((x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D))
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+	float4 Motion_Vector;
+	float xf, yf, zf;
+
+    // (motion_vector.x)   (p0)   (p3  p4  p5)   (x)
+	// (motion_vector.y) = (p1) + (p6  p7  p8) * (y)
+ 	// (motion_vector.z)   (p2)   (p9 p10 p11)   (z)
+
+	// Change to coordinate system with origo in (sx - 1)/2 (sy - 1)/2 (sz - 1)/2
+	xf = (float)x - ((float)DATA_W - 1.0f) * 0.5f;
+	yf = (float)y - ((float)DATA_H - 1.0f) * 0.5f;
+	zf = (float)z - ((float)DATA_D - 1.0f) * 0.5f;
+
+	Motion_Vector.x = c_Parameter_Vector[0] + c_Parameter_Vector[3] * xf + c_Parameter_Vector[4]   * yf + c_Parameter_Vector[5]  * zf;
+	Motion_Vector.y = c_Parameter_Vector[1] + c_Parameter_Vector[6] * xf + c_Parameter_Vector[7]   * yf + c_Parameter_Vector[8]  * zf;
+	Motion_Vector.z = c_Parameter_Vector[2] + c_Parameter_Vector[9] * xf + c_Parameter_Vector[10]  * yf + c_Parameter_Vector[11] * zf;
+	Motion_Vector.w = 0.0f;
+
+	d_Displacement_Field_X[idx] += Motion_Vector.x;
+	d_Displacement_Field_Y[idx] += Motion_Vector.y;
+	d_Displacement_Field_Z[idx] += Motion_Vector.z;
+}
+
 float bspline(float t)
 {
 	t = fabs(t);
