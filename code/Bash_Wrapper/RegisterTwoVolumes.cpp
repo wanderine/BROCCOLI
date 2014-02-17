@@ -24,6 +24,8 @@
 #include <fstream>
 #include <iomanip>
 #include "opencl.h"
+#include <time.h>
+#include <sys/time.h>
 
 #define ADD_FILENAME true
 #define DONT_ADD_FILENAME true
@@ -170,6 +172,18 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
     }                        
 }
 
+double GetWallTime()
+{
+    struct timeval time;
+    if (gettimeofday(&time,NULL))
+    {
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
+
 int main(int argc, char **argv)
 {
     //-----------------------
@@ -219,11 +233,12 @@ int main(int argc, char **argv)
     int             NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION = 10;
     int             COARSEST_SCALE = 4;
     int             MM_T1_Z_CUT = 0;
-    int             OPENCL_PLATFORM = 2;
+    int             OPENCL_PLATFORM = 0;
     int             OPENCL_DEVICE = 0;
     bool            DEBUG = false;
     const char*     FILENAME_EXTENSION = "_MNI";
     bool            PRINT = true;
+	bool			VERBOS = false;
     bool            FLIPUD = false;
     bool            FLIPBF = false;
     bool            FLIPLR = false;
@@ -246,23 +261,25 @@ int main(int argc, char **argv)
     
     // No inputs, so print help text
     if (argc == 1)
-    {        
+    {   
+		printf("\nThe function aligns two volumes using linear as well as non-linear registration. The function automagically resizes and rescales the input volume to match the reference volume.\n\n");     
         printf("Usage:\n\n");
         printf("RegisterTwoVolumes input_volume.nii reference_volume.nii [options]\n\n");
         printf("Options:\n\n");
-        printf("-platform                  The OpenCL platform to use (default 0) \n");
-        printf("-device                    The OpenCL device to use for the specificed platform (default 0) \n");
-        printf("-iterationslinear          Number of iterations for the linear registration (default 10) \n");        
-        printf("-iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
-        printf("-lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4) \n");        
-        printf("-t1zcut                    Number of mm to cut from the bottom of the original T1 volume, can be negative (default 0) \n");        
-		//printf("-writefield                Saves the displacement field to file (default false) \n");        
-        //printf("-flipbf                    Flip the volume back to front before registration (invert x-axis) \n");        
-        //printf("-fliplr                    Flip the volume left to right before registration (invert y-axis) \n");        
-        //printf("-flipud                    Flip the volume upside down before registration (invert z-axis) \n");                
-		printf("-output                    Set output filename (default input_volume_aligned_linear.nii and input_volume_aligned_nonlinear.nii) \n");
-        printf("-quiet                     Don't print anything to the terminal (default false) \n");
-        printf("-debug                     Get additional debug information saved as nifti files (default no). Warning: This will use a lot of extra memory! \n");
+        printf(" -platform                  The OpenCL platform to use (default 0) \n");
+        printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
+        printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
+        printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
+        printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension.  \n");        
+        printf(" -t1zcut                    Number of mm to cut from the bottom of the input volume, can be negative (default 0) \n");        
+		//printf(" -writefield                Saves the displacement field to file (default false) \n");        
+        //printf(" -flipbf                    Flip the volume back to front before registration (invert x-axis) \n");        
+        //printf(" -fliplr                    Flip the volume left to right before registration (invert y-axis) \n");        
+        //printf(" -flipud                    Flip the volume upside down before registration (invert z-axis) \n");                
+		printf(" -output                    Set output filename (default input_volume_aligned_linear.nii and input_volume_aligned_nonlinear.nii) \n");
+        printf(" -quiet                     Don't print anything to the terminal (default false) \n");
+        printf(" -verbose                   Print extra stuff (default false) \n");
+        printf(" -debug                     Get additional debug information saved as nifti files (default no). Warning: This will use a lot of extra memory! \n");
         printf("\n\n");
         
         return 1;
@@ -270,6 +287,7 @@ int main(int argc, char **argv)
     else if (argc < 3)
     {
         printf("Need two input volumes!\n\n");
+		return -1;
     }
     // Try to open files
     else if (argc > 1)
@@ -285,7 +303,7 @@ int main(int argc, char **argv)
         fp = fopen(argv[2],"r");
         if (fp == NULL)
         {
-            printf("Could not open file %s !\n",argv[1]);
+            printf("Could not open file %s !\n",argv[2]);
             return -1;
         }
         fclose(fp);            
@@ -383,6 +401,11 @@ int main(int argc, char **argv)
             PRINT = false;
             i += 1;
         }
+        else if (strcmp(input,"-verbose") == 0)
+        {
+            VERBOS = true;
+            i += 1;
+        }
         else if (strcmp(input,"-output") == 0)
         {
 			CHANGE_OUTPUT_NAME = true;
@@ -395,9 +418,11 @@ int main(int argc, char **argv)
             return -1;
         }                
     }
-    
+    	
+	double start_ = GetWallTime();
     
     // Read data
+
     nifti_image *inputT1 = nifti_image_read(argv[1],1);
     
     if (inputT1 == NULL)
@@ -413,7 +438,14 @@ int main(int argc, char **argv)
         printf("Could not open second volume!\n");
         return -1;
     }
-    
+    	
+	double end_ = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to read the two nifti files\n",(float)(end_ - start_));
+	}
+
     // Get data dimensions from input data
     T1_DATA_W = inputT1->nx;
     T1_DATA_H = inputT1->ny;
@@ -476,17 +508,13 @@ int main(int argc, char **argv)
     //h_MNI_Brain_Mask                                    = (float *)mxMalloc(MNI_VOLUME_SIZE);
     
     //h_A_Matrix                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));
-    //h_h_Vector                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));
-       
-    
-        
-    
-    
-    
+    //h_h_Vector                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));                               
     
     //h_Slice_Sums                                        = (float *)mxMalloc(MNI_DATA_D * sizeof(float));
     //h_Top_Slice                                         = (float *)mxMalloc(1 * sizeof(float));
     
+
+	start_ = GetWallTime();
     
     if (!AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
     {
@@ -910,7 +938,16 @@ int main(int argc, char **argv)
             return -1;
         }        
     }
+
+	end_ = GetWallTime();
     
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to allocate memory\n",(float)(end_ - start_));
+	}
+
+	start_ = GetWallTime();
+
     // Convert data to floats
     if ( inputT1->datatype == DT_SIGNED_SHORT )
     {
@@ -932,7 +969,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Unknown data type in T1 volume, aborting!\n");
+        printf("Unknown data type in input volume, aborting!\n");
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputT1);
         nifti_image_free(inputMNI);
@@ -959,13 +996,20 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Unknown data type in MNI volume, aborting!\n");
+        printf("Unknown data type in reference volume, aborting!\n");
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputT1);
         nifti_image_free(inputMNI);
         return -1;
     }
     
+	end_ = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to convert data to floats\n",(float)(end_ - start_));
+	}
+
     if (FLIPUD)
     {
         float* temp = (float*)calloc(T1_DATA_W*T1_DATA_H*T1_DATA_D,sizeof(float));
@@ -1029,6 +1073,8 @@ int main(int argc, char **argv)
         
         free(temp);
     }
+
+	start_ = GetWallTime();
     
     // Read quadrature filters for parametric registration, three real valued and three imaginary valued
     fp = fopen("filter1_real_parametric_registration.bin","rb");
@@ -1440,13 +1486,26 @@ int main(int argc, char **argv)
         nifti_image_free(inputMNI);
         return -1;
     }
-    
 
-    
+	end_ = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to read all binary files\n",(float)(end_ - start_));
+	}       
     
     //------------------------
     
+	start_ = GetWallTime();
+
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE);
+
+	end_ = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to initiate BROCCOLI\n",(float)(end_ - start_));
+	}
     
     // Something went wrong...
     if (BROCCOLI.GetOpenCLInitiated() == 0)
@@ -1566,8 +1625,16 @@ int main(int argc, char **argv)
         }
                             
         // Run the actual registration
-        BROCCOLI.PerformRegistrationTwoVolumesWrapper();
-     
+
+		start_ = GetWallTime();
+        BROCCOLI.PerformRegistrationTwoVolumesWrapper();     
+		end_ = GetWallTime();
+
+		if (VERBOS)
+	 	{
+			printf("\nIt took %f seconds to run the registration\n",(float)(end_ - start_));
+		}
+
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
@@ -1632,11 +1699,21 @@ int main(int argc, char **argv)
 	{
 		nifti_set_filenames(outputNifti, outputFilename, 0, 1);    
 	}
-    
+
+    start_ = GetWallTime();
+
     // Write aligned data to file, as the size of the MNI volume            
+    WriteNifti(outputNifti,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     WriteNifti(outputNifti,h_Aligned_T1_Volume,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     WriteNifti(outputNifti,h_Aligned_T1_Volume_NonParametric,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-              
+              	
+	end_ = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to write the two nifti files\n",(float)(end_ - start_));
+	}
+
     if (WRITE_DISPLACEMENT_FIELD)
     {
         WriteNifti(outputNifti,h_Displacement_Field_X,"_displacement_x",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);

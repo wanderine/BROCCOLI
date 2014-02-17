@@ -37,7 +37,9 @@ void FreeAllMemory(void **pointers, int N)
     {
         if (pointers[i] != NULL)
         {
+			printf("Freeing pointer %i which is %i \n",i,pointers[i]);
             free(pointers[i]);
+			printf("Freed pointer %i\n",i);
         }
     }
 }
@@ -144,7 +146,7 @@ int main(int argc, char **argv)
     //-----------------------
     // Input pointers
     
-    float           *h_Volume;
+    float           *h_Input_Volume;
     float           *h_Displacement_Field_X, *h_Displacement_Field_Y, *h_Displacement_Field_Z;
             
     //-----------------------
@@ -157,7 +159,7 @@ int main(int argc, char **argv)
     
     // Default parameters
         
-    int             OPENCL_PLATFORM = 2;
+    int             OPENCL_PLATFORM = 0;
     int             OPENCL_DEVICE = 0;
     bool            DEBUG = false;
     bool            PRINT = true;
@@ -166,8 +168,12 @@ int main(int argc, char **argv)
 	const char*		outputFilename;
 
     // Size parameters
-    int             DATA_H, DATA_W, DATA_D;
+    int             INPUT_DATA_H, INPUT_DATA_W, INPUT_DATA_D;
+    int             REFERENCE_DATA_H, REFERENCE_DATA_W, REFERENCE_DATA_D;
            
+	float			INPUT_VOXEL_SIZE_X, INPUT_VOXEL_SIZE_Y, INPUT_VOXEL_SIZE_Z;
+	float			REFERENCE_VOXEL_SIZE_X, REFERENCE_VOXEL_SIZE_Y, REFERENCE_VOXEL_SIZE_Z;
+
     //---------------------    
     
     /* Input arguments */
@@ -175,14 +181,15 @@ int main(int argc, char **argv)
     
     // No inputs, so print help text
     if (argc == 1)
-    {        
+    {   
+		printf("Transforms a volume using provided displacement fields, which have to be of the same size as the reference volume. The input volume is automagically resized and rescaled to match the input volume. \n\n");     
         printf("Usage:\n\n");
         printf("TransformVolume volume_to_transform.nii reference_volume.nii displacement_field_x.nii displacement_field_y.nii displacement_field_z.nii  [options]\n\n");
         printf("Options:\n\n");
-        printf("-platform                  The OpenCL platform to use (default 0) \n");
-        printf("-device                    The OpenCL device to use for the specificed platform (default 0) \n");
-		printf("-output                    Set output filename (default volume_to_transform_warped.nii) \n");
-        printf("-quiet                     Don't print anything to the terminal (default false) \n");
+        printf(" -platform                  The OpenCL platform to use (default 0) \n");
+        printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
+		printf(" -output                    Set output filename (default volume_to_transform_warped.nii) \n");
+        printf(" -quiet                     Don't print anything to the terminal (default false) \n");
         printf("\n\n");
         
         return 1;
@@ -290,7 +297,7 @@ int main(int argc, char **argv)
     }
 
     nifti_image *referenceVolume = nifti_image_read(argv[2],1);    
-    if (inputVolume == NULL)
+    if (referenceVolume == NULL)
     {
         printf("Could not open reference volume!\n");
         return -1;
@@ -318,20 +325,32 @@ int main(int argc, char **argv)
     }
     
     // Get data dimensions from input data
-    DATA_W = inputVolume->nx;
-    DATA_H = inputVolume->ny;
-	DATA_D = inputVolume->nz;    
+    INPUT_DATA_W = inputVolume->nx;
+    INPUT_DATA_H = inputVolume->ny;
+	INPUT_DATA_D = inputVolume->nz;    
+
+	INPUT_VOXEL_SIZE_X = inputVolume->dx;
+	INPUT_VOXEL_SIZE_Y = inputVolume->dy;
+	INPUT_VOXEL_SIZE_Z = inputVolume->dz;
+
+    REFERENCE_DATA_W = referenceVolume->nx;
+    REFERENCE_DATA_H = referenceVolume->ny;
+	REFERENCE_DATA_D = referenceVolume->nz;    
     
+	REFERENCE_VOXEL_SIZE_X = referenceVolume->dx;
+	REFERENCE_VOXEL_SIZE_Y = referenceVolume->dy;
+	REFERENCE_VOXEL_SIZE_Z = referenceVolume->dz;
+
     // Check if the displacement volumes have the same size
 	int DISPLACEMENT_DATA_W, DISPLACEMENT_DATA_H, DISPLACEMENT_DATA_D;
 
 	DISPLACEMENT_DATA_W = inputDisplacementX->nx;
 	DISPLACEMENT_DATA_H = inputDisplacementX->ny;
 	DISPLACEMENT_DATA_D = inputDisplacementX->nz;
-
-	if ( (DISPLACEMENT_DATA_W != DATA_W) || (DISPLACEMENT_DATA_H != DATA_H) || (DISPLACEMENT_DATA_D != DATA_D) )
+	
+	if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
 	{
-        printf("Dimensions of displacement field x does not match volume to transform!\n");
+        printf("Dimensions of displacement field x does not match the reference volume!\n");
         return -1;
 	}
 
@@ -339,9 +358,9 @@ int main(int argc, char **argv)
 	DISPLACEMENT_DATA_H = inputDisplacementY->ny;
 	DISPLACEMENT_DATA_D = inputDisplacementY->nz;
 
-	if ( (DISPLACEMENT_DATA_W != DATA_W) || (DISPLACEMENT_DATA_H != DATA_H) || (DISPLACEMENT_DATA_D != DATA_D) )
+	if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
 	{
-        printf("Dimensions of displacement field y does not match volume to transform!\n");
+        printf("Dimensions of displacement field y does not match the reference volume!\n");
         return -1;
 	}
 
@@ -349,30 +368,37 @@ int main(int argc, char **argv)
 	DISPLACEMENT_DATA_H = inputDisplacementZ->ny;
 	DISPLACEMENT_DATA_D = inputDisplacementZ->nz;
 
-	if ( (DISPLACEMENT_DATA_W != DATA_W) || (DISPLACEMENT_DATA_H != DATA_H) || (DISPLACEMENT_DATA_D != DATA_D) )
+	if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
 	{
-        printf("Dimensions of displacement field z does not match volume to transform!\n");
+        printf("Dimensions of displacement field z does not match the reference volume!\n");
         return -1;
 	}
 
     // Calculate size, in bytes
     
-    int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
-    
+    int INPUT_VOLUME_SIZE = INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D * sizeof(float);
+    int REFERENCE_VOLUME_SIZE = REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D * sizeof(float);
+
     // Print some info
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Volume size: %i x %i x %i \n",  DATA_W, DATA_H, DATA_D);
+        printf("Input volume size: %i x %i x %i \n",  INPUT_DATA_W, INPUT_DATA_H, INPUT_DATA_D);
+        printf("Input volume voxel size: %f x %f x %f \n",  INPUT_VOXEL_SIZE_X, INPUT_VOXEL_SIZE_Y, INPUT_VOXEL_SIZE_Z);
+        printf("Reference volume size: %i x %i x %i \n",  REFERENCE_DATA_W, REFERENCE_DATA_H, REFERENCE_DATA_D);
+        printf("Reference volume voxel size: %f x %f x %f \n",  REFERENCE_VOXEL_SIZE_X, REFERENCE_VOXEL_SIZE_Y, REFERENCE_VOXEL_SIZE_Z);
     }
+
+	if (PRINT)
+	{
+		printf("Input volume size in bytes: %i \n",  INPUT_VOLUME_SIZE);
+	}
             
     // ------------------------------------------------
     
-    // Allocate memory on the host
+    // Allocate memory on the host        
     
-    
-    
-    if (!AllocateMemory(h_Volume, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
+    if (!AllocateMemory(h_Input_Volume, INPUT_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
     {
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputVolume);
@@ -383,7 +409,7 @@ int main(int argc, char **argv)
         return -1;
     }
     
-    if (!AllocateMemory(h_Interpolated_Volume, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
+    if (!AllocateMemory(h_Interpolated_Volume, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
     {
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputVolume);
@@ -395,7 +421,7 @@ int main(int argc, char **argv)
     }    
     
     
-    if (!AllocateMemory(h_Displacement_Field_X, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
+    if (!AllocateMemory(h_Displacement_Field_X, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
     {
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputVolume);
@@ -405,7 +431,7 @@ int main(int argc, char **argv)
         nifti_image_free(inputDisplacementZ);
         return -1;
     }
-    if (!AllocateMemory(h_Displacement_Field_Y, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
+    if (!AllocateMemory(h_Displacement_Field_Y, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
     {
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputVolume);
@@ -415,7 +441,7 @@ int main(int argc, char **argv)
         nifti_image_free(inputDisplacementZ);
         return -1;
     }
-    if (!AllocateMemory(h_Displacement_Field_Z, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
+    if (!AllocateMemory(h_Displacement_Field_Z, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
     {
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputVolume);
@@ -431,18 +457,18 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputVolume->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
         {
-            h_Volume[i] = (float)p[i];
+            h_Input_Volume[i] = (float)p[i];
         }
     }
     else if ( inputVolume->datatype == DT_FLOAT )
     {
         float *p = (float*)inputVolume->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
         {
-            h_Volume[i] = p[i];
+            h_Input_Volume[i] = p[i];
         }
     }
     else
@@ -461,7 +487,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputDisplacementX->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_X[i] = (float)p[i];
         }
@@ -470,7 +496,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputDisplacementX->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_X[i] = p[i];
         }
@@ -491,7 +517,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputDisplacementY->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
 	        h_Displacement_Field_Y[i] = (float)p[i];
         }
@@ -500,7 +526,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputDisplacementY->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_Y[i] = p[i];			
         }
@@ -521,7 +547,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputDisplacementZ->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_Z[i] = (float)p[i];
         }
@@ -530,7 +556,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputDisplacementZ->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_Z[i] = p[i];
         }
@@ -592,6 +618,7 @@ int main(int argc, char **argv)
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         nifti_image_free(inputVolume);
+        nifti_image_free(referenceVolume);
         nifti_image_free(inputDisplacementX);
         nifti_image_free(inputDisplacementY);
         nifti_image_free(inputDisplacementZ);
@@ -601,10 +628,23 @@ int main(int argc, char **argv)
     else if (BROCCOLI.GetOpenCLInitiated() == 1)
     {
         // Set all necessary pointers and values
-        BROCCOLI.SetInputT1Volume(h_Volume);        
-        BROCCOLI.SetT1Width(DATA_W);
-        BROCCOLI.SetT1Height(DATA_H);
-        BROCCOLI.SetT1Depth(DATA_D);               
+        BROCCOLI.SetInputT1Volume(h_Input_Volume);        
+        BROCCOLI.SetT1Width(INPUT_DATA_W);
+        BROCCOLI.SetT1Height(INPUT_DATA_H);
+        BROCCOLI.SetT1Depth(INPUT_DATA_D);  
+		BROCCOLI.SetT1VoxelSizeX(INPUT_VOXEL_SIZE_X);
+		BROCCOLI.SetT1VoxelSizeY(INPUT_VOXEL_SIZE_Y);
+		BROCCOLI.SetT1VoxelSizeZ(INPUT_VOXEL_SIZE_Z);
+             
+        BROCCOLI.SetMNIWidth(REFERENCE_DATA_W);
+        BROCCOLI.SetMNIHeight(REFERENCE_DATA_H);
+        BROCCOLI.SetMNIDepth(REFERENCE_DATA_D);
+		BROCCOLI.SetMNIVoxelSizeX(REFERENCE_VOXEL_SIZE_X);
+		BROCCOLI.SetMNIVoxelSizeY(REFERENCE_VOXEL_SIZE_Y);
+		BROCCOLI.SetMNIVoxelSizeZ(REFERENCE_VOXEL_SIZE_Z);
+
+		BROCCOLI.SetMMT1ZCUT(0);  
+
         BROCCOLI.SetInterpolationMode(LINEAR);  
 		BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);      
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_Volume);
@@ -613,9 +653,19 @@ int main(int argc, char **argv)
         {
             BROCCOLI.SetDebug(true);            
         }
-                            
+        
+		for (int i = 0; i < numberOfMemoryPointers; i++)
+		{
+			printf("Pointer i is %i \n",allMemoryPointers[i]);
+		}
+                    
         // Run the actual transformation
         BROCCOLI.TransformVolumesNonParametricWrapper();
+
+		for (int i = 0; i < numberOfMemoryPointers; i++)
+		{
+			printf("Pointer i is %i \n",allMemoryPointers[i]);
+		}
      
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
@@ -642,31 +692,37 @@ int main(int argc, char **argv)
     nifti_image *outputNifti = new nifti_image;
     
     // Copy information from input data
-    outputNifti = nifti_copy_nim_info(referenceVolume);    
+	outputNifti = nifti_copy_nim_info(referenceVolume);    
+	
 
 	// Change filename
 	if (!CHANGE_OUTPUT_NAME)
 	{
-    	nifti_set_filenames(outputNifti, inputVolume->fname, 0, 1);    
+    	nifti_set_filenames(outputNifti, inputVolume->fname, 0, 1);
+
 	    // Write transformed data to file
 	    WriteNifti(outputNifti,h_Interpolated_Volume,"_warped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+
+		//nifti_set_filenames(outputNifti, "warped.nii", 0, 1);        
+		//WriteNifti(outputNifti,h_Interpolated_Volume,"",DONT_ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 	else 
 	{
-    	nifti_set_filenames(outputNifti, outputFilename, 0, 1);
+    	//nifti_set_filenames(outputNifti, outputFilename, 0, 1);
     	// Write transformed data to file
-	    WriteNifti(outputNifti,h_Interpolated_Volume,"",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);    
+	    //WriteNifti(outputNifti,h_Interpolated_Volume,"",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);    
 	}
                  
             
     // Free all memory
-    FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    nifti_image_free(inputVolume);
+	FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);	   
+	nifti_image_free(inputVolume);
     nifti_image_free(referenceVolume);
     nifti_image_free(inputDisplacementX);
     nifti_image_free(inputDisplacementY);
     nifti_image_free(inputDisplacementZ);
     nifti_image_free(outputNifti);
+	
 
     return 1;
 }
