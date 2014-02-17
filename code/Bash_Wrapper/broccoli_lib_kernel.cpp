@@ -11463,6 +11463,7 @@ __kernel void CalculateClusterSizes(__global int* Cluster_Indices,
 	// Threshold data
 	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
 	{
+		// Increment counter for the current cluster index
 		atomic_inc(&Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]]);
 	}
 }
@@ -11481,6 +11482,8 @@ __kernel void CalculateLargestCluster(__global int* Cluster_Sizes,
 		return;
 
 	int cluster_size = Cluster_Sizes[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+
+	// Most cluster size counters are zero, so avoid running atomic max for those
 	if (cluster_size == 0)
 		return;
 
