@@ -5976,7 +5976,7 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
     clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
 
     // Change resolution and size of input volume
-    ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, 0, INTERPOLATION_MODE);
+    ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE);
 
 	// Copy the interpolated volume to host
 	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
