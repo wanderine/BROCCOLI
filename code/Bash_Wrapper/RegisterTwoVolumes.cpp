@@ -30,6 +30,8 @@
 #define ADD_FILENAME true
 #define DONT_ADD_FILENAME true
 
+//#define HAVE_ZLIB 1
+
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
 
@@ -1707,13 +1709,7 @@ int main(int argc, char **argv)
     WriteNifti(outputNifti,h_Aligned_T1_Volume,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     WriteNifti(outputNifti,h_Aligned_T1_Volume_NonParametric,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
               	
-	end_ = GetWallTime();
-
-	if (VERBOS)
- 	{
-		printf("It took %f seconds to write the two nifti files\n",(float)(end_ - start_));
-	}
-
+	
     if (WRITE_DISPLACEMENT_FIELD)
     {
         WriteNifti(outputNifti,h_Displacement_Field_X,"_displacement_x",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -1739,6 +1735,13 @@ int main(int argc, char **argv)
         WriteNifti(outputNifti,h_Quadrature_Filter_Response_3_Imag,"_quadrature_filter_response_3_imag",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);        
     }
     
+	end_ = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to write the nifti files\n",(float)(end_ - start_));
+	}
+
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
     nifti_image_free(inputT1);
