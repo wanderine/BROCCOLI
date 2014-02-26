@@ -5,7 +5,7 @@ BROCCOLI is a software for analysis of fMRI (functional magnetic resonance imagi
 
 For more information, see
 
-Eklund, A., Dufort, P., Villani, M., LaConte, S., BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs, Frontiers in Neuroinformatics, 8:24, 2014, http://dx.doi.org/10.3389/fninf.2014.00024 
+Eklund, A., Dufort, P., Villani, M., LaConte, S., BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs, Frontiers in Neuroinformatics, 8:24, 2014, http://journal.frontiersin.org/Journal/10.3389/fninf.2014.00024/abstract
 
 --------------------------------------------------------------------
 
