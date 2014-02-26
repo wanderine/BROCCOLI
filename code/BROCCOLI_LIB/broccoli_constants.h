@@ -1,6 +1,10 @@
 #define EPI 0
 #define MNI 1
 
+#define MATLAB 0
+#define PYTHON 1
+#define BASH 2
+
 #define CCA 0
 #define GLM 1
 

@@ -114,6 +114,7 @@ class BROCCOLI_LIB
 		// Constructor & destructor
 		BROCCOLI_LIB();
 		BROCCOLI_LIB(cl_uint platform, cl_uint device);
+		BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper);
 		~BROCCOLI_LIB();
 
 		// Set functions for GUI / Wrappers
@@ -121,6 +122,7 @@ class BROCCOLI_LIB
 		// void SetOpenCLPlatform(int N);
 
 		void SetDebug(bool debug);
+		void SetWrapper(int wrapper);
 
 		void SetMask(float* input);
 		void SetEPIMask(float* input);
@@ -886,6 +888,7 @@ class BROCCOLI_LIB
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
 		bool DEBUG;
+		int WRAPPER;
 		//nifti_image *nifti_data;
 
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;

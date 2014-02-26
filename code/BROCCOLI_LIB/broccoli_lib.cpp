@@ -103,6 +103,14 @@ BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device)
 	OpenCLInitiate(platform,device);
 }
 
+BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper)
+{
+	SetStartValues();
+	WRAPPER = wrapper;
+	OPENCL_INITIATED = 0;
+	OpenCLInitiate(platform,device);
+}
+
 // Destructor
 BROCCOLI_LIB::~BROCCOLI_LIB()
 {
@@ -114,6 +122,11 @@ void BROCCOLI_LIB::SetDebug(bool debug)
 	DEBUG = debug;
 }
 
+void BROCCOLI_LIB::SetWrapper(int wrapper)
+{
+	WRAPPER = wrapper;
+}
+
 //void BROCCOLI_LIB::SetSaveDisplacementField(bool save)
 //{
 //	DEBUG = debug;
@@ -123,6 +136,7 @@ void BROCCOLI_LIB::SetDebug(bool debug)
 void BROCCOLI_LIB::SetStartValues()
 {
 	DEBUG = false;
+	WRAPPER = -1;
 
 	EPI_Smoothing_FWHM = 8.0f;
 	AR_Smoothing_FWHM = 8.0f;
@@ -843,6 +857,7 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 										size_t ipos = vendor_string.find("Intel");
 										size_t apos = vendor_string.find("AMD");
 
+										binaryFilename = "broccoli_lib_kernel_unknown";
 										if (npos != std::string::npos)
 										{
 											VENDOR = NVIDIA;
@@ -857,6 +872,10 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 										{
 											VENDOR = AMD;
 											binaryFilename = "broccoli_lib_kernel_AMD";
+										}
+										else if (WRAPPER == BASH)
+										{
+											printf("\nUnsupported OpenCL vendor!\n\n");
 										}
 
 										// Create a command queue for the selected device
@@ -924,7 +943,15 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 												{
 													build_info.append(value);
 												}
+												else if (WRAPPER == BASH)
+												{
+													printf("\nUnable to get OpenCL build info! \n\n");
+												}
 												free(value);
+											}
+											else if (WRAPPER == BASH)
+											{
+												printf("\nUnable to get size of OpenCL build info!\n\n");
 											}
 
 											if (buildProgramError == SUCCESS)
@@ -1110,16 +1137,60 @@ void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 												OPENCL_INITIATED = 1;
 											}
+											else if (WRAPPER == BASH)
+											{
+												printf("\nUnable to build OpenCL program. Aborting! \n\n");
+											}
 										}
+										else if (WRAPPER == BASH)
+										{
+											printf("\nUnable to create an OpenCL command queue. Aborting! \n\n");
+										}
+									}
+									else if (WRAPPER == BASH)
+									{
+										printf("\nUnable to get OpenCL context info. Aborting! \n\n");
 									}
 									free(clDevices);
 								}
+								else if (WRAPPER == BASH)
+								{
+									printf("\nUnable to get size of OpenCL context info. Aborting! \n\n");
+								}
+							}
+							else if (WRAPPER == BASH)
+							{
+								printf("\nUnable to create an OpenCL context. Aborting! \n\n");
 							}
 						}
+						else if (WRAPPER == BASH)
+						{
+							printf("\nUnable to get OpenCL device id's for the specified platform. Aborting! \n\n");
+						}
+					}
+					else if (WRAPPER == BASH)
+					{
+						printf("\nYou tried to use the invalid OpenCL device %i, valid devices for the selected platform are 0 <= device < %i. Aborting! \n\n",OPENCL_DEVICE,deviceIdCount);
 					}
 				}
+				else if (WRAPPER == BASH)
+				{
+					printf("\nUnable to get number of OpenCL devices for the specified platform. Aborting! \n\n");
+				}
+			}
+			else if (WRAPPER == BASH)
+			{
+				printf("\nYou tried to use the invalid OpenCL platform %i, valid platforms are 0 <= platform < %i. Aborting! \n\n",OPENCL_PLATFORM,platformIdCount);
 			}
 		}
+		else if (WRAPPER == BASH)
+		{
+			printf("\nUnable to get OpenCL platform id's. Aborting! \n\n");
+		}
+	}
+	else if (WRAPPER == BASH)
+	{
+		printf("\nUnable to get number of OpenCL platforms. Aborting! \n\n");
 	}
 }
 

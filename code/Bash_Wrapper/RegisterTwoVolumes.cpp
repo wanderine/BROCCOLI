@@ -1500,7 +1500,7 @@ int main(int argc, char **argv)
     
 	start_ = GetWallTime();
 
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE);
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // Bash
 
 	end_ = GetWallTime();
 
@@ -1604,6 +1604,8 @@ int main(int argc, char **argv)
             BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
         }
         
+		
+
         if (DEBUG)
         {
             BROCCOLI.SetDebug(true);
