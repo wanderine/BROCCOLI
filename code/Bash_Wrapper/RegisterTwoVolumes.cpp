@@ -62,41 +62,92 @@ void FreeAllMemory(void **pointers, int N)
     }
 }
 
+void FreeAllNiftiImages(nifti_image **niftiImages, int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+		if (niftiImages[i] != NULL)
+		{
+			nifti_image_free(niftiImages[i]);
+		}
+    }
+}
 
-bool AllocateMemory(float *& pointer, int size, void** pointers, int& N)
+void ReadBinaryFile(float* pointer, int size, const char* filename, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages)
+{
+	if (pointer == NULL)
+    {
+        printf("The provided pointer for file %s is NULL, aborting! \n",filename);
+        FreeAllMemory(pointers,Npointers);
+		FreeAllNiftiImages(niftiImages,Nimages);
+        exit(EXIT_FAILURE);
+	}	
+
+	FILE *fp = NULL; 
+	fp = fopen(filename,"rb");
+
+    if (fp != NULL)
+    {
+        fread(pointer,sizeof(float),size,fp);
+        fclose(fp);
+    }
+    else
+    {
+        printf("Could not open %s , aborting! \n",filename);
+        FreeAllMemory(pointers,Npointers);
+		FreeAllNiftiImages(niftiImages,Nimages);
+        exit(EXIT_FAILURE);
+    }
+}
+
+void AllocateMemory(float *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
 {
     pointer = (float*)malloc(size);
     if (pointer != NULL)
     {
-        pointers[N] = (void*)pointer;
-        N++;
-        return true;
+        pointers[Npointers] = (void*)pointer;
+        Npointers++;
     }
     else
     {
-        printf("Could not allocate host memory! \n");        
-        return false;
+        printf("Could not allocate host memory for variable %s ! \n",variable);        
+		FreeAllMemory(pointers, Npointers);
+		FreeAllNiftiImages(niftiImages, Nimages);
+		exit(EXIT_FAILURE);        
     }
 }
     
-bool AllocateMemoryFloat2(cl_float2 *& pointer, int size, void** pointers, int& N)
+void AllocateMemoryFloat2(cl_float2 *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
 {
     pointer = (cl_float2*)malloc(size);
     if (pointer != NULL)
     {
-        pointers[N] = (void*)pointer;
-        N++;
-        return true;
+        pointers[Npointers] = (void*)pointer;
+        Npointers++;
     }
     else
     {
-        printf("Could not allocate host memory! \n");        
-        return false;
+        printf("Could not allocate host memory for variable %s ! \n",variable);        
+		FreeAllMemory(pointers, Npointers);
+		FreeAllNiftiImages(niftiImages, Nimages);
+		exit(EXIT_FAILURE);        
     }
 }
 
 bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool addFilename, bool checkFilename)
 {       
+	if (data == NULL)
+    {
+        printf("The provided data pointer for file %s is NULL, aborting writing nifti file! \n",filename);
+		return false;
+	}	
+	if (inputNifti == NULL)
+    {
+        printf("The provided nifti pointer for file %s is NULL, aborting writing nifti file! \n",filename);
+		return false;
+	}	
+
+
     char* filenameWithExtension;
     
     // Add the provided filename to the original filename, before the dot
@@ -128,10 +179,8 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
         strcat(filenameWithExtension,inputNifti->fname+dotPosition);    
     }
         
-    // Create new nifti image
-    nifti_image *outputNifti = new nifti_image;
     // Copy information from input data
-    outputNifti = nifti_copy_nim_info(inputNifti);    
+    nifti_image *outputNifti = nifti_copy_nim_info(inputNifti);    
     // Set data pointer 
     outputNifti->data = (void*)data;        
     // Set data type to float
@@ -223,8 +272,11 @@ int main(int argc, char **argv)
     float           *h_Slice_Sums, *h_Top_Slice;
     float           *h_A_Matrix, *h_h_Vector;
         
-    void            *allMemoryPointers[500];
+    void*           allMemoryPointers[500];
     int             numberOfMemoryPointers = 0;
+
+	nifti_image*	allNiftiImages[500];
+	int				numberOfNiftiImages = 0;
     
     // Default parameters
         
@@ -284,12 +336,12 @@ int main(int argc, char **argv)
         printf(" -debug                     Get additional debug information saved as nifti files (default no). Warning: This will use a lot of extra memory! \n");
         printf("\n\n");
         
-        return 1;
+        return EXIT_SUCCESS;
     }
     else if (argc < 3)
     {
         printf("Need two input volumes!\n\n");
-		return -1;
+		return EXIT_FAILURE;
     }
     // Try to open files
     else if (argc > 1)
@@ -298,7 +350,7 @@ int main(int argc, char **argv)
         if (fp == NULL)
         {
             printf("Could not open file %s !\n",argv[1]);
-            return -1;
+            return EXIT_FAILURE;
         }
         fclose(fp);     
         
@@ -306,7 +358,7 @@ int main(int argc, char **argv)
         if (fp == NULL)
         {
             printf("Could not open file %s !\n",argv[2]);
-            return -1;
+            return EXIT_FAILURE;
         }
         fclose(fp);            
     }
@@ -319,56 +371,92 @@ int main(int argc, char **argv)
         char *p;
         if (strcmp(input,"-platform") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -platform !\n");
+                return EXIT_FAILURE;
+			}
+
             OPENCL_PLATFORM = (int)strtol(argv[i+1], &p, 10);
             if (OPENCL_PLATFORM < 0)
             {
                 printf("OpenCL platform must be >= 0!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
         else if (strcmp(input,"-device") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -device !\n");
+                return EXIT_FAILURE;
+			}
+
             OPENCL_DEVICE = (int)strtol(argv[i+1], &p, 10);
             if (OPENCL_DEVICE < 0)
             {
                 printf("OpenCL device must be >= 0!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
         else if (strcmp(input,"-iterationslinear") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -iterationslinear !\n");
+                return EXIT_FAILURE;
+			}
+
             NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION = (int)strtol(argv[i+1], &p, 10);
             if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION <= 0)
             {
                 printf("Number of iterations must be a positive number!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
         else if (strcmp(input,"-iterationsnonlinear") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -iterationslinear !\n");
+                return EXIT_FAILURE;
+			}
+
             NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION = (int)strtol(argv[i+1], &p, 10);
             if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION < 0)
             {
                 printf("Number of iterations must be a positive number!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
         else if (strcmp(input,"-lowestscale") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -lowestscale !\n");
+                return EXIT_FAILURE;
+			}
+
             COARSEST_SCALE = (int)strtol(argv[i+1], &p, 10);
             if ( (COARSEST_SCALE != 1) && (COARSEST_SCALE != 2) && (COARSEST_SCALE != 4) && (COARSEST_SCALE != 8) )
             {
                 printf("Lowest scale must be 1, 2, 4 or 8!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
         else if (strcmp(input,"-t1zcut") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -t1zcut !\n");
+                return EXIT_FAILURE;
+			}
+
             MM_T1_Z_CUT = (int)strtol(argv[i+1], &p, 10);
             i += 2;
         }
@@ -410,6 +498,12 @@ int main(int argc, char **argv)
         }
         else if (strcmp(input,"-output") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read name after -output !\n");
+                return EXIT_FAILURE;
+			}
+
 			CHANGE_OUTPUT_NAME = true;
             outputFilename = argv[i+1];
             i += 2;
@@ -417,11 +511,11 @@ int main(int argc, char **argv)
         else
         {
             printf("Unrecognized option! %s \n",argv[i]);
-            return -1;
+            return EXIT_FAILURE;
         }                
     }
     	
-	double start_ = GetWallTime();
+	double startTime = GetWallTime();
     
     // Read data
 
@@ -430,22 +524,26 @@ int main(int argc, char **argv)
     if (inputT1 == NULL)
     {
         printf("Could not open first volume!\n");
-        return -1;
+        return EXIT_FAILURE;
     }
+	allNiftiImages[numberOfNiftiImages] = inputT1;
+	numberOfNiftiImages++;
     
     nifti_image *inputMNI = nifti_image_read(argv[2],1);
     
     if (inputMNI == NULL)
     {
         printf("Could not open second volume!\n");
-        return -1;
+        return EXIT_FAILURE;
     }
+	allNiftiImages[numberOfNiftiImages] = inputMNI;
+	numberOfNiftiImages++;
     	
-	double end_ = GetWallTime();
+	double endTime = GetWallTime();
 
 	if (VERBOS)
  	{
-		printf("It took %f seconds to read the two nifti files\n",(float)(end_ - start_));
+		printf("It took %f seconds to read the two nifti files\n",(float)(endTime - startTime));
 	}
 
     // Get data dimensions from input data
@@ -505,450 +603,87 @@ int main(int argc, char **argv)
     // ------------------------------------------------
     
     // Allocate memory on the host
-    
-    //h_MNI_Brain_Volume                                  = (float *)mxMalloc(MNI_VOLUME_SIZE);
-    //h_MNI_Brain_Mask                                    = (float *)mxMalloc(MNI_VOLUME_SIZE);
-    
-    //h_A_Matrix                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));
-    //h_h_Vector                                          = (float*)mxMalloc(NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float));                               
-    
-    //h_Slice_Sums                                        = (float *)mxMalloc(MNI_DATA_D * sizeof(float));
-    //h_Top_Slice                                         = (float *)mxMalloc(1 * sizeof(float));
-    
 
-	start_ = GetWallTime();
+	startTime = GetWallTime();
     
-    if (!AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
+	AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INPUT_VOLUME");
+	AllocateMemory(h_Interpolated_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INTERPOLATED_INPUT_VOLUME");
+	AllocateMemory(h_MNI_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "REFERENCE_VOLUME");
+	AllocateMemory(h_Aligned_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "LINEARLY_ALIGNED_INPUT_VOLUME");    
+   	AllocateMemory(h_Aligned_T1_Volume_NonParametric, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "NONLINEARLY_ALIGNED_INPUT_VOLUME");    
+   	AllocateMemory(h_Registration_Parameters, IMAGE_REGISTRATION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "REGISTRATION_PARAMETERS");    
+        
+	AllocateMemory(h_Quadrature_Filter_1_Parametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_1_Parametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_2_Parametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_2_Parametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_3_Parametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_LINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_3_Parametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_LINEAR_REGISTRATION_IMAG");    
     
-    if (!AllocateMemory(h_Interpolated_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }    
-    
-    if (!AllocateMemory(h_MNI_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }        
-    
-    if (!AllocateMemory(h_Aligned_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Aligned_T1_Volume_NonParametric, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Registration_Parameters, IMAGE_REGISTRATION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    // Quadrature filters for parametric registration
-    if (!AllocateMemory(h_Quadrature_Filter_1_Parametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_1_Parametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_2_Parametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_2_Parametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_3_Parametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_3_Parametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    // Quadrature filters for non-parametric registration
-    if (!AllocateMemory(h_Quadrature_Filter_1_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_1_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_2_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_2_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_3_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_3_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_4_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_4_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_5_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_5_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_6_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_6_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    // Projection tensors
-    if (!AllocateMemory(h_Projection_Tensor_1, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Projection_Tensor_2, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Projection_Tensor_3, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Projection_Tensor_4, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Projection_Tensor_5, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Projection_Tensor_6, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-     
-    // Filter directions
-    if (!AllocateMemory(h_Filter_Directions_X, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Filter_Directions_Y, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Filter_Directions_Z, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
+	AllocateMemory(h_Quadrature_Filter_1_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_1_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_2_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_2_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_3_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_3_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_4_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_4_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_4_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_4_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_5_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_5_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_5_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_5_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_6_NonParametric_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_6_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_6_NonParametric_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_6_NONLINEAR_REGISTRATION_IMAG");    
+
+    AllocateMemory(h_Projection_Tensor_1, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_1");    
+    AllocateMemory(h_Projection_Tensor_2, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_2");    
+    AllocateMemory(h_Projection_Tensor_3, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_3");    
+    AllocateMemory(h_Projection_Tensor_4, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_4");    
+    AllocateMemory(h_Projection_Tensor_5, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_5");    
+    AllocateMemory(h_Projection_Tensor_6, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_6");    
+
+    AllocateMemory(h_Filter_Directions_X, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "FILTER_DIRECTIONS_X");
+    AllocateMemory(h_Filter_Directions_Y, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "FILTER_DIRECTIONS_Y");        
+    AllocateMemory(h_Filter_Directions_Z, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "FILTER_DIRECTIONS_Z");                
+      
     if (WRITE_DISPLACEMENT_FIELD)
     {
-        if (!AllocateMemory(h_Displacement_Field_X, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Displacement_Field_Y, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Displacement_Field_Z, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }   
+	    AllocateMemory(h_Displacement_Field_X, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DISPLACEMENT_FIELD_X");
+		AllocateMemory(h_Displacement_Field_Y, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DISPLACEMENT_FIELD_Y");        
+		AllocateMemory(h_Displacement_Field_Z, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DISPLACEMENT_FIELD_Z");                
     }
     
     if (DEBUG)
     {                    
-        if (!AllocateMemory(h_Quadrature_Filter_Response_1_Real, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_1_Imag, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_2_Real, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_2_Imag, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_3_Real, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_3_Imag, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemoryFloat2(h_Quadrature_Filter_Response_1, MNI2_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemoryFloat2(h_Quadrature_Filter_Response_2, MNI2_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemoryFloat2(h_Quadrature_Filter_Response_3, MNI2_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Phase_Differences, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Phase_Certainties, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_Phase_Gradients, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }               
-        if (!AllocateMemory(h_t11, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_t12, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_t13, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_t22, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_t23, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }
-        if (!AllocateMemory(h_t33, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputT1);
-            nifti_image_free(inputMNI);
-            return -1;
-        }        
+		AllocateMemory(h_Quadrature_Filter_Response_1_Real, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_1_REAL");
+		AllocateMemory(h_Quadrature_Filter_Response_1_Imag, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_1_IMAG");                
+		AllocateMemory(h_Quadrature_Filter_Response_2_Real, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_2_REAL");
+		AllocateMemory(h_Quadrature_Filter_Response_2_Imag, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_2_IMAG");                
+		AllocateMemory(h_Quadrature_Filter_Response_3_Real, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_3_REAL");
+		AllocateMemory(h_Quadrature_Filter_Response_3_Imag, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_3_IMAG");                
+
+		AllocateMemoryFloat2(h_Quadrature_Filter_Response_1, MNI2_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_1");
+		AllocateMemoryFloat2(h_Quadrature_Filter_Response_2, MNI2_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_2");
+		AllocateMemoryFloat2(h_Quadrature_Filter_Response_3, MNI2_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_3");
+
+		AllocateMemory(h_Phase_Differences, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PHASE_DIFFERENCES");                
+		AllocateMemory(h_Phase_Certainties, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PHASE_CERTAINTIES");                
+		AllocateMemory(h_Phase_Gradients, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PHASE_GRADIENTS");                
+
+		AllocateMemory(h_t11, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TENSOR_11");
+		AllocateMemory(h_t12, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TENSOR_12");                
+		AllocateMemory(h_t13, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TENSOR_13");                
+		AllocateMemory(h_t22, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TENSOR_22");                
+		AllocateMemory(h_t23, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TENSOR_23");                
+		AllocateMemory(h_t33, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TENSOR_33");                                
     }
 
-	end_ = GetWallTime();
+	endTime = GetWallTime();
     
 	if (VERBOS)
  	{
-		printf("It took %f seconds to allocate memory\n",(float)(end_ - start_));
+		printf("It took %f seconds to allocate memory\n",(float)(endTime - startTime));
 	}
 
-	start_ = GetWallTime();
+	startTime = GetWallTime();
 
     // Convert data to floats
     if ( inputT1->datatype == DT_SIGNED_SHORT )
@@ -973,9 +708,8 @@ int main(int argc, char **argv)
     {
         printf("Unknown data type in input volume, aborting!\n");
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
+		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+        return EXIT_FAILURE;
     }
     
     if ( inputMNI->datatype == DT_SIGNED_SHORT )
@@ -1000,16 +734,15 @@ int main(int argc, char **argv)
     {
         printf("Unknown data type in reference volume, aborting!\n");
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
+		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+        return EXIT_FAILURE;
     }
     
-	end_ = GetWallTime();
+	endTime = GetWallTime();
 
 	if (VERBOS)
  	{
-		printf("It took %f seconds to convert data to floats\n",(float)(end_ - start_));
+		printf("It took %f seconds to convert data to floats\n",(float)(endTime - startTime));
 	}
 
     if (FLIPUD)
@@ -1076,450 +809,99 @@ int main(int argc, char **argv)
         free(temp);
     }
 
-	start_ = GetWallTime();
+	startTime = GetWallTime();
     
     // Read quadrature filters for parametric registration, three real valued and three imaginary valued
-    fp = fopen("filter1_real_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_1_Parametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter1_real_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter1_imag_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_1_Parametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);        
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter1_imag_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }            
+	ReadBinaryFile(h_Quadrature_Filter_1_Parametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter1_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_1_Parametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter1_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_Parametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter2_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_Parametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter2_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_Parametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter3_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_Parametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter3_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
 
-    fp = fopen("filter2_real_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_2_Parametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter2_real_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter2_imag_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_2_Parametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter2_imag_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter3_real_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_3_Parametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter3_real_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter3_imag_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_3_Parametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter3_imag_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    // Read quadrature filters for non-parametric registration, six real valued and six imaginary valued
-    fp = fopen("filter1_real_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_1_NonParametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter1_real_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter1_imag_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_1_NonParametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);        
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter1_imag_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter2_real_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_2_NonParametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter2_real_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter2_imag_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_2_NonParametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter2_imag_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter3_real_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_3_NonParametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter3_real_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter3_imag_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_3_NonParametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter3_imag_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter4_real_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_4_NonParametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter4_real_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter4_imag_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_4_NonParametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);        
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter4_imag_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter5_real_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_5_NonParametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter5_real_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter5_imag_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_5_NonParametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter5_imag_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter6_real_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_6_NonParametric_Registration_Real,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter6_real_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter6_imag_nonparametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_6_NonParametric_Registration_Imag,sizeof(float),IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter6_imag_nonparametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    // Read projection tensors
-    fp = fopen("projection_tensor1.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Projection_Tensor_1,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open projection_tensor1.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("projection_tensor2.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Projection_Tensor_2,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open projection_tensor2.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("projection_tensor3.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Projection_Tensor_3,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open projection_tensor3.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    
-    fp = fopen("projection_tensor4.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Projection_Tensor_4,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open projection_tensor4.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("projection_tensor5.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Projection_Tensor_5,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open projection_tensor5.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
+	// Read quadrature filters for nonparametric registration, six real valued and six imaginary valued
+	ReadBinaryFile(h_Quadrature_Filter_1_NonParametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter1_real_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_1_NonParametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter1_imag_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_NonParametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter2_real_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_NonParametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter2_imag_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_NonParametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter3_real_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_NonParametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter3_imag_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_4_NonParametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter4_real_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_4_NonParametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter4_imag_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_5_NonParametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter5_real_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_5_NonParametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter5_imag_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_6_NonParametric_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter6_real_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_6_NonParametric_Registration_Imag,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,"filter6_imag_nonparametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+
+    // Read projection tensors   
+    ReadBinaryFile(h_Projection_Tensor_1,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"projection_tensor1.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+    ReadBinaryFile(h_Projection_Tensor_2,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"projection_tensor2.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+    ReadBinaryFile(h_Projection_Tensor_3,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"projection_tensor3.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+    ReadBinaryFile(h_Projection_Tensor_4,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"projection_tensor4.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+    ReadBinaryFile(h_Projection_Tensor_5,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"projection_tensor5.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+    ReadBinaryFile(h_Projection_Tensor_6,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"projection_tensor6.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
         
-    fp = fopen("projection_tensor6.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Projection_Tensor_6,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open projection_tensor6.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
     // Read filter directions
-    
-    fp = fopen("filter_directions_x.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Filter_Directions_X,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter_directions_x.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter_directions_y.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Filter_Directions_Y,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter_directions_y.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
-    
-    fp = fopen("filter_directions_z.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Filter_Directions_Z,sizeof(float),NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter_directions_z.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
-    }
+    ReadBinaryFile(h_Filter_Directions_X,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"filter_directions_x.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);
+    ReadBinaryFile(h_Filter_Directions_Y,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"filter_directions_y.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+    ReadBinaryFile(h_Filter_Directions_Z,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,"filter_directions_z.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);  
 
-	end_ = GetWallTime();
+	endTime = GetWallTime();
 
 	if (VERBOS)
  	{
-		printf("It took %f seconds to read all binary files\n",(float)(end_ - start_));
+		printf("It took %f seconds to read all binary files\n",(float)(endTime - startTime));
 	}       
     
     //------------------------
     
-	start_ = GetWallTime();
+	startTime = GetWallTime();
 
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // Bash
+	// Initialize BROCCOLI
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
 
-	end_ = GetWallTime();
+	endTime = GetWallTime();
 
 	if (VERBOS)
  	{
-		printf("It took %f seconds to initiate BROCCOLI\n",(float)(end_ - start_));
+		printf("It took %f seconds to initiate BROCCOLI\n",(float)(endTime - startTime));
 	}
     
     // Something went wrong...
     if (BROCCOLI.GetOpenCLInitiated() == 0)
     {              
-        printf("Get platform IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLPlatformIDsError()));
-        printf("Get device IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLDeviceIDsError()));
-        printf("Create context error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateContextError()));
-        printf("Get create context info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLContextInfoError()));
-        printf("Create command queue error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateCommandQueueError()));
-        printf("Create program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateProgramError()));
-        printf("Build program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLBuildProgramError()));
-        printf("Get program build info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLProgramBuildInfoError()));
+		if (BROCCOLI.GetOpenCLPlatformIDsError() != 0)
+		{
+        	printf("Get platform IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLPlatformIDsError()));
+		}
+		if (BROCCOLI.GetOpenCLDeviceIDsError() != 0)
+        {
+	        printf("Get device IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLDeviceIDsError()));
+		}
+		if (BROCCOLI.GetOpenCLCreateContextError() != 0)
+        {
+	        printf("Create context error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateContextError()));
+		}
+		if (BROCCOLI.GetOpenCLContextInfoError() != 0)
+		{
+        	printf("Get create context info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLContextInfoError()));
+        }
+		if (BROCCOLI.GetOpenCLCreateCommandQueueError() != 0)
+   		{
+	        printf("Create command queue error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateCommandQueueError()));
+		}
+		if (BROCCOLI.GetOpenCLCreateProgramError() != 0)
+		{
+	        printf("Create program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateProgramError()));
+		}
+		if (BROCCOLI.GetOpenCLBuildProgramError() != 0)
+		{
+	        printf("Build program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLBuildProgramError()));
+		}
+		if (BROCCOLI.GetOpenCLProgramBuildInfoError() != 0)
+ 		{
+	        printf("Get program build info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLProgramBuildInfoError()));
+		}
     
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
@@ -1549,9 +931,8 @@ int main(int argc, char **argv)
         
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputT1);
-        nifti_image_free(inputMNI);
-        return -1;
+        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+        return EXIT_FAILURE;
     }
     // Initialization OK
     else if (BROCCOLI.GetOpenCLInitiated() == 1)
@@ -1602,9 +983,7 @@ int main(int argc, char **argv)
         if (WRITE_DISPLACEMENT_FIELD)
         {
             BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
-        }
-        
-		
+        }        
 
         if (DEBUG)
         {
@@ -1630,13 +1009,13 @@ int main(int argc, char **argv)
                             
         // Run the actual registration
 
-		start_ = GetWallTime();
+		startTime = GetWallTime();
         BROCCOLI.PerformRegistrationTwoVolumesWrapper();     
-		end_ = GetWallTime();
+		endTime = GetWallTime();
 
 		if (VERBOS)
 	 	{
-			printf("\nIt took %f seconds to run the registration\n",(float)(end_ - start_));
+			printf("\nIt took %f seconds to run the registration\n",(float)(endTime - startTime));
 		}
 
         // Print create buffer errors
@@ -1690,11 +1069,13 @@ int main(int argc, char **argv)
     */
 
     // Create new nifti image
-    nifti_image *outputNifti = new nifti_image;
-    
+	nifti_image *outputNifti = nifti_copy_nim_info(inputMNI);      
+	allNiftiImages[numberOfNiftiImages] = outputNifti;
+	numberOfNiftiImages++;    
+
     // Copy information from input data
-    outputNifti = nifti_copy_nim_info(inputMNI);    
     
+	
 	if (!CHANGE_OUTPUT_NAME)
 	{
     	nifti_set_filenames(outputNifti, inputT1->fname, 0, 1);    
@@ -1704,15 +1085,14 @@ int main(int argc, char **argv)
 		nifti_set_filenames(outputNifti, outputFilename, 0, 1);    
 	}
 
-    start_ = GetWallTime();
+    startTime = GetWallTime();
 
     // Write aligned data to file, as the size of the MNI volume            
     WriteNifti(outputNifti,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     WriteNifti(outputNifti,h_Aligned_T1_Volume,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     WriteNifti(outputNifti,h_Aligned_T1_Volume_NonParametric,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
               	
-	
-    if (WRITE_DISPLACEMENT_FIELD)
+	if (WRITE_DISPLACEMENT_FIELD)
     {
         WriteNifti(outputNifti,h_Displacement_Field_X,"_displacement_x",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNifti,h_Displacement_Field_Y,"_displacement_y",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -1737,20 +1117,18 @@ int main(int argc, char **argv)
         WriteNifti(outputNifti,h_Quadrature_Filter_Response_3_Imag,"_quadrature_filter_response_3_imag",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);        
     }
     
-	end_ = GetWallTime();
+	endTime = GetWallTime();
 
 	if (VERBOS)
  	{
-		printf("It took %f seconds to write the nifti files\n",(float)(end_ - start_));
+		printf("It took %f seconds to write the nifti files\n",(float)(endTime - startTime));
 	}
 
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    nifti_image_free(inputT1);
-    nifti_image_free(inputMNI);
-    nifti_image_free(outputNifti);
-
-    return 1;
+    FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+        
+    return EXIT_SUCCESS;
 }
 
 /*

@@ -42,25 +42,76 @@ void FreeAllMemory(void **pointers, int N)
     }
 }
 
+void FreeAllNiftiImages(nifti_image **niftiImages, int N)
+{
+    for (int i = 0; i < N; i++)
+    {
+		if (niftiImages[i] != NULL)
+		{
+			nifti_image_free(niftiImages[i]);
+		}
+    }
+}
 
-bool AllocateMemory(float *& pointer, int size, void** pointers, int& N)
+void ReadBinaryFile(float* pointer, int size, const char* filename, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages)
+{
+	if (pointer == NULL)
+    {
+        printf("The provided pointer for file %s is NULL, aborting! \n",filename);
+        FreeAllMemory(pointers,Npointers);
+		FreeAllNiftiImages(niftiImages,Nimages);
+        exit(EXIT_FAILURE);
+	}	
+
+	FILE *fp = NULL; 
+	fp = fopen(filename,"rb");
+
+    if (fp != NULL)
+    {
+        fread(pointer,sizeof(float),size,fp);
+        fclose(fp);
+    }
+    else
+    {
+        printf("Could not open %s , aborting! \n",filename);
+        FreeAllMemory(pointers,Npointers);
+		FreeAllNiftiImages(niftiImages,Nimages);
+        exit(EXIT_FAILURE);
+    }
+}
+
+void AllocateMemory(float *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
 {
     pointer = (float*)malloc(size);
     if (pointer != NULL)
     {
-        pointers[N] = (void*)pointer;
-        N++;
-        return true;
+        pointers[Npointers] = (void*)pointer;
+        Npointers++;
     }
     else
     {
-        printf("Could not allocate host memory! \n");        
-        return false;
+        printf("Could not allocate host memory for variable %s ! \n",variable);        
+		FreeAllMemory(pointers, Npointers);
+		FreeAllNiftiImages(niftiImages, Nimages);
+		exit(EXIT_FAILURE);        
     }
 }
 
+
 bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool addFilename, bool checkFilename)
 {       
+	if (data == NULL)
+    {
+        printf("The provided data pointer for file %s is NULL, aborting writing nifti file! \n",filename);
+		return false;
+	}	
+	if (inputNifti == NULL)
+    {
+        printf("The provided nifti pointer for file %s is NULL, aborting writing nifti file! \n",filename);
+		return false;
+	}	
+
+
     char* filenameWithExtension;
     
     // Add the provided filename to the original filename, before the dot
@@ -92,10 +143,8 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
         strcat(filenameWithExtension,inputNifti->fname+dotPosition);    
     }
         
-    // Create new nifti image
-    nifti_image *outputNifti = new nifti_image;
     // Copy information from input data
-    outputNifti = nifti_copy_nim_info(inputNifti);    
+    nifti_image *outputNifti = nifti_copy_nim_info(inputNifti);    
     // Set data pointer 
     outputNifti->data = (void*)data;        
     // Set data type to float
@@ -123,6 +172,7 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
     
     outputNifti->data = NULL;
     nifti_image_free(outputNifti);
+
     if (addFilename)
     {
         free(filenameWithExtension);
@@ -136,8 +186,7 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
     {
         return false;
     }                        
-}
-    
+}    
 
 int main(int argc, char ** argv)
 {
@@ -152,13 +201,16 @@ int main(int argc, char ** argv)
     float           *h_Quadrature_Filter_2_Imag = NULL;
     float           *h_Quadrature_Filter_3_Imag = NULL;
     
-    void            *allMemoryPointers[500];
+    void*			allMemoryPointers[500];
     int             numberOfMemoryPointers = 0;
-    
+
+	nifti_image*	allNiftiImages[500];
+    int             numberOfNiftiImages = 0;
+
     // Default parameters
     int             MOTION_CORRECTION_FILTER_SIZE = 7; 
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
-    int             OPENCL_PLATFORM = 2;
+    int             OPENCL_PLATFORM = 0;
     int             OPENCL_DEVICE = 0;
     int             NUMBER_OF_MOTION_CORRECTION_PARAMETERS = 6;    
     bool            DEBUG = false;
@@ -198,15 +250,15 @@ int main(int argc, char ** argv)
         printf("Usage:\n\n");
         printf("MotionCorrection input.nii [options]\n\n");
         printf("Options:\n\n");
-        printf("-platform   The OpenCL platform to use (default 0) \n");
-        printf("-device     The OpenCL device to use for the specificed platform (default 0) \n");
-        printf("-iterations Number of iterations for the motion correction algorithm (default 5) \n");        
-        printf("-output     Set output filename (default input_mc.nii) \n");
-        printf("-quiet      Don't print anything to the terminal (default false) \n");
-        printf("-debug      Get additional debug information (default no) \n");
+        printf(" -platform   The OpenCL platform to use (default 0) \n");
+        printf(" -device     The OpenCL device to use for the specificed platform (default 0) \n");
+        printf(" -iterations Number of iterations for the motion correction algorithm (default 5) \n");        
+        printf(" -output     Set output filename (default input_mc.nii) \n");
+        printf(" -quiet      Don't print anything to the terminal (default false) \n");
+        printf(" -debug      Get additional debug information (default false) \n");
         printf("\n\n");
         
-        return 1;
+        return EXIT_SUCCESS;
     }
     // Try to open file
     else if (argc > 1)
@@ -215,7 +267,7 @@ int main(int argc, char ** argv)
         if (fp == NULL)
         {            
             printf("Could not open file %s !\n",argv[1]);
-            return -1;
+            return EXIT_FAILURE;
         }
         fclose(fp);        
     }
@@ -228,31 +280,49 @@ int main(int argc, char ** argv)
         char *p;
         if (strcmp(input,"-platform") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -platform !\n");
+                return EXIT_FAILURE;
+			}
+
             OPENCL_PLATFORM = (int)strtol(argv[i+1], &p, 10);
             if (OPENCL_PLATFORM < 0)
             {
                 printf("OpenCL platform must be >= 0!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
         else if (strcmp(input,"-device") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -device !\n");
+                return EXIT_FAILURE;
+			}
+
             OPENCL_DEVICE = (int)strtol(argv[i+1], &p, 10);
             if (OPENCL_DEVICE < 0)
             {
                 printf("OpenCL device must be >= 0!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
         else if (strcmp(input,"-iterations") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -iterations !\n");
+                return EXIT_FAILURE;
+			}
+
             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = (int)strtol(argv[i+1], &p, 10);
             if (NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION <= 0)
             {
                 printf("Number of iterations must be a positive number!\n");
-                return -1;
+                return EXIT_FAILURE;
             }
             i += 2;
         }
@@ -268,13 +338,19 @@ int main(int argc, char ** argv)
         }
         else if (strcmp(input,"-output") == 0)
         {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read name after -output !\n");
+                return EXIT_FAILURE;
+			}
+
             outputFilename = argv[i+1];
             i += 2;
         }
         else
         {
             printf("Unrecognized option! %s \n",argv[i]);
-            return -1;
+            return EXIT_FAILURE;
         }                
     }
     
@@ -285,9 +361,11 @@ int main(int argc, char ** argv)
     if (inputData == NULL)
     {
         printf("Could not open nifti file!\n");
-        return -1;
+        return EXIT_FAILURE;
     }
-    
+    allNiftiImages[numberOfNiftiImages] = inputData;
+	numberOfNiftiImages++;
+
     // Get data dimensions from input data
     DATA_W = inputData->nx;
     DATA_H = inputData->ny;
@@ -309,7 +387,6 @@ int main(int argc, char ** argv)
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("OpenCL Platform: %i OpenCL Device %i\n", OPENCL_PLATFORM, OPENCL_DEVICE);
         printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
         printf("Voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);    
         printf("Number of iterations for motion correction: %i \n",  NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);
@@ -319,126 +396,27 @@ int main(int argc, char ** argv)
     
     // Allocate memory on the host
     
-    if (!AllocateMemory(h_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Motion_Corrected_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }        
-    
-    if (!AllocateMemory(h_Quadrature_Filter_1_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_1_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_2_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_2_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_3_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Quadrature_Filter_3_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    if (!AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers))
-    {
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
+	AllocateMemory(h_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INPUT_DATA");
+	AllocateMemory(h_Motion_Corrected_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MOTION_CORRECTED_DATA");
+	AllocateMemory(h_Quadrature_Filter_1_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_REAL");    
+  	AllocateMemory(h_Quadrature_Filter_1_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_2_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_REAL");    
+  	AllocateMemory(h_Quadrature_Filter_2_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_3_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_REAL");    
+  	AllocateMemory(h_Quadrature_Filter_3_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_IMAG");    
+	AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MOTION_PARAMETERS");       
     
     if (DEBUG)
     {    
-        if (!AllocateMemory(h_Quadrature_Filter_Response_1_Real, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_1_Imag, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_2_Real, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_2_Imag, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_3_Real, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Quadrature_Filter_Response_3_Imag, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Phase_Differences, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Phase_Certainties, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }
-        if (!AllocateMemory(h_Phase_Gradients, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers))
-        {
-            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-            nifti_image_free(inputData);
-            return -1;
-        }               
+		AllocateMemory(h_Quadrature_Filter_Response_1_Real, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_1_REAL");
+		AllocateMemory(h_Quadrature_Filter_Response_1_Imag, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_1_IMAG");        
+		AllocateMemory(h_Quadrature_Filter_Response_2_Real, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_2_REAL");
+		AllocateMemory(h_Quadrature_Filter_Response_2_Imag, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_2_IMAG");        
+		AllocateMemory(h_Quadrature_Filter_Response_3_Real, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_3_REAL");
+		AllocateMemory(h_Quadrature_Filter_Response_3_Imag, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_RESPONSE_3_IMAG");        
+		AllocateMemory(h_Phase_Differences, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PHASE_DIFFERENCES");        
+		AllocateMemory(h_Phase_Certainties, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PHASE_CERTAINTIES");        
+		AllocateMemory(h_Phase_Gradients, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PHASE_GRADIENTS");        
     }
     
     // Convert data to floats
@@ -451,114 +429,71 @@ int main(int argc, char ** argv)
             h_fMRI_Volumes[i] = (float)p[i];
         }
     }
+	else if ( inputData->datatype == DT_FLOAT )
+    {
+        float *p = (float*)inputData->data;
+    
+        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        {
+            h_fMRI_Volumes[i] = p[i];
+        }
+    }
     else
     {
         printf("Unknown data type in input data, aborting!\n");
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
+        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+        return EXIT_FAILURE;
     }
     
     // Read quadrature filters, three real valued and three imaginary valued
-    fp = fopen("filter1_real_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_1_Real,sizeof(float),MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter1_real_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    fp = fopen("filter1_imag_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_1_Imag,sizeof(float),MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,fp);        
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter1_imag_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    fp = fopen("filter2_real_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_2_Real,sizeof(float),MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter2_real_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    fp = fopen("filter2_imag_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_2_Imag,sizeof(float),MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter2_imag_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    fp = fopen("filter3_real_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_3_Real,sizeof(float),MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter3_real_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
-    
-    fp = fopen("filter3_imag_parametric_registration.bin","rb");
-    if (fp != NULL)
-    {
-        fread(h_Quadrature_Filter_3_Imag,sizeof(float),MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,fp);
-        fclose(fp);
-    }
-    else
-    {
-        printf("Could not open filter3_imag_parametric_registration.bin \n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
-    }
+
+ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter1_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter1_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+ReadBinaryFile(h_Quadrature_Filter_2_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter2_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+ReadBinaryFile(h_Quadrature_Filter_2_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter2_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+ReadBinaryFile(h_Quadrature_Filter_3_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter3_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter3_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);     
     
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE);
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
     
     // Something went wrong...
     if (BROCCOLI.GetOpenCLInitiated() == 0)
     {              
-        printf("Get platform IDs error is %d \n",BROCCOLI.GetOpenCLPlatformIDsError());
-        printf("Get device IDs error is %d \n",BROCCOLI.GetOpenCLDeviceIDsError());
-        printf("Create context error is %d \n",BROCCOLI.GetOpenCLCreateContextError());
-        printf("Get create context info error is %d \n",BROCCOLI.GetOpenCLContextInfoError());
-        printf("Create command queue error is %d \n",BROCCOLI.GetOpenCLCreateCommandQueueError());
-        printf("Create program error is %d \n",BROCCOLI.GetOpenCLCreateProgramError());
-        printf("Build program error is %d \n",BROCCOLI.GetOpenCLBuildProgramError());
-        printf("Get program build info error is %d \n",BROCCOLI.GetOpenCLProgramBuildInfoError());
+        if (BROCCOLI.GetOpenCLPlatformIDsError() != 0)
+		{
+        	printf("Get platform IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLPlatformIDsError()));
+		}
+		if (BROCCOLI.GetOpenCLDeviceIDsError() != 0)
+        {
+	        printf("Get device IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLDeviceIDsError()));
+		}
+		if (BROCCOLI.GetOpenCLCreateContextError() != 0)
+        {
+	        printf("Create context error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateContextError()));
+		}
+		if (BROCCOLI.GetOpenCLContextInfoError() != 0)
+		{
+        	printf("Get create context info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLContextInfoError()));
+        }
+		if (BROCCOLI.GetOpenCLCreateCommandQueueError() != 0)
+   		{
+	        printf("Create command queue error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateCommandQueueError()));
+		}
+		if (BROCCOLI.GetOpenCLCreateProgramError() != 0)
+		{
+	        printf("Create program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateProgramError()));
+		}
+		if (BROCCOLI.GetOpenCLBuildProgramError() != 0)
+		{
+	        printf("Build program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLBuildProgramError()));
+		}
+		if (BROCCOLI.GetOpenCLProgramBuildInfoError() != 0)
+ 		{
+	        printf("Get program build info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLProgramBuildInfoError()));
+		}
     
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
@@ -589,8 +524,8 @@ int main(int argc, char ** argv)
         
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        nifti_image_free(inputData);
-        return -1;
+        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+        return EXIT_FAILURE;
     }
     // Initialization OK
     else if (BROCCOLI.GetOpenCLInitiated() == 1)
@@ -704,9 +639,9 @@ int main(int argc, char ** argv)
     
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);            
-    nifti_image_free(inputData);    
+    FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
     
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 /*
