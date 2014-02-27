@@ -4950,6 +4950,34 @@ __kernel void InterpolateVolumeCubicNonParametric(__global float* Volume,
 	Volume[idx] = result;
 }
 
+__kernel void RescaleVolumeNearest(__global float* Volume,
+	                               read_only image3d_t Original_Volume,
+								   __private float VOXEL_DIFFERENCE_X,
+								   __private float VOXEL_DIFFERENCE_Y,
+								   __private float VOXEL_DIFFERENCE_Z,
+								   __private int DATA_W,
+								   __private int DATA_H,
+								   __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W, DATA_H);
+	float4 Motion_Vector;
+
+	Motion_Vector.x = x * VOXEL_DIFFERENCE_X + 0.5f;
+	Motion_Vector.y = y * VOXEL_DIFFERENCE_Y + 0.5f;
+	Motion_Vector.z = z * VOXEL_DIFFERENCE_Z + 0.5f;
+	Motion_Vector.w = 0.0f;
+
+	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_nearest, Motion_Vector);
+	Volume[idx] = Interpolated_Value.x;
+}
+
 __kernel void RescaleVolumeLinear(__global float* Volume,
 	                              read_only image3d_t Original_Volume,
 								  __private float VOXEL_DIFFERENCE_X,
@@ -5587,6 +5615,8 @@ __kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes,
 }
 
 // Special function for calculating beta weights, all voxels use different design matrices (needed for Cochrane-Orcutt procedure)
+
+
 
 __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes, 
 												__global const float* Volumes, 
@@ -7206,7 +7236,7 @@ int LoadBetaWeights(__private float* beta,
 			beta[22] = Beta_Volumes[Calculate4DIndex(x,y,z,22,DATA_W,DATA_H,DATA_D)];
 			beta[23] = Beta_Volumes[Calculate4DIndex(x,y,z,23,DATA_W,DATA_H,DATA_D)];
 			beta[24] = Beta_Volumes[Calculate4DIndex(x,y,z,24,DATA_W,DATA_H,DATA_D)];
-			
+
 			break;
 
 
@@ -7217,6 +7247,182 @@ int LoadBetaWeights(__private float* beta,
 
 	return 0;
 }
+
+/*
+int CalculateCovarianceMatricesFirstLevel(__private float* Cxy,
+		                                  __private float* Cyy,
+		                                  __private float value1,
+		                                  __private float value2,
+		                                  __constant float* c_X_GLM,
+		                                  int v,
+		                                  int NUMBER_OF_VOLUMES,
+		                                  int NUMBER_OF_REGRESSORS)
+{
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			Cxy[0][0] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[0][1] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value2;
+
+		break;
+
+		case 2:
+
+			Cxy[0][0] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[0][1] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[1][0] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[1][1] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value2;
+
+			break;
+
+		case 3:
+
+			Cxy[0][0] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[0][1] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[1][0] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[1][1] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[2][0] += c_X_GLM[v + 2 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[2][1] += c_X_GLM[v + 2 * NUMBER_OF_VOLUMES] * value2;
+
+			break;
+
+		case 4:
+
+			Cxy[0][0] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[0][1] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[1][0] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[1][1] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[2][0] += c_X_GLM[v + 2 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[2][1] += c_X_GLM[v + 2 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[3][0] += c_X_GLM[v + 3 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[3][1] += c_X_GLM[v + 3 * NUMBER_OF_VOLUMES] * value2;
+
+			break;
+
+		case 5:
+
+			Cxy[0][0] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[0][1] += c_X_GLM[v + 0 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[1][0] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[1][1] += c_X_GLM[v + 1 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[2][0] += c_X_GLM[v + 2 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[2][1] += c_X_GLM[v + 2 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[3][0] += c_X_GLM[v + 3 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[3][1] += c_X_GLM[v + 3 * NUMBER_OF_VOLUMES] * value2;
+
+			Cxy[4][0] += c_X_GLM[v + 4 * NUMBER_OF_VOLUMES] * value1;
+			Cxy[4][1] += c_X_GLM[v + 4 * NUMBER_OF_VOLUMES] * value2;
+
+			break;
+
+		default:
+			1;
+		break;
+	}
+
+	Cyy[0][0] += value1 * value1;
+	Cyy[0][1] += value1 * value2;
+	Cyy[1][0] += value2 * value1;
+	Cyy[1][1] += value2 * value2;
+
+	return 0;
+}
+
+
+int NormalizeCovarianceMatrices(__private float* Cxy, __private float* Cyy, int NUMBER_OF_VOLUMES, int NUMBER_OF_REGRESSORS)
+{
+	float div = ((float)NUMBER_OF_VOLUMES - 1);
+
+	switch(NUMBER_OF_REGRESSORS)
+	{
+		case 1:
+
+			Cxy[0][0] /= div;
+			Cxy[0][1] /= div;
+
+		break;
+
+		case 2:
+
+			Cxy[0][0] /= div;
+			Cxy[0][1] /= div;
+
+			Cxy[1][0] /= div;
+			Cxy[1][1] /= div;
+
+			break;
+
+		case 3:
+
+			Cxy[0][0] /= div;
+			Cxy[0][1] /= div;
+
+			Cxy[1][0] /= div;
+			Cxy[1][1] /= div;
+
+			Cxy[2][0] /= div;
+			Cxy[2][1] /= div;
+
+			break;
+
+		case 4:
+
+			Cxy[0][0] /= div;
+			Cxy[0][1] /= div;
+
+			Cxy[1][0] /= div;
+			Cxy[1][1] /= div;
+
+			Cxy[2][0] /= div;
+			Cxy[2][1] /= div;
+
+			Cxy[3][0] /= div;
+			Cxy[3][1] /= div;
+
+			break;
+
+		case 5:
+
+			Cxy[0][0] /= div;
+			Cxy[0][1] /= div;
+
+			Cxy[1][0] /= div;
+			Cxy[1][1] /= div;
+
+			Cxy[2][0] /= div;
+			Cxy[2][1] /= div;
+
+			Cxy[3][0] /= div;
+			Cxy[3][1] /= div;
+
+			Cxy[4][0] /= div;
+			Cxy[4][1] /= div;
+
+			break;
+
+		default:
+			1;
+		break;
+	}
+
+	Cyy[0][0] /= div;
+	Cyy[0][1] /= div;
+	Cyy[1][0] /= div;
+	Cyy[1][1] /= div;
+
+	return 0;
+}
+*/
 
 int CalculateBetaWeightsFirstLevel(__private float* beta,
 		                 	       __private float value,
@@ -10602,6 +10808,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 	}
 }
 
+
 __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global float* Statistical_Maps,
 					 		                                        __global const float* Volumes,
 																	__global const float* Mask,
@@ -10702,6 +10909,94 @@ __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global flo
 	// Save F-value
 	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
 }
+
+/*
+__kernel void CalculateStatisticalMapsCCAFirstLevelPermutation(__global float* Statistical_Maps,
+														 	   __global const float* Volumes1,
+														 	   __global const float* Volumes2,
+															   __global const float* Mask,
+															   __constant float* c_X_GLM,
+															   __constant float* c_xtxxt_GLM,
+															   __constant float* c_Contrasts,
+															   __constant float* c_ctxtxc_GLM,
+															   __private int DATA_W,
+															   __private int DATA_H,
+															   __private int DATA_D,
+															   __private int NUMBER_OF_VOLUMES,
+															   __private int NUMBER_OF_REGRESSORS,
+															   __private int NUMBER_OF_CONTRASTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	float eps, meaneps, vareps;
+	float beta[25];
+
+	// Reset beta weights
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
+
+	float Cxy[5][2];
+	float Cyy[2][2];
+	float inv_Cyy[2][2];
+
+
+	// Calculate the covariance matrices, Cxx is precalculated and stored in constant memory
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float value1 = Volumes1[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		float value2 = Volumes2[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		CalculateCovarianceMatricesFirstLevel(Cxy, Cyy, value1, value2, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+	}
+
+	NormalizeCovarianceMatrices(Cxy, Cyy, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+
+	// Invert Cyy covariance matrix
+	Invert_2x2(Cyy, inv_Cyy);
+	// Calculate square root of inverseInvert Cyy covariance matrix
+	MatrixSqrt_2x2(inv_Cyy, Cyy);
+
+
+	// Calculate the total matrix product, gives a 2 x 2 matrix,  (Cyy)^(-1/2) * Cyx * (Cxx)^(-1) * Cxy * (Cyy)^(-1/2)
+	// First step, calculate Cyx * (Cxx)^(-1) * Cxy, three values sufficient since matrix is symmetric
+
+
+}
+*/
 
 // Optimized kernel for calculating t-test values for permutations, second level
 

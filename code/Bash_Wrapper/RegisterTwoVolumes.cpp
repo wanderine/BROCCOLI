@@ -208,6 +208,7 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
     
     outputNifti->data = NULL;
     nifti_image_free(outputNifti);
+
     if (addFilename)
     {
         free(filenameWithExtension);
@@ -325,7 +326,7 @@ int main(int argc, char **argv)
         printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
         printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension.  \n");        
-        printf(" -t1zcut                    Number of mm to cut from the bottom of the input volume, can be negative (default 0) \n");        
+        printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative (default 0) \n");        
 		//printf(" -writefield                Saves the displacement field to file (default false) \n");        
         //printf(" -flipbf                    Flip the volume back to front before registration (invert x-axis) \n");        
         //printf(" -fliplr                    Flip the volume left to right before registration (invert y-axis) \n");        
@@ -449,11 +450,11 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
-        else if (strcmp(input,"-t1zcut") == 0)
+        else if (strcmp(input,"-zcut") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
-			    printf("Unable to read value after -t1zcut !\n");
+			    printf("Unable to read value after -zcut !\n");
                 return EXIT_FAILURE;
 			}
 

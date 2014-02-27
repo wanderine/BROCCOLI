@@ -37,9 +37,7 @@ void FreeAllMemory(void **pointers, int N)
     {
         if (pointers[i] != NULL)
         {
-			printf("Freeing pointer %i which is %i \n",i,pointers[i]);
             free(pointers[i]);
-			printf("Freed pointer %i\n",i);
         }
     }
 }
@@ -185,9 +183,11 @@ int main(int argc, char **argv)
         
     int             OPENCL_PLATFORM = 0;
     int             OPENCL_DEVICE = 0;
+	int				INTERPOLATION_MODE = 1;
     bool            DEBUG = false;
     bool            PRINT = true;
 	bool			CHANGE_OUTPUT_NAME = false;    
+	int 			MM_T1_Z_CUT = 0;
 
 	const char*		outputFilename;
 
@@ -212,6 +212,8 @@ int main(int argc, char **argv)
         printf("Options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
+		printf(" -interpolation             The interpolation to use, 0 = nearest, 1 = trilinear (default 1) \n");
+		printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative (default 0). Should be the same as for the call to RegisterTwoVolumes\n"); 
 		printf(" -output                    Set output filename (default volume_to_transform_warped.nii) \n");
         printf(" -quiet                     Don't print anything to the terminal (default false) \n");
         printf("\n\n");
@@ -304,7 +306,34 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             i += 2;
+        }
+		else if (strcmp(input,"-interpolation") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -interpolation !\n");
+                return EXIT_FAILURE;
+			}
+
+            INTERPOLATION_MODE = (int)strtol(argv[i+1], &p, 10);
+			if ( (INTERPOLATION_MODE != 0) && (INTERPOLATION_MODE != 1) )
+            {
+			    printf("Interpolation mode has to be 0 or 1!\n");
+                return EXIT_FAILURE;          	
+			}
+			i += 2;
         }      
+        else if (strcmp(input,"-zcut") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -zcut !\n");
+                return EXIT_FAILURE;
+			}
+
+            MM_T1_Z_CUT = (int)strtol(argv[i+1], &p, 10);
+            i += 2;
+        }
         else if (strcmp(input,"-quiet") == 0)
         {
             PRINT = false;
@@ -327,8 +356,7 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }                
     }
-    
-    
+        
     // Read data
     nifti_image *inputVolume = nifti_image_read(argv[1],1);    
     if (inputVolume == NULL)
@@ -467,6 +495,15 @@ int main(int argc, char **argv)
         for (int i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
         {
             h_Input_Volume[i] = p[i];
+        }
+    }
+    else if ( inputVolume->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputVolume->data;
+    
+        for (int i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
+        {
+            h_Input_Volume[i] = (float)p[i];
         }
     }
     else
@@ -644,10 +681,10 @@ int main(int argc, char **argv)
 		BROCCOLI.SetMNIVoxelSizeX(REFERENCE_VOXEL_SIZE_X);
 		BROCCOLI.SetMNIVoxelSizeY(REFERENCE_VOXEL_SIZE_Y);
 		BROCCOLI.SetMNIVoxelSizeZ(REFERENCE_VOXEL_SIZE_Z);
+		
+		BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT); 
+        BROCCOLI.SetInterpolationMode(INTERPOLATION_MODE);  
 
-		BROCCOLI.SetMMT1ZCUT(0);  
-
-        BROCCOLI.SetInterpolationMode(LINEAR);  
 		BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);      
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_Volume);
                 
@@ -685,19 +722,15 @@ int main(int argc, char **argv)
 	allNiftiImages[numberOfNiftiImages] = outputNifti;
 	numberOfNiftiImages++;    
 
-	// Change filename
+	// Change filename and write transformed data to file
 	if (!CHANGE_OUTPUT_NAME)
 	{
     	nifti_set_filenames(outputNifti, inputVolume->fname, 0, 1);
-
-	    // Write transformed data to file
 	    WriteNifti(outputNifti,h_Interpolated_Volume,"_warped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 	else 
 	{
-    	nifti_set_filenames(outputNifti, outputFilename, 0, 1);
-    	
-		// Write transformed data to file
+    	nifti_set_filenames(outputNifti, outputFilename, 0, 1);    	
 	    WriteNifti(outputNifti,h_Interpolated_Volume,"",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);    
 	}
                              
