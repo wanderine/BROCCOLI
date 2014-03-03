@@ -287,7 +287,13 @@ int main(int argc, char ** argv)
 			}
 
             OPENCL_PLATFORM = (int)strtol(argv[i+1], &p, 10);
-            if (OPENCL_PLATFORM < 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("OpenCL platform must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (OPENCL_PLATFORM < 0)
             {
                 printf("OpenCL platform must be >= 0!\n");
                 return EXIT_FAILURE;
@@ -303,7 +309,13 @@ int main(int argc, char ** argv)
 			}
 
             OPENCL_DEVICE = (int)strtol(argv[i+1], &p, 10);
-            if (OPENCL_DEVICE < 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("OpenCL device must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (OPENCL_DEVICE < 0)
             {
                 printf("OpenCL device must be >= 0!\n");
                 return EXIT_FAILURE;
@@ -319,7 +331,13 @@ int main(int argc, char ** argv)
 			}
 
             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = (int)strtol(argv[i+1], &p, 10);
-            if (NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION <= 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Number of iterations must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION <= 0)
             {
                 printf("Number of iterations must be a positive number!\n");
                 return EXIT_FAILURE;
