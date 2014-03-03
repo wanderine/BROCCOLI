@@ -297,7 +297,8 @@ int main(int argc, char **argv)
     bool            FLIPUD = false;
     bool            FLIPBF = false;
     bool            FLIPLR = false;
-    bool            WRITE_DISPLACEMENT_FIELD = true;
+    bool            WRITE_DISPLACEMENT_FIELD = false;
+	bool			WRITE_INTERPOLATED = false;
    	bool			CHANGE_OUTPUT_NAME = false;    
 
 	const char*		outputFilename;
@@ -327,7 +328,8 @@ int main(int argc, char **argv)
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
         printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension.  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative (default 0) \n");        
-		//printf(" -writefield                Saves the displacement field to file (default false) \n");        
+		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
+		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume (default false) \n");        
         //printf(" -flipbf                    Flip the volume back to front before registration (invert x-axis) \n");        
         //printf(" -fliplr                    Flip the volume left to right before registration (invert y-axis) \n");        
         //printf(" -flipud                    Flip the volume upside down before registration (invert z-axis) \n");                
@@ -379,7 +381,13 @@ int main(int argc, char **argv)
 			}
 
             OPENCL_PLATFORM = (int)strtol(argv[i+1], &p, 10);
-            if (OPENCL_PLATFORM < 0)
+			
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("OpenCL platform must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (OPENCL_PLATFORM < 0)
             {
                 printf("OpenCL platform must be >= 0!\n");
                 return EXIT_FAILURE;
@@ -395,7 +403,13 @@ int main(int argc, char **argv)
 			}
 
             OPENCL_DEVICE = (int)strtol(argv[i+1], &p, 10);
-            if (OPENCL_DEVICE < 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("OpenCL device must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (OPENCL_DEVICE < 0)
             {
                 printf("OpenCL device must be >= 0!\n");
                 return EXIT_FAILURE;
@@ -411,9 +425,15 @@ int main(int argc, char **argv)
 			}
 
             NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION = (int)strtol(argv[i+1], &p, 10);
-            if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION <= 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Number of iterations must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION <= 0)
             {
-                printf("Number of iterations must be a positive number!\n");
+                printf("Number of linear iterations must be a positive number!\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -427,9 +447,15 @@ int main(int argc, char **argv)
 			}
 
             NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION = (int)strtol(argv[i+1], &p, 10);
-            if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION < 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Number of iterations must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION < 0)
             {
-                printf("Number of iterations must be a positive number!\n");
+                printf("Number of non-linear iterations must be >= 0 !\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -443,7 +469,13 @@ int main(int argc, char **argv)
 			}
 
             COARSEST_SCALE = (int)strtol(argv[i+1], &p, 10);
-            if ( (COARSEST_SCALE != 1) && (COARSEST_SCALE != 2) && (COARSEST_SCALE != 4) && (COARSEST_SCALE != 8) )
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Lowest scale must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+  			else if ( (COARSEST_SCALE != 1) && (COARSEST_SCALE != 2) && (COARSEST_SCALE != 4) && (COARSEST_SCALE != 8) )
             {
                 printf("Lowest scale must be 1, 2, 4 or 8!\n");
                 return EXIT_FAILURE;
@@ -459,11 +491,23 @@ int main(int argc, char **argv)
 			}
 
             MM_T1_Z_CUT = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("zcut must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+
             i += 2;
         }
         else if (strcmp(input,"-savefield") == 0)
         {
             WRITE_DISPLACEMENT_FIELD = true;
+            i += 1;
+        }
+        else if (strcmp(input,"-saveinterpolated") == 0)
+        {
+            WRITE_INTERPOLATED = true;
             i += 1;
         }
         else if (strcmp(input,"-flipbf") == 0)
@@ -1074,9 +1118,7 @@ int main(int argc, char **argv)
 	allNiftiImages[numberOfNiftiImages] = outputNifti;
 	numberOfNiftiImages++;    
 
-    // Copy information from input data
-    
-	
+    // Copy information from input data    	
 	if (!CHANGE_OUTPUT_NAME)
 	{
     	nifti_set_filenames(outputNifti, inputT1->fname, 0, 1);    
@@ -1088,10 +1130,18 @@ int main(int argc, char **argv)
 
     startTime = GetWallTime();
 
-    // Write aligned data to file, as the size of the MNI volume            
-    WriteNifti(outputNifti,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    // Write aligned data to file, as the size of the MNI volume  
+	if (WRITE_INTERPOLATED)
+	{          
+    	WriteNifti(outputNifti,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+
     WriteNifti(outputNifti,h_Aligned_T1_Volume,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    WriteNifti(outputNifti,h_Aligned_T1_Volume_NonParametric,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	
+	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
+	{
+   		WriteNifti(outputNifti,h_Aligned_T1_Volume_NonParametric,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
               	
 	if (WRITE_DISPLACEMENT_FIELD)
     {

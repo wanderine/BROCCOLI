@@ -284,7 +284,13 @@ int main(int argc, char **argv)
 			}
 
             OPENCL_PLATFORM = (int)strtol(argv[i+1], &p, 10);
-            if (OPENCL_PLATFORM < 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("OpenCL platform must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (OPENCL_PLATFORM < 0)
             {
                 printf("OpenCL platform must be >= 0!\n");
                 return EXIT_FAILURE;
@@ -300,7 +306,13 @@ int main(int argc, char **argv)
 			}
 
             OPENCL_DEVICE = (int)strtol(argv[i+1], &p, 10);
-            if (OPENCL_DEVICE < 0)
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("OpenCL device must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (OPENCL_DEVICE < 0)
             {
                 printf("OpenCL device must be >= 0!\n");
                 return EXIT_FAILURE;
@@ -316,6 +328,12 @@ int main(int argc, char **argv)
 			}
 
             INTERPOLATION_MODE = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Interpolation mode must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
 			if ( (INTERPOLATION_MODE != 0) && (INTERPOLATION_MODE != 1) )
             {
 			    printf("Interpolation mode has to be 0 or 1!\n");
@@ -332,6 +350,13 @@ int main(int argc, char **argv)
 			}
 
             MM_T1_Z_CUT = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("zcut must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+
             i += 2;
         }
         else if (strcmp(input,"-quiet") == 0)
