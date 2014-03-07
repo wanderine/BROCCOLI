@@ -300,6 +300,9 @@ int main(int argc, char **argv)
     bool            WRITE_DISPLACEMENT_FIELD = false;
 	bool			WRITE_INTERPOLATED = false;
    	bool			CHANGE_OUTPUT_NAME = false;    
+	float			TSIGMA = 2.25f;
+	float			ESIGMA = 2.25f;
+	float			DSIGMA = 2.25f;
 
 	const char*		outputFilename;
 
@@ -326,10 +329,13 @@ int main(int argc, char **argv)
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
         printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
-        printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension.  \n");        
-        printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative (default 0) \n");        
+        printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+        printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 2.25)  \n");        
+        printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 2.25)  \n");        
+        printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 2.25)  \n");        
+        printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
 		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
-		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume (default false) \n");        
+		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume, before alignment (default false) \n");        
         //printf(" -flipbf                    Flip the volume back to front before registration (invert x-axis) \n");        
         //printf(" -fliplr                    Flip the volume left to right before registration (invert y-axis) \n");        
         //printf(" -flipud                    Flip the volume upside down before registration (invert z-axis) \n");                
@@ -343,7 +349,9 @@ int main(int argc, char **argv)
     }
     else if (argc < 3)
     {
-        printf("Need two input volumes!\n\n");
+        printf("\nNeed two input volumes!\n\n");
+        printf("Usage:\n\n");
+        printf("RegisterTwoVolumes input_volume.nii reference_volume.nii [options]\n\n");
 		return EXIT_FAILURE;
     }
     // Try to open files
@@ -478,6 +486,72 @@ int main(int argc, char **argv)
   			else if ( (COARSEST_SCALE != 1) && (COARSEST_SCALE != 2) && (COARSEST_SCALE != 4) && (COARSEST_SCALE != 8) )
             {
                 printf("Lowest scale must be 1, 2, 4 or 8!\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
+        else if (strcmp(input,"-tsigma") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -tsigma !\n");
+                return EXIT_FAILURE;
+			}
+
+            TSIGMA = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("tsigma must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+  			else if ( TSIGMA < 0.0f )
+            {
+                printf("tsigma must be >= 0.0 !\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
+        else if (strcmp(input,"-esigma") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -esigma !\n");
+                return EXIT_FAILURE;
+			}
+
+            ESIGMA = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("esigma must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+  			else if ( ESIGMA < 0.0f )
+            {
+                printf("esigma must be >= 0.0 !\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
+        else if (strcmp(input,"-dsigma") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -dsigma !\n");
+                return EXIT_FAILURE;
+			}
+
+            DSIGMA = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("dsigma must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+  			else if ( DSIGMA < 0.0f )
+            {
+                printf("dsigma must be >= 0.0 !\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -643,6 +717,7 @@ int main(int argc, char **argv)
         printf("Volume 1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);    
         printf("Volume 2 size: %i x %i x %i \n",  MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
         printf("Volume 2 voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);    
+        printf("Dsigma %f \n", DSIGMA);    
     }
             
     // ------------------------------------------------
@@ -1019,6 +1094,10 @@ int main(int argc, char **argv)
         BROCCOLI.SetFilterDirections(h_Filter_Directions_X, h_Filter_Directions_Y, h_Filter_Directions_Z);
         BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE);
         BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
+
+		BROCCOLI.SetTsigma(TSIGMA);
+		BROCCOLI.SetEsigma(ESIGMA);
+		BROCCOLI.SetDsigma(DSIGMA);
         
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
         BROCCOLI.SetOutputAlignedT1Volume(h_Aligned_T1_Volume);

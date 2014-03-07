@@ -181,6 +181,10 @@ void BROCCOLI_LIB::SetStartValues()
 
 	NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS = 12;
 
+	TSIGMA = 2.25;
+	ESIGMA = 2.25;
+	DSIGMA = 2.25;
+
 	convolution_time = 0.0;
 
 	error = 0;
@@ -2175,6 +2179,20 @@ void BROCCOLI_LIB::SetInterpolationMode(int mode)
 	INTERPOLATION_MODE = mode;
 }
 
+void BROCCOLI_LIB::SetTsigma(float sigma)
+{
+	TSIGMA = sigma;
+}
+
+void BROCCOLI_LIB::SetEsigma(float sigma)
+{
+	ESIGMA = sigma;
+}
+
+void BROCCOLI_LIB::SetDsigma(float sigma)
+{
+	DSIGMA = sigma;
+}
 
 
 
@@ -3956,7 +3974,8 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 
 
 		// Smooth tensor components
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
+		//CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, TSIGMA);
 		//PerformSmoothing(d_Smoothed_Tensor_Norms, d_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		//PerformSmoothingNormalized(d_t11, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		//PerformSmoothingNormalized(d_t12, d_Tensor_Norms, d_Smoothed_Tensor_Norms, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
@@ -4056,7 +4075,8 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		*/
 
 		// Smooth components of A-matrices and h-vectors
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
+		//CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, ESIGMA);
 		PerformSmoothing(d_a11, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_a12, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_a13, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
@@ -4091,7 +4111,8 @@ void BROCCOLI_LIB::AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA
 		*/
 
 		// Smooth the displacement field
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
+		//CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, 2.25);
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, DSIGMA);
 		PerformSmoothing(d_Temp_Displacement_Field_X, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_Temp_Displacement_Field_Y, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);
 		PerformSmoothing(d_Temp_Displacement_Field_Z, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, DATA_W, DATA_H, DATA_D, 1);

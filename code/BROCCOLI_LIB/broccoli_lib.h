@@ -173,6 +173,9 @@ class BROCCOLI_LIB
 		void SetMMT1ZCUT(int mm);
 		void SetMMEPIZCUT(int mm);
 		void SetInterpolationMode(int mode);
+		void SetTsigma(float);
+		void SetEsigma(float);
+		void SetDsigma(float);
 
 		// EPI data
 		void SetEPIVoxelSizeX(float value);
@@ -917,6 +920,7 @@ class BROCCOLI_LIB
 		int COARSEST_SCALE_T1_MNI, COARSEST_SCALE_EPI_T1;
 		int MM_T1_Z_CUT, MM_EPI_Z_CUT;
 		int	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS;
+		float TSIGMA, ESIGMA, DSIGMA;
 
 		float M11_1, M12_1, M13_1, M22_1, M23_1, M33_1;
 		float M11_2, M12_2, M13_2, M22_2, M23_2, M33_2;
