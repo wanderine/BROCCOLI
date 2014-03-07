@@ -58,6 +58,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
+    float           TSIGMA, ESIGMA, DSIGMA;
     
     //-----------------------
     // Output pointers        
@@ -72,11 +73,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<32)
+    if(nrhs<35)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>32)
+    if(nrhs>35)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -131,8 +132,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION  = (int)mxGetScalar(prhs[27]);
     COARSEST_SCALE  = (int)mxGetScalar(prhs[28]);
     MM_T1_Z_CUT  = (int)mxGetScalar(prhs[29]);
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[30]);
-    OPENCL_DEVICE  = (int)mxGetScalar(prhs[31]);
+    TSIGMA  = (float)mxGetScalar(prhs[30]);
+    ESIGMA  = (float)mxGetScalar(prhs[31]);
+    DSIGMA  = (float)mxGetScalar(prhs[32]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[33]);
+    OPENCL_DEVICE  = (int)mxGetScalar(prhs[34]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_T1 = mxGetDimensions(prhs[0]);
@@ -388,6 +392,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1, h_Quadrature_Filter_Response_2, h_Quadrature_Filter_Response_3, h_Quadrature_Filter_Response_4, h_Quadrature_Filter_Response_5, h_Quadrature_Filter_Response_6);
         BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
                             
+        BROCCOLI.SetTsigma(TSIGMA);
+		BROCCOLI.SetEsigma(ESIGMA);
+		BROCCOLI.SetDsigma(DSIGMA);
+        
         BROCCOLI.PerformRegistrationTwoVolumesWrapper();     
         
         // Print create buffer errors
