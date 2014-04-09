@@ -569,6 +569,7 @@ ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_C
       
         if (DEBUG)
         {
+			BROCCOLI.SetDebug(true);
             //BROCCOLI.SetOutputQuadratureFilterResponses(h_Quadrature_Filter_Response_1_Real, h_Quadrature_Filter_Response_1_Imag, h_Quadrature_Filter_Response_2_Real, h_Quadrature_Filter_Response_2_Imag, h_Quadrature_Filter_Response_3_Real, h_Quadrature_Filter_Response_3_Imag);
             BROCCOLI.SetOutputPhaseDifferences(h_Phase_Differences);
             BROCCOLI.SetOutputPhaseCertainties(h_Phase_Certainties);
