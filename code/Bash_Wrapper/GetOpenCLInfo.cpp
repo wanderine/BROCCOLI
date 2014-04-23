@@ -19,18 +19,16 @@
 #include "broccoli_lib.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "nifti1_io.h"
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include "opencl.h"
 
 int main(int argc, char **argv)
 {
 	if (argc > 1)
     { 
 		printf("No arguments allowed!\n");
- 		return -1;
+ 		return EXIT_FAILURE;
 	}
 
     BROCCOLI_LIB BROCCOLI;
@@ -39,7 +37,7 @@ int main(int argc, char **argv)
     
 	printf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
             
-    return 1;
+    return EXIT_SUCCESS;
 }
 
 

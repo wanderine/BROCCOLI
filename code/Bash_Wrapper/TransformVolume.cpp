@@ -23,7 +23,6 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include "opencl.h"
 
 #define ADD_FILENAME true
 #define DONT_ADD_FILENAME true
@@ -83,7 +82,6 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
         printf("The provided nifti pointer for file %s is NULL, aborting writing nifti file! \n",filename);
 		return false;
 	}	
-
 
     char* filenameWithExtension;
     
@@ -622,40 +620,10 @@ int main(int argc, char **argv)
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
     
     // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    if (BROCCOLI.GetOpenCLInitiated())
     {              
-        if (BROCCOLI.GetOpenCLPlatformIDsError() != 0)
-		{
-        	printf("Get platform IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLPlatformIDsError()));
-		}
-		if (BROCCOLI.GetOpenCLDeviceIDsError() != 0)
-        {
-	        printf("Get device IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLDeviceIDsError()));
-		}
-		if (BROCCOLI.GetOpenCLCreateContextError() != 0)
-        {
-	        printf("Create context error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateContextError()));
-		}
-		if (BROCCOLI.GetOpenCLContextInfoError() != 0)
-		{
-        	printf("Get create context info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLContextInfoError()));
-        }
-		if (BROCCOLI.GetOpenCLCreateCommandQueueError() != 0)
-   		{
-	        printf("Create command queue error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateCommandQueueError()));
-		}
-		if (BROCCOLI.GetOpenCLCreateProgramError() != 0)
-		{
-	        printf("Create program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateProgramError()));
-		}
-		if (BROCCOLI.GetOpenCLBuildProgramError() != 0)
-		{
-	        printf("Build program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLBuildProgramError()));
-		}
-		if (BROCCOLI.GetOpenCLProgramBuildInfoError() != 0)
- 		{
-	        printf("Get program build info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLProgramBuildInfoError()));
-		}
+        printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
+		printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
 
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
@@ -689,7 +657,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     // Initialization OK
-    else if (BROCCOLI.GetOpenCLInitiated() == 1)
+    else
     {
         // Set all necessary pointers and values
         BROCCOLI.SetInputT1Volume(h_Input_Volume);        

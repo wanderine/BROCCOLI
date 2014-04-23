@@ -23,7 +23,6 @@
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-#include "opencl.h"
 #include <time.h>
 #include <sys/time.h>
 
@@ -294,15 +293,26 @@ int main(int argc, char **argv)
     const char*     FILENAME_EXTENSION = "_MNI";
     bool            PRINT = true;
 	bool			VERBOS = false;
-    bool            FLIPUD = false;
-    bool            FLIPBF = false;
-    bool            FLIPLR = false;
     bool            WRITE_DISPLACEMENT_FIELD = false;
 	bool			WRITE_INTERPOLATED = false;
    	bool			CHANGE_OUTPUT_NAME = false;    
 	float			TSIGMA = 2.25f;
 	float			ESIGMA = 2.25f;
 	float			DSIGMA = 2.25f;
+
+	float			STARTTRANSX = 0.0f;
+	float			STARTTRANSY = 0.0f;
+	float			STARTTRANSZ = 0.0f;
+	float			STARTROTX = 0.0f;
+	float			STARTROTY = 0.0f;
+	float			STARTROTZ = 0.0f;
+
+	float			ENDTRANSX = 0.0f;
+	float			ENDTRANSY = 0.0f;
+	float			ENDTRANSZ = 0.0f;
+	float			ENDROTX = 0.0f;
+	float			ENDROTY = 0.0f;
+	float			ENDROTZ = 0.0f;
 
 	const char*		outputFilename;
 
@@ -330,15 +340,28 @@ int main(int argc, char **argv)
         printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
         printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+		/*
+        printf(" -starttransx               Transformation in x direction to be applied before registration, in voxels (default 0) \n");
+        printf(" -starttransy               Transformation in y direction to be applied before registration, in voxels (default 0) \n");
+        printf(" -starttransz               Transformation in z direction to be applied before registration, in voxels (default 0) \n");
+        printf(" -startrotx               	Rotation around x-axis to be applied before registration, in degrees (default 0) \n");
+        printf(" -startroty               	Rotation around y-axis to be applied before registration, in degrees (default 0) \n");
+        printf(" -startrotz               	Rotation around z-axis to be applied before registration, in degrees (default 0) \n");
+
+        printf(" -endtransx               	Transformation in x direction to be applied after registration, in voxels (default 0) \n");
+        printf(" -endtransy               	Transformation in y direction to be applied after registration, in voxels (default 0) \n");
+        printf(" -endtransz               	Transformation in z direction to be applied after registration, in voxels (default 0) \n");
+        printf(" -endrotx               	Rotation around x-axis to be applied after registration, in degrees (default 0) \n");
+        printf(" -endroty               	Rotation around y-axis to be applied after registration, in degrees (default 0) \n");
+        printf(" -endrotz               	Rotation around z-axis to be applied after registration, in degrees (default 0) \n");
+		*/
+
         printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 2.25)  \n");        
         printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 2.25)  \n");        
         printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 2.25)  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
 		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
 		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume, before alignment (default false) \n");        
-        //printf(" -flipbf                    Flip the volume back to front before registration (invert x-axis) \n");        
-        //printf(" -fliplr                    Flip the volume left to right before registration (invert y-axis) \n");        
-        //printf(" -flipud                    Flip the volume upside down before registration (invert z-axis) \n");                
 		printf(" -output                    Set output filename (default input_volume_aligned_linear.nii and input_volume_aligned_nonlinear.nii) \n");
         printf(" -quiet                     Don't print anything to the terminal (default false) \n");
         printf(" -verbose                   Print extra stuff (default false) \n");
@@ -556,6 +579,210 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
+        else if (strcmp(input,"-starttransx") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -starttransx !\n");
+                return EXIT_FAILURE;
+			}
+
+            STARTTRANSX = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("starttransx must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-starttransy") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -starttransy !\n");
+                return EXIT_FAILURE;
+			}
+
+            STARTTRANSY = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("starttransy must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-starttransz") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -starttransz !\n");
+                return EXIT_FAILURE;
+			}
+
+            STARTTRANSZ = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("starttransz must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-startrotx") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -startrotx !\n");
+                return EXIT_FAILURE;
+			}
+
+            STARTROTX = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("startrotx must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-startroty") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -startroty !\n");
+                return EXIT_FAILURE;
+			}
+
+            STARTROTY = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("startroty must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-startrotz") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -startrotz !\n");
+                return EXIT_FAILURE;
+			}
+
+            STARTROTZ = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("startrotz must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-endtransx") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -endtransx !\n");
+                return EXIT_FAILURE;
+			}
+
+            ENDTRANSX = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("endtransx must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-endtransy") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -endtransy !\n");
+                return EXIT_FAILURE;
+			}
+
+            ENDTRANSY = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("endtransy must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-endtransz") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -endtransz !\n");
+                return EXIT_FAILURE;
+			}
+
+            ENDTRANSZ = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("endtransz must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-endrotx") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -endrotx !\n");
+                return EXIT_FAILURE;
+			}
+
+            ENDROTX = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("endrotx must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-endroty") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -endroty !\n");
+                return EXIT_FAILURE;
+			}
+
+            ENDROTY = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("endroty must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-endrotz") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -endrotz !\n");
+                return EXIT_FAILURE;
+			}
+
+            ENDROTZ = strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("endrotz must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            i += 2;
+        }
         else if (strcmp(input,"-zcut") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -583,23 +810,7 @@ int main(int argc, char **argv)
         {
             WRITE_INTERPOLATED = true;
             i += 1;
-        }
-        else if (strcmp(input,"-flipbf") == 0)
-        {
-            FLIPBF = true;
-            i += 1;
-        }
-        else if (strcmp(input,"-fliplr") == 0)
-        {
-            FLIPLR = true;
-            i += 1;
-        }
-        else if (strcmp(input,"-flipud") == 0)
-        {
-            FLIPUD = true;
-            i += 1;
-        }
-        
+        }       
         else if (strcmp(input,"-debug") == 0)
         {
             DEBUG = true;
@@ -653,6 +864,7 @@ int main(int argc, char **argv)
     if (inputMNI == NULL)
     {
         printf("Could not open second volume!\n");
+		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
         return EXIT_FAILURE;
     }
 	allNiftiImages[numberOfNiftiImages] = inputMNI;
@@ -717,7 +929,6 @@ int main(int argc, char **argv)
         printf("Volume 1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);    
         printf("Volume 2 size: %i x %i x %i \n",  MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
         printf("Volume 2 voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);    
-        printf("Dsigma %f \n", DSIGMA);    
     }
             
     // ------------------------------------------------
@@ -841,6 +1052,15 @@ int main(int argc, char **argv)
             h_MNI_Volume[i] = (float)p[i];
         }
     }
+    else if ( inputMNI->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputMNI->data;
+    
+        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        {
+            h_MNI_Volume[i] = (float)p[i];
+        }
+    }
     else if ( inputMNI->datatype == DT_FLOAT )
     {
         float *p = (float*)inputMNI->data;
@@ -852,7 +1072,7 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Unknown data type in reference volume, aborting!\n");
+        printf("Unknown data type %i in reference volume, aborting!\n",inputMNI->datatype);
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
 		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
         return EXIT_FAILURE;
@@ -864,70 +1084,6 @@ int main(int argc, char **argv)
  	{
 		printf("It took %f seconds to convert data to floats\n",(float)(endTime - startTime));
 	}
-
-    if (FLIPUD)
-    {
-        float* temp = (float*)calloc(T1_DATA_W*T1_DATA_H*T1_DATA_D,sizeof(float));
-        
-        int inverted_z = T1_DATA_D-1;
-        for (int z = 0; z < T1_DATA_D; z++)
-        {
-            for (int y = 0; y < T1_DATA_H; y++)
-            {
-                for (int x = 0; x < T1_DATA_W; x++)
-                {
-                    temp[x + y * T1_DATA_W + z * T1_DATA_W * T1_DATA_H] = h_T1_Volume[x + y * T1_DATA_W + inverted_z * T1_DATA_W * T1_DATA_H];
-                }
-            }
-            inverted_z--;
-        }
-        
-        memcpy(h_T1_Volume,temp,T1_DATA_W*T1_DATA_H*T1_DATA_D*sizeof(float));
-        
-        free(temp);
-    }
-    if (FLIPBF)
-    {   
-        float* temp = (float*)calloc(T1_DATA_W*T1_DATA_H*T1_DATA_D,sizeof(float));
-        
-        for (int z = 0; z < T1_DATA_D; z++)
-        {
-            for (int y = 0; y < T1_DATA_H; y++)
-            {
-                int inverted_x = T1_DATA_W-1;
-                for (int x = 0; x < T1_DATA_W; x++)
-                {
-                    temp[x + y * T1_DATA_W + z * T1_DATA_W * T1_DATA_H] = h_T1_Volume[inverted_x + y * T1_DATA_W + z * T1_DATA_W * T1_DATA_H];
-                    inverted_x--;
-                }
-            }            
-        }
-        
-        memcpy(h_T1_Volume,temp,T1_DATA_W*T1_DATA_H*T1_DATA_D*sizeof(float));
-        
-        free(temp);
-    }
-    if (FLIPLR)
-    {        
-        float* temp = (float*)calloc(T1_DATA_W*T1_DATA_H*T1_DATA_D,sizeof(float));
-        
-        for (int z = 0; z < T1_DATA_D; z++)
-        {
-            int inverted_y = T1_DATA_H-1;
-            for (int y = 0; y < T1_DATA_H; y++)
-            {                
-                for (int x = 0; x < T1_DATA_W; x++)
-                {
-                    temp[x + y * T1_DATA_W + z * T1_DATA_W * T1_DATA_H] = h_T1_Volume[x + inverted_y * T1_DATA_W + z * T1_DATA_W * T1_DATA_H];                    
-                }
-                inverted_y--;
-            }            
-        }
-        
-        memcpy(h_T1_Volume,temp,T1_DATA_W*T1_DATA_H*T1_DATA_D*sizeof(float));
-        
-        free(temp);
-    }
 
 	startTime = GetWallTime();
     
@@ -986,43 +1142,13 @@ int main(int argc, char **argv)
  	{
 		printf("It took %f seconds to initiate BROCCOLI\n",(float)(endTime - startTime));
 	}
-    
+
     // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    if ( !BROCCOLI.GetOpenCLInitiated() )
     {              
-		if (BROCCOLI.GetOpenCLPlatformIDsError() != 0)
-		{
-        	printf("Get platform IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLPlatformIDsError()));
-		}
-		if (BROCCOLI.GetOpenCLDeviceIDsError() != 0)
-        {
-	        printf("Get device IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLDeviceIDsError()));
-		}
-		if (BROCCOLI.GetOpenCLCreateContextError() != 0)
-        {
-	        printf("Create context error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateContextError()));
-		}
-		if (BROCCOLI.GetOpenCLContextInfoError() != 0)
-		{
-        	printf("Get create context info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLContextInfoError()));
-        }
-		if (BROCCOLI.GetOpenCLCreateCommandQueueError() != 0)
-   		{
-	        printf("Create command queue error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateCommandQueueError()));
-		}
-		if (BROCCOLI.GetOpenCLCreateProgramError() != 0)
-		{
-	        printf("Create program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateProgramError()));
-		}
-		if (BROCCOLI.GetOpenCLBuildProgramError() != 0)
-		{
-	        printf("Build program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLBuildProgramError()));
-		}
-		if (BROCCOLI.GetOpenCLProgramBuildInfoError() != 0)
- 		{
-	        printf("Get program build info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLProgramBuildInfoError()));
-		}
-    
+        printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
+		printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
+		
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
@@ -1031,8 +1157,8 @@ int main(int argc, char **argv)
             {
                 printf("Create kernel error %i is %s \n",i,BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }                
-        
+        } 
+       
         // Print build info to file    
         fp = fopen("buildinfo.txt","w");
         if (fp == NULL)
@@ -1048,14 +1174,14 @@ int main(int argc, char **argv)
             }
         }
         fclose(fp);
-        
+
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
         return EXIT_FAILURE;
     }
     // Initialization OK
-    else if (BROCCOLI.GetOpenCLInitiated() == 1)
+    else
     {
         // Set all necessary pointers and values
         BROCCOLI.SetInputT1Volume(h_T1_Volume);

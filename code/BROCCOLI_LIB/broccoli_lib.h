@@ -111,7 +111,7 @@ private:
 class BROCCOLI_LIB
 {
 	public:
-		// Constructor & destructor
+		// Constructors & destructor
 		BROCCOLI_LIB();
 		BROCCOLI_LIB(cl_uint platform, cl_uint device);
 		BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper);
@@ -146,7 +146,7 @@ class BROCCOLI_LIB
 		void SetInferenceMode(int mode);
 		void SetClusterDefiningThreshold(float threshold);
 		void SetPermutationMatrix(unsigned short int*);
-
+		void SetPermutationFileUsage(bool);
 
 		// Smoothing
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
@@ -280,7 +280,7 @@ class BROCCOLI_LIB
 
 		// Get functions for GUI / Wrappers
 
-		int GetOpenCLInitiated();
+		bool GetOpenCLInitiated();
 		int GetNumberOfOpenCLKernels();
 
                 /**
@@ -343,6 +343,9 @@ class BROCCOLI_LIB
 		int GetOpenCLCreateProgramError();
 		int GetOpenCLBuildProgramError();
 		int GetOpenCLProgramBuildInfoError();
+
+		const char* GetOpenCLInitializationError();
+		const char* GetOpenCLError();
 
 		int GetProgramBinarySize();
 		int GetWrittenElements();
@@ -408,9 +411,11 @@ class BROCCOLI_LIB
 		// void CalculateSlicesActivityData();
 
 		void GetOpenCLInfo();
-		void OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
+		bool OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
 
 	private:
+
+		std::string Getexepath();
 
 		void CreateCombinedDisplacementField(float* h_Registration_Parameters, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D);
 
@@ -604,6 +609,10 @@ class BROCCOLI_LIB
 
 		cl_uint OPENCL_PLATFORM;
 		int VENDOR, OPENCL_INITIATED;
+		bool SUCCESSFUL_INITIALIZATION;
+
+		const char* OPENCL_ERROR;
+		const char* INITIALIZATION_ERROR;
 
 		cl_int error;
 		cl_int getPlatformIDsError;
@@ -964,6 +973,7 @@ class BROCCOLI_LIB
 		int STATISTICAL_TEST;
 		int NUMBER_OF_BRAIN_VOXELS;
 		int NUMBER_OF_INVALID_TIMEPOINTS;
+		bool USE_PERMUTATION_FILE;
 
 		// Random permutation variables
 		int NUMBER_OF_PERMUTATIONS;

@@ -24,12 +24,24 @@
 #include <fstream>
 #include <iomanip>
 
+#include <limits.h>
+#include <unistd.h>
+
+#include <time.h>
+#include <sys/time.h>
+
 #define ADD_FILENAME true
 #define DONT_ADD_FILENAME true
 
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
 
+std::string Getexepath()
+{
+  char result[ PATH_MAX ];
+  ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
+  return std::string( result, (count > 0) ? count : 0 );
+}
 
 void FreeAllMemory(void **pointers, int N)
 {
@@ -188,6 +200,18 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
     }                        
 }    
 
+double GetWallTime()
+{
+    struct timeval time;
+    if (gettimeofday(&time,NULL))
+    {
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
+
 int main(int argc, char ** argv)
 {
     //-----------------------
@@ -214,9 +238,9 @@ int main(int argc, char ** argv)
     int             OPENCL_DEVICE = 0;
     int             NUMBER_OF_MOTION_CORRECTION_PARAMETERS = 6;    
     bool            DEBUG = false;
-    //bool            DEBUG = true;
     const char*     FILENAME_EXTENSION = "_mc";
     bool            PRINT = true;
+	bool			VERBOS = false;
     
     int             DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -255,6 +279,7 @@ int main(int argc, char ** argv)
         printf(" -iterations Number of iterations for the motion correction algorithm (default 5) \n");        
         printf(" -output     Set output filename (default input_mc.nii) \n");
         printf(" -quiet      Don't print anything to the terminal (default false) \n");
+        printf(" -verbose    Print extra stuff (default false) \n");
         printf(" -debug      Get additional debug information (default false) \n");
         printf("\n\n");
         
@@ -354,6 +379,11 @@ int main(int argc, char ** argv)
             PRINT = false;
             i += 1;
         }
+        else if (strcmp(input,"-verbose") == 0)
+        {
+            VERBOS = true;
+            i += 1;
+        }
         else if (strcmp(input,"-output") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -372,7 +402,8 @@ int main(int argc, char ** argv)
         }                
     }
     
-    
+    double startTime = GetWallTime();
+
     // Read data
     nifti_image *inputData = nifti_image_read(argv[1],1);
     
@@ -383,6 +414,13 @@ int main(int argc, char ** argv)
     }
     allNiftiImages[numberOfNiftiImages] = inputData;
 	numberOfNiftiImages++;
+
+	double endTime = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to read the nifti file\n",(float)(endTime - startTime));
+	}
 
     // Get data dimensions from input data
     DATA_W = inputData->nx;
@@ -414,6 +452,8 @@ int main(int argc, char ** argv)
     
     // Allocate memory on the host
     
+	startTime = GetWallTime();
+
 	AllocateMemory(h_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INPUT_DATA");
 	AllocateMemory(h_Motion_Corrected_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MOTION_CORRECTED_DATA");
 	AllocateMemory(h_Quadrature_Filter_1_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_REAL");    
@@ -437,6 +477,15 @@ int main(int argc, char ** argv)
 		AllocateMemory(h_Phase_Gradients, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PHASE_GRADIENTS");        
     }
     
+	endTime = GetWallTime();
+    
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to allocate memory\n",(float)(endTime - startTime));
+	}
+
+	startTime = GetWallTime();
+
     // Convert data to floats
     if ( inputData->datatype == DT_SIGNED_SHORT )
     {
@@ -464,62 +513,83 @@ int main(int argc, char ** argv)
         return EXIT_FAILURE;
     }
     
+	endTime = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to convert data to floats\n",(float)(endTime - startTime));
+	}
+
+	startTime = GetWallTime();
+
     // Read quadrature filters, three real valued and three imaginary valued
 
-ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter1_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter1_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-ReadBinaryFile(h_Quadrature_Filter_2_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter2_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-ReadBinaryFile(h_Quadrature_Filter_2_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter2_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-ReadBinaryFile(h_Quadrature_Filter_3_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter3_real_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,"filter3_imag_parametric_registration.bin",allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);     
+	/*
+	std::string path = Getexepath();
+	path.erase(path.end()-16, path.end()); // 16 is the number of characters in 'MotionCorrection'
+	std::string filter1RealName = path;
+	std::string filter1ImagName = path;
+	std::string filter2RealName = path;
+	std::string filter2ImagName = path;
+	std::string filter3RealName = path;
+	std::string filter3ImagName = path;
+	*/
+
+	std::string filter1RealName;
+	std::string filter1ImagName;
+	std::string filter2RealName;
+	std::string filter2ImagName;
+	std::string filter3RealName;
+	std::string filter3ImagName;
+
+	filter1RealName.append("filter1_real_parametric_registration.bin");
+	filter1ImagName.append("filter1_imag_parametric_registration.bin");
+	filter2RealName.append("filter2_real_parametric_registration.bin");
+	filter2ImagName.append("filter2_imag_parametric_registration.bin");
+	filter3RealName.append("filter3_real_parametric_registration.bin");
+	filter3ImagName.append("filter3_imag_parametric_registration.bin");
+
+	ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1RealName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1ImagName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2RealName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2ImagName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3RealName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3ImagName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);     
     
+	endTime = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to read all binary files\n",(float)(endTime - startTime));
+	}    
+
     //------------------------
     
+	startTime = GetWallTime();
+
+	// Initialize BROCCOLI
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
+
+	endTime = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to initiate BROCCOLI\n",(float)(endTime - startTime));
+	}
     
     // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    if (!BROCCOLI.GetOpenCLInitiated())
     {              
-        if (BROCCOLI.GetOpenCLPlatformIDsError() != 0)
-		{
-        	printf("Get platform IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLPlatformIDsError()));
-		}
-		if (BROCCOLI.GetOpenCLDeviceIDsError() != 0)
-        {
-	        printf("Get device IDs error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLDeviceIDsError()));
-		}
-		if (BROCCOLI.GetOpenCLCreateContextError() != 0)
-        {
-	        printf("Create context error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateContextError()));
-		}
-		if (BROCCOLI.GetOpenCLContextInfoError() != 0)
-		{
-        	printf("Get create context info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLContextInfoError()));
-        }
-		if (BROCCOLI.GetOpenCLCreateCommandQueueError() != 0)
-   		{
-	        printf("Create command queue error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateCommandQueueError()));
-		}
-		if (BROCCOLI.GetOpenCLCreateProgramError() != 0)
-		{
-	        printf("Create program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLCreateProgramError()));
-		}
-		if (BROCCOLI.GetOpenCLBuildProgramError() != 0)
-		{
-	        printf("Build program error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLBuildProgramError()));
-		}
-		if (BROCCOLI.GetOpenCLProgramBuildInfoError() != 0)
- 		{
-	        printf("Get program build info error is %s \n",BROCCOLI.GetOpenCLErrorMessage(BROCCOLI.GetOpenCLProgramBuildInfoError()));
-		}
-    
+        printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
+		printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
+
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
             if (createKernelErrors[i] != 0)
             {
-                printf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+                printf("Create kernel error %i is %d \n",i,BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
         }                
         
@@ -538,15 +608,14 @@ ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_C
             }
         }
         fclose(fp);
-        
-        
+                
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
         return EXIT_FAILURE;
     }
     // Initialization OK
-    else if (BROCCOLI.GetOpenCLInitiated() == 1)
+    else
     {
         // Set all necessary pointers and values
         BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
@@ -577,15 +646,22 @@ ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_C
         }
              
         // Run the actual motion correction
-        BROCCOLI.PerformMotionCorrectionWrapper();        
-    
+		startTime = GetWallTime();        
+		BROCCOLI.PerformMotionCorrectionWrapper();        
+		endTime = GetWallTime();
+
+		if (VERBOS)
+	 	{
+			printf("\nIt took %f seconds to run the motion correction\n",(float)(endTime - startTime));
+		}    
+
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
             if (createBufferErrors[i] != 0)
             {
-                printf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+                printf("Create buffer error %i is %d \n",i,BROCCOLI.GetOpenCLErrorMessage(createBufferErrors[i]));
             }
         }
         
@@ -595,7 +671,7 @@ ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_C
         {
             if (runKernelErrors[i] != 0)
             {
-                printf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+                printf("Run kernel error %i is %d \n",i,BROCCOLI.GetOpenCLErrorMessage(runKernelErrors[i]));
             }
         } 
     }
@@ -641,6 +717,8 @@ ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_C
     }
         
     // Write motion corrected data to file            
+    startTime = GetWallTime();
+
     WriteNifti(inputData,h_Motion_Corrected_fMRI_Volumes,FILENAME_EXTENSION,ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     
     if (DEBUG)
@@ -655,6 +733,13 @@ ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_C
         WriteNifti(inputData,h_Quadrature_Filter_Response_3_Real,"_quadrature_filter_responses_3_real",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(inputData,h_Quadrature_Filter_Response_3_Imag,"_quadrature_filter_responses_3_imag",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);        
     }
+
+	endTime = GetWallTime();
+
+	if (VERBOS)
+ 	{
+		printf("It took %f seconds to write the nifti file\n",(float)(endTime - startTime));
+	}
     
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);            

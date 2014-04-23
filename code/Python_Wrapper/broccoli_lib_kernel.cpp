@@ -7586,7 +7586,7 @@ int CalculateBetaWeightsFirstLevel(__private float* beta,
 			beta[10] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 10 + v];
 			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
 			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
-
+			
 			break;
 
 		case 14:
@@ -7605,7 +7605,7 @@ int CalculateBetaWeightsFirstLevel(__private float* beta,
 			beta[11] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 11 + v];
 			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
 			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
-
+			
 			break;
 
 		case 15:
@@ -7625,7 +7625,7 @@ int CalculateBetaWeightsFirstLevel(__private float* beta,
 			beta[12] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 12 + v];
 			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
 			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
-
+			
 			break;
 
 		case 16:
@@ -7646,7 +7646,7 @@ int CalculateBetaWeightsFirstLevel(__private float* beta,
 			beta[13] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 13 + v];
 			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
 			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
-
+			
 			break;
 
 		case 17:
@@ -7668,7 +7668,7 @@ int CalculateBetaWeightsFirstLevel(__private float* beta,
 			beta[14] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 14 + v];
 			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
 			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
-
+			
 			break;
 
 		case 18:
@@ -7691,7 +7691,7 @@ int CalculateBetaWeightsFirstLevel(__private float* beta,
 			beta[15] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 15 + v];
 			beta[16] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 16 + v];
 			beta[17] += value * c_xtxxt_GLM[NUMBER_OF_VOLUMES * 17 + v];
-
+			
 			break;
 
 		case 19:
@@ -8370,7 +8370,7 @@ int CalculateBetaWeightsSecondLevel(__private float* beta,
 float CalculateEpsFirstLevel(__private float eps,
 							 __private float* beta,
 							 __constant float* c_X_GLM,
-							 int v,
+							 int v,		           
 							 int NUMBER_OF_VOLUMES,
 							 int NUMBER_OF_REGRESSORS)
 {
@@ -8477,7 +8477,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 6 + v] * beta[6];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 7 + v] * beta[7];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];			
 
 			break;
 
@@ -8494,7 +8494,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + v] * beta[8];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
-
+			
 			break;
 
 		case 12:
@@ -8511,7 +8511,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + v] * beta[9];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
-
+			
 			break;
 
 		case 13:
@@ -8529,7 +8529,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + v] * beta[10];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
-
+			
 			break;
 
 		case 14:
@@ -8548,7 +8548,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + v] * beta[11];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
-
+			
 			break;
 
 		case 15:
@@ -8568,7 +8568,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + v] * beta[12];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
-
+			
 			break;
 
 		case 16:
@@ -8589,7 +8589,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + v] * beta[13];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
-
+			
 			break;
 
 		case 17:
@@ -8611,7 +8611,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + v] * beta[14];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
-
+			
 			break;
 
 		case 18:
@@ -8634,7 +8634,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 15 + v] * beta[15];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
-
+			
 			break;
 
 		case 19:
@@ -8658,7 +8658,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 16 + v] * beta[16];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
-
+			
 			break;
 
 		case 20:
@@ -8683,7 +8683,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 17 + v] * beta[17];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
-
+			
 			break;
 
 		case 21:
@@ -8709,7 +8709,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 18 + v] * beta[18];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
-
+			
 			break;
 
 		case 22:
@@ -8736,7 +8736,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 19 + v] * beta[19];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
-
+			
 			break;
 
 		case 23:
@@ -8764,7 +8764,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 20 + v] * beta[20];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
-
+			
 			break;
 
 		case 24:
@@ -8793,7 +8793,7 @@ float CalculateEpsFirstLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 21 + v] * beta[21];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 22 + v] * beta[22];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 23 + v] * beta[23];
-
+			
 			break;
 
 		case 25:
@@ -8964,7 +8964,7 @@ float CalculateEpsSecondLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 8 + c_Permutation_Vector[v]] * beta[8];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
-
+			
 			break;
 
 		case 12:
@@ -8981,7 +8981,7 @@ float CalculateEpsSecondLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 9 + c_Permutation_Vector[v]] * beta[9];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
-
+			
 			break;
 
 		case 13:
@@ -8999,7 +8999,7 @@ float CalculateEpsSecondLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 10 + c_Permutation_Vector[v]] * beta[10];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
-
+			
 			break;
 
 		case 14:
@@ -9018,7 +9018,7 @@ float CalculateEpsSecondLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 11 + c_Permutation_Vector[v]] * beta[11];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
-
+			
 			break;
 
 		case 15:
@@ -9038,7 +9038,7 @@ float CalculateEpsSecondLevel(__private float eps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 12 + c_Permutation_Vector[v]] * beta[12];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 13 + c_Permutation_Vector[v]] * beta[13];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 14 + c_Permutation_Vector[v]] * beta[14];
-
+			
 			break;
 
 		case 16:
@@ -9672,7 +9672,7 @@ float CalculateContrastValue(__private float* beta, __constant float* c_Contrast
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 19] * beta[19];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
-
+			
 			break;
 
 		case 23:
@@ -9700,7 +9700,7 @@ float CalculateContrastValue(__private float* beta, __constant float* c_Contrast
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 20] * beta[20];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
-
+			
 			break;
 
 		case 24:
@@ -9729,7 +9729,7 @@ float CalculateContrastValue(__private float* beta, __constant float* c_Contrast
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
-
+			
 			break;
 
 		case 25:
@@ -9773,7 +9773,7 @@ float CalculateContrastValue(__private float* beta, __constant float* c_Contrast
 
 
 
-int CalculateCBeta(__private float* cbeta, __private float* beta, __constant float* c_Contrasts, int c, int NUMBER_OF_REGRESSORS)
+int CalculateCBeta(__private float* cbeta, __private float* beta, __constant float* c_Contrasts, int c, int NUMBER_OF_REGRESSORS)	
 {
 	cbeta[c] = 0.0f;
 
@@ -9789,7 +9789,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
-
+			
 			break;
 
 		case 3:
@@ -9797,7 +9797,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 0] * beta[0];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 1] * beta[1];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
-
+			
 			break;
 
 		case 4:
@@ -9816,7 +9816,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 2] * beta[2];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
-
+			
 			break;
 
 		case 6:
@@ -9827,7 +9827,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 3] * beta[3];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
-
+			
 			break;
 
 		case 7:
@@ -9839,7 +9839,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 4] * beta[4];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 5] * beta[5];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 6] * beta[6];
-
+			
 			break;
 
 		case 8:
@@ -9881,7 +9881,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 7] * beta[7];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
-
+			
 			break;
 
 		case 11:
@@ -9897,7 +9897,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 8] * beta[8];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
-
+			
 			break;
 
 		case 12:
@@ -9914,7 +9914,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 9] * beta[9];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
-
+			
 			break;
 
 		case 13:
@@ -9932,7 +9932,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 10] * beta[10];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
-
+			
 			break;
 
 		case 14:
@@ -9951,7 +9951,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 11] * beta[11];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
-
+			
 			break;
 
 		case 15:
@@ -9971,7 +9971,7 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 12] * beta[12];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 13] * beta[13];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 14] * beta[14];
-
+			
 			break;
 
 		case 16:
@@ -10225,8 +10225,8 @@ int CalculateCBeta(__private float* cbeta, __private float* beta, __constant flo
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 21] * beta[21];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 22] * beta[22];
 			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 23] * beta[23];
-			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 24] * beta[24];
-
+			cbeta[c] += c_Contrasts[NUMBER_OF_REGRESSORS * c + 24] * beta[24];			
+			
 			break;
 
 		default:
@@ -10259,7 +10259,7 @@ int CalculateCBetas(__private float* cbeta, __private float* beta, __constant fl
 			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
 			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
 			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
-
+			
 			break;
 
 		case 4:
@@ -10268,7 +10268,7 @@ int CalculateCBetas(__private float* cbeta, __private float* beta, __constant fl
 			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
 			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
 			CalculateCBeta(cbeta, beta, c_Contrasts, 3, NUMBER_OF_REGRESSORS);
-
+			
 			break;
 
 		case 5:
@@ -10305,7 +10305,7 @@ int CalculateCBetas(__private float* cbeta, __private float* beta, __constant fl
 			break;
 
 		case 8:
-
+			
 			CalculateCBeta(cbeta, beta, c_Contrasts, 0, NUMBER_OF_REGRESSORS);
 			CalculateCBeta(cbeta, beta, c_Contrasts, 1, NUMBER_OF_REGRESSORS);
 			CalculateCBeta(cbeta, beta, c_Contrasts, 2, NUMBER_OF_REGRESSORS);
@@ -10344,12 +10344,12 @@ int CalculateCBetas(__private float* cbeta, __private float* beta, __constant fl
 			CalculateCBeta(cbeta, beta, c_Contrasts, 8, NUMBER_OF_REGRESSORS);
 			CalculateCBeta(cbeta, beta, c_Contrasts, 9, NUMBER_OF_REGRESSORS);
 			
-			break;
+			break;		
 
 		default:
 			1;
 			break;
-	}
+	}	
 
 	return 0;
 }
@@ -10463,15 +10463,15 @@ int CalculateCTXTXCCBeta(__private float* beta, float vareps, __constant float* 
 			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[8 + c * NUMBER_OF_CONTRASTS] * cbeta[8];
 			beta[c] += 1.0f/vareps * c_ctxtxc_GLM[9 + c * NUMBER_OF_CONTRASTS] * cbeta[9];
 
-			break;
+			break;		
 
 		default:
 			1;
 			break;
-	}
+	}	
 
-	return 0;
-}
+	return 0;	
+}			
 
 
 int CalculateCTXTXCCBetas(__private float* beta, float vareps, __constant float* c_ctxtxc_GLM, __private float* cbeta, int NUMBER_OF_CONTRASTS)
@@ -10481,14 +10481,14 @@ int CalculateCTXTXCCBetas(__private float* beta, float vareps, __constant float*
 		case 1:
 
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
-
+			
 			break;
 
 		case 2:
-
+			
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 0, NUMBER_OF_CONTRASTS);
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 1, NUMBER_OF_CONTRASTS);
-
+						
 			break;
 
 		case 3:
@@ -10526,7 +10526,7 @@ int CalculateCTXTXCCBetas(__private float* beta, float vareps, __constant float*
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 3, NUMBER_OF_CONTRASTS);
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 5, NUMBER_OF_CONTRASTS);
-
+			
 			break;
 
 		case 7:
@@ -10538,7 +10538,7 @@ int CalculateCTXTXCCBetas(__private float* beta, float vareps, __constant float*
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 4, NUMBER_OF_CONTRASTS);
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 5, NUMBER_OF_CONTRASTS);
 			CalculateCTXTXCCBeta(beta, vareps, c_ctxtxc_GLM, cbeta, 6, NUMBER_OF_CONTRASTS);
-
+			
 			break;
 
 		case 8:
@@ -10588,8 +10588,8 @@ int CalculateCTXTXCCBetas(__private float* beta, float vareps, __constant float*
 			break;
 	}	
 
-	return 0;
-}
+	return 0;	
+}			
 
 
 float CalculateFTestScalar(__private float* cbeta, __private float* beta, int NUMBER_OF_CONTRASTS)
@@ -10701,7 +10701,7 @@ float CalculateFTestScalar(__private float* cbeta, __private float* beta, int NU
 			scalar += cbeta[7] * beta[7];
 			scalar += cbeta[8] * beta[8];
 			scalar += cbeta[9] * beta[9];
-
+			
 			break;		
 
 		default:
@@ -10712,7 +10712,7 @@ float CalculateFTestScalar(__private float* cbeta, __private float* beta, int NU
 	return scalar;
 }
 
-
+	
 
 
 
@@ -10721,7 +10721,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 																	__global const float* Mask,
 																	__constant float* c_X_GLM,
 																	__constant float* c_xtxxt_GLM,
-																	__constant float* c_Contrasts,
+																	__constant float* c_Contrasts,	
 																	__constant float* c_ctxtxc_GLM,
 																	__private int DATA_W,
 																	__private int DATA_H,
@@ -10729,7 +10729,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 																	__private int NUMBER_OF_VOLUMES,
 																	__private int NUMBER_OF_REGRESSORS,
 																	__private int NUMBER_OF_CONTRASTS)
-{
+{	
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 	int z = get_global_id(2);
@@ -10791,7 +10791,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(__global flo
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-
+		
 		n += 1.0f;
 		float delta = eps - meaneps;
 		meaneps += delta/n;
@@ -10884,7 +10884,7 @@ __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global flo
 	{
 		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		eps = CalculateEpsFirstLevel(eps, beta, c_X_GLM, v, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
-
+		
 		n += 1.0f;
 		float delta = eps - meaneps;
 		meaneps += delta/n;
@@ -10896,11 +10896,11 @@ __kernel void CalculateStatisticalMapsGLMFTestFirstLevelPermutation(__global flo
 
 	// Calculate matrix vector product C*beta (minus u)
 	float cbeta[10];
-	CalculateCBetas(cbeta, beta, c_Contrasts, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS);
+	CalculateCBetas(cbeta, beta, c_Contrasts, NUMBER_OF_REGRESSORS, NUMBER_OF_CONTRASTS);		
 
 	// Calculate total vector matrix vector product (C*beta)^T ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
 
-	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)
+	// Calculate right hand side, temp = ( 1/vareps * (C^T (X^T X)^(-1) C^T)^(-1) ) (C*beta)	
 	CalculateCTXTXCCBetas(beta, vareps, c_ctxtxc_GLM, cbeta, NUMBER_OF_CONTRASTS);
 
 	// Finally calculate (C*beta)^T * temp
@@ -11224,15 +11224,15 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 
 
 // Estimates voxel specific AR(4) models
-__kernel void EstimateAR4Models(__global float* AR1_Estimates,
-                                __global float* AR2_Estimates,
-								__global float* AR3_Estimates,
-								__global float* AR4_Estimates,
-								__global const float* fMRI_Volumes,
-								__global const float* Mask,
-								__private int DATA_W,
-								__private int DATA_H,
-								__private int DATA_D,
+__kernel void EstimateAR4Models(__global float* AR1_Estimates, 
+                                __global float* AR2_Estimates, 
+								__global float* AR3_Estimates, 
+								__global float* AR4_Estimates, 
+								__global const float* fMRI_Volumes, 
+								__global const float* Mask, 
+								__private int DATA_W, 
+								__private int DATA_H, 
+								__private int DATA_D, 
 								__private int DATA_T,
 								__private int INVALID_TIMEPOINTS)
 {
@@ -11281,7 +11281,7 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
     {
         // Read data into register
         old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
-
+        
         // Sum and multiply the values in fast registers
         c0 += old_value_5 * old_value_5;
         c1 += old_value_5 * old_value_4;
@@ -11357,16 +11357,16 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
 }
 
 
-__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes,
-                                __global float* fMRI_Volumes,
-								__global const float* AR1_Estimates,
-								__global const float* AR2_Estimates,
-								__global const float* AR3_Estimates,
-								__global const float* AR4_Estimates,
-								__global const float* Mask,
-								__private int DATA_W,
-								__private int DATA_H,
-								__private int DATA_D,
+__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes, 
+                                __global float* fMRI_Volumes, 
+								__global const float* AR1_Estimates, 
+								__global const float* AR2_Estimates, 
+								__global const float* AR3_Estimates, 
+								__global const float* AR4_Estimates, 
+								__global const float* Mask, 
+								__private int DATA_W, 
+								__private int DATA_H, 
+								__private int DATA_D, 
 								__private int DATA_T)
 {
 	int x = get_global_id(0);
@@ -11389,7 +11389,7 @@ __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes,
 
     // Calculate the whitened timeseries
 
-    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)];
+    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)];	
     Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)] = old_value_1;
     old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
     Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)] = old_value_2  - alphas.x * old_value_1;
@@ -11412,17 +11412,17 @@ __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes,
     }
 }
 
-__kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Volumes,
-                                                __global const float* Whitened_fMRI_Volumes,
-												__global const float* AR1_Estimates,
-												__global const float* AR2_Estimates,
-												__global const float* AR3_Estimates,
-												__global const float* AR4_Estimates,
-												__global const float* Mask,
-												__constant unsigned short int *c_Permutation_Vector,
-												__private int DATA_W,
-												__private int DATA_H,
-												__private int DATA_D,
+__kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Volumes, 
+                                                __global const float* Whitened_fMRI_Volumes, 
+												__global const float* AR1_Estimates, 
+												__global const float* AR2_Estimates, 
+												__global const float* AR3_Estimates, 
+												__global const float* AR4_Estimates, 
+												__global const float* Mask, 
+												__constant unsigned short int *c_Permutation_Vector, 
+												__private int DATA_W, 
+												__private int DATA_H, 
+												__private int DATA_D, 
 												__private int DATA_T)
 {
 	int x = get_global_id(0);
@@ -11458,7 +11458,7 @@ __kernel void GeneratePermutedVolumesFirstLevel(__global float* Permuted_fMRI_Vo
     {
         // Calculate the unwhitened, permuted, timeseries
         old_value_5 = alphas.x * old_value_4 + alphas.y * old_value_3 + alphas.z * old_value_2 + alphas.w * old_value_1 + Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, c_Permutation_Vector[t], DATA_W, DATA_H, DATA_D)];
-
+			
         Permuted_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5;
 
         // Save old values
