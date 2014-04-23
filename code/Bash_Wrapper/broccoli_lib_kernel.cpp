@@ -1690,381 +1690,12 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response,
 
 // Non-separable 3D convolution
 
-typedef struct tag_float6 {float a; float b; float c; float d; float e; float f;} float6;
+// float66 since Apple seems to have predefined float6
+typedef struct tag_float66 {float a; float b; float c; float d; float e; float f;} float66;
 
 // Non-separable 2D convolution for three complex valued 7 x 7 filters, unrolled for performance
-float6 Conv_2D_Unrolled_7x7_ThreeFilters(__local float image[64][96],
-	                                     int y, 
-										 int x, 
-										 __constant float2* Filter_1, 
-										 __constant float2* Filter_2, 
-										 __constant float2* Filter_3)
-{
-	float pixel;
-	float6 sum;
-	sum.a = 0.0f;
-	sum.b = 0.0f;
-	sum.c = 0.0f;
-	sum.d = 0.0f;
-	sum.e = 0.0f;
-	sum.f = 0.0f;
-	
-    pixel = image[y - 3][x - 3]; 
-    sum.a += pixel * Filter_1[6*7 + 6].x;
-	sum.b += pixel * Filter_1[6*7 + 6].y;
-	sum.c += pixel * Filter_2[6*7 + 6].x;
-	sum.d += pixel * Filter_2[6*7 + 6].y;
-	sum.e += pixel * Filter_3[6*7 + 6].x;
-	sum.f += pixel * Filter_3[6*7 + 6].y;
-    pixel = image[y - 2][x - 3]; 
-    sum.a += pixel * Filter_1[5*7 + 6].x;
-	sum.b += pixel * Filter_1[5*7 + 6].y;
-	sum.c += pixel * Filter_2[5*7 + 6].x;
-	sum.d += pixel * Filter_2[5*7 + 6].y;
-	sum.e += pixel * Filter_3[5*7 + 6].x;
-	sum.f += pixel * Filter_3[5*7 + 6].y;
-	pixel = image[y - 1][x - 3]; 
-    sum.a += pixel * Filter_1[4*7 + 6].x;
-	sum.b += pixel * Filter_1[4*7 + 6].y;
-	sum.c += pixel * Filter_2[4*7 + 6].x;
-	sum.d += pixel * Filter_2[4*7 + 6].y;
-	sum.e += pixel * Filter_3[4*7 + 6].x;
-	sum.f += pixel * Filter_3[4*7 + 6].y;
-	pixel = image[y + 0][x - 3]; 
-    sum.a += pixel * Filter_1[3*7 + 6].x;
-	sum.b += pixel * Filter_1[3*7 + 6].y;
-	sum.c += pixel * Filter_2[3*7 + 6].x;
-	sum.d += pixel * Filter_2[3*7 + 6].y;
-	sum.e += pixel * Filter_3[3*7 + 6].x;
-	sum.f += pixel * Filter_3[3*7 + 6].y;
-    pixel = image[y + 1][x - 3]; 
-    sum.a += pixel * Filter_1[2*7 + 6].x;
-	sum.b += pixel * Filter_1[2*7 + 6].y;
-	sum.c += pixel * Filter_2[2*7 + 6].x;
-	sum.d += pixel * Filter_2[2*7 + 6].y;
-	sum.e += pixel * Filter_3[2*7 + 6].x;
-	sum.f += pixel * Filter_3[2*7 + 6].y;
-	pixel = image[y + 2][x - 3]; 
-    sum.a += pixel * Filter_1[1*7 + 6].x;
-	sum.b += pixel * Filter_1[1*7 + 6].y;
-	sum.c += pixel * Filter_2[1*7 + 6].x;
-	sum.d += pixel * Filter_2[1*7 + 6].y;
-	sum.e += pixel * Filter_3[1*7 + 6].x;
-	sum.f += pixel * Filter_3[1*7 + 6].y;
-	pixel = image[y + 3][x - 3]; 
-    sum.a += pixel * Filter_1[6].x;
-	sum.b += pixel * Filter_1[6].y;
-	sum.c += pixel * Filter_2[6].x;
-	sum.d += pixel * Filter_2[6].y;
-	sum.e += pixel * Filter_3[6].x;
-	sum.f += pixel * Filter_3[6].y;
 
-    pixel = image[y - 3][x - 2]; 
-    sum.a += pixel * Filter_1[6*7 + 5].x;
-	sum.b += pixel * Filter_1[6*7 + 5].y;
-	sum.c += pixel * Filter_2[6*7 + 5].x;
-	sum.d += pixel * Filter_2[6*7 + 5].y;
-	sum.e += pixel * Filter_3[6*7 + 5].x;
-	sum.f += pixel * Filter_3[6*7 + 5].y;
-    pixel = image[y - 2][x - 2]; 
-    sum.a += pixel * Filter_1[5*7 + 5].x;
-	sum.b += pixel * Filter_1[5*7 + 5].y;
-	sum.c += pixel * Filter_2[5*7 + 5].x;
-	sum.d += pixel * Filter_2[5*7 + 5].y;
-	sum.e += pixel * Filter_3[5*7 + 5].x;
-	sum.f += pixel * Filter_3[5*7 + 5].y;
-    pixel = image[y - 1][x - 2]; 
-    sum.a += pixel * Filter_1[4*7 + 5].x;
-	sum.b += pixel * Filter_1[4*7 + 5].y;
-	sum.c += pixel * Filter_2[4*7 + 5].x;
-	sum.d += pixel * Filter_2[4*7 + 5].y;
-	sum.e += pixel * Filter_3[4*7 + 5].x;
-	sum.f += pixel * Filter_3[4*7 + 5].y;
-    pixel = image[y + 0][x - 2]; 
-    sum.a += pixel * Filter_1[3*7 + 5].x;
-	sum.b += pixel * Filter_1[3*7 + 5].y;
-	sum.c += pixel * Filter_2[3*7 + 5].x;
-	sum.d += pixel * Filter_2[3*7 + 5].y;
-	sum.e += pixel * Filter_3[3*7 + 5].x;
-	sum.f += pixel * Filter_3[3*7 + 5].y;
-    pixel = image[y + 1][x - 2]; 
-    sum.a += pixel * Filter_1[2*7 + 5].x;
-	sum.b += pixel * Filter_1[2*7 + 5].y;
-	sum.c += pixel * Filter_2[2*7 + 5].x;
-	sum.d += pixel * Filter_2[2*7 + 5].y;
-	sum.e += pixel * Filter_3[2*7 + 5].x;
-	sum.f += pixel * Filter_3[2*7 + 5].y;
-    pixel = image[y + 2][x - 2]; 
-    sum.a += pixel * Filter_1[1*7 + 5].x;
-	sum.b += pixel * Filter_1[1*7 + 5].y;
-	sum.c += pixel * Filter_2[1*7 + 5].x;
-	sum.d += pixel * Filter_2[1*7 + 5].y;
-	sum.e += pixel * Filter_3[1*7 + 5].x;
-	sum.f += pixel * Filter_3[1*7 + 5].y;
-    pixel = image[y + 3][x - 2]; 
-    sum.a += pixel * Filter_1[5].x;
-	sum.b += pixel * Filter_1[5].y;
-	sum.c += pixel * Filter_2[5].x;
-	sum.d += pixel * Filter_2[5].y;
-	sum.e += pixel * Filter_3[5].x;
-	sum.f += pixel * Filter_3[5].y;
-
-
-    pixel = image[y - 3][x - 1]; 
-    sum.a += pixel * Filter_1[6*7 + 4].x;
-	sum.b += pixel * Filter_1[6*7 + 4].y;
-	sum.c += pixel * Filter_2[6*7 + 4].x;
-	sum.d += pixel * Filter_2[6*7 + 4].y;
-	sum.e += pixel * Filter_3[6*7 + 4].x;
-	sum.f += pixel * Filter_3[6*7 + 4].y;
-    pixel = image[y - 2][x - 1]; 
-    sum.a += pixel * Filter_1[5*7 + 4].x;
-	sum.b += pixel * Filter_1[5*7 + 4].y;
-	sum.c += pixel * Filter_2[5*7 + 4].x;
-	sum.d += pixel * Filter_2[5*7 + 4].y;
-	sum.e += pixel * Filter_3[5*7 + 4].x;
-	sum.f += pixel * Filter_3[5*7 + 4].y;
-    pixel = image[y - 1][x - 1]; 
-    sum.a += pixel * Filter_1[4*7 + 4].x;
-	sum.b += pixel * Filter_1[4*7 + 4].y;
-	sum.c += pixel * Filter_2[4*7 + 4].x;
-	sum.d += pixel * Filter_2[4*7 + 4].y;
-	sum.e += pixel * Filter_3[4*7 + 4].x;
-	sum.f += pixel * Filter_3[4*7 + 4].y;
-    pixel = image[y + 0][x - 1]; 
-    sum.a += pixel * Filter_1[3*7 + 4].x;
-	sum.b += pixel * Filter_1[3*7 + 4].y;
-	sum.c += pixel * Filter_2[3*7 + 4].x;
-	sum.d += pixel * Filter_2[3*7 + 4].y;
-	sum.e += pixel * Filter_3[3*7 + 4].x;
-	sum.f += pixel * Filter_3[3*7 + 4].y;
-    pixel = image[y + 1][x - 1]; 
-    sum.a += pixel * Filter_1[2*7 + 4].x;
-	sum.b += pixel * Filter_1[2*7 + 4].y;
-	sum.c += pixel * Filter_2[2*7 + 4].x;
-	sum.d += pixel * Filter_2[2*7 + 4].y;
-	sum.e += pixel * Filter_3[2*7 + 4].x;
-	sum.f += pixel * Filter_3[2*7 + 4].y;
-    pixel = image[y + 2][x - 1]; 
-    sum.a += pixel * Filter_1[1*7 + 4].x;
-	sum.b += pixel * Filter_1[1*7 + 4].y;
-	sum.c += pixel * Filter_2[1*7 + 4].x;
-	sum.d += pixel * Filter_2[1*7 + 4].y;
-	sum.e += pixel * Filter_3[1*7 + 4].x;
-	sum.f += pixel * Filter_3[1*7 + 4].y;
-    pixel = image[y + 3][x - 1]; 
-    sum.a += pixel * Filter_1[4].x;
-	sum.b += pixel * Filter_1[4].y;
-	sum.c += pixel * Filter_2[4].x;
-	sum.d += pixel * Filter_2[4].y;
-	sum.e += pixel * Filter_3[4].x;
-	sum.f += pixel * Filter_3[4].y;
-
-
-    pixel = image[y - 3][x + 0]; 
-    sum.a += pixel * Filter_1[6*7 + 3].x;
-	sum.b += pixel * Filter_1[6*7 + 3].y;
-	sum.c += pixel * Filter_2[6*7 + 3].x;
-	sum.d += pixel * Filter_2[6*7 + 3].y;
-	sum.e += pixel * Filter_3[6*7 + 3].x;
-	sum.f += pixel * Filter_3[6*7 + 3].y;
-    pixel = image[y - 2][x + 0]; 
-    sum.a += pixel * Filter_1[5*7 + 3].x;
-	sum.b += pixel * Filter_1[5*7 + 3].y;
-	sum.c += pixel * Filter_2[5*7 + 3].x;
-	sum.d += pixel * Filter_2[5*7 + 3].y;
-	sum.e += pixel * Filter_3[5*7 + 3].x;
-	sum.f += pixel * Filter_3[5*7 + 3].y;
-    pixel = image[y - 1][x + 0]; 
-    sum.a += pixel * Filter_1[4*7 + 3].x;
-	sum.b += pixel * Filter_1[4*7 + 3].y;
-	sum.c += pixel * Filter_2[4*7 + 3].x;
-	sum.d += pixel * Filter_2[4*7 + 3].y;
-	sum.e += pixel * Filter_3[4*7 + 3].x;
-	sum.f += pixel * Filter_3[4*7 + 3].y;
-    pixel = image[y + 0][x + 0]; 
-    sum.a += pixel * Filter_1[3*7 + 3].x;
-	sum.b += pixel * Filter_1[3*7 + 3].y;
-	sum.c += pixel * Filter_2[3*7 + 3].x;
-	sum.d += pixel * Filter_2[3*7 + 3].y;
-	sum.e += pixel * Filter_3[3*7 + 3].x;
-	sum.f += pixel * Filter_3[3*7 + 3].y;
-    pixel = image[y + 1][x + 0]; 
-    sum.a += pixel * Filter_1[2*7 + 3].x;
-	sum.b += pixel * Filter_1[2*7 + 3].y;
-	sum.c += pixel * Filter_2[2*7 + 3].x;
-	sum.d += pixel * Filter_2[2*7 + 3].y;
-	sum.e += pixel * Filter_3[2*7 + 3].x;
-	sum.f += pixel * Filter_3[2*7 + 3].y;
-    pixel = image[y + 2][x + 0]; 
-    sum.a += pixel * Filter_1[1*7 + 3].x;
-	sum.b += pixel * Filter_1[1*7 + 3].y;
-	sum.c += pixel * Filter_2[1*7 + 3].x;
-	sum.d += pixel * Filter_2[1*7 + 3].y;
-	sum.e += pixel * Filter_3[1*7 + 3].x;
-	sum.f += pixel * Filter_3[1*7 + 3].y;
-    pixel = image[y + 3][x + 0]; 
-    sum.a += pixel * Filter_1[3].x;
-	sum.b += pixel * Filter_1[3].y;
-	sum.c += pixel * Filter_2[3].x;
-	sum.d += pixel * Filter_2[3].y;
-	sum.e += pixel * Filter_3[3].x;
-	sum.f += pixel * Filter_3[3].y;
-
-	pixel = image[y - 3][x + 1]; 
-    sum.a += pixel * Filter_1[6*7 + 2].x;
-	sum.b += pixel * Filter_1[6*7 + 2].y;
-	sum.c += pixel * Filter_2[6*7 + 2].x;
-	sum.d += pixel * Filter_2[6*7 + 2].y;
-	sum.e += pixel * Filter_3[6*7 + 2].x;
-	sum.f += pixel * Filter_3[6*7 + 2].y;
-    pixel = image[y - 2][x + 1]; 
-    sum.a += pixel * Filter_1[5*7 + 2].x;
-	sum.b += pixel * Filter_1[5*7 + 2].y;
-	sum.c += pixel * Filter_2[5*7 + 2].x;
-	sum.d += pixel * Filter_2[5*7 + 2].y;
-	sum.e += pixel * Filter_3[5*7 + 2].x;
-	sum.f += pixel * Filter_3[5*7 + 2].y;
-    pixel = image[y - 1][x + 1]; 
-    sum.a += pixel * Filter_1[4*7 + 2].x;
-	sum.b += pixel * Filter_1[4*7 + 2].y;
-	sum.c += pixel * Filter_2[4*7 + 2].x;
-	sum.d += pixel * Filter_2[4*7 + 2].y;
-	sum.e += pixel * Filter_3[4*7 + 2].x;
-	sum.f += pixel * Filter_3[4*7 + 2].y;
-    pixel = image[y + 0][x + 1]; 
-    sum.a += pixel * Filter_1[3*7 + 2].x;
-	sum.b += pixel * Filter_1[3*7 + 2].y;
-	sum.c += pixel * Filter_2[3*7 + 2].x;
-	sum.d += pixel * Filter_2[3*7 + 2].y;
-	sum.e += pixel * Filter_3[3*7 + 2].x;
-	sum.f += pixel * Filter_3[3*7 + 2].y;
-    pixel = image[y + 1][x + 1]; 
-    sum.a += pixel * Filter_1[2*7 + 2].x;
-	sum.b += pixel * Filter_1[2*7 + 2].y;
-	sum.c += pixel * Filter_2[2*7 + 2].x;
-	sum.d += pixel * Filter_2[2*7 + 2].y;
-	sum.e += pixel * Filter_3[2*7 + 2].x;
-	sum.f += pixel * Filter_3[2*7 + 2].y;
-    pixel = image[y + 2][x + 1]; 
-    sum.a += pixel * Filter_1[1*7 + 2].x;
-	sum.b += pixel * Filter_1[1*7 + 2].y;
-	sum.c += pixel * Filter_2[1*7 + 2].x;
-	sum.d += pixel * Filter_2[1*7 + 2].y;
-	sum.e += pixel * Filter_3[1*7 + 2].x;
-	sum.f += pixel * Filter_3[1*7 + 2].y;
-    pixel = image[y + 3][x + 1]; 
-    sum.a += pixel * Filter_1[2].x;
-	sum.b += pixel * Filter_1[2].y;
-	sum.c += pixel * Filter_2[2].x;
-	sum.d += pixel * Filter_2[2].y;
-	sum.e += pixel * Filter_3[2].x;
-	sum.f += pixel * Filter_3[2].y;
- 
-    pixel = image[y - 3][x + 2]; 
-    sum.a += pixel * Filter_1[6*7 + 1].x;
-	sum.b += pixel * Filter_1[6*7 + 1].y;
-	sum.c += pixel * Filter_2[6*7 + 1].x;
-	sum.d += pixel * Filter_2[6*7 + 1].y;
-	sum.e += pixel * Filter_3[6*7 + 1].x;
-	sum.f += pixel * Filter_3[6*7 + 1].y;
-    pixel = image[y - 2][x + 2]; 
-    sum.a += pixel * Filter_1[5*7 + 1].x;
-	sum.b += pixel * Filter_1[5*7 + 1].y;
-	sum.c += pixel * Filter_2[5*7 + 1].x;
-	sum.d += pixel * Filter_2[5*7 + 1].y;
-	sum.e += pixel * Filter_3[5*7 + 1].x;
-	sum.f += pixel * Filter_3[5*7 + 1].y;
-    pixel = image[y - 1][x + 2]; 
-    sum.a += pixel * Filter_1[4*7 + 1].x;
-	sum.b += pixel * Filter_1[4*7 + 1].y;
-	sum.c += pixel * Filter_2[4*7 + 1].x;
-	sum.d += pixel * Filter_2[4*7 + 1].y;
-	sum.e += pixel * Filter_3[4*7 + 1].x;
-	sum.f += pixel * Filter_3[4*7 + 1].y;
-    pixel = image[y + 0][x + 2]; 
-    sum.a += pixel * Filter_1[3*7 + 1].x;
-	sum.b += pixel * Filter_1[3*7 + 1].y;
-	sum.c += pixel * Filter_2[3*7 + 1].x;
-	sum.d += pixel * Filter_2[3*7 + 1].y;
-	sum.e += pixel * Filter_3[3*7 + 1].x;
-	sum.f += pixel * Filter_3[3*7 + 1].y;
-	pixel = image[y + 1][x + 2]; 
-    sum.a += pixel * Filter_1[2*7 + 1].x;
-	sum.b += pixel * Filter_1[2*7 + 1].y;
-	sum.c += pixel * Filter_2[2*7 + 1].x;
-	sum.d += pixel * Filter_2[2*7 + 1].y;
-	sum.e += pixel * Filter_3[2*7 + 1].x;
-	sum.f += pixel * Filter_3[2*7 + 1].y;
-    pixel = image[y + 2][x + 2]; 
-    sum.a += pixel * Filter_1[1*7 + 1].x;
-	sum.b += pixel * Filter_1[1*7 + 1].y;
-	sum.c += pixel * Filter_2[1*7 + 1].x;
-	sum.d += pixel * Filter_2[1*7 + 1].y;
-	sum.e += pixel * Filter_3[1*7 + 1].x;
-	sum.f += pixel * Filter_3[1*7 + 1].y;
-    pixel = image[y + 3][x + 2]; 
-    sum.a += pixel * Filter_1[1].x;
-	sum.b += pixel * Filter_1[1].y;
-	sum.c += pixel * Filter_2[1].x;
-	sum.d += pixel * Filter_2[1].y;
-	sum.e += pixel * Filter_3[1].x;
-	sum.f += pixel * Filter_3[1].y;
-
-    pixel = image[y - 3][x + 3]; 
-    sum.a += pixel * Filter_1[6*7].x;
-	sum.b += pixel * Filter_1[6*7].y;
-	sum.c += pixel * Filter_2[6*7].x;
-	sum.d += pixel * Filter_2[6*7].y;
-	sum.e += pixel * Filter_3[6*7].x;
-	sum.f += pixel * Filter_3[6*7].y;
-    pixel = image[y - 2][x + 3]; 
-    sum.a += pixel * Filter_1[5*7].x;
-	sum.b += pixel * Filter_1[5*7].y;
-	sum.c += pixel * Filter_2[5*7].x;
-	sum.d += pixel * Filter_2[5*7].y;
-	sum.e += pixel * Filter_3[5*7].x;
-	sum.f += pixel * Filter_3[5*7].y;
-    pixel = image[y - 1][x + 3]; 
-    sum.a += pixel * Filter_1[4*7].x;
-	sum.b += pixel * Filter_1[4*7].y;
-	sum.c += pixel * Filter_2[4*7].x;
-	sum.d += pixel * Filter_2[4*7].y;
-	sum.e += pixel * Filter_3[4*7].x;
-	sum.f += pixel * Filter_3[4*7].y;
-    pixel = image[y + 0][x + 3]; 
-    sum.a += pixel * Filter_1[3*7].x;
-	sum.b += pixel * Filter_1[3*7].y;
-	sum.c += pixel * Filter_2[3*7].x;
-	sum.d += pixel * Filter_2[3*7].y;
-	sum.e += pixel * Filter_3[3*7].x;
-	sum.f += pixel * Filter_3[3*7].y;
-    pixel = image[y + 1][x + 3]; 
-    sum.a += pixel * Filter_1[2*7].x;
-	sum.b += pixel * Filter_1[2*7].y;
-	sum.c += pixel * Filter_2[2*7].x;
-	sum.d += pixel * Filter_2[2*7].y;
-	sum.e += pixel * Filter_3[2*7].x;
-	sum.f += pixel * Filter_3[2*7].y;
-    pixel = image[y + 2][x + 3]; 
-    sum.a += pixel * Filter_1[1*7].x;
-	sum.b += pixel * Filter_1[1*7].y;
-	sum.c += pixel * Filter_2[1*7].x;
-	sum.d += pixel * Filter_2[1*7].y;
-	sum.e += pixel * Filter_3[1*7].x;
-	sum.f += pixel * Filter_3[1*7].y;
-    pixel = image[y + 3][x + 3]; 
-    sum.a += pixel * Filter_1[0].x;
-	sum.b += pixel * Filter_1[0].y;
-	sum.c += pixel * Filter_2[0].x;
-	sum.d += pixel * Filter_2[0].y;
-	sum.e += pixel * Filter_3[0].x;
-	sum.f += pixel * Filter_3[0].y;
-
-	return sum;
-}
-
-float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96], 
+float66 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float* image,
 	                                      int y, 
 										  int x, 
 										  __constant float* Filter_1_Real, 
@@ -2075,7 +1706,7 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 										  __constant float* Filter_3_Imag)
 {
 	float pixel;
-	float6 sum;
+	float66 sum;
 	sum.a = 0.0f;
 	sum.b = 0.0f;
 	sum.c = 0.0f;
@@ -2083,49 +1714,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 	sum.e = 0.0f;
 	sum.f = 0.0f;
 	
-    pixel = image[y - 3][x - 3]; 
+    pixel = image[(y - 3)*96 + x - 3];
     sum.a += pixel * Filter_1_Real[6*7 + 6];
 	sum.b += pixel * Filter_1_Imag[6*7 + 6];
 	sum.c += pixel * Filter_2_Real[6*7 + 6];
 	sum.d += pixel * Filter_2_Imag[6*7 + 6];
 	sum.e += pixel * Filter_3_Real[6*7 + 6];
 	sum.f += pixel * Filter_3_Imag[6*7 + 6];
-    pixel = image[y - 2][x - 3]; 
+    pixel = image[(y - 2)*96 + x - 3];
     sum.a += pixel * Filter_1_Real[5*7 + 6];
 	sum.b += pixel * Filter_1_Imag[5*7 + 6];
 	sum.c += pixel * Filter_2_Real[5*7 + 6];
 	sum.d += pixel * Filter_2_Imag[5*7 + 6];
 	sum.e += pixel * Filter_3_Real[5*7 + 6];
 	sum.f += pixel * Filter_3_Imag[5*7 + 6];
-	pixel = image[y - 1][x - 3]; 
+	pixel = image[(y - 1)*96 + x - 3];
     sum.a += pixel * Filter_1_Real[4*7 + 6];
 	sum.b += pixel * Filter_1_Imag[4*7 + 6];
 	sum.c += pixel * Filter_2_Real[4*7 + 6];
 	sum.d += pixel * Filter_2_Imag[4*7 + 6];
 	sum.e += pixel * Filter_3_Real[4*7 + 6];
 	sum.f += pixel * Filter_3_Imag[4*7 + 6];
-	pixel = image[y + 0][x - 3]; 
+	pixel = image[y*96 + x - 3];
     sum.a += pixel * Filter_1_Real[3*7 + 6];
 	sum.b += pixel * Filter_1_Imag[3*7 + 6];
 	sum.c += pixel * Filter_2_Real[3*7 + 6];
 	sum.d += pixel * Filter_2_Imag[3*7 + 6];
 	sum.e += pixel * Filter_3_Real[3*7 + 6];
 	sum.f += pixel * Filter_3_Imag[3*7 + 6];
-    pixel = image[y + 1][x - 3]; 
+    pixel = image[(y + 1)*96 + x - 3];
     sum.a += pixel * Filter_1_Real[2*7 + 6];
 	sum.b += pixel * Filter_1_Imag[2*7 + 6];
 	sum.c += pixel * Filter_2_Real[2*7 + 6];
 	sum.d += pixel * Filter_2_Imag[2*7 + 6];
 	sum.e += pixel * Filter_3_Real[2*7 + 6];
 	sum.f += pixel * Filter_3_Imag[2*7 + 6];
-	pixel = image[y + 2][x - 3]; 
+	pixel = image[(y + 2)*96 + x - 3];
     sum.a += pixel * Filter_1_Real[1*7 + 6];
 	sum.b += pixel * Filter_1_Imag[1*7 + 6];
 	sum.c += pixel * Filter_2_Real[1*7 + 6];
 	sum.d += pixel * Filter_2_Imag[1*7 + 6];
 	sum.e += pixel * Filter_3_Real[1*7 + 6];
 	sum.f += pixel * Filter_3_Imag[1*7 + 6];
-	pixel = image[y + 3][x - 3]; 
+	pixel = image[(y + 3)*96 + x - 3];
     sum.a += pixel * Filter_1_Real[6];
 	sum.b += pixel * Filter_1_Imag[6];
 	sum.c += pixel * Filter_2_Real[6];
@@ -2133,49 +1764,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 	sum.e += pixel * Filter_3_Real[6];
 	sum.f += pixel * Filter_3_Imag[6];
 
-    pixel = image[y - 3][x - 2]; 
+    pixel = image[(y - 3)*96 + x - 2];
     sum.a += pixel * Filter_1_Real[6*7 + 5];
 	sum.b += pixel * Filter_1_Imag[6*7 + 5];
 	sum.c += pixel * Filter_2_Real[6*7 + 5];
 	sum.d += pixel * Filter_2_Imag[6*7 + 5];
 	sum.e += pixel * Filter_3_Real[6*7 + 5];
 	sum.f += pixel * Filter_3_Imag[6*7 + 5];
-    pixel = image[y - 2][x - 2]; 
+    pixel = image[(y - 2)*96 + x - 2];
     sum.a += pixel * Filter_1_Real[5*7 + 5];
 	sum.b += pixel * Filter_1_Imag[5*7 + 5];
 	sum.c += pixel * Filter_2_Real[5*7 + 5];
 	sum.d += pixel * Filter_2_Imag[5*7 + 5];
 	sum.e += pixel * Filter_3_Real[5*7 + 5];
 	sum.f += pixel * Filter_3_Imag[5*7 + 5];
-    pixel = image[y - 1][x - 2]; 
+	pixel = image[(y - 1)*96 + x - 2];
     sum.a += pixel * Filter_1_Real[4*7 + 5];
 	sum.b += pixel * Filter_1_Imag[4*7 + 5];
 	sum.c += pixel * Filter_2_Real[4*7 + 5];
 	sum.d += pixel * Filter_2_Imag[4*7 + 5];
 	sum.e += pixel * Filter_3_Real[4*7 + 5];
 	sum.f += pixel * Filter_3_Imag[4*7 + 5];
-    pixel = image[y + 0][x - 2]; 
+	pixel = image[y*96 + x - 2];
     sum.a += pixel * Filter_1_Real[3*7 + 5];
 	sum.b += pixel * Filter_1_Imag[3*7 + 5];
 	sum.c += pixel * Filter_2_Real[3*7 + 5];
 	sum.d += pixel * Filter_2_Imag[3*7 + 5];
 	sum.e += pixel * Filter_3_Real[3*7 + 5];
 	sum.f += pixel * Filter_3_Imag[3*7 + 5];
-    pixel = image[y + 1][x - 2]; 
+    pixel = image[(y + 1)*96 + x - 2];
     sum.a += pixel * Filter_1_Real[2*7 + 5];
 	sum.b += pixel * Filter_1_Imag[2*7 + 5];
 	sum.c += pixel * Filter_2_Real[2*7 + 5];
 	sum.d += pixel * Filter_2_Imag[2*7 + 5];
 	sum.e += pixel * Filter_3_Real[2*7 + 5];
 	sum.f += pixel * Filter_3_Imag[2*7 + 5];
-    pixel = image[y + 2][x - 2]; 
+	pixel = image[(y + 2)*96 + x - 2];
     sum.a += pixel * Filter_1_Real[1*7 + 5];
 	sum.b += pixel * Filter_1_Imag[1*7 + 5];
 	sum.c += pixel * Filter_2_Real[1*7 + 5];
 	sum.d += pixel * Filter_2_Imag[1*7 + 5];
 	sum.e += pixel * Filter_3_Real[1*7 + 5];
 	sum.f += pixel * Filter_3_Imag[1*7 + 5];
-    pixel = image[y + 3][x - 2]; 
+	pixel = image[(y + 3)*96 + x - 2];
     sum.a += pixel * Filter_1_Real[5];
 	sum.b += pixel * Filter_1_Imag[5];
 	sum.c += pixel * Filter_2_Real[5];
@@ -2183,50 +1814,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 	sum.e += pixel * Filter_3_Real[5];
 	sum.f += pixel * Filter_3_Imag[5];
 
-
-    pixel = image[y - 3][x - 1]; 
+    pixel = image[(y - 3)*96 + x - 1];
     sum.a += pixel * Filter_1_Real[6*7 + 4];
 	sum.b += pixel * Filter_1_Imag[6*7 + 4];
 	sum.c += pixel * Filter_2_Real[6*7 + 4];
 	sum.d += pixel * Filter_2_Imag[6*7 + 4];
 	sum.e += pixel * Filter_3_Real[6*7 + 4];
 	sum.f += pixel * Filter_3_Imag[6*7 + 4];
-    pixel = image[y - 2][x - 1]; 
+    pixel = image[(y - 2)*96 + x - 1];
     sum.a += pixel * Filter_1_Real[5*7 + 4];
 	sum.b += pixel * Filter_1_Imag[5*7 + 4];
 	sum.c += pixel * Filter_2_Real[5*7 + 4];
 	sum.d += pixel * Filter_2_Imag[5*7 + 4];
 	sum.e += pixel * Filter_3_Real[5*7 + 4];
 	sum.f += pixel * Filter_3_Imag[5*7 + 4];
-    pixel = image[y - 1][x - 1]; 
+	pixel = image[(y - 1)*96 + x - 1];
     sum.a += pixel * Filter_1_Real[4*7 + 4];
 	sum.b += pixel * Filter_1_Imag[4*7 + 4];
 	sum.c += pixel * Filter_2_Real[4*7 + 4];
 	sum.d += pixel * Filter_2_Imag[4*7 + 4];
 	sum.e += pixel * Filter_3_Real[4*7 + 4];
 	sum.f += pixel * Filter_3_Imag[4*7 + 4];
-    pixel = image[y + 0][x - 1]; 
+	pixel = image[y*96 + x - 1];
     sum.a += pixel * Filter_1_Real[3*7 + 4];
 	sum.b += pixel * Filter_1_Imag[3*7 + 4];
 	sum.c += pixel * Filter_2_Real[3*7 + 4];
 	sum.d += pixel * Filter_2_Imag[3*7 + 4];
 	sum.e += pixel * Filter_3_Real[3*7 + 4];
 	sum.f += pixel * Filter_3_Imag[3*7 + 4];
-    pixel = image[y + 1][x - 1]; 
+    pixel = image[(y + 1)*96 + x - 1];
     sum.a += pixel * Filter_1_Real[2*7 + 4];
 	sum.b += pixel * Filter_1_Imag[2*7 + 4];
 	sum.c += pixel * Filter_2_Real[2*7 + 4];
 	sum.d += pixel * Filter_2_Imag[2*7 + 4];
 	sum.e += pixel * Filter_3_Real[2*7 + 4];
 	sum.f += pixel * Filter_3_Imag[2*7 + 4];
-    pixel = image[y + 2][x - 1]; 
+	pixel = image[(y + 2)*96 + x - 1];
     sum.a += pixel * Filter_1_Real[1*7 + 4];
 	sum.b += pixel * Filter_1_Imag[1*7 + 4];
 	sum.c += pixel * Filter_2_Real[1*7 + 4];
 	sum.d += pixel * Filter_2_Imag[1*7 + 4];
 	sum.e += pixel * Filter_3_Real[1*7 + 4];
 	sum.f += pixel * Filter_3_Imag[1*7 + 4];
-    pixel = image[y + 3][x - 1]; 
+	pixel = image[(y + 3)*96 + x - 1];
     sum.a += pixel * Filter_1_Real[4];
 	sum.b += pixel * Filter_1_Imag[4];
 	sum.c += pixel * Filter_2_Real[4];
@@ -2234,50 +1864,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 	sum.e += pixel * Filter_3_Real[4];
 	sum.f += pixel * Filter_3_Imag[4];
 
-
-    pixel = image[y - 3][x + 0]; 
+    pixel = image[(y - 3)*96 + x];
     sum.a += pixel * Filter_1_Real[6*7 + 3];
 	sum.b += pixel * Filter_1_Imag[6*7 + 3];
 	sum.c += pixel * Filter_2_Real[6*7 + 3];
 	sum.d += pixel * Filter_2_Imag[6*7 + 3];
 	sum.e += pixel * Filter_3_Real[6*7 + 3];
 	sum.f += pixel * Filter_3_Imag[6*7 + 3];
-    pixel = image[y - 2][x + 0]; 
+    pixel = image[(y - 2)*96 + x];
     sum.a += pixel * Filter_1_Real[5*7 + 3];
 	sum.b += pixel * Filter_1_Imag[5*7 + 3];
 	sum.c += pixel * Filter_2_Real[5*7 + 3];
 	sum.d += pixel * Filter_2_Imag[5*7 + 3];
 	sum.e += pixel * Filter_3_Real[5*7 + 3];
 	sum.f += pixel * Filter_3_Imag[5*7 + 3];
-    pixel = image[y - 1][x + 0]; 
+	pixel = image[(y - 1)*96 + x];
     sum.a += pixel * Filter_1_Real[4*7 + 3];
 	sum.b += pixel * Filter_1_Imag[4*7 + 3];
 	sum.c += pixel * Filter_2_Real[4*7 + 3];
 	sum.d += pixel * Filter_2_Imag[4*7 + 3];
 	sum.e += pixel * Filter_3_Real[4*7 + 3];
 	sum.f += pixel * Filter_3_Imag[4*7 + 3];
-    pixel = image[y + 0][x + 0]; 
+	pixel = image[y*96 + x];
     sum.a += pixel * Filter_1_Real[3*7 + 3];
 	sum.b += pixel * Filter_1_Imag[3*7 + 3];
 	sum.c += pixel * Filter_2_Real[3*7 + 3];
 	sum.d += pixel * Filter_2_Imag[3*7 + 3];
 	sum.e += pixel * Filter_3_Real[3*7 + 3];
 	sum.f += pixel * Filter_3_Imag[3*7 + 3];
-    pixel = image[y + 1][x + 0]; 
+    pixel = image[(y + 1)*96 + x];
     sum.a += pixel * Filter_1_Real[2*7 + 3];
 	sum.b += pixel * Filter_1_Imag[2*7 + 3];
 	sum.c += pixel * Filter_2_Real[2*7 + 3];
 	sum.d += pixel * Filter_2_Imag[2*7 + 3];
 	sum.e += pixel * Filter_3_Real[2*7 + 3];
 	sum.f += pixel * Filter_3_Imag[2*7 + 3];
-    pixel = image[y + 2][x + 0]; 
+	pixel = image[(y + 2)*96 + x];
     sum.a += pixel * Filter_1_Real[1*7 + 3];
 	sum.b += pixel * Filter_1_Imag[1*7 + 3];
 	sum.c += pixel * Filter_2_Real[1*7 + 3];
 	sum.d += pixel * Filter_2_Imag[1*7 + 3];
 	sum.e += pixel * Filter_3_Real[1*7 + 3];
 	sum.f += pixel * Filter_3_Imag[1*7 + 3];
-    pixel = image[y + 3][x + 0]; 
+	pixel = image[(y + 3)*96 + x];
     sum.a += pixel * Filter_1_Real[3];
 	sum.b += pixel * Filter_1_Imag[3];
 	sum.c += pixel * Filter_2_Real[3];
@@ -2285,99 +1914,99 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 	sum.e += pixel * Filter_3_Real[3];
 	sum.f += pixel * Filter_3_Imag[3];
 
-	pixel = image[y - 3][x + 1]; 
+    pixel = image[(y - 3)*96 + x + 1];
     sum.a += pixel * Filter_1_Real[6*7 + 2];
 	sum.b += pixel * Filter_1_Imag[6*7 + 2];
 	sum.c += pixel * Filter_2_Real[6*7 + 2];
 	sum.d += pixel * Filter_2_Imag[6*7 + 2];
 	sum.e += pixel * Filter_3_Real[6*7 + 2];
 	sum.f += pixel * Filter_3_Imag[6*7 + 2];
-    pixel = image[y - 2][x + 1]; 
+    pixel = image[(y - 2)*96 + x + 1];
     sum.a += pixel * Filter_1_Real[5*7 + 2];
 	sum.b += pixel * Filter_1_Imag[5*7 + 2];
 	sum.c += pixel * Filter_2_Real[5*7 + 2];
 	sum.d += pixel * Filter_2_Imag[5*7 + 2];
 	sum.e += pixel * Filter_3_Real[5*7 + 2];
 	sum.f += pixel * Filter_3_Imag[5*7 + 2];
-    pixel = image[y - 1][x + 1]; 
+	pixel = image[(y - 1)*96 + x + 1];
     sum.a += pixel * Filter_1_Real[4*7 + 2];
 	sum.b += pixel * Filter_1_Imag[4*7 + 2];
 	sum.c += pixel * Filter_2_Real[4*7 + 2];
 	sum.d += pixel * Filter_2_Imag[4*7 + 2];
 	sum.e += pixel * Filter_3_Real[4*7 + 2];
 	sum.f += pixel * Filter_3_Imag[4*7 + 2];
-    pixel = image[y + 0][x + 1]; 
+	pixel = image[y*96 + x + 1];
     sum.a += pixel * Filter_1_Real[3*7 + 2];
 	sum.b += pixel * Filter_1_Imag[3*7 + 2];
 	sum.c += pixel * Filter_2_Real[3*7 + 2];
 	sum.d += pixel * Filter_2_Imag[3*7 + 2];
 	sum.e += pixel * Filter_3_Real[3*7 + 2];
 	sum.f += pixel * Filter_3_Imag[3*7 + 2];
-    pixel = image[y + 1][x + 1]; 
+    pixel = image[(y + 1)*96 + x + 1];
     sum.a += pixel * Filter_1_Real[2*7 + 2];
 	sum.b += pixel * Filter_1_Imag[2*7 + 2];
 	sum.c += pixel * Filter_2_Real[2*7 + 2];
 	sum.d += pixel * Filter_2_Imag[2*7 + 2];
 	sum.e += pixel * Filter_3_Real[2*7 + 2];
 	sum.f += pixel * Filter_3_Imag[2*7 + 2];
-    pixel = image[y + 2][x + 1]; 
+	pixel = image[(y + 2)*96 + x + 1];
     sum.a += pixel * Filter_1_Real[1*7 + 2];
 	sum.b += pixel * Filter_1_Imag[1*7 + 2];
 	sum.c += pixel * Filter_2_Real[1*7 + 2];
 	sum.d += pixel * Filter_2_Imag[1*7 + 2];
 	sum.e += pixel * Filter_3_Real[1*7 + 2];
 	sum.f += pixel * Filter_3_Imag[1*7 + 2];
-    pixel = image[y + 3][x + 1]; 
+	pixel = image[(y + 3)*96 + x + 1];
     sum.a += pixel * Filter_1_Real[2];
 	sum.b += pixel * Filter_1_Imag[2];
 	sum.c += pixel * Filter_2_Real[2];
 	sum.d += pixel * Filter_2_Imag[2];
 	sum.e += pixel * Filter_3_Real[2];
 	sum.f += pixel * Filter_3_Imag[2];
- 
-    pixel = image[y - 3][x + 2]; 
+
+    pixel = image[(y - 3)*96 + x + 2];
     sum.a += pixel * Filter_1_Real[6*7 + 1];
 	sum.b += pixel * Filter_1_Imag[6*7 + 1];
 	sum.c += pixel * Filter_2_Real[6*7 + 1];
 	sum.d += pixel * Filter_2_Imag[6*7 + 1];
 	sum.e += pixel * Filter_3_Real[6*7 + 1];
 	sum.f += pixel * Filter_3_Imag[6*7 + 1];
-    pixel = image[y - 2][x + 2]; 
+    pixel = image[(y - 2)*96 + x + 2];
     sum.a += pixel * Filter_1_Real[5*7 + 1];
 	sum.b += pixel * Filter_1_Imag[5*7 + 1];
 	sum.c += pixel * Filter_2_Real[5*7 + 1];
 	sum.d += pixel * Filter_2_Imag[5*7 + 1];
 	sum.e += pixel * Filter_3_Real[5*7 + 1];
 	sum.f += pixel * Filter_3_Imag[5*7 + 1];
-    pixel = image[y - 1][x + 2]; 
+	pixel = image[(y - 1)*96 + x + 2];
     sum.a += pixel * Filter_1_Real[4*7 + 1];
 	sum.b += pixel * Filter_1_Imag[4*7 + 1];
 	sum.c += pixel * Filter_2_Real[4*7 + 1];
 	sum.d += pixel * Filter_2_Imag[4*7 + 1];
 	sum.e += pixel * Filter_3_Real[4*7 + 1];
 	sum.f += pixel * Filter_3_Imag[4*7 + 1];
-    pixel = image[y + 0][x + 2]; 
+	pixel = image[y*96 + x + 2];
     sum.a += pixel * Filter_1_Real[3*7 + 1];
 	sum.b += pixel * Filter_1_Imag[3*7 + 1];
 	sum.c += pixel * Filter_2_Real[3*7 + 1];
 	sum.d += pixel * Filter_2_Imag[3*7 + 1];
 	sum.e += pixel * Filter_3_Real[3*7 + 1];
 	sum.f += pixel * Filter_3_Imag[3*7 + 1];
-	pixel = image[y + 1][x + 2]; 
+    pixel = image[(y + 1)*96 + x + 2];
     sum.a += pixel * Filter_1_Real[2*7 + 1];
 	sum.b += pixel * Filter_1_Imag[2*7 + 1];
 	sum.c += pixel * Filter_2_Real[2*7 + 1];
 	sum.d += pixel * Filter_2_Imag[2*7 + 1];
 	sum.e += pixel * Filter_3_Real[2*7 + 1];
 	sum.f += pixel * Filter_3_Imag[2*7 + 1];
-    pixel = image[y + 2][x + 2]; 
+	pixel = image[(y + 2)*96 + x + 2];
     sum.a += pixel * Filter_1_Real[1*7 + 1];
 	sum.b += pixel * Filter_1_Imag[1*7 + 1];
 	sum.c += pixel * Filter_2_Real[1*7 + 1];
 	sum.d += pixel * Filter_2_Imag[1*7 + 1];
 	sum.e += pixel * Filter_3_Real[1*7 + 1];
 	sum.f += pixel * Filter_3_Imag[1*7 + 1];
-    pixel = image[y + 3][x + 2]; 
+	pixel = image[(y + 3)*96 + x + 2];
     sum.a += pixel * Filter_1_Real[1];
 	sum.b += pixel * Filter_1_Imag[1];
 	sum.c += pixel * Filter_2_Real[1];
@@ -2385,49 +2014,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 	sum.e += pixel * Filter_3_Real[1];
 	sum.f += pixel * Filter_3_Imag[1];
 
-    pixel = image[y - 3][x + 3]; 
+    pixel = image[(y - 3)*96 + x + 3];
     sum.a += pixel * Filter_1_Real[6*7];
 	sum.b += pixel * Filter_1_Imag[6*7];
 	sum.c += pixel * Filter_2_Real[6*7];
 	sum.d += pixel * Filter_2_Imag[6*7];
 	sum.e += pixel * Filter_3_Real[6*7];
 	sum.f += pixel * Filter_3_Imag[6*7];
-    pixel = image[y - 2][x + 3]; 
+    pixel = image[(y - 2)*96 + x + 3];
     sum.a += pixel * Filter_1_Real[5*7];
 	sum.b += pixel * Filter_1_Imag[5*7];
 	sum.c += pixel * Filter_2_Real[5*7];
 	sum.d += pixel * Filter_2_Imag[5*7];
 	sum.e += pixel * Filter_3_Real[5*7];
 	sum.f += pixel * Filter_3_Imag[5*7];
-    pixel = image[y - 1][x + 3]; 
+	pixel = image[(y - 1)*96 + x + 3];
     sum.a += pixel * Filter_1_Real[4*7];
 	sum.b += pixel * Filter_1_Imag[4*7];
 	sum.c += pixel * Filter_2_Real[4*7];
 	sum.d += pixel * Filter_2_Imag[4*7];
 	sum.e += pixel * Filter_3_Real[4*7];
 	sum.f += pixel * Filter_3_Imag[4*7];
-    pixel = image[y + 0][x + 3]; 
+	pixel = image[y*96 + x + 3];
     sum.a += pixel * Filter_1_Real[3*7];
 	sum.b += pixel * Filter_1_Imag[3*7];
 	sum.c += pixel * Filter_2_Real[3*7];
 	sum.d += pixel * Filter_2_Imag[3*7];
 	sum.e += pixel * Filter_3_Real[3*7];
 	sum.f += pixel * Filter_3_Imag[3*7];
-    pixel = image[y + 1][x + 3]; 
+    pixel = image[(y + 1)*96 + x + 3];
     sum.a += pixel * Filter_1_Real[2*7];
 	sum.b += pixel * Filter_1_Imag[2*7];
 	sum.c += pixel * Filter_2_Real[2*7];
 	sum.d += pixel * Filter_2_Imag[2*7];
 	sum.e += pixel * Filter_3_Real[2*7];
 	sum.f += pixel * Filter_3_Imag[2*7];
-    pixel = image[y + 2][x + 3]; 
+	pixel = image[(y + 2)*96 + x + 3];
     sum.a += pixel * Filter_1_Real[1*7];
 	sum.b += pixel * Filter_1_Imag[1*7];
 	sum.c += pixel * Filter_2_Real[1*7];
 	sum.d += pixel * Filter_2_Imag[1*7];
 	sum.e += pixel * Filter_3_Real[1*7];
 	sum.f += pixel * Filter_3_Imag[1*7];
-    pixel = image[y + 3][x + 3]; 
+	pixel = image[(y + 3)*96 + x + 3];
     sum.a += pixel * Filter_1_Real[0];
 	sum.b += pixel * Filter_1_Imag[0];
 	sum.c += pixel * Filter_2_Real[0];
@@ -2440,378 +2069,8 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float image[64][96],
 
 
 
-float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD(__local float image[64][128],
-	                                         int y,
-	                                         int x,
-	                                         __constant float2* Filter_1,
-	                                         __constant float2* Filter_2,
-	                                         __constant float2* Filter_3)
-{
-	float pixel;
-	float6 sum;
-	sum.a = 0.0f;
-	sum.b = 0.0f;
-	sum.c = 0.0f;
-	sum.d = 0.0f;
-	sum.e = 0.0f;
-	sum.f = 0.0f;
-	
-    pixel = image[y - 3][x - 3]; 
-    sum.a += pixel * Filter_1[6*7 + 6].x;
-	sum.b += pixel * Filter_1[6*7 + 6].y;
-	sum.c += pixel * Filter_2[6*7 + 6].x;
-	sum.d += pixel * Filter_2[6*7 + 6].y;
-	sum.e += pixel * Filter_3[6*7 + 6].x;
-	sum.f += pixel * Filter_3[6*7 + 6].y;
-    pixel = image[y - 2][x - 3]; 
-    sum.a += pixel * Filter_1[5*7 + 6].x;
-	sum.b += pixel * Filter_1[5*7 + 6].y;
-	sum.c += pixel * Filter_2[5*7 + 6].x;
-	sum.d += pixel * Filter_2[5*7 + 6].y;
-	sum.e += pixel * Filter_3[5*7 + 6].x;
-	sum.f += pixel * Filter_3[5*7 + 6].y;
-	pixel = image[y - 1][x - 3]; 
-    sum.a += pixel * Filter_1[4*7 + 6].x;
-	sum.b += pixel * Filter_1[4*7 + 6].y;
-	sum.c += pixel * Filter_2[4*7 + 6].x;
-	sum.d += pixel * Filter_2[4*7 + 6].y;
-	sum.e += pixel * Filter_3[4*7 + 6].x;
-	sum.f += pixel * Filter_3[4*7 + 6].y;
-	pixel = image[y + 0][x - 3]; 
-    sum.a += pixel * Filter_1[3*7 + 6].x;
-	sum.b += pixel * Filter_1[3*7 + 6].y;
-	sum.c += pixel * Filter_2[3*7 + 6].x;
-	sum.d += pixel * Filter_2[3*7 + 6].y;
-	sum.e += pixel * Filter_3[3*7 + 6].x;
-	sum.f += pixel * Filter_3[3*7 + 6].y;
-    pixel = image[y + 1][x - 3]; 
-    sum.a += pixel * Filter_1[2*7 + 6].x;
-	sum.b += pixel * Filter_1[2*7 + 6].y;
-	sum.c += pixel * Filter_2[2*7 + 6].x;
-	sum.d += pixel * Filter_2[2*7 + 6].y;
-	sum.e += pixel * Filter_3[2*7 + 6].x;
-	sum.f += pixel * Filter_3[2*7 + 6].y;
-	pixel = image[y + 2][x - 3]; 
-    sum.a += pixel * Filter_1[1*7 + 6].x;
-	sum.b += pixel * Filter_1[1*7 + 6].y;
-	sum.c += pixel * Filter_2[1*7 + 6].x;
-	sum.d += pixel * Filter_2[1*7 + 6].y;
-	sum.e += pixel * Filter_3[1*7 + 6].x;
-	sum.f += pixel * Filter_3[1*7 + 6].y;
-	pixel = image[y + 3][x - 3]; 
-    sum.a += pixel * Filter_1[6].x;
-	sum.b += pixel * Filter_1[6].y;
-	sum.c += pixel * Filter_2[6].x;
-	sum.d += pixel * Filter_2[6].y;
-	sum.e += pixel * Filter_3[6].x;
-	sum.f += pixel * Filter_3[6].y;
 
-    pixel = image[y - 3][x - 2]; 
-    sum.a += pixel * Filter_1[6*7 + 5].x;
-	sum.b += pixel * Filter_1[6*7 + 5].y;
-	sum.c += pixel * Filter_2[6*7 + 5].x;
-	sum.d += pixel * Filter_2[6*7 + 5].y;
-	sum.e += pixel * Filter_3[6*7 + 5].x;
-	sum.f += pixel * Filter_3[6*7 + 5].y;
-    pixel = image[y - 2][x - 2]; 
-    sum.a += pixel * Filter_1[5*7 + 5].x;
-	sum.b += pixel * Filter_1[5*7 + 5].y;
-	sum.c += pixel * Filter_2[5*7 + 5].x;
-	sum.d += pixel * Filter_2[5*7 + 5].y;
-	sum.e += pixel * Filter_3[5*7 + 5].x;
-	sum.f += pixel * Filter_3[5*7 + 5].y;
-    pixel = image[y - 1][x - 2]; 
-    sum.a += pixel * Filter_1[4*7 + 5].x;
-	sum.b += pixel * Filter_1[4*7 + 5].y;
-	sum.c += pixel * Filter_2[4*7 + 5].x;
-	sum.d += pixel * Filter_2[4*7 + 5].y;
-	sum.e += pixel * Filter_3[4*7 + 5].x;
-	sum.f += pixel * Filter_3[4*7 + 5].y;
-    pixel = image[y + 0][x - 2]; 
-    sum.a += pixel * Filter_1[3*7 + 5].x;
-	sum.b += pixel * Filter_1[3*7 + 5].y;
-	sum.c += pixel * Filter_2[3*7 + 5].x;
-	sum.d += pixel * Filter_2[3*7 + 5].y;
-	sum.e += pixel * Filter_3[3*7 + 5].x;
-	sum.f += pixel * Filter_3[3*7 + 5].y;
-    pixel = image[y + 1][x - 2]; 
-    sum.a += pixel * Filter_1[2*7 + 5].x;
-	sum.b += pixel * Filter_1[2*7 + 5].y;
-	sum.c += pixel * Filter_2[2*7 + 5].x;
-	sum.d += pixel * Filter_2[2*7 + 5].y;
-	sum.e += pixel * Filter_3[2*7 + 5].x;
-	sum.f += pixel * Filter_3[2*7 + 5].y;
-    pixel = image[y + 2][x - 2]; 
-    sum.a += pixel * Filter_1[1*7 + 5].x;
-	sum.b += pixel * Filter_1[1*7 + 5].y;
-	sum.c += pixel * Filter_2[1*7 + 5].x;
-	sum.d += pixel * Filter_2[1*7 + 5].y;
-	sum.e += pixel * Filter_3[1*7 + 5].x;
-	sum.f += pixel * Filter_3[1*7 + 5].y;
-    pixel = image[y + 3][x - 2]; 
-    sum.a += pixel * Filter_1[5].x;
-	sum.b += pixel * Filter_1[5].y;
-	sum.c += pixel * Filter_2[5].x;
-	sum.d += pixel * Filter_2[5].y;
-	sum.e += pixel * Filter_3[5].x;
-	sum.f += pixel * Filter_3[5].y;
-
-
-    pixel = image[y - 3][x - 1]; 
-    sum.a += pixel * Filter_1[6*7 + 4].x;
-	sum.b += pixel * Filter_1[6*7 + 4].y;
-	sum.c += pixel * Filter_2[6*7 + 4].x;
-	sum.d += pixel * Filter_2[6*7 + 4].y;
-	sum.e += pixel * Filter_3[6*7 + 4].x;
-	sum.f += pixel * Filter_3[6*7 + 4].y;
-    pixel = image[y - 2][x - 1]; 
-    sum.a += pixel * Filter_1[5*7 + 4].x;
-	sum.b += pixel * Filter_1[5*7 + 4].y;
-	sum.c += pixel * Filter_2[5*7 + 4].x;
-	sum.d += pixel * Filter_2[5*7 + 4].y;
-	sum.e += pixel * Filter_3[5*7 + 4].x;
-	sum.f += pixel * Filter_3[5*7 + 4].y;
-    pixel = image[y - 1][x - 1]; 
-    sum.a += pixel * Filter_1[4*7 + 4].x;
-	sum.b += pixel * Filter_1[4*7 + 4].y;
-	sum.c += pixel * Filter_2[4*7 + 4].x;
-	sum.d += pixel * Filter_2[4*7 + 4].y;
-	sum.e += pixel * Filter_3[4*7 + 4].x;
-	sum.f += pixel * Filter_3[4*7 + 4].y;
-    pixel = image[y + 0][x - 1]; 
-    sum.a += pixel * Filter_1[3*7 + 4].x;
-	sum.b += pixel * Filter_1[3*7 + 4].y;
-	sum.c += pixel * Filter_2[3*7 + 4].x;
-	sum.d += pixel * Filter_2[3*7 + 4].y;
-	sum.e += pixel * Filter_3[3*7 + 4].x;
-	sum.f += pixel * Filter_3[3*7 + 4].y;
-    pixel = image[y + 1][x - 1]; 
-    sum.a += pixel * Filter_1[2*7 + 4].x;
-	sum.b += pixel * Filter_1[2*7 + 4].y;
-	sum.c += pixel * Filter_2[2*7 + 4].x;
-	sum.d += pixel * Filter_2[2*7 + 4].y;
-	sum.e += pixel * Filter_3[2*7 + 4].x;
-	sum.f += pixel * Filter_3[2*7 + 4].y;
-    pixel = image[y + 2][x - 1]; 
-    sum.a += pixel * Filter_1[1*7 + 4].x;
-	sum.b += pixel * Filter_1[1*7 + 4].y;
-	sum.c += pixel * Filter_2[1*7 + 4].x;
-	sum.d += pixel * Filter_2[1*7 + 4].y;
-	sum.e += pixel * Filter_3[1*7 + 4].x;
-	sum.f += pixel * Filter_3[1*7 + 4].y;
-    pixel = image[y + 3][x - 1]; 
-    sum.a += pixel * Filter_1[4].x;
-	sum.b += pixel * Filter_1[4].y;
-	sum.c += pixel * Filter_2[4].x;
-	sum.d += pixel * Filter_2[4].y;
-	sum.e += pixel * Filter_3[4].x;
-	sum.f += pixel * Filter_3[4].y;
-
-
-    pixel = image[y - 3][x + 0]; 
-    sum.a += pixel * Filter_1[6*7 + 3].x;
-	sum.b += pixel * Filter_1[6*7 + 3].y;
-	sum.c += pixel * Filter_2[6*7 + 3].x;
-	sum.d += pixel * Filter_2[6*7 + 3].y;
-	sum.e += pixel * Filter_3[6*7 + 3].x;
-	sum.f += pixel * Filter_3[6*7 + 3].y;
-    pixel = image[y - 2][x + 0]; 
-    sum.a += pixel * Filter_1[5*7 + 3].x;
-	sum.b += pixel * Filter_1[5*7 + 3].y;
-	sum.c += pixel * Filter_2[5*7 + 3].x;
-	sum.d += pixel * Filter_2[5*7 + 3].y;
-	sum.e += pixel * Filter_3[5*7 + 3].x;
-	sum.f += pixel * Filter_3[5*7 + 3].y;
-    pixel = image[y - 1][x + 0]; 
-    sum.a += pixel * Filter_1[4*7 + 3].x;
-	sum.b += pixel * Filter_1[4*7 + 3].y;
-	sum.c += pixel * Filter_2[4*7 + 3].x;
-	sum.d += pixel * Filter_2[4*7 + 3].y;
-	sum.e += pixel * Filter_3[4*7 + 3].x;
-	sum.f += pixel * Filter_3[4*7 + 3].y;
-    pixel = image[y + 0][x + 0]; 
-    sum.a += pixel * Filter_1[3*7 + 3].x;
-	sum.b += pixel * Filter_1[3*7 + 3].y;
-	sum.c += pixel * Filter_2[3*7 + 3].x;
-	sum.d += pixel * Filter_2[3*7 + 3].y;
-	sum.e += pixel * Filter_3[3*7 + 3].x;
-	sum.f += pixel * Filter_3[3*7 + 3].y;
-    pixel = image[y + 1][x + 0]; 
-    sum.a += pixel * Filter_1[2*7 + 3].x;
-	sum.b += pixel * Filter_1[2*7 + 3].y;
-	sum.c += pixel * Filter_2[2*7 + 3].x;
-	sum.d += pixel * Filter_2[2*7 + 3].y;
-	sum.e += pixel * Filter_3[2*7 + 3].x;
-	sum.f += pixel * Filter_3[2*7 + 3].y;
-    pixel = image[y + 2][x + 0]; 
-    sum.a += pixel * Filter_1[1*7 + 3].x;
-	sum.b += pixel * Filter_1[1*7 + 3].y;
-	sum.c += pixel * Filter_2[1*7 + 3].x;
-	sum.d += pixel * Filter_2[1*7 + 3].y;
-	sum.e += pixel * Filter_3[1*7 + 3].x;
-	sum.f += pixel * Filter_3[1*7 + 3].y;
-    pixel = image[y + 3][x + 0]; 
-    sum.a += pixel * Filter_1[3].x;
-	sum.b += pixel * Filter_1[3].y;
-	sum.c += pixel * Filter_2[3].x;
-	sum.d += pixel * Filter_2[3].y;
-	sum.e += pixel * Filter_3[3].x;
-	sum.f += pixel * Filter_3[3].y;
-
-	pixel = image[y - 3][x + 1]; 
-    sum.a += pixel * Filter_1[6*7 + 2].x;
-	sum.b += pixel * Filter_1[6*7 + 2].y;
-	sum.c += pixel * Filter_2[6*7 + 2].x;
-	sum.d += pixel * Filter_2[6*7 + 2].y;
-	sum.e += pixel * Filter_3[6*7 + 2].x;
-	sum.f += pixel * Filter_3[6*7 + 2].y;
-    pixel = image[y - 2][x + 1]; 
-    sum.a += pixel * Filter_1[5*7 + 2].x;
-	sum.b += pixel * Filter_1[5*7 + 2].y;
-	sum.c += pixel * Filter_2[5*7 + 2].x;
-	sum.d += pixel * Filter_2[5*7 + 2].y;
-	sum.e += pixel * Filter_3[5*7 + 2].x;
-	sum.f += pixel * Filter_3[5*7 + 2].y;
-    pixel = image[y - 1][x + 1]; 
-    sum.a += pixel * Filter_1[4*7 + 2].x;
-	sum.b += pixel * Filter_1[4*7 + 2].y;
-	sum.c += pixel * Filter_2[4*7 + 2].x;
-	sum.d += pixel * Filter_2[4*7 + 2].y;
-	sum.e += pixel * Filter_3[4*7 + 2].x;
-	sum.f += pixel * Filter_3[4*7 + 2].y;
-    pixel = image[y + 0][x + 1]; 
-    sum.a += pixel * Filter_1[3*7 + 2].x;
-	sum.b += pixel * Filter_1[3*7 + 2].y;
-	sum.c += pixel * Filter_2[3*7 + 2].x;
-	sum.d += pixel * Filter_2[3*7 + 2].y;
-	sum.e += pixel * Filter_3[3*7 + 2].x;
-	sum.f += pixel * Filter_3[3*7 + 2].y;
-    pixel = image[y + 1][x + 1]; 
-    sum.a += pixel * Filter_1[2*7 + 2].x;
-	sum.b += pixel * Filter_1[2*7 + 2].y;
-	sum.c += pixel * Filter_2[2*7 + 2].x;
-	sum.d += pixel * Filter_2[2*7 + 2].y;
-	sum.e += pixel * Filter_3[2*7 + 2].x;
-	sum.f += pixel * Filter_3[2*7 + 2].y;
-    pixel = image[y + 2][x + 1]; 
-    sum.a += pixel * Filter_1[1*7 + 2].x;
-	sum.b += pixel * Filter_1[1*7 + 2].y;
-	sum.c += pixel * Filter_2[1*7 + 2].x;
-	sum.d += pixel * Filter_2[1*7 + 2].y;
-	sum.e += pixel * Filter_3[1*7 + 2].x;
-	sum.f += pixel * Filter_3[1*7 + 2].y;
-    pixel = image[y + 3][x + 1]; 
-    sum.a += pixel * Filter_1[2].x;
-	sum.b += pixel * Filter_1[2].y;
-	sum.c += pixel * Filter_2[2].x;
-	sum.d += pixel * Filter_2[2].y;
-	sum.e += pixel * Filter_3[2].x;
-	sum.f += pixel * Filter_3[2].y;
- 
-    pixel = image[y - 3][x + 2]; 
-    sum.a += pixel * Filter_1[6*7 + 1].x;
-	sum.b += pixel * Filter_1[6*7 + 1].y;
-	sum.c += pixel * Filter_2[6*7 + 1].x;
-	sum.d += pixel * Filter_2[6*7 + 1].y;
-	sum.e += pixel * Filter_3[6*7 + 1].x;
-	sum.f += pixel * Filter_3[6*7 + 1].y;
-    pixel = image[y - 2][x + 2]; 
-    sum.a += pixel * Filter_1[5*7 + 1].x;
-	sum.b += pixel * Filter_1[5*7 + 1].y;
-	sum.c += pixel * Filter_2[5*7 + 1].x;
-	sum.d += pixel * Filter_2[5*7 + 1].y;
-	sum.e += pixel * Filter_3[5*7 + 1].x;
-	sum.f += pixel * Filter_3[5*7 + 1].y;
-    pixel = image[y - 1][x + 2]; 
-    sum.a += pixel * Filter_1[4*7 + 1].x;
-	sum.b += pixel * Filter_1[4*7 + 1].y;
-	sum.c += pixel * Filter_2[4*7 + 1].x;
-	sum.d += pixel * Filter_2[4*7 + 1].y;
-	sum.e += pixel * Filter_3[4*7 + 1].x;
-	sum.f += pixel * Filter_3[4*7 + 1].y;
-    pixel = image[y + 0][x + 2]; 
-    sum.a += pixel * Filter_1[3*7 + 1].x;
-	sum.b += pixel * Filter_1[3*7 + 1].y;
-	sum.c += pixel * Filter_2[3*7 + 1].x;
-	sum.d += pixel * Filter_2[3*7 + 1].y;
-	sum.e += pixel * Filter_3[3*7 + 1].x;
-	sum.f += pixel * Filter_3[3*7 + 1].y;
-	pixel = image[y + 1][x + 2]; 
-    sum.a += pixel * Filter_1[2*7 + 1].x;
-	sum.b += pixel * Filter_1[2*7 + 1].y;
-	sum.c += pixel * Filter_2[2*7 + 1].x;
-	sum.d += pixel * Filter_2[2*7 + 1].y;
-	sum.e += pixel * Filter_3[2*7 + 1].x;
-	sum.f += pixel * Filter_3[2*7 + 1].y;
-    pixel = image[y + 2][x + 2]; 
-    sum.a += pixel * Filter_1[1*7 + 1].x;
-	sum.b += pixel * Filter_1[1*7 + 1].y;
-	sum.c += pixel * Filter_2[1*7 + 1].x;
-	sum.d += pixel * Filter_2[1*7 + 1].y;
-	sum.e += pixel * Filter_3[1*7 + 1].x;
-	sum.f += pixel * Filter_3[1*7 + 1].y;
-    pixel = image[y + 3][x + 2]; 
-    sum.a += pixel * Filter_1[1].x;
-	sum.b += pixel * Filter_1[1].y;
-	sum.c += pixel * Filter_2[1].x;
-	sum.d += pixel * Filter_2[1].y;
-	sum.e += pixel * Filter_3[1].x;
-	sum.f += pixel * Filter_3[1].y;
-
-    pixel = image[y - 3][x + 3]; 
-    sum.a += pixel * Filter_1[6*7].x;
-	sum.b += pixel * Filter_1[6*7].y;
-	sum.c += pixel * Filter_2[6*7].x;
-	sum.d += pixel * Filter_2[6*7].y;
-	sum.e += pixel * Filter_3[6*7].x;
-	sum.f += pixel * Filter_3[6*7].y;
-    pixel = image[y - 2][x + 3]; 
-    sum.a += pixel * Filter_1[5*7].x;
-	sum.b += pixel * Filter_1[5*7].y;
-	sum.c += pixel * Filter_2[5*7].x;
-	sum.d += pixel * Filter_2[5*7].y;
-	sum.e += pixel * Filter_3[5*7].x;
-	sum.f += pixel * Filter_3[5*7].y;
-    pixel = image[y - 1][x + 3]; 
-    sum.a += pixel * Filter_1[4*7].x;
-	sum.b += pixel * Filter_1[4*7].y;
-	sum.c += pixel * Filter_2[4*7].x;
-	sum.d += pixel * Filter_2[4*7].y;
-	sum.e += pixel * Filter_3[4*7].x;
-	sum.f += pixel * Filter_3[4*7].y;
-    pixel = image[y + 0][x + 3]; 
-    sum.a += pixel * Filter_1[3*7].x;
-	sum.b += pixel * Filter_1[3*7].y;
-	sum.c += pixel * Filter_2[3*7].x;
-	sum.d += pixel * Filter_2[3*7].y;
-	sum.e += pixel * Filter_3[3*7].x;
-	sum.f += pixel * Filter_3[3*7].y;
-    pixel = image[y + 1][x + 3]; 
-    sum.a += pixel * Filter_1[2*7].x;
-	sum.b += pixel * Filter_1[2*7].y;
-	sum.c += pixel * Filter_2[2*7].x;
-	sum.d += pixel * Filter_2[2*7].y;
-	sum.e += pixel * Filter_3[2*7].x;
-	sum.f += pixel * Filter_3[2*7].y;
-    pixel = image[y + 2][x + 3]; 
-    sum.a += pixel * Filter_1[1*7].x;
-	sum.b += pixel * Filter_1[1*7].y;
-	sum.c += pixel * Filter_2[1*7].x;
-	sum.d += pixel * Filter_2[1*7].y;
-	sum.e += pixel * Filter_3[1*7].x;
-	sum.f += pixel * Filter_3[1*7].y;
-    pixel = image[y + 3][x + 3]; 
-    sum.a += pixel * Filter_1[0].x;
-	sum.b += pixel * Filter_1[0].y;
-	sum.c += pixel * Filter_2[0].x;
-	sum.d += pixel * Filter_2[0].y;
-	sum.e += pixel * Filter_3[0].x;
-	sum.f += pixel * Filter_3[0].y;
-
-	return sum;
-}
-
-float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128], 
+float66 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float* image,
 	                                      	  int y,
 	                                      	  int x,
 	                                      	  __constant float* Filter_1_Real,
@@ -2822,7 +2081,7 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 	                                      	  __constant float* Filter_3_Imag)
 {
 	float pixel;
-	float6 sum;
+	float66 sum;
 	sum.a = 0.0f;
 	sum.b = 0.0f;
 	sum.c = 0.0f;
@@ -2830,49 +2089,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 	sum.e = 0.0f;
 	sum.f = 0.0f;
 	
-    pixel = image[y - 3][x - 3]; 
+    pixel = image[(y - 3)*128 + x - 3];
     sum.a += pixel * Filter_1_Real[6*7 + 6];
 	sum.b += pixel * Filter_1_Imag[6*7 + 6];
 	sum.c += pixel * Filter_2_Real[6*7 + 6];
 	sum.d += pixel * Filter_2_Imag[6*7 + 6];
 	sum.e += pixel * Filter_3_Real[6*7 + 6];
 	sum.f += pixel * Filter_3_Imag[6*7 + 6];
-    pixel = image[y - 2][x - 3]; 
+    pixel = image[(y - 2)*128 + x - 3];
     sum.a += pixel * Filter_1_Real[5*7 + 6];
 	sum.b += pixel * Filter_1_Imag[5*7 + 6];
 	sum.c += pixel * Filter_2_Real[5*7 + 6];
 	sum.d += pixel * Filter_2_Imag[5*7 + 6];
 	sum.e += pixel * Filter_3_Real[5*7 + 6];
 	sum.f += pixel * Filter_3_Imag[5*7 + 6];
-	pixel = image[y - 1][x - 3]; 
+	pixel = image[(y - 1)*128 + x - 3];
     sum.a += pixel * Filter_1_Real[4*7 + 6];
 	sum.b += pixel * Filter_1_Imag[4*7 + 6];
 	sum.c += pixel * Filter_2_Real[4*7 + 6];
 	sum.d += pixel * Filter_2_Imag[4*7 + 6];
 	sum.e += pixel * Filter_3_Real[4*7 + 6];
 	sum.f += pixel * Filter_3_Imag[4*7 + 6];
-	pixel = image[y + 0][x - 3]; 
+	pixel = image[y*128 + x - 3];
     sum.a += pixel * Filter_1_Real[3*7 + 6];
 	sum.b += pixel * Filter_1_Imag[3*7 + 6];
 	sum.c += pixel * Filter_2_Real[3*7 + 6];
 	sum.d += pixel * Filter_2_Imag[3*7 + 6];
 	sum.e += pixel * Filter_3_Real[3*7 + 6];
 	sum.f += pixel * Filter_3_Imag[3*7 + 6];
-    pixel = image[y + 1][x - 3]; 
+    pixel = image[(y + 1)*128 + x - 3];
     sum.a += pixel * Filter_1_Real[2*7 + 6];
 	sum.b += pixel * Filter_1_Imag[2*7 + 6];
 	sum.c += pixel * Filter_2_Real[2*7 + 6];
 	sum.d += pixel * Filter_2_Imag[2*7 + 6];
 	sum.e += pixel * Filter_3_Real[2*7 + 6];
 	sum.f += pixel * Filter_3_Imag[2*7 + 6];
-	pixel = image[y + 2][x - 3]; 
+	pixel = image[(y + 2)*128 + x - 3];
     sum.a += pixel * Filter_1_Real[1*7 + 6];
 	sum.b += pixel * Filter_1_Imag[1*7 + 6];
 	sum.c += pixel * Filter_2_Real[1*7 + 6];
 	sum.d += pixel * Filter_2_Imag[1*7 + 6];
 	sum.e += pixel * Filter_3_Real[1*7 + 6];
 	sum.f += pixel * Filter_3_Imag[1*7 + 6];
-	pixel = image[y + 3][x - 3]; 
+	pixel = image[(y + 3)*128 + x - 3];
     sum.a += pixel * Filter_1_Real[6];
 	sum.b += pixel * Filter_1_Imag[6];
 	sum.c += pixel * Filter_2_Real[6];
@@ -2880,49 +2139,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 	sum.e += pixel * Filter_3_Real[6];
 	sum.f += pixel * Filter_3_Imag[6];
 
-    pixel = image[y - 3][x - 2]; 
+    pixel = image[(y - 3)*128 + x - 2];
     sum.a += pixel * Filter_1_Real[6*7 + 5];
 	sum.b += pixel * Filter_1_Imag[6*7 + 5];
 	sum.c += pixel * Filter_2_Real[6*7 + 5];
 	sum.d += pixel * Filter_2_Imag[6*7 + 5];
 	sum.e += pixel * Filter_3_Real[6*7 + 5];
 	sum.f += pixel * Filter_3_Imag[6*7 + 5];
-    pixel = image[y - 2][x - 2]; 
+    pixel = image[(y - 2)*128 + x - 2];
     sum.a += pixel * Filter_1_Real[5*7 + 5];
 	sum.b += pixel * Filter_1_Imag[5*7 + 5];
 	sum.c += pixel * Filter_2_Real[5*7 + 5];
 	sum.d += pixel * Filter_2_Imag[5*7 + 5];
 	sum.e += pixel * Filter_3_Real[5*7 + 5];
 	sum.f += pixel * Filter_3_Imag[5*7 + 5];
-    pixel = image[y - 1][x - 2]; 
+	pixel = image[(y - 1)*128 + x - 2];
     sum.a += pixel * Filter_1_Real[4*7 + 5];
 	sum.b += pixel * Filter_1_Imag[4*7 + 5];
 	sum.c += pixel * Filter_2_Real[4*7 + 5];
 	sum.d += pixel * Filter_2_Imag[4*7 + 5];
 	sum.e += pixel * Filter_3_Real[4*7 + 5];
 	sum.f += pixel * Filter_3_Imag[4*7 + 5];
-    pixel = image[y + 0][x - 2]; 
+	pixel = image[y*128 + x - 2];
     sum.a += pixel * Filter_1_Real[3*7 + 5];
 	sum.b += pixel * Filter_1_Imag[3*7 + 5];
 	sum.c += pixel * Filter_2_Real[3*7 + 5];
 	sum.d += pixel * Filter_2_Imag[3*7 + 5];
 	sum.e += pixel * Filter_3_Real[3*7 + 5];
 	sum.f += pixel * Filter_3_Imag[3*7 + 5];
-    pixel = image[y + 1][x - 2]; 
+    pixel = image[(y + 1)*128 + x - 2];
     sum.a += pixel * Filter_1_Real[2*7 + 5];
 	sum.b += pixel * Filter_1_Imag[2*7 + 5];
 	sum.c += pixel * Filter_2_Real[2*7 + 5];
 	sum.d += pixel * Filter_2_Imag[2*7 + 5];
 	sum.e += pixel * Filter_3_Real[2*7 + 5];
 	sum.f += pixel * Filter_3_Imag[2*7 + 5];
-    pixel = image[y + 2][x - 2]; 
+	pixel = image[(y + 2)*128 + x - 2];
     sum.a += pixel * Filter_1_Real[1*7 + 5];
 	sum.b += pixel * Filter_1_Imag[1*7 + 5];
 	sum.c += pixel * Filter_2_Real[1*7 + 5];
 	sum.d += pixel * Filter_2_Imag[1*7 + 5];
 	sum.e += pixel * Filter_3_Real[1*7 + 5];
 	sum.f += pixel * Filter_3_Imag[1*7 + 5];
-    pixel = image[y + 3][x - 2]; 
+	pixel = image[(y + 3)*128 + x - 2];
     sum.a += pixel * Filter_1_Real[5];
 	sum.b += pixel * Filter_1_Imag[5];
 	sum.c += pixel * Filter_2_Real[5];
@@ -2930,50 +2189,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 	sum.e += pixel * Filter_3_Real[5];
 	sum.f += pixel * Filter_3_Imag[5];
 
-
-    pixel = image[y - 3][x - 1]; 
+    pixel = image[(y - 3)*128 + x - 1];
     sum.a += pixel * Filter_1_Real[6*7 + 4];
 	sum.b += pixel * Filter_1_Imag[6*7 + 4];
 	sum.c += pixel * Filter_2_Real[6*7 + 4];
 	sum.d += pixel * Filter_2_Imag[6*7 + 4];
 	sum.e += pixel * Filter_3_Real[6*7 + 4];
 	sum.f += pixel * Filter_3_Imag[6*7 + 4];
-    pixel = image[y - 2][x - 1]; 
+    pixel = image[(y - 2)*128 + x - 1];
     sum.a += pixel * Filter_1_Real[5*7 + 4];
 	sum.b += pixel * Filter_1_Imag[5*7 + 4];
 	sum.c += pixel * Filter_2_Real[5*7 + 4];
 	sum.d += pixel * Filter_2_Imag[5*7 + 4];
 	sum.e += pixel * Filter_3_Real[5*7 + 4];
 	sum.f += pixel * Filter_3_Imag[5*7 + 4];
-    pixel = image[y - 1][x - 1]; 
+	pixel = image[(y - 1)*128 + x - 1];
     sum.a += pixel * Filter_1_Real[4*7 + 4];
 	sum.b += pixel * Filter_1_Imag[4*7 + 4];
 	sum.c += pixel * Filter_2_Real[4*7 + 4];
 	sum.d += pixel * Filter_2_Imag[4*7 + 4];
 	sum.e += pixel * Filter_3_Real[4*7 + 4];
 	sum.f += pixel * Filter_3_Imag[4*7 + 4];
-    pixel = image[y + 0][x - 1]; 
+	pixel = image[y*128 + x - 1];
     sum.a += pixel * Filter_1_Real[3*7 + 4];
 	sum.b += pixel * Filter_1_Imag[3*7 + 4];
 	sum.c += pixel * Filter_2_Real[3*7 + 4];
 	sum.d += pixel * Filter_2_Imag[3*7 + 4];
 	sum.e += pixel * Filter_3_Real[3*7 + 4];
 	sum.f += pixel * Filter_3_Imag[3*7 + 4];
-    pixel = image[y + 1][x - 1]; 
+    pixel = image[(y + 1)*128 + x - 1];
     sum.a += pixel * Filter_1_Real[2*7 + 4];
 	sum.b += pixel * Filter_1_Imag[2*7 + 4];
 	sum.c += pixel * Filter_2_Real[2*7 + 4];
 	sum.d += pixel * Filter_2_Imag[2*7 + 4];
 	sum.e += pixel * Filter_3_Real[2*7 + 4];
 	sum.f += pixel * Filter_3_Imag[2*7 + 4];
-    pixel = image[y + 2][x - 1]; 
+	pixel = image[(y + 2)*128 + x - 1];
     sum.a += pixel * Filter_1_Real[1*7 + 4];
 	sum.b += pixel * Filter_1_Imag[1*7 + 4];
 	sum.c += pixel * Filter_2_Real[1*7 + 4];
 	sum.d += pixel * Filter_2_Imag[1*7 + 4];
 	sum.e += pixel * Filter_3_Real[1*7 + 4];
 	sum.f += pixel * Filter_3_Imag[1*7 + 4];
-    pixel = image[y + 3][x - 1]; 
+	pixel = image[(y + 3)*128 + x - 1];
     sum.a += pixel * Filter_1_Real[4];
 	sum.b += pixel * Filter_1_Imag[4];
 	sum.c += pixel * Filter_2_Real[4];
@@ -2981,50 +2239,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 	sum.e += pixel * Filter_3_Real[4];
 	sum.f += pixel * Filter_3_Imag[4];
 
-
-    pixel = image[y - 3][x + 0]; 
+    pixel = image[(y - 3)*128 + x];
     sum.a += pixel * Filter_1_Real[6*7 + 3];
 	sum.b += pixel * Filter_1_Imag[6*7 + 3];
 	sum.c += pixel * Filter_2_Real[6*7 + 3];
 	sum.d += pixel * Filter_2_Imag[6*7 + 3];
 	sum.e += pixel * Filter_3_Real[6*7 + 3];
 	sum.f += pixel * Filter_3_Imag[6*7 + 3];
-    pixel = image[y - 2][x + 0]; 
+    pixel = image[(y - 2)*128 + x];
     sum.a += pixel * Filter_1_Real[5*7 + 3];
 	sum.b += pixel * Filter_1_Imag[5*7 + 3];
 	sum.c += pixel * Filter_2_Real[5*7 + 3];
 	sum.d += pixel * Filter_2_Imag[5*7 + 3];
 	sum.e += pixel * Filter_3_Real[5*7 + 3];
 	sum.f += pixel * Filter_3_Imag[5*7 + 3];
-    pixel = image[y - 1][x + 0]; 
+	pixel = image[(y - 1)*128 + x];
     sum.a += pixel * Filter_1_Real[4*7 + 3];
 	sum.b += pixel * Filter_1_Imag[4*7 + 3];
 	sum.c += pixel * Filter_2_Real[4*7 + 3];
 	sum.d += pixel * Filter_2_Imag[4*7 + 3];
 	sum.e += pixel * Filter_3_Real[4*7 + 3];
 	sum.f += pixel * Filter_3_Imag[4*7 + 3];
-    pixel = image[y + 0][x + 0]; 
+	pixel = image[y*128 + x];
     sum.a += pixel * Filter_1_Real[3*7 + 3];
 	sum.b += pixel * Filter_1_Imag[3*7 + 3];
 	sum.c += pixel * Filter_2_Real[3*7 + 3];
 	sum.d += pixel * Filter_2_Imag[3*7 + 3];
 	sum.e += pixel * Filter_3_Real[3*7 + 3];
 	sum.f += pixel * Filter_3_Imag[3*7 + 3];
-    pixel = image[y + 1][x + 0]; 
+    pixel = image[(y + 1)*128 + x];
     sum.a += pixel * Filter_1_Real[2*7 + 3];
 	sum.b += pixel * Filter_1_Imag[2*7 + 3];
 	sum.c += pixel * Filter_2_Real[2*7 + 3];
 	sum.d += pixel * Filter_2_Imag[2*7 + 3];
 	sum.e += pixel * Filter_3_Real[2*7 + 3];
 	sum.f += pixel * Filter_3_Imag[2*7 + 3];
-    pixel = image[y + 2][x + 0]; 
+	pixel = image[(y + 2)*128 + x];
     sum.a += pixel * Filter_1_Real[1*7 + 3];
 	sum.b += pixel * Filter_1_Imag[1*7 + 3];
 	sum.c += pixel * Filter_2_Real[1*7 + 3];
 	sum.d += pixel * Filter_2_Imag[1*7 + 3];
 	sum.e += pixel * Filter_3_Real[1*7 + 3];
 	sum.f += pixel * Filter_3_Imag[1*7 + 3];
-    pixel = image[y + 3][x + 0]; 
+	pixel = image[(y + 3)*128 + x];
     sum.a += pixel * Filter_1_Real[3];
 	sum.b += pixel * Filter_1_Imag[3];
 	sum.c += pixel * Filter_2_Real[3];
@@ -3032,99 +2289,99 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 	sum.e += pixel * Filter_3_Real[3];
 	sum.f += pixel * Filter_3_Imag[3];
 
-	pixel = image[y - 3][x + 1]; 
+    pixel = image[(y - 3)*128 + x + 1];
     sum.a += pixel * Filter_1_Real[6*7 + 2];
 	sum.b += pixel * Filter_1_Imag[6*7 + 2];
 	sum.c += pixel * Filter_2_Real[6*7 + 2];
 	sum.d += pixel * Filter_2_Imag[6*7 + 2];
 	sum.e += pixel * Filter_3_Real[6*7 + 2];
 	sum.f += pixel * Filter_3_Imag[6*7 + 2];
-    pixel = image[y - 2][x + 1]; 
+    pixel = image[(y - 2)*128 + x + 1];
     sum.a += pixel * Filter_1_Real[5*7 + 2];
 	sum.b += pixel * Filter_1_Imag[5*7 + 2];
 	sum.c += pixel * Filter_2_Real[5*7 + 2];
 	sum.d += pixel * Filter_2_Imag[5*7 + 2];
 	sum.e += pixel * Filter_3_Real[5*7 + 2];
 	sum.f += pixel * Filter_3_Imag[5*7 + 2];
-    pixel = image[y - 1][x + 1]; 
+	pixel = image[(y - 1)*128 + x + 1];
     sum.a += pixel * Filter_1_Real[4*7 + 2];
 	sum.b += pixel * Filter_1_Imag[4*7 + 2];
 	sum.c += pixel * Filter_2_Real[4*7 + 2];
 	sum.d += pixel * Filter_2_Imag[4*7 + 2];
 	sum.e += pixel * Filter_3_Real[4*7 + 2];
 	sum.f += pixel * Filter_3_Imag[4*7 + 2];
-    pixel = image[y + 0][x + 1]; 
+	pixel = image[y*128 + x + 1];
     sum.a += pixel * Filter_1_Real[3*7 + 2];
 	sum.b += pixel * Filter_1_Imag[3*7 + 2];
 	sum.c += pixel * Filter_2_Real[3*7 + 2];
 	sum.d += pixel * Filter_2_Imag[3*7 + 2];
 	sum.e += pixel * Filter_3_Real[3*7 + 2];
 	sum.f += pixel * Filter_3_Imag[3*7 + 2];
-    pixel = image[y + 1][x + 1]; 
+    pixel = image[(y + 1)*128 + x + 1];
     sum.a += pixel * Filter_1_Real[2*7 + 2];
 	sum.b += pixel * Filter_1_Imag[2*7 + 2];
 	sum.c += pixel * Filter_2_Real[2*7 + 2];
 	sum.d += pixel * Filter_2_Imag[2*7 + 2];
 	sum.e += pixel * Filter_3_Real[2*7 + 2];
 	sum.f += pixel * Filter_3_Imag[2*7 + 2];
-    pixel = image[y + 2][x + 1]; 
+	pixel = image[(y + 2)*128 + x + 1];
     sum.a += pixel * Filter_1_Real[1*7 + 2];
 	sum.b += pixel * Filter_1_Imag[1*7 + 2];
 	sum.c += pixel * Filter_2_Real[1*7 + 2];
 	sum.d += pixel * Filter_2_Imag[1*7 + 2];
 	sum.e += pixel * Filter_3_Real[1*7 + 2];
 	sum.f += pixel * Filter_3_Imag[1*7 + 2];
-    pixel = image[y + 3][x + 1]; 
+	pixel = image[(y + 3)*128 + x + 1];
     sum.a += pixel * Filter_1_Real[2];
 	sum.b += pixel * Filter_1_Imag[2];
 	sum.c += pixel * Filter_2_Real[2];
 	sum.d += pixel * Filter_2_Imag[2];
 	sum.e += pixel * Filter_3_Real[2];
 	sum.f += pixel * Filter_3_Imag[2];
- 
-    pixel = image[y - 3][x + 2]; 
+
+    pixel = image[(y - 3)*128 + x + 2];
     sum.a += pixel * Filter_1_Real[6*7 + 1];
 	sum.b += pixel * Filter_1_Imag[6*7 + 1];
 	sum.c += pixel * Filter_2_Real[6*7 + 1];
 	sum.d += pixel * Filter_2_Imag[6*7 + 1];
 	sum.e += pixel * Filter_3_Real[6*7 + 1];
 	sum.f += pixel * Filter_3_Imag[6*7 + 1];
-    pixel = image[y - 2][x + 2]; 
+    pixel = image[(y - 2)*128 + x + 2];
     sum.a += pixel * Filter_1_Real[5*7 + 1];
 	sum.b += pixel * Filter_1_Imag[5*7 + 1];
 	sum.c += pixel * Filter_2_Real[5*7 + 1];
 	sum.d += pixel * Filter_2_Imag[5*7 + 1];
 	sum.e += pixel * Filter_3_Real[5*7 + 1];
 	sum.f += pixel * Filter_3_Imag[5*7 + 1];
-    pixel = image[y - 1][x + 2]; 
+	pixel = image[(y - 1)*128 + x + 2];
     sum.a += pixel * Filter_1_Real[4*7 + 1];
 	sum.b += pixel * Filter_1_Imag[4*7 + 1];
 	sum.c += pixel * Filter_2_Real[4*7 + 1];
 	sum.d += pixel * Filter_2_Imag[4*7 + 1];
 	sum.e += pixel * Filter_3_Real[4*7 + 1];
 	sum.f += pixel * Filter_3_Imag[4*7 + 1];
-    pixel = image[y + 0][x + 2]; 
+	pixel = image[y*128 + x + 2];
     sum.a += pixel * Filter_1_Real[3*7 + 1];
 	sum.b += pixel * Filter_1_Imag[3*7 + 1];
 	sum.c += pixel * Filter_2_Real[3*7 + 1];
 	sum.d += pixel * Filter_2_Imag[3*7 + 1];
 	sum.e += pixel * Filter_3_Real[3*7 + 1];
 	sum.f += pixel * Filter_3_Imag[3*7 + 1];
-	pixel = image[y + 1][x + 2]; 
+    pixel = image[(y + 1)*128 + x + 2];
     sum.a += pixel * Filter_1_Real[2*7 + 1];
 	sum.b += pixel * Filter_1_Imag[2*7 + 1];
 	sum.c += pixel * Filter_2_Real[2*7 + 1];
 	sum.d += pixel * Filter_2_Imag[2*7 + 1];
 	sum.e += pixel * Filter_3_Real[2*7 + 1];
 	sum.f += pixel * Filter_3_Imag[2*7 + 1];
-    pixel = image[y + 2][x + 2]; 
+	pixel = image[(y + 2)*128 + x + 2];
     sum.a += pixel * Filter_1_Real[1*7 + 1];
 	sum.b += pixel * Filter_1_Imag[1*7 + 1];
 	sum.c += pixel * Filter_2_Real[1*7 + 1];
 	sum.d += pixel * Filter_2_Imag[1*7 + 1];
 	sum.e += pixel * Filter_3_Real[1*7 + 1];
 	sum.f += pixel * Filter_3_Imag[1*7 + 1];
-    pixel = image[y + 3][x + 2]; 
+	pixel = image[(y + 3)*128 + x + 2];
     sum.a += pixel * Filter_1_Real[1];
 	sum.b += pixel * Filter_1_Imag[1];
 	sum.c += pixel * Filter_2_Real[1];
@@ -3132,49 +2389,49 @@ float6 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float image[64][128],
 	sum.e += pixel * Filter_3_Real[1];
 	sum.f += pixel * Filter_3_Imag[1];
 
-    pixel = image[y - 3][x + 3]; 
+    pixel = image[(y - 3)*128 + x + 3];
     sum.a += pixel * Filter_1_Real[6*7];
 	sum.b += pixel * Filter_1_Imag[6*7];
 	sum.c += pixel * Filter_2_Real[6*7];
 	sum.d += pixel * Filter_2_Imag[6*7];
 	sum.e += pixel * Filter_3_Real[6*7];
 	sum.f += pixel * Filter_3_Imag[6*7];
-    pixel = image[y - 2][x + 3]; 
+    pixel = image[(y - 2)*128 + x + 3];
     sum.a += pixel * Filter_1_Real[5*7];
 	sum.b += pixel * Filter_1_Imag[5*7];
 	sum.c += pixel * Filter_2_Real[5*7];
 	sum.d += pixel * Filter_2_Imag[5*7];
 	sum.e += pixel * Filter_3_Real[5*7];
 	sum.f += pixel * Filter_3_Imag[5*7];
-    pixel = image[y - 1][x + 3]; 
+	pixel = image[(y - 1)*128 + x + 3];
     sum.a += pixel * Filter_1_Real[4*7];
 	sum.b += pixel * Filter_1_Imag[4*7];
 	sum.c += pixel * Filter_2_Real[4*7];
 	sum.d += pixel * Filter_2_Imag[4*7];
 	sum.e += pixel * Filter_3_Real[4*7];
 	sum.f += pixel * Filter_3_Imag[4*7];
-    pixel = image[y + 0][x + 3]; 
+	pixel = image[y*128 + x + 3];
     sum.a += pixel * Filter_1_Real[3*7];
 	sum.b += pixel * Filter_1_Imag[3*7];
 	sum.c += pixel * Filter_2_Real[3*7];
 	sum.d += pixel * Filter_2_Imag[3*7];
 	sum.e += pixel * Filter_3_Real[3*7];
 	sum.f += pixel * Filter_3_Imag[3*7];
-    pixel = image[y + 1][x + 3]; 
+    pixel = image[(y + 1)*128 + x + 3];
     sum.a += pixel * Filter_1_Real[2*7];
 	sum.b += pixel * Filter_1_Imag[2*7];
 	sum.c += pixel * Filter_2_Real[2*7];
 	sum.d += pixel * Filter_2_Imag[2*7];
 	sum.e += pixel * Filter_3_Real[2*7];
 	sum.f += pixel * Filter_3_Imag[2*7];
-    pixel = image[y + 2][x + 3]; 
+	pixel = image[(y + 2)*128 + x + 3];
     sum.a += pixel * Filter_1_Real[1*7];
 	sum.b += pixel * Filter_1_Imag[1*7];
 	sum.c += pixel * Filter_2_Real[1*7];
 	sum.d += pixel * Filter_2_Imag[1*7];
 	sum.e += pixel * Filter_3_Real[1*7];
 	sum.f += pixel * Filter_3_Imag[1*7];
-    pixel = image[y + 3][x + 3]; 
+	pixel = image[(y + 3)*128 + x + 3];
     sum.a += pixel * Filter_1_Real[0];
 	sum.b += pixel * Filter_1_Imag[0];
 	sum.c += pixel * Filter_2_Real[0];
@@ -3302,7 +2559,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
 
     if ( (x < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);	    
@@ -3310,7 +2567,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
 
     if ( ((x + 32) < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -3321,7 +2578,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( ((x + 64) < DATA_W) && (y < DATA_H) )
 	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -3332,7 +2589,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( (x < DATA_W) && ((y + 32) < DATA_H) )
 	    {
- 		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+ 		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -3343,7 +2600,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
 	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -3354,7 +2611,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
 	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_(l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -3538,7 +2795,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( (x < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -3546,7 +2803,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 16) < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+16,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+16,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+16,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -3554,7 +2811,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( ((x + 32) < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3562,7 +2819,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 48) < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+48,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+48,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+48,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -3570,7 +2827,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 64) < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3578,7 +2835,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 80) < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+80,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+80,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+80,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -3586,7 +2843,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 96) < DATA_W) && (y < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3596,7 +2853,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {
         if ( ((x + 112) < DATA_W) && (y < DATA_H) )
 	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
             Filter_Response_1[Calculate3DIndex(x+112,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		    Filter_Response_2[Calculate3DIndex(x+112,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		    Filter_Response_3[Calculate3DIndex(x+112,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -3605,7 +2862,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( (x < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -3613,7 +2870,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 16) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+16,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+16,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+16,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -3621,7 +2878,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( ((x + 32) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -3629,7 +2886,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 48) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+48,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+48,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+48,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -3637,7 +2894,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 64) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3645,7 +2902,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 80) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+80,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+80,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+80,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3653,7 +2910,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 96) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3663,7 +2920,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {
         if ( ((x + 112) < DATA_W) && ((y + 16) < DATA_H) )
 	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+16+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
             Filter_Response_1[Calculate3DIndex(x+112,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		    Filter_Response_2[Calculate3DIndex(x+112,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		    Filter_Response_3[Calculate3DIndex(x+112,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -3673,7 +2930,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( (x < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -3681,7 +2938,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 16) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+16,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+16,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+16,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -3689,7 +2946,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3697,7 +2954,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 48) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+48,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+48,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+48,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -3705,7 +2962,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -3713,7 +2970,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 80) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+80,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+80,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+80,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3721,7 +2978,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 96) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3731,7 +2988,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {
         if ( ((x + 112) < DATA_W) && ((y + 32) < DATA_H) )
 	    {
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+32+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
             Filter_Response_1[Calculate3DIndex(x+112,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		    Filter_Response_2[Calculate3DIndex(x+112,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		    Filter_Response_3[Calculate3DIndex(x+112,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -3742,7 +2999,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {	
 		if ( (x < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3750,7 +3007,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 16) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+16,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+16,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+16,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3758,7 +3015,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 32) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3766,7 +3023,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 48) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 	        Filter_Response_1[Calculate3DIndex(x+48,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+48,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+48,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3774,7 +3031,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 64) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3782,7 +3039,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 80) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+80,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+80,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+80,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3790,7 +3047,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 96) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3800,7 +3057,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 		{
 	        if ( ((x + 112) < DATA_W) && ((y + 48) < DATA_H) )
 			{
-			    float6 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+			    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(l_Image,tIdx.y+48+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 				Filter_Response_1[Calculate3DIndex(x+112,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 				Filter_Response_2[Calculate3DIndex(x+112,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 				Filter_Response_3[Calculate3DIndex(x+112,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			
