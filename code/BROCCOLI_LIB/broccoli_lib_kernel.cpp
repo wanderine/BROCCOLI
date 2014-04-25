@@ -10623,6 +10623,7 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
     }
 }
 
+
 // Estimates voxel specific AR(4) models
 __kernel void EstimateAR4Models(__global float* AR1_Estimates, 
                                 __global float* AR2_Estimates, 
@@ -11186,15 +11187,15 @@ __kernel void CalculateClusterMasses(__global unsigned int* Cluster_Indices,
 	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
 	{
 		// Increment mass for the current cluster index, done in an ugly way since atomic floats are not supported
-		atomic_add( &Cluster_Masses[Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]], (unsigned int)(Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] * 1000.0f) );
+		atomic_add( &Cluster_Masses[Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]], (unsigned int)(Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] * 10000.0f) );
 	}
 }
 
 __kernel void CalculateLargestCluster(__global unsigned int* Cluster_Sizes,
-								          volatile global unsigned int* Largest_Cluster,
-   						  	  	          __private int DATA_W,
-									      __private int DATA_H,
-									      __private int DATA_D)
+								      volatile global unsigned int* Largest_Cluster,
+   						  	  	      __private int DATA_W,
+									  __private int DATA_H,
+									  __private int DATA_D)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -11212,29 +11213,54 @@ __kernel void CalculateLargestCluster(__global unsigned int* Cluster_Sizes,
 	atomic_max(Largest_Cluster,cluster_size);
 }
 
-/*
-__kernel void CalculateLargestClusterMass(__global unsigned int* Cluster_Masses,
-								          volatile global unsigned int* Largest_Cluster,
-   						  	  	          __private int DATA_W,
-									      __private int DATA_H,
-									      __private int DATA_D)
+
+
+__kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P_Values,
+															   __global const unsigned int* Cluster_Indices,
+															   __global const unsigned int* Cluster_Sizes,
+							   	   	   	   	   	  	  	  	   __global const float* Mask,
+							   	   	   	   	   	  	  	  	   __constant float* c_Max_Values,
+							   	   	   	   	   	  	  	  	   __private int DATA_W,
+							   	   	   	   	   	  	  	  	   __private int DATA_H,
+							   	   	   	   	   	  	  	  	   __private int DATA_D,
+							   	   	   	   	   	  	  	  	   __private int NUMBER_OF_PERMUTATIONS)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 	int z = get_global_id(2);
 
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
 
-	unsigned int cluster_mass = Cluster_Masses[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 1.0f )
+	{
+    	// Check if the current voxel belongs to a cluster
+    	if ( Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 0.0f )
+    	{
+    		// Get cluster extent or cluster mass of current cluster
+    		float Test_Value = (float)Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)]];
 
-	// Most cluster size counters are zero, so avoid running atomic max for those
-	if (cluster_size == 0.0f)
-		return;
-
-	atomic_max(Largest_Cluster,cluster_mass);
+    		float sum = 0.0f;
+    		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+    		{
+    			if (Test_Value > c_Max_Values[p])
+    			{
+    				sum += 1.0f;
+    			}
+    		}
+    		P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = sum / (float)NUMBER_OF_PERMUTATIONS;
+    	}
+    	// Voxel is not part of a cluster, so p-value should be 0
+    	else
+    	{
+    		P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+    	}
+	}
+    else
+    {
+    	P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+    }
 }
-*/
 
 __kernel void ThresholdVolume(__global float* Thresholded_Volume, 
 	                          __global const float* Volume, 
