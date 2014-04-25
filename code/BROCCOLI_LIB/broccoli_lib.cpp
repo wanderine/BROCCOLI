@@ -11899,7 +11899,26 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevel()
 	}
 	else
 	{
+		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		{
+			// Generate numbers from 0 to number of subjects
+			for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+			{
+				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = (unsigned short int)i;
+			}
 
+			// Generate a random number and switch position of two existing numbers
+			for (int i = 0; i < NUMBER_OF_SUBJECTS - 1; i++)
+			{
+				int j = i + rand() / (RAND_MAX / (NUMBER_OF_SUBJECTS-i)+1);
+
+				// Check if random permutation is valid?!
+
+				unsigned short int temp = h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS];
+				h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS] = h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS];
+				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = temp;
+			}
+		}
 	}
 }
 
