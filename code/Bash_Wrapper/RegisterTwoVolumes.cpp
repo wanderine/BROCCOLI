@@ -296,9 +296,9 @@ int main(int argc, char **argv)
     bool            WRITE_DISPLACEMENT_FIELD = false;
 	bool			WRITE_INTERPOLATED = false;
    	bool			CHANGE_OUTPUT_NAME = false;    
-	float			TSIGMA = 2.25f;
-	float			ESIGMA = 2.25f;
-	float			DSIGMA = 2.25f;
+	float			TSIGMA = 5.0f;
+	float			ESIGMA = 5.0f;
+	float			DSIGMA = 5.0f;
 
 	float			STARTTRANSX = 0.0f;
 	float			STARTTRANSY = 0.0f;
@@ -356,9 +356,9 @@ int main(int argc, char **argv)
         printf(" -endrotz               	Rotation around z-axis to be applied after registration, in degrees (default 0) \n");
 		*/
 
-        printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 2.25)  \n");        
-        printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 2.25)  \n");        
-        printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 2.25)  \n");        
+        printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
+        printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
+        printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
 		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
 		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume, before alignment (default false) \n");        
@@ -459,7 +459,7 @@ int main(int argc, char **argv)
 
 			if (!isspace(*p) && *p != 0)
 		    {
-		        printf("Number of iterations must be an integer! You provided %s \n",argv[i+1]);
+		        printf("Number of linear iterations must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
             else if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION <= 0)
@@ -481,7 +481,7 @@ int main(int argc, char **argv)
 
 			if (!isspace(*p) && *p != 0)
 		    {
-		        printf("Number of iterations must be an integer! You provided %s \n",argv[i+1]);
+		        printf("Number of non-linear iterations must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
             else if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION < 0)
@@ -543,7 +543,7 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 			}
 
-            ESIGMA = strtod(argv[i+1], &p);
+            ESIGMA = (float)strtod(argv[i+1], &p);
 
 			if (!isspace(*p) && *p != 0)
 		    {
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 			}
 
-            DSIGMA = strtod(argv[i+1], &p);
+            DSIGMA = (float)strtod(argv[i+1], &p);
 
 			if (!isspace(*p) && *p != 0)
 		    {
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 			}
 
-            STARTTRANSX = strtod(argv[i+1], &p);
+            STARTTRANSX = (float)strtod(argv[i+1], &p);
 
 			if (!isspace(*p) && *p != 0)
 		    {
@@ -1159,21 +1159,21 @@ int main(int argc, char **argv)
             }
         } 
        
-        // Print build info to file    
-        fp = fopen("buildinfo.txt","w");
-        if (fp == NULL)
-        {     
-            printf("Could not open buildinfo.txt! \n");
-        }
-        if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
-        {
-            int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
-            if (error == EOF)
-            {
-                printf("Could not write to buildinfo.txt! \n");
-            }
-        }
-        fclose(fp);
+       	// Print build info to file (always)
+	    fp = fopen("buildinfo.txt","w");
+	    if (fp == NULL)
+	    {     
+	        printf("Could not open buildinfo.txt! \n");
+	    }
+	    if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
+	    {
+	        int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
+	        if (error == EOF)
+	        {
+	            printf("Could not write to buildinfo.txt! \n");
+	        }
+	    }
+	    fclose(fp);
 
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
@@ -1289,6 +1289,8 @@ int main(int argc, char **argv)
         } 
     }        
            
+
+
 	printf("\nAffine registration parameters\n");
 	printf(" %f %f %f %f\n", h_Registration_Parameters[3]+1.0f,h_Registration_Parameters[4],h_Registration_Parameters[5],h_Registration_Parameters[0]);
 	printf(" %f %f %f %f\n", h_Registration_Parameters[6],h_Registration_Parameters[7]+1.0f,h_Registration_Parameters[8],h_Registration_Parameters[1]);

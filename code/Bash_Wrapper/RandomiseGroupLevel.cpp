@@ -28,6 +28,7 @@
 #include <time.h>
 #include <sys/time.h>
 
+
 #define ADD_FILENAME true
 #define DONT_ADD_FILENAME true
 
@@ -236,6 +237,10 @@ double GetWallTime()
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
+int factorial(int n)
+{
+  return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
+}
 
 int main(int argc, char **argv)
 {
@@ -245,6 +250,7 @@ int main(int argc, char **argv)
     float           *h_First_Level_Results, *h_Mask; 
 
     unsigned short int        *h_Permutation_Matrix;
+	float			*h_Sign_Matrix;
     
     float           *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM;  
                   
@@ -253,7 +259,7 @@ int main(int argc, char **argv)
     
     int             *h_Cluster_Indices, *h_Cluster_Indices_Out;
     float           *h_Permutation_Distribution;
-    float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;        
+    float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps, *h_P_Values;        
     float           *h_Permuted_First_Level_Results;
 
     void*           allMemoryPointers[500];
@@ -273,22 +279,26 @@ int main(int argc, char **argv)
                    
     int             NUMBER_OF_GLM_REGRESSORS = 1;
 	int				NUMBER_OF_CONTRASTS = 1; 
-    float           CLUSTER_DEFINING_THRESHOLD = 1.0f;
+    float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
 	int				NUMBER_OF_PERMUTATIONS = 10000;
+	float			SIGNIFICANCE_LEVEL = 0.05f;
 	int				TEST_STATISTICS = 0;
 	int				INFERENCE_MODE = 1;
-	int				MASK = 0;
+	bool			MASK = false;
 	const char*		MASK_NAME;
 	const char*		DESIGN_FILE;        
 	const char*		CONTRASTS_FILE;
-	const char* 	PERMUTATION_FILE;
+	const char* 	PERMUTATION_INPUT_FILE;
 	const char* 	PERMUTATION_VALUES_FILE;
+	const char* 	PERMUTATION_VECTORS_FILE;
 
 	bool FOUND_DESIGN = false;
 	bool FOUND_CONTRASTS = false;
 	bool GROUP_MEAN = false;
 	bool USE_PERMUTATION_FILE = false;
 	bool WRITE_PERMUTATION_VALUES = false;
+	bool WRITE_PERMUTATION_VECTORS = false;
+	bool DO_ALL_PERMUTATIONS = false;
 
 	const char*		outputFilename;
 
@@ -304,8 +314,10 @@ int main(int argc, char **argv)
     if (argc == 1)
     {   
 		printf("\nThe function performs permutation testing for group analyses.\n\n");     
-        printf("Usage:\n\n");
+        printf("General usage:\n\n");
         printf("RandomiseGroupLevel volumes.nii -design design.mat -contrasts design.con [options]\n\n");
+        printf("Testing a group mean:\n\n");
+        printf("RandomiseGroupLevel volumes.nii -groupmean [options]\n\n");
         printf("Options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
@@ -316,10 +328,12 @@ int main(int argc, char **argv)
         printf(" -permutations              Number of permutations to use (default 10,000) \n");
         printf(" -teststatistics            Test statistics to use, 0 = GLM t-test, 1 = GLM F-test, 2 = CCA, 3 = Searchlight (default 0) \n");
         printf(" -inferencemode             Inference mode to use, 0 = voxel, 1 = cluster extent, 2 = cluster mass (default 1) \n");
-        printf(" -cdt                       Cluster defining threshold for cluster inference (default 1.0) \n");
-		printf(" -output                    Set output filename (default volumes_randomisegrouplevel_pvalues.nii) \n");
+        printf(" -cdt                       Cluster defining threshold for cluster inference (default 2.5) \n");
+        printf(" -significance              The significance level to calculate the threshold for (default 0.05) \n");		
+		printf(" -output                    Set output filename (default volumes_perm_tvalues.nii and volumes_perm_pvalues.nii) \n");
 		printf(" -writepermutationvalues    Write all the permutation values to a text file \n");
-		printf(" -permutationfile           Use a specific permutation file (e.g. from FSL) \n");
+		printf(" -writepermutations         Write all the random permutations (or sign flips) to a text file \n");
+		printf(" -permutationfile           Use a specific permutation file or sign flipping file (e.g. from FSL) \n");
         printf(" -quiet                     Don't print anything to the terminal (default false) \n");
         printf(" -verbose                   Print extra stuff (default false) \n");
         printf("\n\n");
@@ -418,7 +432,7 @@ int main(int argc, char **argv)
 			GROUP_MEAN = true;
 			FOUND_DESIGN = true;
 			FOUND_CONTRASTS = true;
-            i += 2;
+            i += 1;
         }
         else if (strcmp(input,"-permutations") == 0)
         {
@@ -472,14 +486,37 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 			}
 
-            CLUSTER_DEFINING_THRESHOLD = (int)strtol(argv[i+1], &p, 10);
+            CLUSTER_DEFINING_THRESHOLD = (float)strtod(argv[i+1], &p);
 
 			if (!isspace(*p) && *p != 0)
 		    {
-		        printf("Cluster defining threshold must be a number! You provided %s \n",argv[i+1]);
+		        printf("Cluster defining threshold must be a float! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
+            i += 2;
+        }
+        else if (strcmp(input,"-significance") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -significance !\n");
+                return EXIT_FAILURE;
+			}
 
+            SIGNIFICANCE_LEVEL = (float)strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Significance level must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+			if ( (SIGNIFICANCE_LEVEL <= 0.0f) || (SIGNIFICANCE_LEVEL >= 1.0f) )
+		    {
+				float zero = 0.0f;
+				float one = 1.0f;
+		        printf("Significance level must be between %f and %f ! You provided %s \n",zero,one,SIGNIFICANCE_LEVEL);
+				return EXIT_FAILURE;
+		    }
             i += 2;
         }
 		else if (strcmp(input,"-mask") == 0)
@@ -490,7 +527,7 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 			}
 
-			MASK = 1;
+			MASK = true;
             MASK_NAME = argv[i+1];
             i += 2;
         }
@@ -533,6 +570,18 @@ int main(int argc, char **argv)
             PERMUTATION_VALUES_FILE = argv[i+1];
             i += 2;
         }
+        else if (strcmp(input,"-writepermutations") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read name after -writepermutations !\n");
+                return EXIT_FAILURE;
+			}
+
+			WRITE_PERMUTATION_VECTORS = true;
+            PERMUTATION_VECTORS_FILE = argv[i+1];
+            i += 2;
+        }
         else if (strcmp(input,"-permutationfile") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -542,7 +591,7 @@ int main(int argc, char **argv)
 			}
 
 			USE_PERMUTATION_FILE = true;
-            PERMUTATION_FILE = argv[i+1];
+            PERMUTATION_INPUT_FILE = argv[i+1];
             i += 2;
         }
         else
@@ -563,7 +612,8 @@ int main(int argc, char **argv)
     	printf("No contrasts file detected, aborting! \n");
         return EXIT_FAILURE;
 	}
-    	
+
+
 	double startTime = GetWallTime();
     
     // Read data
@@ -617,7 +667,39 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;	
 	}
 
-	// Check if mask volume has the same dimensions
+	// Check if requested number of permutations is larger than number of possible sign flips, for group mean only
+	if (GROUP_MEAN)
+	{
+		// Calculate maximum number of sign flips
+		unsigned long int SIGN_FLIPS = (unsigned long int)pow(2.0, (double)NUMBER_OF_SUBJECTS);
+		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > SIGN_FLIPS)
+		{
+			printf("Warning: Number of possible sign flips for group mean is %lu, but %i permutations were requested. Lowering number of permutations to number of possible sign flips. \n",SIGN_FLIPS,NUMBER_OF_PERMUTATIONS);
+			NUMBER_OF_PERMUTATIONS = (int)SIGN_FLIPS;
+			DO_ALL_PERMUTATIONS = true;
+		}
+		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == SIGN_FLIPS)
+		{
+			DO_ALL_PERMUTATIONS = true;
+		}
+	}
+	// Check if requested number of permutations is larger than number of possible permutations
+	else
+	{
+		unsigned long int MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
+		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
+		{
+			printf("Warning: Number of possible permutations for your design is %lu, but %i permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
+			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
+			DO_ALL_PERMUTATIONS = true;
+		}
+		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
+		{
+			DO_ALL_PERMUTATIONS = true;
+		}
+	}
+    	
+	// Check if mask volume has the same dimensions as the data
 	if (MASK)
 	{
 		int TEMP_DATA_W = inputMask->nx;
@@ -637,108 +719,130 @@ int main(int argc, char **argv)
 	// Read number of regressors and number of subjects from design matrix file
 
 	std::ifstream design;
-    design.open(DESIGN_FILE); 
-
-	if (!design.good())
-	{
-		design.close();
-		printf("Unable to open design file %s. Aborting! \n",DESIGN_FILE);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-
-	// Get number of regressors
-	std::string tempString;
-	int tempNumber;
-	design >> tempString; // NumRegressors as string
-	std::string NR("NumRegressors");
-	if (tempString.compare(NR) != 0)
-	{
-		printf("First element of the design file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-	design >> NUMBER_OF_GLM_REGRESSORS;
-	
-	if (NUMBER_OF_GLM_REGRESSORS <= 0)
-	{
-		printf("Number of regressors must be > 0 ! You provided %i in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-
-	// Get number of subjects
-	design >> tempString; // NumSubjects as string
-	std::string NS("NumSubjects");
-	if (tempString.compare(NS) != 0)
-	{
-		printf("Third element of the design file should be the string 'NumSubjects', but it is %s. Aborting! \n",tempString.c_str());
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-	design >> tempNumber;
-
-	if (tempNumber <= 0)
-	{
-		printf("Number of subjects must be > 0 ! You provided %i in the design file. Aborting! \n",tempNumber);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-	
-	if ( tempNumber != NUMBER_OF_SUBJECTS )
-	{
-		printf("Input data contains %i volumes, while the design file says %i subjects. Aborting! \n",NUMBER_OF_SUBJECTS,tempNumber);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-		
-    // ------------------------------------------------
-  
-	// Read number of regressors and number of contrasts from contrasts file
-
 	std::ifstream contrasts;
-    contrasts.open(CONTRASTS_FILE); 
 
-	if (!contrasts.good())
+	if (!GROUP_MEAN)
 	{
-		contrasts.close();
-		printf("Unable to open contrasts file %s. Aborting! \n",CONTRASTS_FILE);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
+	    design.open(DESIGN_FILE); 
 
-	// Get number of regressors and number of subjects
-	contrasts >> tempString; // NumRegressors as string	
-	if (tempString.compare(NR) != 0)
-	{
-		printf("First element of the contrasts file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-	contrasts >> tempNumber;
+		if (!design.good())
+		{
+			design.close();
+			printf("Unable to open design file %s. Aborting! \n",DESIGN_FILE);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
 
-	if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
-	{
-		printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-
-	contrasts >> tempString; // NumContrasts as string
-	std::string NC("NumContrasts");
-	if (tempString.compare(NC) != 0)
-	{
-		printf("Third element of the contrasts file should be the string 'NumContrasts', but it is %s. Aborting! \n",tempString.c_str());
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
-	}
-	contrasts >> NUMBER_OF_CONTRASTS;
+		// Get number of regressors
+		std::string tempString;
+		int tempNumber;
+		design >> tempString; // NumRegressors as string
+		std::string NR("NumRegressors");
+		if (tempString.compare(NR) != 0)
+		{
+			design.close();
+			printf("First element of the design file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+		design >> NUMBER_OF_GLM_REGRESSORS;
 	
-	if (NUMBER_OF_CONTRASTS <= 0)
-	{
-		printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		return EXIT_FAILURE;
+		if (NUMBER_OF_GLM_REGRESSORS <= 0)
+		{
+			design.close();
+			printf("Number of regressors must be > 0 ! You provided %i regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+		else if (NUMBER_OF_GLM_REGRESSORS > 25)
+		{
+			design.close();
+			printf("Number of regressors must be <= 25 ! You provided %i regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+
+		// Get number of subjects
+		design >> tempString; // NumSubjects as string
+		std::string NS("NumSubjects");
+		if (tempString.compare(NS) != 0)
+		{
+			design.close();
+			printf("Third element of the design file should be the string 'NumSubjects', but it is %s. Aborting! \n",tempString.c_str());
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+		design >> tempNumber;
+
+		if (tempNumber <= 0)
+		{
+			design.close();
+			printf("Number of subjects must be > 0 ! You provided %i in the design file. Aborting! \n",tempNumber);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+	
+		// Check for consistency
+		if ( tempNumber != NUMBER_OF_SUBJECTS )
+		{
+			design.close();
+			printf("Input data contains %i volumes, while the design file says %i subjects. Aborting! \n",NUMBER_OF_SUBJECTS,tempNumber);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+		
+	    // ------------------------------------------------
+  
+		// Read number of regressors and number of contrasts from contrasts file
+
+	    contrasts.open(CONTRASTS_FILE); 
+
+		if (!contrasts.good())
+		{
+			contrasts.close();
+			printf("Unable to open contrasts file %s. Aborting! \n",CONTRASTS_FILE);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+
+		// Get number of regressors and number of subjects
+		contrasts >> tempString; // NumRegressors as string	
+		if (tempString.compare(NR) != 0)
+		{
+			contrasts.close();
+			printf("First element of the contrasts file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+		contrasts >> tempNumber;
+	
+		// Check for consistency
+		if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
+		{
+			contrasts.close();
+			printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+
+		contrasts >> tempString; // NumContrasts as string
+		std::string NC("NumContrasts");
+		if (tempString.compare(NC) != 0)
+		{
+			contrasts.close();
+			printf("Third element of the contrasts file should be the string 'NumContrasts', but it is %s. Aborting! \n",tempString.c_str());
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+		contrasts >> NUMBER_OF_CONTRASTS;
+	
+		if (NUMBER_OF_CONTRASTS <= 0)
+		{
+			contrasts.close();
+			printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
 	}
 		
     // ------------------------------------------------
@@ -761,9 +865,10 @@ int main(int argc, char **argv)
   	int GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     int CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     int CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-	int PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
+	int PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
+	int SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
     int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * sizeof(float);
-
+    int STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
             
     // ------------------------------------------------
 
@@ -778,8 +883,11 @@ int main(int argc, char **argv)
 	AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRASTS");
 	AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_SCALARS");
 	AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_MATRIX");
+	AllocateMemory(h_Sign_Matrix, SIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SIGN_MATRIX");
 	AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_DISTRIBUTION");             
-	
+	AllocateMemory(h_Statistical_Maps, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICAL_MAPS");             
+	AllocateMemory(h_P_Values, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_PVALUES");             
+
 	endTime = GetWallTime();
     
 	if (VERBOS)
@@ -791,27 +899,41 @@ int main(int argc, char **argv)
 
     // ------------------------------------------------
 
-	// Read design matrix from file
-	float tempFloat;
-	for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-	{
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-		{
-			design >> h_X_GLM[NUMBER_OF_SUBJECTS * r + s];
-		}
-	}	
-	design.close();
-
-	// Put design matrix into Eigen object and calculate pseudo inverse
 	Eigen::MatrixXd X(NUMBER_OF_SUBJECTS,NUMBER_OF_GLM_REGRESSORS);
-	for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-	{
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+	
+	if (!GROUP_MEAN)
+    {
+		// Read design matrix from file, should check for errors
+		float tempFloat;	
+		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
 		{
-			X(s,r) = (double)h_X_GLM[s + r * NUMBER_OF_SUBJECTS];
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				design >> h_X_GLM[NUMBER_OF_SUBJECTS * r + s];
+			}
+		}	
+		design.close();
+
+		// Put design matrix into Eigen object 
+		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		{
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				X(s,r) = (double)h_X_GLM[s + r * NUMBER_OF_SUBJECTS];
+			}
+		}
+	}
+	else if (GROUP_MEAN)
+	{
+		// Create regressor with all ones
+		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		{
+			h_X_GLM[s] = 1.0f;
+			X(s) = 1.0;
 		}
 	}
 
+	// Calculate pseudo inverse
 	Eigen::MatrixXd xtx(NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_GLM_REGRESSORS);
 	xtx = X.transpose() * X;
 	Eigen::MatrixXd inv_xtx = xtx.inverse();
@@ -840,15 +962,22 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// Read contrasts from file
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	if (!GROUP_MEAN)
 	{
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		// Read contrasts from file, should check for errors
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];			
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];			
+			}
 		}
+		contrasts.close();
 	}
-	contrasts.close();
+	else if (GROUP_MEAN)
+	{
+		h_Contrasts[0] = 1.0f;
+	}
 
 	// Calculate contrast scalars
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
@@ -864,27 +993,30 @@ int main(int argc, char **argv)
 		h_ctxtxc_GLM[c] = scalar(0);
 	}
 
-	// Print contrasts
-	if (VERBOS)
+	if (!GROUP_MEAN)
 	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		// Print contrasts
+		if (VERBOS)
 		{
-			printf("Contrast is ");
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 			{
-				printf(" %f ",h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]);
+				printf("Contrast is ");
+				for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+				{
+					printf(" %f ",h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]);
+				}
+				printf("\n");
 			}
-			printf("\n");
 		}
 	}
 
     // ------------------------------------------------
 
 	// Read permutation file
-	if (USE_PERMUTATION_FILE)
+	if (USE_PERMUTATION_FILE && (!GROUP_MEAN))
 	{
 		std::ifstream permutations;
-    	permutations.open(PERMUTATION_FILE); 
+    	permutations.open(PERMUTATION_INPUT_FILE); 
 
 		// Should check if number of permutations and number of subjects is OK
 
@@ -905,7 +1037,37 @@ int main(int argc, char **argv)
 		else	
 		{
 			permutations.close();
-	        printf("Could not open permutation file %s, aborting! \n",PERMUTATION_FILE);      
+	        printf("Could not open permutation file %s, aborting! \n",PERMUTATION_INPUT_FILE);      
+	        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+	        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+		}	
+	}
+	// Read sign flipping file
+	else if (USE_PERMUTATION_FILE && GROUP_MEAN)
+	{
+		std::ifstream permutations;
+    	permutations.open(PERMUTATION_INPUT_FILE); 
+
+		// Should check if number of permutations and number of subjects is OK
+
+		if (permutations.good())
+		{
+			for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+			{
+				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+				{
+					float temp;
+					permutations >> temp;
+					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = temp;
+				}			
+			}
+			permutations.close();
+		}
+		else	
+		{
+			permutations.close();
+	        printf("Could not open sign file %s, aborting! \n",PERMUTATION_INPUT_FILE);      
 	        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
 	        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 	        return EXIT_FAILURE;
@@ -1042,7 +1204,7 @@ int main(int argc, char **argv)
 	}
     
     // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated())
+    if (!BROCCOLI.GetOpenCLInitiated())
     {              
         printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
 		printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
@@ -1056,23 +1218,23 @@ int main(int argc, char **argv)
                 printf("Create kernel error %i is %s \n",i,BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
         }                
-        
-        // Print build info to file    
-        fp = fopen("buildinfo.txt","w");
-        if (fp == NULL)
-        {     
-            printf("Could not open buildinfo.txt! \n");
-        }
-        if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
-        {
-            int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
-            if (error == EOF)
-            {
-                printf("Could not write to buildinfo.txt! \n");
-            }
-        }
-        fclose(fp);
-        
+               
+		// Print build info to file
+	    fp = fopen("buildinfo.txt","w");
+	    if (fp == NULL)
+	    {     
+	        printf("Could not open buildinfo.txt! \n");
+	    }
+	    if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
+	    {
+	        int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
+	        if (error == EOF)
+	        {
+	            printf("Could not write to buildinfo.txt! \n");
+	        }
+	    }
+	    fclose(fp);
+
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
@@ -1086,9 +1248,10 @@ int main(int argc, char **argv)
         BROCCOLI.SetMNIWidth(DATA_W);
         BROCCOLI.SetMNIHeight(DATA_H);
         BROCCOLI.SetMNIDepth(DATA_D);                
-        BROCCOLI.SetStatisticalTest(0); // t-test
+
         BROCCOLI.SetInferenceMode(INFERENCE_MODE);        
         BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
+        BROCCOLI.SetSignificanceLevel(SIGNIFICANCE_LEVEL);		
         BROCCOLI.SetNumberOfSubjects(NUMBER_OF_SUBJECTS);
         BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
         BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
@@ -1096,37 +1259,42 @@ int main(int argc, char **argv)
         BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
         BROCCOLI.SetContrasts(h_Contrasts);
         BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
-        BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
+
         //BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);        
         //BROCCOLI.SetOutputResiduals(h_Residuals);        
         //BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
-        //BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);        
+        BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);        
         //BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
         BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
         //BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);       
+        BROCCOLI.SetOutputPValues(h_P_Values);        
+
+		BROCCOLI.SetDoAllPermutations(DO_ALL_PERMUTATIONS);
 
 		BROCCOLI.SetPermutationFileUsage(USE_PERMUTATION_FILE);
+		BROCCOLI.SetPrint(PRINT);
 
         // Run the permutation test
 
 		startTime = GetWallTime();
-        BROCCOLI.PerformGLMTTestSecondLevelPermutationWrapper();                            
+		if (GROUP_MEAN)
+		{
+		    BROCCOLI.SetSignMatrix(h_Sign_Matrix);          
+	        BROCCOLI.SetStatisticalTest(2); // Group mean
+			BROCCOLI.PerformMeanSecondLevelPermutationWrapper();                            
+		}
+		else
+		{
+	        BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
+	        BROCCOLI.SetStatisticalTest(0); // t-test
+	        BROCCOLI.PerformGLMTTestSecondLevelPermutationWrapper();                            
+		}
 		endTime = GetWallTime();
 
 		if (VERBOS)
 	 	{
 			printf("\nIt took %f seconds to run the permutation test\n",(float)(endTime - startTime));
 		}
-
-        // Print create kernel errors
-        int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
-        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
-        {
-            if (createKernelErrors[i] != 0)
-            {
-                printf("Create kernel error %i is %s \n",i,BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
-            }
-        } 
 
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
@@ -1157,27 +1325,89 @@ int main(int argc, char **argv)
 		}
 	}
 
-	/*	
+	// Print the permutation values to a text file
+	if (WRITE_PERMUTATION_VALUES)
+	{
+		std::ofstream permutationValues;
+	    permutationValues.open(PERMUTATION_VALUES_FILE);      
+
+	    if ( permutationValues.good() )
+	    {
+    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+	        {
+            	permutationValues << std::setprecision(7) << std::fixed << (double)h_Permutation_Distribution[p] << std::endl;
+			}
+		    permutationValues.close();
+        } 	
+	    else
+	    {
+			permutationValues.close();
+	        printf("Could not open %s for writing permutation values!\n",PERMUTATION_VALUES_FILE);
+	    }
+	}
+
+	// Print the permutation vectors or sign flips to a text file
+	if (WRITE_PERMUTATION_VECTORS)
+	{
+		std::ofstream permutationVectors;
+	    permutationVectors.open(PERMUTATION_VECTORS_FILE);      
+
+	    if ( permutationVectors.good() )
+	    {
+			if (GROUP_MEAN)
+			{
+	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		        {
+		    	    for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			        {
+		            	permutationVectors << std::setprecision(6) << std::fixed << (double)h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] << " ";
+					}
+					permutationVectors << std::endl;
+				}
+			}
+			else
+			{
+	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		        {
+		    	    for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			        {
+		            	permutationVectors << std::setprecision(6) << std::fixed << (double)(h_Permutation_Matrix[s + p * NUMBER_OF_SUBJECTS] + 1) << " ";
+					}
+					permutationVectors << std::endl;
+				}
+			}
+		    permutationVectors.close();
+        } 	
+	    else
+	    {
+			permutationVectors.close();
+	        printf("Could not open %s for writing permutation vectors!\n",PERMUTATION_VECTORS_FILE);
+	    }
+	}
+
     // Create new nifti image
-	nifti_image *outputNifti = nifti_copy_nim_info(inputMNI);      
+	nifti_image *outputNifti = nifti_copy_nim_info(inputData);      
 	allNiftiImages[numberOfNiftiImages] = outputNifti;
 	numberOfNiftiImages++;    
 
-    // Copy information from input data    	
+	// Change number of output volumes
+	outputNifti->nt = NUMBER_OF_CONTRASTS;
+	outputNifti->dim[4] = NUMBER_OF_CONTRASTS;
+	outputNifti->nvox = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS;
+
 	if (!CHANGE_OUTPUT_NAME)
 	{
-    	nifti_set_filenames(outputNifti, inputT1->fname, 0, 1);    
+    	nifti_set_filenames(outputNifti, inputData->fname, 0, 1);    
 	}
 	else
 	{
 		nifti_set_filenames(outputNifti, outputFilename, 0, 1);    
 	}
 
-    startTime = GetWallTime();
-
-    
+    startTime = GetWallTime(); 
         
-    WriteNifti(outputNifti,h_Quadrature_Filter_Response_1_Real,"_quadrature_filter_response_1_real",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    WriteNifti(outputNifti,h_Statistical_Maps,"_perm_tvalues",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    WriteNifti(outputNifti,h_P_Values,"_perm_pvalues",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 
 	endTime = GetWallTime();
 
@@ -1185,8 +1415,6 @@ int main(int argc, char **argv)
  	{
 		printf("It took %f seconds to write the nifti file(s)\n",(float)(endTime - startTime));
 	}
-
-	*/
 
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);

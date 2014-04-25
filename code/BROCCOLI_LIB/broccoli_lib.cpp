@@ -125,6 +125,16 @@ void BROCCOLI_LIB::SetDebug(bool debug)
 	DEBUG = debug;
 }
 
+void BROCCOLI_LIB::SetPrint(bool print)
+{
+	PRINT = print;
+}
+
+void BROCCOLI_LIB::SetDoAllPermutations(bool doall)
+{
+	DO_ALL_PERMUTATIONS = doall;
+}
+
 void BROCCOLI_LIB::SetWrapper(int wrapper)
 {
 	WRAPPER = wrapper;
@@ -143,6 +153,8 @@ void BROCCOLI_LIB::SetStartValues()
 
 	DEBUG = false;
 	WRAPPER = -1;
+	PRINT = true;
+	DO_ALL_PERMUTATIONS = false;
 
 	EPI_Smoothing_FWHM = 8.0f;
 	AR_Smoothing_FWHM = 8.0f;
@@ -195,7 +207,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	error = 0;
 
-	NUMBER_OF_OPENCL_KERNELS = 72;
+	NUMBER_OF_OPENCL_KERNELS = 74;
 
 	commandQueue = NULL;
 	program = NULL;
@@ -299,6 +311,7 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorClusterizeScan = 0;
 	createKernelErrorClusterizeRelabel = 0;
 	createKernelErrorCalculateClusterSizes = 0;
+	createKernelErrorCalculateClusterMasses = 0;
 	createKernelErrorCalculateLargestCluster = 0;
 	createKernelErrorCalculateBetaWeightsGLM = 0;
 	createKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
@@ -312,6 +325,7 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation = 0;
 	createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation = 0;
 	createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation = 0;
+	createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation = 0;
 	createKernelErrorEstimateAR4Models = 0;
 	createKernelErrorApplyWhiteningAR4 = 0;
 	createKernelErrorGeneratePermutedVolumesFirstLevel = 0;
@@ -372,6 +386,7 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorClusterizeScan = 0;
 	runKernelErrorClusterizeRelabel = 0;
 	runKernelErrorCalculateClusterSizes = 0;
+	runKernelErrorCalculateClusterMasses = 0;
 	runKernelErrorCalculateLargestCluster = 0;
 	runKernelErrorCalculateBetaWeightsGLM = 0;
 	runKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
@@ -385,6 +400,7 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation = 0;
 	runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation = 0;
 	runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation = 0;
+	runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation = 0;
 	runKernelErrorEstimateAR4Models = 0;
 	runKernelErrorApplyWhiteningAR4 = 0;
 	runKernelErrorGeneratePermutedVolumesFirstLevel = 0;
@@ -1645,6 +1661,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	ClusterizeScanKernel = clCreateKernel(program,"ClusterizeScan",&createKernelErrorClusterizeScan);
 	ClusterizeRelabelKernel = clCreateKernel(program,"ClusterizeRelabel",&createKernelErrorClusterizeRelabel);
 	CalculateClusterSizesKernel = clCreateKernel(program,"CalculateClusterSizes",&createKernelErrorCalculateClusterSizes);
+	CalculateClusterMassesKernel = clCreateKernel(program,"CalculateClusterMasses",&createKernelErrorCalculateClusterMasses);
 	CalculateLargestClusterKernel = clCreateKernel(program,"CalculateLargestCluster",&createKernelErrorCalculateLargestCluster);
 
 	OpenCLKernels[40] = MemsetKernel;
@@ -1661,7 +1678,8 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[51] = ClusterizeScanKernel;
 	OpenCLKernels[52] = ClusterizeRelabelKernel;
 	OpenCLKernels[53] = CalculateClusterSizesKernel;
-	OpenCLKernels[54] = CalculateLargestClusterKernel;
+	OpenCLKernels[54] = CalculateClusterMassesKernel;
+	OpenCLKernels[55] = CalculateLargestClusterKernel;
 
 	// Statistical kernels
 	CalculateBetaWeightsGLMKernel = clCreateKernel(program,"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
@@ -1676,34 +1694,36 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation);
 	CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation);
 	CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation);
+	CalculateStatisticalMapsMeanSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsMeanSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation);
 	EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
 	ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
 	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
 	RemoveLinearFitKernel = clCreateKernel(program,"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
 	CalculatePermutationPValuesVoxelLevelInferenceKernel = clCreateKernel(program,"CalculatePermutationPValuesVoxelLevelInference",&createKernelErrorCalculatePermutationPValuesVoxelLevelInference);
 
-	OpenCLKernels[55] = CalculateBetaWeightsGLMKernel;
-	OpenCLKernels[56] = CalculateBetaWeightsGLMFirstLevelKernel;
-	OpenCLKernels[57] = CalculateGLMResidualsKernel;
-	OpenCLKernels[58] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-	OpenCLKernels[59] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-	OpenCLKernels[60] = CalculateStatisticalMapsGLMTTestKernel;
-	OpenCLKernels[61] = CalculateStatisticalMapsGLMFTestKernel;
-	OpenCLKernels[62] = CalculateStatisticalMapsGLMBayesianKernel;
-	OpenCLKernels[63] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
-	OpenCLKernels[64] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
-	OpenCLKernels[65] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
-	OpenCLKernels[66] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-	OpenCLKernels[67] = EstimateAR4ModelsKernel;
-	OpenCLKernels[68] = ApplyWhiteningAR4Kernel;
-	OpenCLKernels[69] = GeneratePermutedVolumesFirstLevelKernel;
-	OpenCLKernels[70] = RemoveLinearFitKernel;
-	OpenCLKernels[71] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
+	OpenCLKernels[56] = CalculateBetaWeightsGLMKernel;
+	OpenCLKernels[57] = CalculateBetaWeightsGLMFirstLevelKernel;
+	OpenCLKernels[58] = CalculateGLMResidualsKernel;
+	OpenCLKernels[59] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+	OpenCLKernels[60] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+	OpenCLKernels[61] = CalculateStatisticalMapsGLMTTestKernel;
+	OpenCLKernels[62] = CalculateStatisticalMapsGLMFTestKernel;
+	OpenCLKernels[63] = CalculateStatisticalMapsGLMBayesianKernel;
+	OpenCLKernels[64] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
+	OpenCLKernels[65] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+	OpenCLKernels[66] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
+	OpenCLKernels[67] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+	OpenCLKernels[68] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
+	OpenCLKernels[69] = EstimateAR4ModelsKernel;
+	OpenCLKernels[70] = ApplyWhiteningAR4Kernel;
+	OpenCLKernels[71] = GeneratePermutedVolumesFirstLevelKernel;
+	OpenCLKernels[72] = RemoveLinearFitKernel;
+	OpenCLKernels[73] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
 
 	OPENCL_INITIATED = 1;
 
 	// Set all create kernel errors into an array
-	int *temp = GetOpenCLCreateKernelErrors();
+	GetOpenCLCreateKernelErrors();
 
 	// Check all create kernel errors
 	bool ALL_KERNELS_OK = true;
@@ -2509,6 +2529,11 @@ void BROCCOLI_LIB::SetDesignMatrix(float* data1, float* data2)
 void BROCCOLI_LIB::SetPermutationMatrix(unsigned short int* matrix)
 {
 	h_Permutation_Matrix = matrix;
+}
+
+void BROCCOLI_LIB::SetSignMatrix(float* matrix)
+{
+	h_Sign_Matrix = matrix;
 }
 
 void BROCCOLI_LIB::SetPermutationFileUsage(bool use)
@@ -3371,24 +3396,26 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 	OpenCLCreateKernelErrors[51] = createKernelErrorClusterizeScan;
 	OpenCLCreateKernelErrors[52] = createKernelErrorClusterizeRelabel;
 	OpenCLCreateKernelErrors[53] = createKernelErrorCalculateClusterSizes;
-	OpenCLCreateKernelErrors[54] = createKernelErrorCalculateLargestCluster;
-	OpenCLCreateKernelErrors[55] = createKernelErrorCalculateBetaWeightsGLM;
-	OpenCLCreateKernelErrors[56] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLCreateKernelErrors[57] = createKernelErrorCalculateGLMResiduals;
-	OpenCLCreateKernelErrors[58] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
-	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[67] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[68] = createKernelErrorApplyWhiteningAR4;
-	OpenCLCreateKernelErrors[69] = createKernelErrorGeneratePermutedVolumesFirstLevel;
-	OpenCLCreateKernelErrors[70] = createKernelErrorRemoveLinearFit;
-	OpenCLCreateKernelErrors[71] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLCreateKernelErrors[54] = createKernelErrorCalculateClusterMasses;
+	OpenCLCreateKernelErrors[55] = createKernelErrorCalculateLargestCluster;
+	OpenCLCreateKernelErrors[56] = createKernelErrorCalculateBetaWeightsGLM;
+	OpenCLCreateKernelErrors[57] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLCreateKernelErrors[58] = createKernelErrorCalculateGLMResiduals;
+	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLCreateKernelErrors[69] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[70] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[71] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLCreateKernelErrors[72] = createKernelErrorRemoveLinearFit;
+	OpenCLCreateKernelErrors[73] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
 
 	return OpenCLCreateKernelErrors;
 }
@@ -3449,24 +3476,26 @@ int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
 	OpenCLRunKernelErrors[51] = runKernelErrorClusterizeScan;
 	OpenCLRunKernelErrors[52] = runKernelErrorClusterizeRelabel;
 	OpenCLRunKernelErrors[53] = runKernelErrorCalculateClusterSizes;
-	OpenCLRunKernelErrors[54] = runKernelErrorCalculateLargestCluster;
-	OpenCLRunKernelErrors[55] = runKernelErrorCalculateBetaWeightsGLM;
-	OpenCLRunKernelErrors[56] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLRunKernelErrors[57] = runKernelErrorCalculateGLMResiduals;
-	OpenCLRunKernelErrors[58] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[54] = runKernelErrorCalculateClusterMasses;
+	OpenCLRunKernelErrors[55] = runKernelErrorCalculateLargestCluster;
+	OpenCLRunKernelErrors[56] = runKernelErrorCalculateBetaWeightsGLM;
+	OpenCLRunKernelErrors[57] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLRunKernelErrors[58] = runKernelErrorCalculateGLMResiduals;
 	OpenCLRunKernelErrors[59] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLRunKernelErrors[60] = runKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLRunKernelErrors[61] = runKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLRunKernelErrors[62] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
-	OpenCLRunKernelErrors[63] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[67] = runKernelErrorEstimateAR4Models;
-	OpenCLRunKernelErrors[68] = runKernelErrorApplyWhiteningAR4;
-	OpenCLRunKernelErrors[69] = runKernelErrorGeneratePermutedVolumesFirstLevel;
-	OpenCLRunKernelErrors[70] = runKernelErrorRemoveLinearFit;
-	OpenCLRunKernelErrors[71] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLRunKernelErrors[60] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[61] = runKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLRunKernelErrors[62] = runKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLRunKernelErrors[63] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLRunKernelErrors[69] = runKernelErrorEstimateAR4Models;
+	OpenCLRunKernelErrors[70] = runKernelErrorApplyWhiteningAR4;
+	OpenCLRunKernelErrors[71] = runKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLRunKernelErrors[72] = runKernelErrorRemoveLinearFit;
+	OpenCLRunKernelErrors[73] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
 
 	return OpenCLRunKernelErrors;
 }
@@ -9619,6 +9648,88 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelWrapper()
 	clReleaseMemObject(d_Residual_Variances);
 }
 
+void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
+{
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = 1;
+
+	// Allocate memory for volumes
+	d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);
+
+	// Allocate memory for model
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), NULL, NULL);
+	c_Sign_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+
+	// Allocate memory for results
+	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	d_Residuals = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	d_Residual_Variances = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	c_Permutation_Distribution = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_PERMUTATIONS * sizeof(float), NULL, NULL);
+	d_P_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	// Copy model to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_X_GLM_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_xtxxt_GLM_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In , 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Set permutation vector to not permute anything
+	unsigned short int temp[NUMBER_OF_SUBJECTS];
+	for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+	{
+		temp[i] = (unsigned short int)i;
+	}
+	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), temp , 0, NULL, NULL);
+
+	// Run the actual permutation test
+	ApplyPermutationTestSecondLevel();
+
+	CalculateStatisticalMapsGLMTTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
+
+	CalculatePermutationPValues(d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	// Copy results to  host
+	//clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
+
+	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values, 0, NULL, NULL);
+
+	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
+
+	// Release memory
+	clReleaseMemObject(d_First_Level_Results);
+	clReleaseMemObject(d_MNI_Brain_Mask);
+	clReleaseMemObject(d_Cluster_Indices);
+
+	clReleaseMemObject(c_X_GLM);
+	clReleaseMemObject(c_xtxxt_GLM);
+	clReleaseMemObject(c_Contrasts);
+	clReleaseMemObject(c_ctxtxc_GLM);
+	clReleaseMemObject(c_Permutation_Vector);
+	clReleaseMemObject(c_Sign_Vector);
+
+	clReleaseMemObject(d_Beta_Volumes);
+	clReleaseMemObject(d_Statistical_Maps);
+	clReleaseMemObject(d_Residuals);
+	clReleaseMemObject(d_Residual_Variances);
+	clReleaseMemObject(c_Permutation_Distribution);
+	clReleaseMemObject(d_P_Values);
+}
+
+
 void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 {
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS;
@@ -11254,7 +11365,26 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
-	if (STATISTICAL_TEST == TTEST)
+	if (STATISTICAL_TEST == GROUP_MEAN)
+	{
+		// Reset all statistical maps
+		SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 1, sizeof(cl_mem), &d_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 2, sizeof(cl_mem), &d_Mask);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 3, sizeof(cl_mem), &c_X_GLM);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 4, sizeof(cl_mem), &c_xtxxt_GLM);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 5, sizeof(cl_mem), &c_Contrasts);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 6, sizeof(cl_mem), &c_ctxtxc_GLM);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 7, sizeof(cl_mem), &c_Permutation_Vector);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 8, sizeof(cl_mem), &c_Sign_Vector);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 9, sizeof(int),    &MNI_DATA_W);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 10, sizeof(int),   &MNI_DATA_H);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 11, sizeof(int),   &MNI_DATA_D);
+		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 12, sizeof(int),   &NUMBER_OF_SUBJECTS);
+	}
+	else if (STATISTICAL_TEST == TTEST)
 	{
 		// Reset all statistical maps
 		SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS);
@@ -11294,8 +11424,8 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel, 13, sizeof(int),   &NUMBER_OF_CONTRASTS);
 	}
 
-	d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);
-	d_Largest_Cluster = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
+	d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(unsigned int), NULL, NULL);
+	d_Largest_Cluster = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(unsigned int), NULL, NULL);
 	d_Updated = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
 
 	SetGlobalAndLocalWorkSizesClusterize(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
@@ -11333,6 +11463,15 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 	clSetKernelArg(CalculateClusterSizesKernel, 5, sizeof(int),    &MNI_DATA_W);
 	clSetKernelArg(CalculateClusterSizesKernel, 6, sizeof(int),    &MNI_DATA_H);
 	clSetKernelArg(CalculateClusterSizesKernel, 7, sizeof(int),    &MNI_DATA_D);
+
+	clSetKernelArg(CalculateClusterMassesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(CalculateClusterMassesKernel, 1, sizeof(cl_mem), &d_Cluster_Sizes);
+	clSetKernelArg(CalculateClusterMassesKernel, 2, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(CalculateClusterMassesKernel, 3, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateClusterMassesKernel, 4, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(CalculateClusterMassesKernel, 5, sizeof(int),    &MNI_DATA_W);
+	clSetKernelArg(CalculateClusterMassesKernel, 6, sizeof(int),    &MNI_DATA_H);
+	clSetKernelArg(CalculateClusterMassesKernel, 7, sizeof(int),    &MNI_DATA_D);
 
 	clSetKernelArg(CalculateLargestClusterKernel, 0, sizeof(cl_mem), &d_Cluster_Sizes);
 	clSetKernelArg(CalculateLargestClusterKernel, 1, sizeof(cl_mem), &d_Largest_Cluster);
@@ -11379,21 +11518,34 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevelPermutation()
 // A small wrapper function that simply calls functions for different tests
 void BROCCOLI_LIB::CalculateStatisticalMapsSecondLevelPermutation(int p)
 {
-	// Copy a new permutation vector to constant memory
-   	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
-
-	if (STATISTICAL_TEST == TTEST)
+   	if (STATISTICAL_TEST == GROUP_MEAN)
 	{
+   		// Copy a new sign vector to constant memory
+	   	clEnqueueWriteBuffer(commandQueue, c_Sign_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(float), &h_Sign_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
+		CalculateStatisticalMapsMeanSecondLevelPermutation();
+	}
+   	else if (STATISTICAL_TEST == TTEST)
+	{
+   		// Copy a new permutation vector to constant memory
+	   	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 		CalculateStatisticalMapsGLMTTestSecondLevelPermutation();
 	}
 	else if (STATISTICAL_TEST == FTEST)
 	{
+		// Copy a new permutation vector to constant memory
+		clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 		CalculateStatisticalMapsGLMFTestSecondLevelPermutation();
 	}
 }
 
 
 
+// Calculates a mean map for second level analysis, using a sign vector to randomly flip the sign of each volume, all kernel parameters have been set in SetupPermutationTestSecondLevel
+void BROCCOLI_LIB::CalculateStatisticalMapsMeanSecondLevelPermutation()
+{
+	runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
 
 // Calculates a statistical t-map for second level analysis, all kernel parameters have been set in SetupPermutationTestSecondLevel
 void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestSecondLevelPermutation()
@@ -11555,19 +11707,18 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
 
-			ClusterizeOpenCLPermutation(MAX_CLUSTER_SIZE, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-
-			h_Permutation_Distribution[p] = (float)MAX_CLUSTER_SIZE;
+			ClusterizeOpenCLPermutation(MAX_CLUSTER, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+			h_Permutation_Distribution[p] = MAX_CLUSTER;
 		}
 		// Cluster mass distribution
 		else if (INFERENCE_MODE == CLUSTER_MASS)
 		{
 			// Calculate max cluster mass
-			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
-			h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
 
-			//ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			ClusterizeOpenCLPermutation(MAX_CLUSTER, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+			h_Permutation_Distribution[p] = MAX_CLUSTER;
 		}
 	}
 
@@ -11584,7 +11735,11 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 //  Applies a permutation test for second level analysis
 void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 {
-	if (STATISTICAL_TEST == TTEST)
+	if (STATISTICAL_TEST == GROUP_MEAN)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = 1;
+	}
+	else if (STATISTICAL_TEST == TTEST)
 	{
 		NUMBER_OF_STATISTICAL_MAPS = NUMBER_OF_CONTRASTS;
 	}
@@ -11596,22 +11751,29 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 	// Setup parameters and memory prior to permutations, to save time in each permutation
 	SetupPermutationTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
 
+	// Generate a random sign matrix, unless one is provided
+	if ( (STATISTICAL_TEST == GROUP_MEAN) && (!USE_PERMUTATION_FILE) )
+	{
+		GenerateSignMatrixSecondLevel();
+	}
 	// Generate a random permutation matrix, unless one is provided
-	if (!USE_PERMUTATION_FILE)
+	else if (!USE_PERMUTATION_FILE)
 	{
 		GeneratePermutationMatrixSecondLevel();
 	}
+
+
 
     // Loop over all the permutations, save the maximum test value from each permutation
 
 	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
 	{
-		if (WRAPPER == BASH)
+		if ((WRAPPER == BASH) && PRINT)
 		{
-			if ( (p % 100) == 0 )
-			{
-				printf("Starting permutation %i \n",p);
-			}
+			//if ( (p % 100) == 0 )
+			//{
+				printf("Starting permutation %i \n",p+1);
+			//}
 		}
 
 		// Calculate statistical maps
@@ -11632,32 +11794,31 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
 			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
 
-			ClusterizeOpenCLPermutation(MAX_CLUSTER_SIZE, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-
-			h_Permutation_Distribution[p] = (float)MAX_CLUSTER_SIZE;
+			ClusterizeOpenCLPermutation(MAX_CLUSTER, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			h_Permutation_Distribution[p] = MAX_CLUSTER;
 		}
 		// Cluster mass distribution
 		else if (INFERENCE_MODE == CLUSTER_MASS)
 		{
 			// Calculate max cluster mass
-			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-			Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
-			h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
+			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
+			//h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
 
-			//ClusterizeOpenCL(d_Cluster_Indices, NUMBER_OF_CLUSTERS, d_Statistical_Maps, 2.0f, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			ClusterizeOpenCLPermutation(MAX_CLUSTER, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			h_Permutation_Distribution[p] = MAX_CLUSTER;
 		}
 	}
 
-	// Sort the maximum test values
 	std::vector<float> max_values (h_Permutation_Distribution, h_Permutation_Distribution + NUMBER_OF_PERMUTATIONS);
 	std::sort (max_values.begin(), max_values.begin() + NUMBER_OF_PERMUTATIONS);
 
 	// Find the threshold for the specified significance level
-	SIGNIFICANCE_THRESHOLD = max_values[floor((1.0f - SIGNIFICANCE_LEVEL) * (float)NUMBER_OF_PERMUTATIONS)];
+	SIGNIFICANCE_THRESHOLD = max_values[(int)(ceil((1.0f - SIGNIFICANCE_LEVEL) * (float)NUMBER_OF_PERMUTATIONS))-1];
 
 	if (WRAPPER == BASH)
 	{
-		printf("Permutation threshold is %f \n",SIGNIFICANCE_THRESHOLD);
+		printf("Permutation threshold for a significance level of %f is %f \n",SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
 	}
 
 	CleanupPermutationTestSecondLevel();
@@ -11712,29 +11873,86 @@ void BROCCOLI_LIB::GeneratePermutationMatrixFirstLevel()
 // Generates a permutation matrix for several subjects
 void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevel()
 {
-    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-    {
-		// Generate numbers from 0 to number of subjects
-        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
-        {
-            h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = (unsigned short int)i;
-        }
+	// Do all the possible permutations
+	if (DO_ALL_PERMUTATIONS)
+	{
+		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		{
+			// Generate numbers from 0 to number of subjects
+			for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+			{
+				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = (unsigned short int)i;
+			}
 
-		// Generate a random number and switch position of two existing numbers
-        for (int i = 0; i < NUMBER_OF_SUBJECTS - 1; i++)
-        {
-            int j = i + rand() / (RAND_MAX / (NUMBER_OF_SUBJECTS-i)+1);
+			// Generate a random number and switch position of two existing numbers
+			for (int i = 0; i < NUMBER_OF_SUBJECTS - 1; i++)
+			{
+				int j = i + rand() / (RAND_MAX / (NUMBER_OF_SUBJECTS-i)+1);
 
-			// Check if random permutation is valid?!
+				// Check if random permutation is valid?!
 
-            unsigned short int temp = h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS];
-            h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS] = h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS];
-            h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = temp;
-        }
-    }
+				unsigned short int temp = h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS];
+				h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS] = h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS];
+				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = temp;
+			}
+		}
+	}
+	else
+	{
+
+	}
 }
 
+// Generates a sign flipping matrix for several subjects
+void BROCCOLI_LIB::GenerateSignMatrixSecondLevel()
+{
+	// Do all the possible sign flips
+	if (DO_ALL_PERMUTATIONS)
+	{
+		unsigned long int p = 0;
+		while (p < NUMBER_OF_PERMUTATIONS)
+		{
+			// Create a new set of flips
+			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			{
+				// Check if we should flip this subject or not
+				if (p & (unsigned long int)(pow(2.0,(double)s)))
+				{
+					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = -1.0f;
+				}
+				else
+				{
+					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = 1.0f;
+				}
+			}
+			p++;
+		}
+	}
+	// Generate "more random" sign flips, compared to simply looping through 0001, 0010, 0011, 0100, 0101 etc
+	else
+	{
+		unsigned long int p = 0;
+		while (p < NUMBER_OF_PERMUTATIONS)
+		{
+			// Create a new set of flips
+			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			{
+				unsigned long int randNumber = rand() % 2; // Random number, 0 or 1
 
+				// Check if we should flip this subject or not
+				if (randNumber)
+				{
+					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = -1.0f;
+				}
+				else
+				{
+					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = 1.0f;
+				}
+			}
+			p++;
+		}
+	}
+}
 
 // Generates new fMRI volumes for first level analysis, by inverse whitening and permutation at the same time
 // (for second level analysis, the design matrix is permuted instead, as in the function randomise in FSL, so no data need to be generated)
@@ -12713,7 +12931,7 @@ void BROCCOLI_LIB::Clusterize(int* Cluster_Indices,
 
 // Parallel version of clustering
 void BROCCOLI_LIB::ClusterizeOpenCL(cl_mem d_Cluster_Indices,
-		                            int& MAX_CLUSTER_SIZE,
+		                            float& MAX_CLUSTER,
 		                            cl_mem d_Data,
 		                            float Threshold,
 		                            cl_mem d_Mask,
@@ -12761,6 +12979,15 @@ void BROCCOLI_LIB::ClusterizeOpenCL(cl_mem d_Cluster_Indices,
 	clSetKernelArg(CalculateClusterSizesKernel, 6, sizeof(int),    &DATA_H);
 	clSetKernelArg(CalculateClusterSizesKernel, 7, sizeof(int),    &DATA_D);
 
+	clSetKernelArg(CalculateClusterMassesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(CalculateClusterMassesKernel, 1, sizeof(cl_mem), &d_Cluster_Sizes);
+	clSetKernelArg(CalculateClusterMassesKernel, 2, sizeof(cl_mem), &d_Data);
+	clSetKernelArg(CalculateClusterMassesKernel, 3, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateClusterMassesKernel, 4, sizeof(float),  &Threshold);
+	clSetKernelArg(CalculateClusterMassesKernel, 5, sizeof(int),    &DATA_W);
+	clSetKernelArg(CalculateClusterMassesKernel, 6, sizeof(int),    &DATA_H);
+	clSetKernelArg(CalculateClusterMassesKernel, 7, sizeof(int),    &DATA_D);
+
 	clSetKernelArg(CalculateLargestClusterKernel, 0, sizeof(cl_mem), &d_Cluster_Sizes);
 	clSetKernelArg(CalculateLargestClusterKernel, 1, sizeof(cl_mem), &d_Largest_Cluster);
 	clSetKernelArg(CalculateLargestClusterKernel, 2, sizeof(int),    &DATA_W);
@@ -12791,18 +13018,35 @@ void BROCCOLI_LIB::ClusterizeOpenCL(cl_mem d_Cluster_Indices,
 	SetMemoryInt(d_Largest_Cluster, -100, 1);
 	SetMemoryInt(d_Cluster_Sizes, 0, DATA_W * DATA_H * DATA_D);
 
-	// Calculate how large each cluster is
-	runKernelErrorCalculateClusterSizes = clEnqueueNDRangeKernel(commandQueue, CalculateClusterSizesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
-	clFinish(commandQueue);
+	if (INFERENCE_MODE == CLUSTER_EXTENT)
+	{
+		// Calculate the extent of each cluster
+		runKernelErrorCalculateClusterSizes = clEnqueueNDRangeKernel(commandQueue, CalculateClusterSizesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+	else if (INFERENCE_MODE == CLUSTER_MASS)
+	{
+		// Calculate the mass of each cluster
+		runKernelErrorCalculateClusterMasses = clEnqueueNDRangeKernel(commandQueue, CalculateClusterMassesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
 
 	// Calculate size of largest cluster
 	runKernelErrorCalculateLargestCluster = clEnqueueNDRangeKernel(commandQueue, CalculateLargestClusterKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 	clFinish(commandQueue);
 
 	// Copy largest cluster to host
-	int Largest_Cluster;
-	clEnqueueReadBuffer(commandQueue, d_Largest_Cluster, CL_TRUE, 0, sizeof(int), &Largest_Cluster, 0, NULL, NULL);
-	MAX_CLUSTER_SIZE = Largest_Cluster;
+	unsigned int Largest_Cluster;
+	clEnqueueReadBuffer(commandQueue, d_Largest_Cluster, CL_TRUE, 0, sizeof(unsigned int), &Largest_Cluster, 0, NULL, NULL);
+
+	if (INFERENCE_MODE == CLUSTER_EXTENT)
+	{
+		MAX_CLUSTER = (float)Largest_Cluster;
+	}
+	else if (INFERENCE_MODE == CLUSTER_MASS)
+	{
+		MAX_CLUSTER = (float)Largest_Cluster/1000.0f;
+	}
 
 	clReleaseMemObject(d_Updated);
 	clReleaseMemObject(d_Cluster_Sizes);
@@ -12810,7 +13054,7 @@ void BROCCOLI_LIB::ClusterizeOpenCL(cl_mem d_Cluster_Indices,
 }
 
 // Parallel clustering, optimized for permutation (for example, does not allocate or free memory in each permutation)
-void BROCCOLI_LIB::ClusterizeOpenCLPermutation(int& MAX_CLUSTER_SIZE, int DATA_W, int DATA_H, int DATA_D)
+void BROCCOLI_LIB::ClusterizeOpenCLPermutation(float& MAX_CLUSTER, int DATA_W, int DATA_H, int DATA_D)
 {
 	// Set initial cluster indices, voxel 0 = 0, voxel 1 = 1 and so on
 	runKernelErrorClusterizeScan = clEnqueueNDRangeKernel(commandQueue, SetStartClusterIndicesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
@@ -12836,18 +13080,34 @@ void BROCCOLI_LIB::ClusterizeOpenCLPermutation(int& MAX_CLUSTER_SIZE, int DATA_W
 	SetMemoryInt(d_Largest_Cluster, 0, 1);
 	SetMemoryInt(d_Cluster_Sizes, 0, DATA_W * DATA_H * DATA_D);
 
-	// Calculate how large each cluster is
-	runKernelErrorCalculateClusterSizes = clEnqueueNDRangeKernel(commandQueue, CalculateClusterSizesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
-	clFinish(commandQueue);
+	// Calculate the extent of each cluster
+	if (INFERENCE_MODE == CLUSTER_EXTENT)
+	{
+		runKernelErrorCalculateClusterSizes = clEnqueueNDRangeKernel(commandQueue, CalculateClusterSizesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+	else if (INFERENCE_MODE == CLUSTER_MASS)
+	{
+		runKernelErrorCalculateClusterMasses = clEnqueueNDRangeKernel(commandQueue, CalculateClusterMassesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
 
 	// Calculate size of largest cluster
 	runKernelErrorCalculateLargestCluster = clEnqueueNDRangeKernel(commandQueue, CalculateLargestClusterKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 	clFinish(commandQueue);
 
 	// Copy largest cluster to host
-	int Largest_Cluster;
-	clEnqueueReadBuffer(commandQueue, d_Largest_Cluster, CL_TRUE, 0, sizeof(int), &Largest_Cluster, 0, NULL, NULL);
-	MAX_CLUSTER_SIZE = Largest_Cluster;
+	unsigned int Largest_Cluster;
+	clEnqueueReadBuffer(commandQueue, d_Largest_Cluster, CL_TRUE, 0, sizeof(unsigned int), &Largest_Cluster, 0, NULL, NULL);
+
+	if (INFERENCE_MODE == CLUSTER_EXTENT)
+	{
+		MAX_CLUSTER = (float)Largest_Cluster;
+	}
+	else if (INFERENCE_MODE == CLUSTER_MASS)
+	{
+		MAX_CLUSTER = (float)Largest_Cluster/1000.0f;
+	}
 }
 
 
@@ -13048,7 +13308,7 @@ void BROCCOLI_LIB::ClusterizeOpenCLWrapper3()
 	{
 		clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Data, 0, NULL, NULL);
 		clFinish(commandQueue);
-		Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_First_Level_Results, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
+		//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_First_Level_Results, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
 		//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_First_Level_Results, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
 	}
 
