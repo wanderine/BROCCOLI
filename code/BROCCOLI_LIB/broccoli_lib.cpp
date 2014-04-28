@@ -7005,6 +7005,8 @@ void BROCCOLI_LIB::TransformVolumesNonParametric(cl_mem d_Volumes,
 void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 {
 	//------------------------
+	// T1-MNI registration
+	//------------------------
 
 	// Allocate memory on device
 	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
@@ -7047,6 +7049,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 
 	//------------------------
+	// fMRI-T1 registration
+	//------------------------
 
 	// Allocate memory on device
 	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
@@ -7075,6 +7079,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 
 	//------------------------
+	// Motion correction
+	//------------------------
 
 
 	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -7096,7 +7102,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
 
 
-
+	//------------------------
+	// Segment EPI data
 	//------------------------
 
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
@@ -7104,7 +7111,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	SegmentEPIData();
 
-	//-------------------------------
+	//------------------------
+	// Smoothing
+	//------------------------
 
 	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
@@ -7115,7 +7124,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Smoothed_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Smoothed_fMRI_Volumes, 0, NULL, NULL);
 
 
-	//-------------------------------
+	//------------------------
+	// GLM
+	//------------------------
 
 	//NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*2 + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS;
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
@@ -11418,6 +11429,7 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 	}
 	else if (STATISTICAL_TEST == FTEST)
 	{
+		// Reset all statistical maps
 		SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
 
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
@@ -11710,24 +11722,10 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 			// Get max test value
 			h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 		}
-		// Cluster extent distribution
-		else if (INFERENCE_MODE == CLUSTER_EXTENT)
+		// Cluster distribution, extent or mass
+		else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
 		{
-			// Calculate max cluster extent
-			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
-
-			ClusterizeOpenCLPermutation(MAX_CLUSTER, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-			h_Permutation_Distribution[p] = MAX_CLUSTER;
-		}
-		// Cluster mass distribution
-		else if (INFERENCE_MODE == CLUSTER_MASS)
-		{
-			// Calculate max cluster mass
-			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
-
-			ClusterizeOpenCLPermutation(MAX_CLUSTER, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+			ClusterizeOpenCLPermutation(MAX_CLUSTER, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 			h_Permutation_Distribution[p] = MAX_CLUSTER;
 		}
 	}
@@ -11772,8 +11770,6 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 		GeneratePermutationMatrixSecondLevel();
 	}
 
-
-
     // Loop over all the permutations, save the maximum test value from each permutation
 
 	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
@@ -11796,29 +11792,21 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 			h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		}
 
-		// Cluster extent distribution
-		else if (INFERENCE_MODE == CLUSTER_EXTENT)
+		// Cluster distribution, extent or mass
+		else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
 		{
-			// Calculate max cluster extent
-
-			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
-
-			ClusterizeOpenCLPermutation(MAX_CLUSTER, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-			h_Permutation_Distribution[p] = MAX_CLUSTER;
-		}
-		// Cluster mass distribution
-		else if (INFERENCE_MODE == CLUSTER_MASS)
-		{
-			// Calculate max cluster mass
-			//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
-			//h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
-
 			ClusterizeOpenCLPermutation(MAX_CLUSTER, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 			h_Permutation_Distribution[p] = MAX_CLUSTER;
 		}
 	}
+
+	//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
+
+	// Calculate max cluster mass
+	//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
+	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
+	//h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
 
 	std::vector<float> max_values (h_Permutation_Distribution, h_Permutation_Distribution + NUMBER_OF_PERMUTATIONS);
 	std::sort (max_values.begin(), max_values.begin() + NUMBER_OF_PERMUTATIONS);
@@ -13060,20 +13048,20 @@ void BROCCOLI_LIB::ClusterizeOpenCL(cl_mem d_Cluster_Indices,
 	SetMemoryInt(d_Largest_Cluster, -100, 1);
 	SetMemoryInt(d_Cluster_Sizes, 0, DATA_W * DATA_H * DATA_D);
 
+	// Calculate the extent of each cluster
 	if (INFERENCE_MODE == CLUSTER_EXTENT)
 	{
-		// Calculate the extent of each cluster
 		runKernelErrorCalculateClusterSizes = clEnqueueNDRangeKernel(commandQueue, CalculateClusterSizesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
+	// Calculate the mass of each cluster
 	else if (INFERENCE_MODE == CLUSTER_MASS)
 	{
-		// Calculate the mass of each cluster
 		runKernelErrorCalculateClusterMasses = clEnqueueNDRangeKernel(commandQueue, CalculateClusterMassesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
-	// Calculate size of largest cluster
+	// Calculate size of largest cluster (extent or mass)
 	runKernelErrorCalculateLargestCluster = clEnqueueNDRangeKernel(commandQueue, CalculateLargestClusterKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 	clFinish(commandQueue);
 
@@ -13127,13 +13115,14 @@ void BROCCOLI_LIB::ClusterizeOpenCLPermutation(float& MAX_CLUSTER, int DATA_W, i
 		runKernelErrorCalculateClusterSizes = clEnqueueNDRangeKernel(commandQueue, CalculateClusterSizesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
+	// Calculate the mass of each cluster
 	else if (INFERENCE_MODE == CLUSTER_MASS)
 	{
 		runKernelErrorCalculateClusterMasses = clEnqueueNDRangeKernel(commandQueue, CalculateClusterMassesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 		clFinish(commandQueue);
 	}
 
-	// Calculate size of largest cluster
+	// Calculate size of largest cluster (extent or mass)
 	runKernelErrorCalculateLargestCluster = clEnqueueNDRangeKernel(commandQueue, CalculateLargestClusterKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
 	clFinish(commandQueue);
 

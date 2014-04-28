@@ -10904,7 +10904,8 @@ __kernel void SetStartClusterIndicesKernel(__global unsigned int* Cluster_Indice
 
 
 
-
+/*
+ * Old version, not checking if we read outside the volume
 __kernel void ClusterizeScan(__global unsigned int* Cluster_Indices,
 						  	  volatile __global float* Updated,
 						  	  __global const float* Data,
@@ -11104,7 +11105,304 @@ __kernel void ClusterizeScan(__global unsigned int* Cluster_Indices,
 
 	}
 }
+*/
 
+bool IsInsideVolume(int x, int y, int z, int DATA_W, int DATA_H, int DATA_D)
+{
+	if (z < 0)
+		return false;
+	else if (z >= DATA_D)
+		return false;
+	else if (y < 0)
+		return false;
+	else if (y >= DATA_H)
+		return false;
+	else if (x < 0)
+		return false;
+	else if (x >= DATA_W)
+		return false;
+	else
+		return true;
+}
+
+
+__kernel void ClusterizeScan(__global unsigned int* Cluster_Indices,
+						  	  volatile __global float* Updated,
+						  	  __global const float* Data,
+						  	  __global const float* Mask,
+						  	  __private float threshold,
+						  	  __private int DATA_W,
+						  	  __private int DATA_H,
+						  	  __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	// Threshold data
+	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
+	{
+		unsigned int label1, label2, temp;
+
+		label2 = DATA_W * DATA_H * DATA_D * 3;
+
+		// Original index
+		label1 = Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+
+		// z - 1
+		if ( IsInsideVolume(x-1,y,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x-1,y-1,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y-1,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x-1,y+1,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y+1,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y-1,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y-1,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y+1,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y+1,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y-1,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y-1,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y+1,z-1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y+1,z-1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		// z
+
+		if ( IsInsideVolume(x-1,y,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x-1,y-1,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y-1,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x-1,y+1,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y+1,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y-1,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y-1,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y+1,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y+1,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y-1,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y-1,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y+1,z,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y+1,z,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		// z + 1
+
+		if ( IsInsideVolume(x-1,y,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+			if
+		}
+
+		if ( IsInsideVolume(x-1,y-1,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y-1,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x-1,y+1,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x-1,y+1,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y-1,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y-1,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x,y+1,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x,y+1,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y-1,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y-1,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if ( IsInsideVolume(x+1,y+1,z+1,DATA_W,DATA_H,DATA_D) )
+		{
+			temp = Cluster_Indices[Calculate3DIndex(x+1,y+1,z+1,DATA_W,DATA_H)];
+			if (temp < label2)
+			{
+				label2 = temp;
+			}
+		}
+
+		if (label2 < label1)
+		{
+			Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = label2;
+			float one = 1.0f;
+			atomic_xchg(Updated,one);
+		}
+	}
+}
 
 
 __kernel void ClusterizeRelabel(__global unsigned int* Cluster_Indices,

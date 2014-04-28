@@ -1168,6 +1168,7 @@ int main(int argc, char **argv)
         }
 	}
 
+	/*
 	// First slice
     for (int i = 0; i < DATA_W * DATA_H; i++)
     {
@@ -1178,7 +1179,8 @@ int main(int argc, char **argv)
     {
         h_Mask[i + DATA_W * DATA_H * (DATA_D-1)] = 0.0f;
     }
-    
+	*/    
+
 	endTime = GetWallTime();
 
 	if (VERBOS)
@@ -1186,9 +1188,6 @@ int main(int argc, char **argv)
 		printf("It took %f seconds to convert data to floats\n",(float)(endTime - startTime));
 	}
     
-
-
-
     //------------------------
     
 	startTime = GetWallTime();
@@ -1317,14 +1316,6 @@ int main(int argc, char **argv)
         } 
     }        
        
-	if (VERBOS)
-	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-		{
-			printf("Permutation value %i is %f \n",p,h_Permutation_Distribution[p]);
-		}
-	}
-
 	// Print the permutation values to a text file
 	if (WRITE_PERMUTATION_VALUES)
 	{
@@ -1335,7 +1326,7 @@ int main(int argc, char **argv)
 	    {
     	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
 	        {
-            	permutationValues << std::setprecision(7) << std::fixed << (double)h_Permutation_Distribution[p] << std::endl;
+            	permutationValues << std::setprecision(6) << std::fixed << (double)h_Permutation_Distribution[p] << " " << std::endl;
 			}
 		    permutationValues.close();
         } 	
