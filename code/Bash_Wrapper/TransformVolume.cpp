@@ -687,7 +687,7 @@ int main(int argc, char **argv)
         }
                           
         // Run the actual transformation
-        BROCCOLI.TransformVolumesNonParametricWrapper();
+        BROCCOLI.TransformVolumesNonLinearWrapper();
 		
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();

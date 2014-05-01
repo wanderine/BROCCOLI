@@ -542,12 +542,12 @@ int main(int argc, char ** argv)
 	std::string filter3RealName;
 	std::string filter3ImagName;
 
-	filter1RealName.append("filter1_real_parametric_registration.bin");
-	filter1ImagName.append("filter1_imag_parametric_registration.bin");
-	filter2RealName.append("filter2_real_parametric_registration.bin");
-	filter2ImagName.append("filter2_imag_parametric_registration.bin");
-	filter3RealName.append("filter3_real_parametric_registration.bin");
-	filter3ImagName.append("filter3_imag_parametric_registration.bin");
+	filter1RealName.append("filter1_real_linear_registration.bin");
+	filter1ImagName.append("filter1_imag_linear_registration.bin");
+	filter2RealName.append("filter2_real_linear_registration.bin");
+	filter2ImagName.append("filter2_imag_linear_registration.bin");
+	filter3RealName.append("filter3_real_linear_registration.bin");
+	filter3ImagName.append("filter3_imag_linear_registration.bin");
 
 	ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1RealName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
 	ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1ImagName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
@@ -630,7 +630,7 @@ int main(int argc, char ** argv)
         BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);        
         
         BROCCOLI.SetImageRegistrationFilterSize(MOTION_CORRECTION_FILTER_SIZE);
-        BROCCOLI.SetParametricImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
+        BROCCOLI.SetLinearImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
         BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);
         
         BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
@@ -749,8 +749,8 @@ int main(int argc, char ** argv)
 }
 
 /*
-fid = fopen('filter1_imag_parametric_registration.bin','w')
-a = f1_parametric_registration;
+fid = fopen('filter1_imag_Linear_registration.bin','w')
+a = f1_Linear_registration;
 a = imag(a);
 a(:,:,1) = a(:,:,1)';
 a(:,:,2) = a(:,:,2)';

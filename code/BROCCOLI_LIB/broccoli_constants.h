@@ -76,6 +76,7 @@
 
 #define TTEST 0
 #define FTEST 1
+#define GROUP_MEAN 2
 
 #define DOWN 0
 #define UP 1
@@ -107,7 +108,7 @@
 #define AMD 2
 #define APPLE 3
 
-#define NUMBER_OF_FILTERS_FOR_NONPARAMETRIC_REGISTRATION 6
+#define NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION 6
 
 #define CL_SUCCESS 0
 #define CL_DEVICE_NOT_FOUND -1

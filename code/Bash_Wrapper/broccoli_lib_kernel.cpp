@@ -44,7 +44,7 @@ int Calculate5DIndex(int x, int y, int z, int t, int v, int DATA_W, int DATA_H, 
 	return x + y * DATA_W + z * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D + v * DATA_W * DATA_H * DATA_D * VALUES;
 }
 
-// For parametric image registration
+// For Linear image registration
 void GetParameterIndices(int* i, int* j, int parameter)
 {
 	switch(parameter)
@@ -3892,7 +3892,7 @@ __kernel void CalculateDisplacementUpdate(__global float* DisplacementX,
 __constant sampler_t volume_sampler_nearest = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_NEAREST;
 	
 
-__kernel void InterpolateVolumeNearestParametric(__global float* Volume, 
+__kernel void InterpolateVolumeNearestLinear(__global float* Volume,
 	                                             read_only image3d_t Original_Volume, 
 												 __constant float* c_Parameter_Vector, 
 												 __private int DATA_W, 
@@ -3929,7 +3929,7 @@ __kernel void InterpolateVolumeNearestParametric(__global float* Volume,
 	Volume[idx] = Interpolated_Value.x;
 }
 
-__kernel void InterpolateVolumeNearestNonParametric(__global float* Volume, 
+__kernel void InterpolateVolumeNearestNonLinear(__global float* Volume,
 	                                                read_only image3d_t Original_Volume, 
 													__global const float* d_Displacement_Field_X, 
 													__global const float* d_Displacement_Field_Y, 
@@ -3961,7 +3961,7 @@ __kernel void InterpolateVolumeNearestNonParametric(__global float* Volume,
 __constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;
 	
 
-__kernel void InterpolateVolumeLinearParametric(__global float* Volume, 
+__kernel void InterpolateVolumeLinearLinear(__global float* Volume,
 	                                            read_only image3d_t Original_Volume, 
 												__constant float* c_Parameter_Vector,
 												__private int DATA_W,
@@ -4006,7 +4006,7 @@ float  myabs(float value)
 		return value;
 }
 
-__kernel void InterpolateVolumeLinearNonParametric(__global float* Volume, 
+__kernel void InterpolateVolumeLinearNonLinear(__global float* Volume,
 	                                               read_only image3d_t Original_Volume, 
 												   __global const float* d_Displacement_Field_X, 
 												   __global const float* d_Displacement_Field_Y, 
@@ -4037,7 +4037,7 @@ __kernel void InterpolateVolumeLinearNonParametric(__global float* Volume,
 	Volume[idx4D] = Interpolated_Value.x;
 }
 
-__kernel void AddParametricAndNonParametricDisplacement(__global float* d_Displacement_Field_X,
+__kernel void AddLinearAndNonLinearDisplacement(__global float* d_Displacement_Field_X,
 		   	   	   	   	   	   	   	   	   	   	   	    __global float* d_Displacement_Field_Y,
 		   	   	   	   	   	   	   	   	   	   	   	    __global float* d_Displacement_Field_Z,
 	                                            	 	__constant float* c_Parameter_Vector,
@@ -4087,7 +4087,7 @@ float bspline(float t)
 
 
 
-__kernel void InterpolateVolumeCubicParametric(__global float* Volume, 
+__kernel void InterpolateVolumeCubicLinear(__global float* Volume,
 	                                           read_only image3d_t Original_Volume, 
 											   __constant float* c_Parameter_Vector, 
 											   __private int DATA_W, 
@@ -4154,7 +4154,7 @@ __kernel void InterpolateVolumeCubicParametric(__global float* Volume,
 }
 
 
-__kernel void InterpolateVolumeCubicNonParametric(__global float* Volume, 
+__kernel void InterpolateVolumeCubicNonLinear(__global float* Volume,
 	                                              read_only image3d_t Original_Volume, 
 												  __global const float* d_Displacement_Field, 
 												  __private int DATA_W, 

@@ -119,8 +119,6 @@ class BROCCOLI_LIB
 
 		// Set functions for GUI / Wrappers
 
-		// void SetOpenCLPlatform(int N);
-
 		void SetDebug(bool debug);
 		void SetPrint(bool print);
 		void SetWrapper(int wrapper);
@@ -159,8 +157,8 @@ class BROCCOLI_LIB
 
 		// Image registration
 		void SetImageRegistrationFilterSize(int N);
-		void SetParametricImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
-		void SetNonParametricImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* q3r, float* q3i, float* qf4r, float* qf4i, float* qf5r, float* qf5i, float* q6r, float* q6i);
+		void SetLinearImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
+		void SetNonLinearImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* q3r, float* q3i, float* qf4r, float* qf4i, float* qf5r, float* qf5i, float* q6r, float* q6i);
 		void SetProjectionTensorMatrixFirstFilter(float m11, float m12, float m13, float m22, float m23, float m33);
 		void SetProjectionTensorMatrixSecondFilter(float m11, float m12, float m13, float m22, float m23, float m33);
 		void SetProjectionTensorMatrixThirdFilter(float m11, float m12, float m13, float m22, float m23, float m33);
@@ -168,8 +166,8 @@ class BROCCOLI_LIB
 		void SetProjectionTensorMatrixFifthFilter(float m11, float m12, float m13, float m22, float m23, float m33);
 		void SetProjectionTensorMatrixSixthFilter(float m11, float m12, float m13, float m22, float m23, float m33);
 		void SetFilterDirections(float* x, float* y, float* z);
-		void SetNumberOfIterationsForParametricImageRegistration(int N);
-		void SetNumberOfIterationsForNonParametricImageRegistration(int N);
+		void SetNumberOfIterationsForLinearImageRegistration(int N);
+		void SetNumberOfIterationsForNonLinearImageRegistration(int N);
 		void SetNumberOfIterationsForMotionCorrection(int N);
 		void SetCoarsestScaleT1MNI(int N);
 		void SetCoarsestScaleEPIT1(int N);
@@ -220,10 +218,12 @@ class BROCCOLI_LIB
 		void SetNumberOfSubjects(int N);
 
 		// Output statistics
-		void SetOutputBetaVolumes(float* output);
+		void SetOutputBetaVolumesEPI(float* output);
+		void SetOutputBetaVolumesMNI(float* output);
 		void SetOutputResiduals(float* output);
 		void SetOutputResidualVariances(float* output);
-		void SetOutputStatisticalMaps(float* output);
+		void SetOutputStatisticalMapsEPI(float* output);
+		void SetOutputStatisticalMapsMNI(float* output);
 		void SetOutputPValues(float* output);
 		void SetOutputEPIMask(float*);
 		void SetOutputClusterIndices(int*);
@@ -243,9 +243,10 @@ class BROCCOLI_LIB
 		void SetOutputPhaseDifferences(float*);
 		void SetOutputPhaseCertainties(float*);
 		void SetOutputPhaseGradients(float*);
-		void SetOutputAlignedT1Volume(float*);
-		void SetOutputAlignedT1VolumeNonParametric(float*);
-		void SetOutputAlignedEPIVolume(float*);
+		void SetOutputAlignedT1VolumeLinear(float*);
+		void SetOutputAlignedT1VolumeNonLinear(float*);
+		void SetOutputAlignedEPIVolumeT1(float*);
+		void SetOutputAlignedEPIVolumeMNI(float*);
 		void SetOutputSkullstrippedT1Volume(float*);
 		void SetOutputInterpolatedT1Volume(float*);
 		void SetOutputInterpolatedEPIVolume(float*);
@@ -265,35 +266,23 @@ class BROCCOLI_LIB
 		void SetOutputAMatrix(float*);
 		void SetOutputHVector(float*);
 
-                /**
-                 * In oldstuff
-
-		// void SetfMRIDataFilename(std::string filename);
-
-		// void SetfMRIDataSliceLocationX(int location);
-		// void SetfMRIDataSliceLocationY(int location);
-		// void SetfMRIDataSliceLocationZ(int location);
-		// void SetfMRIDataSliceTimepoint(int timepoint);
-
-		// void SetDataType(int type);
-		// void SetFileType(int type);
-
-		*/
-
 		void SetSignificanceLevel(float value);
+
+		void SetSaveInterpolatedT1(bool);
+		void SetSaveAlignedT1Linear(bool);
+		void SetSaveAlignedT1NonLinear(bool);
+		void SetSaveAlignedEPIT1(bool);
+		void SetSaveAlignedEPIMNI(bool);
+		void SetSaveSliceTimingCorrected(bool);
+		void SetSaveMotionCorrected(bool);
+		void SetSaveSmoothed(bool);
+		void SetSaveActivityEPI(bool);
+		void SetSaveDesignMatrix(bool);
 
 		// Get functions for GUI / Wrappers
 
 		bool GetOpenCLInitiated();
 		int GetNumberOfOpenCLKernels();
-
-                /**
-                 * In oldstuff
-                 *
-		// int GetfMRIDataSliceLocationX();
-		// int GetfMRIDataSliceLocationY();
-		// int GetfMRIDataSliceLocationZ();
-		*/
 
 		// EPI data
 		float GetEPIVoxelSizeX();
@@ -310,18 +299,8 @@ class BROCCOLI_LIB
 		int GetT1Width();
 		int GetT1Height();
 		int GetT1Depth();
-		// int GetT1Timepoints();
-
-                /**
-                 * Nowhere
-
-		// float GetT1VoxelSizeX();
-		// float GetT1VoxelSizeY();
-		// float GetT1VoxelSizeZ();
-		*/
 
 		float GetSignificanceThreshold();
-		// std::string GetfMRIDataFilename();
 
 		int GetNumberOfSignificantlyActiveVoxels();
 		int GetNumberOfSignificantlyActiveClusters();
@@ -371,20 +350,12 @@ class BROCCOLI_LIB
 		double GetProcessingTimeEquationSystem();
 		double GetProcessingTimeInterpolation();
 
-		// Read functions
-		// void ReadfMRIDataRAW();
-		// void ReadfMRIDataNIFTI();
-		// void ReadNIFTIHeader();
-
-		// Write functions
-		// void WritefMRIDataNIFTI();
-
 		// Wrappers
 		void ChangeT1VolumeResolutionAndSizeWrapper();
 		void PerformRegistrationT1MNIWrapper();
 		void PerformRegistrationT1MNINoSkullstripWrapper();
 		void PerformRegistrationTwoVolumesWrapper();
-		void TransformVolumesNonParametricWrapper();
+		void TransformVolumesNonLinearWrapper();
 		void PerformRegistrationEPIT1Wrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
@@ -411,10 +382,6 @@ class BROCCOLI_LIB
 		void ClusterizeOpenCLWrapper2();
 		void ClusterizeOpenCLWrapper3();
 
-		// void CalculateSlicesfMRIData();
-		// void CalculateSlicesPreprocessedfMRIData();
-		// void CalculateSlicesActivityData();
-
 		void GetOpenCLInfo();
 		bool OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
 
@@ -426,12 +393,13 @@ class BROCCOLI_LIB
 
 		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
 		void Clusterize(int* Cluster_Indices, int& MAX_CLUSTER_SIZE, float& MAX_CLUSTER_MASS, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D, int GET_VOXEL_LABELS, int GET_CLUSTER_MASS);
-		void ClusterizeOpenCL(cl_mem Cluster_Indices, float& MAX_CLUSTER, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
+		void ClusterizeOpenCL(cl_mem Cluster_Indices, cl_mem Cluster_Sizes, float& MAX_CLUSTER, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
 		void ClusterizeOpenCLPermutation(float& MAX_CLUSTER, int DATA_W, int DATA_H, int DATA_D);
 
 		//------------------------------------------------
 		// High level functions
 		//------------------------------------------------
+
 		void PerformRegistrationEPIT1();
 		void PerformRegistrationT1MNI();
 		void PerformRegistrationT1MNINoSkullstrip();
@@ -496,15 +464,15 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		// Functions for image registration
 		//------------------------------------------------
-		void AlignTwoVolumesParametricSetup(int DATA_W, int DATA_H, int DATA_D);
-		void AlignTwoVolumesParametric(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
-		void AlignTwoVolumesParametricSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
-		void AlignTwoVolumesParametricCleanup();
+		void AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D);
+		void AlignTwoVolumesLinear(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesLinearSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
+		void AlignTwoVolumesLinearCleanup();
 
-		void AlignTwoVolumesNonParametricSetup(int DATA_W, int DATA_H, int DATA_D);
-		void AlignTwoVolumesNonParametric(int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int INTERPOLATION_MODE);
-		void AlignTwoVolumesNonParametricSeveralScales(cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int OVERWRITE, int INTERPOLATION_MODE, int SAVE_DISPLACEMENT_FIELD);
-		void AlignTwoVolumesNonParametricCleanup();
+		void AlignTwoVolumesNonLinearSetup(int DATA_W, int DATA_H, int DATA_D);
+		void AlignTwoVolumesNonLinear(int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int INTERPOLATION_MODE);
+		void AlignTwoVolumesNonLinearSeveralScales(cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int OVERWRITE, int INTERPOLATION_MODE, int SAVE_DISPLACEMENT_FIELD);
+		void AlignTwoVolumesNonLinearCleanup();
 
 		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z, int INTERPOLATION_MODE, int MNI_WITH_SKULL);
 		void ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
@@ -513,8 +481,8 @@ class BROCCOLI_LIB
 		void ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int MM_Z_CUT, int INTERPOLATION_MODE);
 		void CalculateTensorMagnitude(cl_mem d_Tensor_Magnitudes, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
 
-		void TransformVolumesParametric(cl_mem d_Volumes, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
-		void TransformVolumesNonParametric(cl_mem d_Volumes, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
+		void TransformVolumesLinear(cl_mem d_Volumes, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
+		void TransformVolumesNonLinear(cl_mem d_Volumes, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformFirstLevelResultsToMNI();
 
 		//------------------------------------------------
@@ -666,8 +634,8 @@ class BROCCOLI_LIB
 		cl_kernel CalculatePhaseDifferencesAndCertaintiesKernel, CalculatePhaseGradientsXKernel, CalculatePhaseGradientsYKernel, CalculatePhaseGradientsZKernel;
 		cl_kernel CalculateAMatrixAndHVector2DValuesXKernel, CalculateAMatrixAndHVector2DValuesYKernel,CalculateAMatrixAndHVector2DValuesZKernel;
 		cl_kernel CalculateAMatrix1DValuesKernel, CalculateHVector1DValuesKernel, CalculateHVectorKernel, ResetAMatrixKernel, CalculateAMatrixKernel;
-		cl_kernel InterpolateVolumeNearestParametricKernel, InterpolateVolumeLinearParametricKernel, InterpolateVolumeCubicParametricKernel;
-		cl_kernel InterpolateVolumeNearestNonParametricKernel, InterpolateVolumeLinearNonParametricKernel, InterpolateVolumeCubicNonParametricKernel;
+		cl_kernel InterpolateVolumeNearestLinearKernel, InterpolateVolumeLinearLinearKernel, InterpolateVolumeCubicLinearKernel;
+		cl_kernel InterpolateVolumeNearestNonLinearKernel, InterpolateVolumeLinearNonLinearKernel, InterpolateVolumeCubicNonLinearKernel;
 		cl_kernel RescaleVolumeNearestKernel, RescaleVolumeLinearKernel, RescaleVolumeCubicKernel;
 		cl_kernel CopyT1VolumeToMNIKernel, CopyEPIVolumeToT1Kernel, CopyVolumeToNewKernel;
 		cl_kernel CalculateMagnitudesKernel;
@@ -675,7 +643,7 @@ class BROCCOLI_LIB
 		cl_kernel CalculateTensorNormsKernel;
 		cl_kernel CalculateAMatricesAndHVectorsKernel;
 		cl_kernel CalculateDisplacementUpdateKernel;
-		cl_kernel AddParametricAndNonParametricDisplacementKernel;
+		cl_kernel AddLinearAndNonLinearDisplacementKernel;
 
 		// Statistical kernels
 		cl_kernel CalculateBetaWeightsGLMKernel, CalculateBetaWeightsGLMFirstLevelKernel;
@@ -724,8 +692,8 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateAMatrixAndHVector2DValuesX, createKernelErrorCalculateAMatrixAndHVector2DValuesY, createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
 		cl_int createKernelErrorCalculateAMatrix1DValues, createKernelErrorCalculateHVector1DValues;
 		cl_int createKernelErrorCalculateAMatrix, createKernelErrorCalculateHVector;
-		cl_int createKernelErrorInterpolateVolumeNearestParametric, createKernelErrorInterpolateVolumeLinearParametric,  createKernelErrorInterpolateVolumeCubicParametric;
-		cl_int createKernelErrorInterpolateVolumeNearestNonParametric, createKernelErrorInterpolateVolumeLinearNonParametric,  createKernelErrorInterpolateVolumeCubicNonParametric;
+		cl_int createKernelErrorInterpolateVolumeNearestLinear, createKernelErrorInterpolateVolumeLinearLinear,  createKernelErrorInterpolateVolumeCubicLinear;
+		cl_int createKernelErrorInterpolateVolumeNearestNonLinear, createKernelErrorInterpolateVolumeLinearNonLinear,  createKernelErrorInterpolateVolumeCubicNonLinear;
 		cl_int createKernelErrorRescaleVolumeNearest, createKernelErrorRescaleVolumeLinear, createKernelErrorRescaleVolumeCubic;
 		cl_int createKernelErrorCopyT1VolumeToMNI, createKernelErrorCopyEPIVolumeToT1, createKernelErrorCopyVolumeToNew;
 		cl_int createKernelErrorCalculateMagnitudes;
@@ -733,7 +701,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateTensorNorms;
 		cl_int createKernelErrorCalculateAMatricesAndHVectors;
 		cl_int createKernelErrorCalculateDisplacementUpdate;
-		cl_int createKernelErrorAddParametricAndNonParametricDisplacement;
+		cl_int createKernelErrorAddLinearAndNonLinearDisplacement;
 
 		// Statistical kernels
 		cl_int createKernelErrorCalculateBetaWeightsGLM,  createKernelErrorCalculateBetaWeightsGLMFirstLevel;
@@ -799,8 +767,8 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateAMatrixAndHVector2DValuesX, runKernelErrorCalculateAMatrixAndHVector2DValuesY, runKernelErrorCalculateAMatrixAndHVector2DValuesZ;
 		cl_int runKernelErrorCalculateAMatrix1DValues, runKernelErrorCalculateHVector1DValues;
 		cl_int runKernelErrorCalculateAMatrix, runKernelErrorCalculateHVector;
-		cl_int runKernelErrorInterpolateVolumeNearestParametric, runKernelErrorInterpolateVolumeLinearParametric,  runKernelErrorInterpolateVolumeCubicParametric;
-		cl_int runKernelErrorInterpolateVolumeNearestNonParametric, runKernelErrorInterpolateVolumeLinearNonParametric,  runKernelErrorInterpolateVolumeCubicNonParametric;
+		cl_int runKernelErrorInterpolateVolumeNearestLinear, runKernelErrorInterpolateVolumeLinearLinear,  runKernelErrorInterpolateVolumeCubicLinear;
+		cl_int runKernelErrorInterpolateVolumeNearestNonLinear, runKernelErrorInterpolateVolumeLinearNonLinear,  runKernelErrorInterpolateVolumeCubicNonLinear;
 		cl_int runKernelErrorRescaleVolumeNearest, runKernelErrorRescaleVolumeLinear, runKernelErrorRescaleVolumeCubic;
 		cl_int runKernelErrorCopyT1VolumeToMNI, runKernelErrorCopyEPIVolumeToT1, runKernelErrorCopyVolumeToNew;
 		cl_int runKernelErrorCalculateMagnitudes;
@@ -808,7 +776,7 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateTensorNorms;
 		cl_int runKernelErrorCalculateAMatricesAndHVectors;
 		cl_int runKernelErrorCalculateDisplacementUpdate;
-		cl_int runKernelErrorAddParametricAndNonParametricDisplacement;
+		cl_int runKernelErrorAddLinearAndNonLinearDisplacement;
 
 		// Statistical kernels
 		cl_int runKernelErrorCalculateBetaWeightsGLM, runKernelErrorCalculateBetaWeightsGLMFirstLevel;
@@ -919,7 +887,20 @@ class BROCCOLI_LIB
 		int WRAPPER;
 		bool PRINT;
 		bool DO_ALL_PERMUTATIONS;
-		//nifti_image *nifti_data;
+
+		bool WRITE_INTERPOLATED_T1;
+		bool WRITE_ALIGNED_T1_LINEAR;
+		bool WRITE_ALIGNED_T1_NONLINEAR;
+
+		bool WRITE_ALIGNED_EPI_T1;
+		bool WRITE_ALIGNED_EPI_MNI;
+
+		bool WRITE_SLICETIMING_CORRECTED;
+		bool WRITE_MOTION_CORRECTED;
+		bool WRITE_SMOOTHED;
+
+		bool WRITE_ACTIVITY_EPI;
+		bool WRITE_DESIGNMATRIX;
 
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		int T1_DATA_W, T1_DATA_H, T1_DATA_D;
@@ -941,8 +922,8 @@ class BROCCOLI_LIB
 		int INTERPOLATION_MODE;
 		int IMAGE_REGISTRATION_FILTER_SIZE;
 		int NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
-		int NUMBER_OF_ITERATIONS_FOR_PARAMETRIC_IMAGE_REGISTRATION;
-		int NUMBER_OF_ITERATIONS_FOR_NONPARAMETRIC_IMAGE_REGISTRATION;
+		int NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION;
+		int NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION;
 		int NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
 		int COARSEST_SCALE_T1_MNI, COARSEST_SCALE_EPI_T1;
 		int MM_T1_Z_CUT, MM_EPI_Z_CUT;
@@ -1011,9 +992,10 @@ class BROCCOLI_LIB
 		float		*h_MNI_Volume;
 		float		*h_MNI_Brain_Volume;
 		float	    *h_EPI_Volume;
-		float		*h_Aligned_T1_Volume;
-		float		*h_Aligned_T1_Volume_NonParametric;
-		float		*h_Aligned_EPI_Volume;
+		float		*h_Aligned_T1_Volume_Linear;
+		float		*h_Aligned_T1_Volume_NonLinear;
+		float		*h_Aligned_EPI_Volume_T1;
+		float		*h_Aligned_EPI_Volume_MNI;
 		float		*h_Skullstripped_T1_Volume;
 		float		*h_Interpolated_T1_Volume;
 		float		*h_Interpolated_EPI_Volume;
@@ -1021,15 +1003,14 @@ class BROCCOLI_LIB
 
 		// Slice timing correction pointers
 		float		*h_Slice_Timing_Corrections_Real, *h_Slice_Timing_Corrections_Imag;
-		//Complex		*h_Slice_Timing_Corrections;
 		float		*h_Slice_Timing_Corrected_fMRI_Volumes;
 
 		// Image Registration pointers
-		cl_float2	*h_Quadrature_Filter_1_Parametric_Registration, *h_Quadrature_Filter_2_Parametric_Registration, *h_Quadrature_Filter_3_Parametric_Registration;
-		float       *h_Quadrature_Filter_1_Parametric_Registration_Real, *h_Quadrature_Filter_2_Parametric_Registration_Real, *h_Quadrature_Filter_3_Parametric_Registration_Real, *h_Quadrature_Filter_1_Parametric_Registration_Imag, *h_Quadrature_Filter_2_Parametric_Registration_Imag, *h_Quadrature_Filter_3_Parametric_Registration_Imag;
-		float       *h_Quadrature_Filter_1_NonParametric_Registration_Real, *h_Quadrature_Filter_2_NonParametric_Registration_Real, *h_Quadrature_Filter_3_NonParametric_Registration_Real, *h_Quadrature_Filter_1_NonParametric_Registration_Imag, *h_Quadrature_Filter_2_NonParametric_Registration_Imag, *h_Quadrature_Filter_3_NonParametric_Registration_Imag;
-		float       *h_Quadrature_Filter_4_NonParametric_Registration_Real, *h_Quadrature_Filter_5_NonParametric_Registration_Real, *h_Quadrature_Filter_6_NonParametric_Registration_Real, *h_Quadrature_Filter_4_NonParametric_Registration_Imag, *h_Quadrature_Filter_5_NonParametric_Registration_Imag, *h_Quadrature_Filter_6_NonParametric_Registration_Imag;
-		cl_float2	*h_Quadrature_Filter_1_NonParametric_Registration, *h_Quadrature_Filter_2_NonParametric_Registration, *h_Quadrature_Filter_3_NonParametric_Registration, *h_Quadrature_Filter_4_NonParametric_Registration, *h_Quadrature_Filter_5_NonParametric_Registration, *h_Quadrature_Filter_6_NonParametric_Registration;
+		cl_float2	*h_Quadrature_Filter_1_Linear_Registration, *h_Quadrature_Filter_2_Linear_Registration, *h_Quadrature_Filter_3_Linear_Registration;
+		float       *h_Quadrature_Filter_1_Linear_Registration_Real, *h_Quadrature_Filter_2_Linear_Registration_Real, *h_Quadrature_Filter_3_Linear_Registration_Real, *h_Quadrature_Filter_1_Linear_Registration_Imag, *h_Quadrature_Filter_2_Linear_Registration_Imag, *h_Quadrature_Filter_3_Linear_Registration_Imag;
+		float       *h_Quadrature_Filter_1_NonLinear_Registration_Real, *h_Quadrature_Filter_2_NonLinear_Registration_Real, *h_Quadrature_Filter_3_NonLinear_Registration_Real, *h_Quadrature_Filter_1_NonLinear_Registration_Imag, *h_Quadrature_Filter_2_NonLinear_Registration_Imag, *h_Quadrature_Filter_3_NonLinear_Registration_Imag;
+		float       *h_Quadrature_Filter_4_NonLinear_Registration_Real, *h_Quadrature_Filter_5_NonLinear_Registration_Real, *h_Quadrature_Filter_6_NonLinear_Registration_Real, *h_Quadrature_Filter_4_NonLinear_Registration_Imag, *h_Quadrature_Filter_5_NonLinear_Registration_Imag, *h_Quadrature_Filter_6_NonLinear_Registration_Imag;
+		cl_float2	*h_Quadrature_Filter_1_NonLinear_Registration, *h_Quadrature_Filter_2_NonLinear_Registration, *h_Quadrature_Filter_3_NonLinear_Registration, *h_Quadrature_Filter_4_NonLinear_Registration, *h_Quadrature_Filter_5_NonLinear_Registration, *h_Quadrature_Filter_6_NonLinear_Registration;
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag, *h_Quadrature_Filter_4_Real, *h_Quadrature_Filter_4_Imag, *h_Quadrature_Filter_5_Real, *h_Quadrature_Filter_5_Imag, *h_Quadrature_Filter_6_Real, *h_Quadrature_Filter_6_Imag;
 		cl_float2   *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3, *h_Quadrature_Filter_4, *h_Quadrature_Filter_5, *h_Quadrature_Filter_6;
 		float       *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_3_Real;
@@ -1075,8 +1056,10 @@ class BROCCOLI_LIB
 		float		*h_X_GLM_Out, *h_X_GLM_In, *h_X_GLM_Confounds, *h_xtxxt_GLM_In, *h_ctxtxc_GLM_In;
 		float		*h_X_GLM, *h_X_GLM_With_Temporal_Derivatives, *h_X_GLM_Convolved, *h_xtxxt_GLM, *h_xtxxt_GLM_Out, *h_ctxtxc_GLM;
 		float		*h_Censored_Timepoints, *h_Censored_Volumes;
-		float		*h_Statistical_Maps;
-		float       *h_Beta_Volumes;
+		float		*h_Statistical_Maps_MNI;
+		float		*h_Statistical_Maps_EPI;
+		float       *h_Beta_Volumes_MNI;
+		float       *h_Beta_Volumes_EPI;
 		float		*h_First_Level_Results;
 		float       *h_Residuals;
 		float       *h_Residual_Variances;
