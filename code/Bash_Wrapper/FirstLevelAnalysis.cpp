@@ -377,11 +377,13 @@ int main(int argc, char **argv)
         printf("Registration options:\n\n");
         printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
-        printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+        printf(" -lowestscalet1             The lowest scale for the linear and non-linear registration of the T1 volume to MNI, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+        printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
-        printf(" -zcut                      Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
+        printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
+        printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
         
         printf("Preprocessing options:\n\n");
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
@@ -542,22 +544,44 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
-        else if (strcmp(input,"-lowestscale") == 0)
+        else if (strcmp(input,"-lowestscalet1") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
-			    printf("Unable to read value after -lowestscale !\n");
+			    printf("Unable to read value after -lowestscalet1 !\n");
                 return EXIT_FAILURE;
 			}
 
-            COARSEST_SCALE = (int)strtol(argv[i+1], &p, 10);
+            COARSEST_SCALE_T1_MNI = (int)strtol(argv[i+1], &p, 10);
 
 			if (!isspace(*p) && *p != 0)
 		    {
 		        printf("Lowest scale must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-  			else if ( (COARSEST_SCALE != 1) && (COARSEST_SCALE != 2) && (COARSEST_SCALE != 4) && (COARSEST_SCALE != 8) )
+  			else if ( (COARSEST_SCALE_T1_MNI != 1) && (COARSEST_SCALE_T1_MNI != 2) && (COARSEST_SCALE_T1_MNI != 4) && (COARSEST_SCALE_T1_MNI != 8) )
+            {
+                printf("Lowest scale must be 1, 2, 4 or 8!\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
+        else if (strcmp(input,"-lowestscaleepi") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -lowestscaleepi !\n");
+                return EXIT_FAILURE;
+			}
+
+            COARSEST_SCALE_EPI_T1 = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Lowest scale must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+  			else if ( (COARSEST_SCALE_EPI_T1 != 1) && (COARSEST_SCALE_EPI_T1 != 2) && (COARSEST_SCALE_EPI_T1 != 4) && (COARSEST_SCALE_EPI_T1 != 8) )
             {
                 printf("Lowest scale must be 1, 2, 4 or 8!\n");
                 return EXIT_FAILURE;
@@ -630,11 +654,11 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
-        else if (strcmp(input,"-zcut") == 0)
+        else if (strcmp(input,"-zcutt1") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
-			    printf("Unable to read value after -zcut !\n");
+			    printf("Unable to read value after -zcutt1 !\n");
                 return EXIT_FAILURE;
 			}
 
@@ -642,12 +666,31 @@ int main(int argc, char **argv)
 
 			if (!isspace(*p) && *p != 0)
 		    {
-		        printf("zcut must be an integer! You provided %s \n",argv[i+1]);
+		        printf("zcutt1 must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
 
             i += 2;
         }
+        else if (strcmp(input,"-zcutepi") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -zcutepi !\n");
+                return EXIT_FAILURE;
+			}
+
+            MM_EPI_Z_CUT = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("zcutepi must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+
+            i += 2;
+        }
+
         
         // Preprocessing options
         else if (strcmp(input,"-iterationsmc") == 0)
@@ -1398,6 +1441,18 @@ int main(int argc, char **argv)
     contrasts >> tempString; // NumContrasts as string
     contrasts >> tempNumber;
    
+	// Read contrast values
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		{
+			contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];
+		}
+	}
+	contrasts.close();
+
+	endTime = GetWallTime();
+
 	if (VERBOS)
  	{
 		printf("It took %f seconds to read regressors and contrasts\n",(float)(endTime - startTime));
