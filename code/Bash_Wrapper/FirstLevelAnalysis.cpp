@@ -247,10 +247,6 @@ int main(int argc, char **argv)
     float           *h_Quadrature_Filter_4_NonLinear_Registration_Real, *h_Quadrature_Filter_5_NonLinear_Registration_Real, *h_Quadrature_Filter_6_NonLinear_Registration_Real, *h_Quadrature_Filter_4_NonLinear_Registration_Imag, *h_Quadrature_Filter_5_NonLinear_Registration_Imag, *h_Quadrature_Filter_6_NonLinear_Registration_Imag;
   
     int             IMAGE_REGISTRATION_FILTER_SIZE = 7;
-    int 			COARSEST_SCALE_T1_MNI = 4;
-	int				COARSEST_SCALE_EPI_T1 = 4;
-	int				MM_T1_Z_CUT = 0;
-	int				MM_EPI_Z_CUT = 0;
     int             NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID = 6;
     int             NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_AFFINE = 12;
     
@@ -315,7 +311,10 @@ int main(int argc, char **argv)
     
     int             NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION = 10;
     int             NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION = 10;
-    int             COARSEST_SCALE = 4;
+    int 			COARSEST_SCALE_T1_MNI = 4;
+	int				COARSEST_SCALE_EPI_T1 = 4;
+	int				MM_T1_Z_CUT = 0;
+	int				MM_EPI_Z_CUT = 0;
     float           TSIGMA = 5.0f;
     float           ESIGMA = 5.0f;
     float           DSIGMA = 5.0f;
@@ -357,8 +356,7 @@ int main(int argc, char **argv)
     bool            VERBOS = false;
     bool            DEBUG = false;
     
-    //---------------------
-    
+    //---------------------    
    
     /* Input arguments */
     FILE *fp = NULL;
@@ -379,30 +377,29 @@ int main(int argc, char **argv)
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
         printf(" -lowestscalet1             The lowest scale for the linear and non-linear registration of the T1 volume to MNI, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+        printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
+        printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
         printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
-        printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
-        printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
         
         printf("Preprocessing options:\n\n");
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
-        printf(" -regressmotion             Include motion parameters in design matrix (default no) \n");
         printf(" -smoothing                 Amount of smoothing to apply to the fMRI data (default 6.0 mm) \n\n");
         
         printf("Statistical options:\n\n");
+        printf(" -regressmotion             Include motion parameters in design matrix (default no) \n");
         printf(" -temporalderivatives       Use temporal derivatives for the activity regressors (default no) \n");
         printf(" -permute                   Apply a permutation test to get p-values (default no) \n");
-        printf(" -permutations              Number of permutations to use (default 10,000) \n");
+        printf(" -permutations              Number of permutations to use for permutation test (default 10,000) \n");
         printf(" -inferencemode             Inference mode to use for permutation test, 0 = voxel, 1 = cluster extent, 2 = cluster mass (default 1) \n");
         printf(" -cdt                       Cluster defining threshold for cluster inference (default 2.5) \n");
         printf(" -bayesian                  Do Bayesian analysis using MCMC, currently only supports 2 regressors (default no) \n");
         printf(" -iterationsmcmc            Number of iterations for MCMC chains (default 1,000) \n");
         printf(" -mask                      Apply a mask to the statistical maps after the statistical analysis, in MNI space (default none) \n\n");
 
-
         printf("Misc options:\n\n");
-        printf(" -savet1interpolated        Save T1 volume after resampling to MNI voxel size (default no) \n");
+        printf(" -savet1interpolated        Save T1 volume after resampling to MNI voxel size and resizing to MNI size (default no) \n");
         printf(" -savet1alignedlinear       Save T1 volume linearly aligned to the MNI volume (default no) \n");
         printf(" -savet1alignednonlinear    Save T1 volume non-linearly aligned to the MNI volume (default no) \n");
         printf(" -saveepialignedt1          Save EPI volume aligned to the T1 volume (default no) \n");
@@ -588,6 +585,42 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
+ 		else if (strcmp(input,"-zcutt1") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -zcutt1 !\n");
+                return EXIT_FAILURE;
+			}
+
+            MM_T1_Z_CUT = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("zcutt1 must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+
+            i += 2;
+        }
+        else if (strcmp(input,"-zcutepi") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -zcutepi !\n");
+                return EXIT_FAILURE;
+			}
+
+            MM_EPI_Z_CUT = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("zcutepi must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+
+            i += 2;
+        }
         else if (strcmp(input,"-tsigma") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -653,44 +686,7 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             i += 2;
-        }
-        else if (strcmp(input,"-zcutt1") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -zcutt1 !\n");
-                return EXIT_FAILURE;
-			}
-
-            MM_T1_Z_CUT = (int)strtol(argv[i+1], &p, 10);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("zcutt1 must be an integer! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-
-            i += 2;
-        }
-        else if (strcmp(input,"-zcutepi") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -zcutepi !\n");
-                return EXIT_FAILURE;
-			}
-
-            MM_EPI_Z_CUT = (int)strtol(argv[i+1], &p, 10);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("zcutepi must be an integer! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-
-            i += 2;
-        }
-
+        }      
         
         // Preprocessing options
         else if (strcmp(input,"-iterationsmc") == 0)
@@ -714,11 +710,6 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             i += 2;
-        }
-        else if (strcmp(input,"-regressmotion") == 0)
-        {
-            REGRESS_MOTION = 1;
-            i += 1;
         }
         else if (strcmp(input,"-smoothing") == 0)
         {
@@ -744,6 +735,11 @@ int main(int argc, char **argv)
         }
         
         // Statistical options
+        else if (strcmp(input,"-regressmotion") == 0)
+        {
+            REGRESS_MOTION = 1;
+            i += 1;
+        }
         else if (strcmp(input,"-temporalderivatives") == 0)
         {
             USE_TEMPORAL_DERIVATIVES = 1;
@@ -1118,6 +1114,8 @@ int main(int argc, char **argv)
     EPI_VOXEL_SIZE_X = inputfMRI->dx;
     EPI_VOXEL_SIZE_Y = inputfMRI->dy;
     EPI_VOXEL_SIZE_Z = inputfMRI->dz;
+
+    // Get repetition time from input data
     TR = inputfMRI->dt;
 
     T1_VOXEL_SIZE_X = inputT1->dx;
@@ -1135,7 +1133,14 @@ int main(int argc, char **argv)
     if (NUMBER_OF_TOTAL_GLM_REGRESSORS > 25)
     {
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-        printf("Number of total regressors must be <= 25 ! You provided %i regressors in the design file, with regressors for motion and detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		if (REGRESS_MOTION)
+		{
+        	printf("Number of total regressors must be <= 25 ! You provided %i regressors in the design file, with 6 regressors for motion and 4 for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		}
+		else
+		{
+        	printf("Number of total regressors must be <= 25 ! You provided %i regressors in the design file, with 4 regressors for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		}
         return EXIT_FAILURE;
     }
 
@@ -1227,9 +1232,6 @@ int main(int argc, char **argv)
         AllocateMemory(h_Aligned_EPI_Volume_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "ALIGNED_EPI_MNI");
 	}
 
-   
-    //h_Aligned_EPI_Volume                                = (float *)mxMalloc(MNI_DATA_SIZE);
-
 	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_REAL");    
 	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_IMAG");    
 	AllocateMemory(h_Quadrature_Filter_2_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_REAL");    
@@ -1315,7 +1317,6 @@ int main(int argc, char **argv)
         AllocateMemory(h_AR3_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR3_ESTIMATES_MNI");
         AllocateMemory(h_AR4_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR4_ESTIMATES_MNI");
     }
-
     
 	endTime = GetWallTime();
     
@@ -1413,7 +1414,7 @@ int main(int argc, char **argv)
                 else
                 {
                     design.close();
-                    printf("The activity start or duration for event %i in regressor file %s is longer than the fMRI data, aborting! \n",e,filename.c_str());
+                    printf("The activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! \n",e,filename.c_str());
                     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
                     FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
                     return EXIT_FAILURE;
@@ -1441,7 +1442,7 @@ int main(int argc, char **argv)
     contrasts >> tempString; // NumContrasts as string
     contrasts >> tempNumber;
    
-	// Read contrast values
+	// Read contrast values, should check for errors...
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
 		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
@@ -1650,7 +1651,7 @@ int main(int argc, char **argv)
             }
         } 
        
-       	// Print build info to file (always)
+       	// Print build info to file
 	    fp = fopen("buildinfo.txt","w");
 	    if (fp == NULL)
 	    {     
@@ -1720,10 +1721,6 @@ int main(int argc, char **argv)
         BROCCOLI.SetCoarsestScaleEPIT1(COARSEST_SCALE_EPI_T1);
         BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
         BROCCOLI.SetMMEPIZCUT(MM_EPI_Z_CUT);   
-        BROCCOLI.SetOutputT1MNIRegistrationParameters(h_T1_MNI_Registration_Parameters);
-        BROCCOLI.SetOutputEPIT1RegistrationParameters(h_EPI_T1_Registration_Parameters);
-        BROCCOLI.SetOutputEPIMNIRegistrationParameters(h_EPI_MNI_Registration_Parameters);
-        BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
         BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
         BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
 
@@ -1768,6 +1765,11 @@ int main(int argc, char **argv)
         BROCCOLI.SetContrasts(h_Contrasts);
         BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
     
+        BROCCOLI.SetOutputT1MNIRegistrationParameters(h_T1_MNI_Registration_Parameters);
+        BROCCOLI.SetOutputEPIT1RegistrationParameters(h_EPI_T1_Registration_Parameters);
+        BROCCOLI.SetOutputEPIMNIRegistrationParameters(h_EPI_MNI_Registration_Parameters);
+        BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
+
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
         BROCCOLI.SetOutputAlignedT1VolumeLinear(h_Aligned_T1_Volume_Linear);
         BROCCOLI.SetOutputAlignedT1VolumeNonLinear(h_Aligned_T1_Volume_NonLinear);
@@ -2070,7 +2072,7 @@ int main(int argc, char **argv)
         WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsEPI,h_AR2_Estimates_EPI,"_ar2_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsEPI,h_AR3_Estimates_EPI,"_ar3_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        WriteNifti(outputNiftiStatisticsEPI,h_AR4_Estimates_EPI,"_ar4_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+        WriteNifti(outputNiftiStatisticsEPI,h_AR4_Estimates_EPI,"_ar4_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);	
     }    
     
     endTime = GetWallTime();
