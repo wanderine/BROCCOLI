@@ -237,7 +237,7 @@ double GetWallTime()
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
 }
 
-int factorial(int n)
+unsigned long int factorial(unsigned long int n)
 {
   return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
 }
@@ -294,7 +294,7 @@ int main(int argc, char **argv)
 
 	bool FOUND_DESIGN = false;
 	bool FOUND_CONTRASTS = false;
-	bool GROUP_MEAN = false;
+	bool ANALYZE_GROUP_MEAN = false;
 	bool USE_PERMUTATION_FILE = false;
 	bool WRITE_PERMUTATION_VALUES = false;
 	bool WRITE_PERMUTATION_VECTORS = false;
@@ -429,7 +429,7 @@ int main(int argc, char **argv)
         }
         else if (strcmp(input,"-groupmean") == 0)
         {
-			GROUP_MEAN = true;
+			ANALYZE_GROUP_MEAN = true;
 			FOUND_DESIGN = true;
 			FOUND_CONTRASTS = true;
             i += 1;
@@ -667,8 +667,10 @@ int main(int argc, char **argv)
 		return EXIT_FAILURE;	
 	}
 
+	
+
 	// Check if requested number of permutations is larger than number of possible sign flips, for group mean only
-	if (GROUP_MEAN)
+	if (ANALYZE_GROUP_MEAN)
 	{
 		// Calculate maximum number of sign flips
 		unsigned long int SIGN_FLIPS = (unsigned long int)pow(2.0, (double)NUMBER_OF_SUBJECTS);
@@ -721,7 +723,7 @@ int main(int argc, char **argv)
 	std::ifstream design;
 	std::ifstream contrasts;
 
-	if (!GROUP_MEAN)
+	if (!ANALYZE_GROUP_MEAN)
 	{
 	    design.open(DESIGN_FILE); 
 
@@ -901,7 +903,7 @@ int main(int argc, char **argv)
 
 	Eigen::MatrixXd X(NUMBER_OF_SUBJECTS,NUMBER_OF_GLM_REGRESSORS);
 	
-	if (!GROUP_MEAN)
+	if (!ANALYZE_GROUP_MEAN)
     {
 		// Read design matrix from file, should check for errors
 		float tempFloat;	
@@ -923,7 +925,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	else if (GROUP_MEAN)
+	else if (ANALYZE_GROUP_MEAN)
 	{
 		// Create regressor with all ones
 		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
@@ -962,7 +964,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!GROUP_MEAN)
+	if (!ANALYZE_GROUP_MEAN)
 	{
 		// Read contrasts from file, should check for errors
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
@@ -974,7 +976,7 @@ int main(int argc, char **argv)
 		}
 		contrasts.close();
 	}
-	else if (GROUP_MEAN)
+	else if (ANALYZE_GROUP_MEAN)
 	{
 		h_Contrasts[0] = 1.0f;
 	}
@@ -993,7 +995,7 @@ int main(int argc, char **argv)
 		h_ctxtxc_GLM[c] = scalar(0);
 	}
 
-	if (!GROUP_MEAN)
+	if (!ANALYZE_GROUP_MEAN)
 	{
 		// Print contrasts
 		if (VERBOS)
@@ -1013,7 +1015,7 @@ int main(int argc, char **argv)
     // ------------------------------------------------
 
 	// Read permutation file
-	if (USE_PERMUTATION_FILE && (!GROUP_MEAN))
+	if (USE_PERMUTATION_FILE && (!ANALYZE_GROUP_MEAN))
 	{
 		std::ifstream permutations;
     	permutations.open(PERMUTATION_INPUT_FILE); 
@@ -1044,7 +1046,7 @@ int main(int argc, char **argv)
 		}	
 	}
 	// Read sign flipping file
-	else if (USE_PERMUTATION_FILE && GROUP_MEAN)
+	else if (USE_PERMUTATION_FILE && ANALYZE_GROUP_MEAN)
 	{
 		std::ifstream permutations;
     	permutations.open(PERMUTATION_INPUT_FILE); 
@@ -1262,7 +1264,7 @@ int main(int argc, char **argv)
         //BROCCOLI.SetOutputBetaVolumes(h_Beta_Volumes);        
         //BROCCOLI.SetOutputResiduals(h_Residuals);        
         //BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
-        BROCCOLI.SetOutputStatisticalMaps(h_Statistical_Maps);        
+        BROCCOLI.SetOutputStatisticalMapsMNI(h_Statistical_Maps);        
         //BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
         BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
         //BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);       
@@ -1276,7 +1278,7 @@ int main(int argc, char **argv)
         // Run the permutation test
 
 		startTime = GetWallTime();
-		if (GROUP_MEAN)
+		if (ANALYZE_GROUP_MEAN)
 		{
 		    BROCCOLI.SetSignMatrix(h_Sign_Matrix);          
 	        BROCCOLI.SetStatisticalTest(2); // Group mean
@@ -1345,7 +1347,7 @@ int main(int argc, char **argv)
 
 	    if ( permutationVectors.good() )
 	    {
-			if (GROUP_MEAN)
+			if (ANALYZE_GROUP_MEAN)
 			{
 	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
 		        {
