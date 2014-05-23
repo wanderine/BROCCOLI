@@ -135,6 +135,11 @@ void BROCCOLI_LIB::SetDoAllPermutations(bool doall)
 	DO_ALL_PERMUTATIONS = doall;
 }
 
+void BROCCOLI_LIB::SetDoSkullstrip(bool doskullstrip)
+{
+	DO_SKULLSTRIP = doskullstrip;
+}
+
 void BROCCOLI_LIB::SetWrapper(int wrapper)
 {
 	WRAPPER = wrapper;
@@ -157,15 +162,24 @@ void BROCCOLI_LIB::SetStartValues()
 	DO_ALL_PERMUTATIONS = false;
 
 	WRITE_INTERPOLATED_T1 = false;
-	WRITE_ALIGNED_T1_LINEAR = false;
-	WRITE_ALIGNED_T1_NONLINEAR = false;
+	WRITE_ALIGNED_T1_MNI_LINEAR = false;
+	WRITE_ALIGNED_T1_MNI_NONLINEAR = false;
+	DO_SKULLSTRIP = false;
+
 	WRITE_ALIGNED_EPI_T1 = false;
 	WRITE_ALIGNED_EPI_MNI = false;
+
+	WRITE_EPI_MASK = false;
 	WRITE_SLICETIMING_CORRECTED = false;
 	WRITE_MOTION_CORRECTED = false;
 	WRITE_SMOOTHED = false;
+
 	WRITE_ACTIVITY_EPI = false;
 	WRITE_DESIGNMATRIX = false;
+	WRITE_AR_ESTIMATES_EPI = false;
+	WRITE_AR_ESTIMATES_MNI = false;
+
+	WRITE_UNWHITENED_RESULTS = false;
 
 	EPI_Smoothing_FWHM = 8.0f;
 	AR_Smoothing_FWHM = 8.0f;
@@ -206,19 +220,20 @@ void BROCCOLI_LIB::SetStartValues()
 
 	REGRESS_MOTION = 1;
 	REGRESS_CONFOUNDS = 0;
+	PERMUTE_FIRST_LEVEL = false;
 
 
 	NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS = 12;
 
-	TSIGMA = 2.25;
-	ESIGMA = 2.25;
-	DSIGMA = 2.25;
+	TSIGMA = 5.0;
+	ESIGMA = 5.0;
+	DSIGMA = 5.0;
 
 	convolution_time = 0.0;
 
 	error = 0;
 
-	NUMBER_OF_OPENCL_KERNELS = 75;
+	NUMBER_OF_OPENCL_KERNELS = 76;
 
 	commandQueue = NULL;
 	program = NULL;
@@ -324,6 +339,7 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorCalculateClusterSizes = 0;
 	createKernelErrorCalculateClusterMasses = 0;
 	createKernelErrorCalculateLargestCluster = 0;
+	createKernelErrorCalculateTFCEValues = 0;
 	createKernelErrorCalculateBetaWeightsGLM = 0;
 	createKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
 	createKernelErrorCalculateGLMResiduals = 0;
@@ -400,6 +416,7 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorCalculateClusterSizes = 0;
 	runKernelErrorCalculateClusterMasses = 0;
 	runKernelErrorCalculateLargestCluster = 0;
+	runKernelErrorCalculateTFCEValues = 0;
 	runKernelErrorCalculateBetaWeightsGLM = 0;
 	runKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
 	runKernelErrorCalculateGLMResiduals = 0;
@@ -1676,6 +1693,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	CalculateClusterSizesKernel = clCreateKernel(program,"CalculateClusterSizes",&createKernelErrorCalculateClusterSizes);
 	CalculateClusterMassesKernel = clCreateKernel(program,"CalculateClusterMasses",&createKernelErrorCalculateClusterMasses);
 	CalculateLargestClusterKernel = clCreateKernel(program,"CalculateLargestCluster",&createKernelErrorCalculateLargestCluster);
+	CalculateTFCEValuesKernel = clCreateKernel(program,"CalculateTFCEValues",&createKernelErrorCalculateTFCEValues);
 
 	OpenCLKernels[40] = MemsetKernel;
 	OpenCLKernels[41] = MemsetIntKernel;
@@ -1693,6 +1711,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[53] = CalculateClusterSizesKernel;
 	OpenCLKernels[54] = CalculateClusterMassesKernel;
 	OpenCLKernels[55] = CalculateLargestClusterKernel;
+	OpenCLKernels[56] = CalculateTFCEValuesKernel;
 
 	// Statistical kernels
 	CalculateBetaWeightsGLMKernel = clCreateKernel(program,"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
@@ -1715,25 +1734,25 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	CalculatePermutationPValuesVoxelLevelInferenceKernel = clCreateKernel(program,"CalculatePermutationPValuesVoxelLevelInference",&createKernelErrorCalculatePermutationPValuesVoxelLevelInference);
 	CalculatePermutationPValuesClusterLevelInferenceKernel = clCreateKernel(program,"CalculatePermutationPValuesClusterLevelInference",&createKernelErrorCalculatePermutationPValuesClusterLevelInference);
 
-	OpenCLKernels[56] = CalculateBetaWeightsGLMKernel;
-	OpenCLKernels[57] = CalculateBetaWeightsGLMFirstLevelKernel;
-	OpenCLKernels[58] = CalculateGLMResidualsKernel;
-	OpenCLKernels[59] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-	OpenCLKernels[60] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-	OpenCLKernels[61] = CalculateStatisticalMapsGLMTTestKernel;
-	OpenCLKernels[62] = CalculateStatisticalMapsGLMFTestKernel;
-	OpenCLKernels[63] = CalculateStatisticalMapsGLMBayesianKernel;
-	OpenCLKernels[64] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
-	OpenCLKernels[65] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
-	OpenCLKernels[66] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
-	OpenCLKernels[67] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-	OpenCLKernels[68] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
-	OpenCLKernels[69] = EstimateAR4ModelsKernel;
-	OpenCLKernels[70] = ApplyWhiteningAR4Kernel;
-	OpenCLKernels[71] = GeneratePermutedVolumesFirstLevelKernel;
-	OpenCLKernels[72] = RemoveLinearFitKernel;
-	OpenCLKernels[73] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
-	OpenCLKernels[74] = CalculatePermutationPValuesClusterLevelInferenceKernel;
+	OpenCLKernels[57] = CalculateBetaWeightsGLMKernel;
+	OpenCLKernels[58] = CalculateBetaWeightsGLMFirstLevelKernel;
+	OpenCLKernels[59] = CalculateGLMResidualsKernel;
+	OpenCLKernels[60] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+	OpenCLKernels[61] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+	OpenCLKernels[62] = CalculateStatisticalMapsGLMTTestKernel;
+	OpenCLKernels[63] = CalculateStatisticalMapsGLMFTestKernel;
+	OpenCLKernels[64] = CalculateStatisticalMapsGLMBayesianKernel;
+	OpenCLKernels[65] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
+	OpenCLKernels[66] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+	OpenCLKernels[67] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
+	OpenCLKernels[68] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+	OpenCLKernels[69] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
+	OpenCLKernels[70] = EstimateAR4ModelsKernel;
+	OpenCLKernels[71] = ApplyWhiteningAR4Kernel;
+	OpenCLKernels[72] = GeneratePermutedVolumesFirstLevelKernel;
+	OpenCLKernels[73] = RemoveLinearFitKernel;
+	OpenCLKernels[74] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
+	OpenCLKernels[75] = CalculatePermutationPValuesClusterLevelInferenceKernel;
 
 	OPENCL_INITIATED = 1;
 
@@ -2505,6 +2524,11 @@ void BROCCOLI_LIB::SetRegressConfounds(int R)
 	REGRESS_CONFOUNDS = R;
 }
 
+void BROCCOLI_LIB::SetPermuteFirstLevel(bool value)
+{
+	PERMUTE_FIRST_LEVEL = value;
+}
+
 void BROCCOLI_LIB::SetConfoundRegressors(float* regressors)
 {
 	h_X_GLM_Confounds = regressors;
@@ -2595,6 +2619,11 @@ void BROCCOLI_LIB::SetContrasts(float* data)
 void BROCCOLI_LIB::SetNumberOfPermutations(int N)
 {
 	NUMBER_OF_PERMUTATIONS = N;
+}
+
+void BROCCOLI_LIB::SetNumberOfMCMCIterations(int N)
+{
+	NUMBER_OF_MCMC_ITERATIONS = N;
 }
 
 void BROCCOLI_LIB::SetSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z)
@@ -2897,14 +2926,14 @@ void BROCCOLI_LIB::SetSaveInterpolatedT1(bool value)
 	WRITE_INTERPOLATED_T1 = value;
 }
 
-void BROCCOLI_LIB::SetSaveAlignedT1Linear(bool value)
+void BROCCOLI_LIB::SetSaveAlignedT1MNILinear(bool value)
 {
-	WRITE_ALIGNED_T1_LINEAR = value;
+	WRITE_ALIGNED_T1_MNI_LINEAR = value;
 }
 
-void BROCCOLI_LIB::SetSaveAlignedT1NonLinear(bool value)
+void BROCCOLI_LIB::SetSaveAlignedT1MNINonLinear(bool value)
 {
-	WRITE_ALIGNED_T1_NONLINEAR = value;
+	WRITE_ALIGNED_T1_MNI_NONLINEAR = value;
 }
 
 void BROCCOLI_LIB::SetSaveAlignedEPIT1(bool value)
@@ -2915,6 +2944,11 @@ void BROCCOLI_LIB::SetSaveAlignedEPIT1(bool value)
 void BROCCOLI_LIB::SetSaveAlignedEPIMNI(bool value)
 {
 	WRITE_ALIGNED_EPI_MNI = value;
+}
+
+void BROCCOLI_LIB::SetSaveEPIMask(bool value)
+{
+	WRITE_EPI_MASK = value;
 }
 
 void BROCCOLI_LIB::SetSaveSliceTimingCorrected(bool value)
@@ -2942,6 +2976,20 @@ void BROCCOLI_LIB::SetSaveDesignMatrix(bool value)
 	WRITE_DESIGNMATRIX = value;
 }
 
+void BROCCOLI_LIB::SetSaveAREstimatesEPI(bool value)
+{
+	WRITE_AR_ESTIMATES_EPI = value;
+}
+
+void BROCCOLI_LIB::SetSaveAREstimatesMNI(bool value)
+{
+	WRITE_AR_ESTIMATES_MNI = value;
+}
+
+void BROCCOLI_LIB::SetSaveUnwhitenedResults(bool value)
+{
+	WRITE_UNWHITENED_RESULTS = value;
+}
 
 void BROCCOLI_LIB::SetSmoothingType(int type)
 {
@@ -2974,14 +3022,34 @@ void BROCCOLI_LIB::SetOutputBetaVolumesMNI(float* data)
 	h_Beta_Volumes_MNI = data;
 }
 
-void BROCCOLI_LIB::SetOutputResiduals(float* data)
+void BROCCOLI_LIB::SetOutputBetaVolumesNoWhiteningEPI(float* data)
 {
-	h_Residuals = data;
+	h_Beta_Volumes_No_Whitening_EPI = data;
 }
 
-void BROCCOLI_LIB::SetOutputResidualVariances(float* data)
+void BROCCOLI_LIB::SetOutputBetaVolumesNoWhiteningMNI(float* data)
 {
-	h_Residual_Variances = data;
+	h_Beta_Volumes_No_Whitening_MNI = data;
+}
+
+void BROCCOLI_LIB::SetOutputContrastVolumesEPI(float* data)
+{
+	h_Contrast_Volumes_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputContrastVolumesMNI(float* data)
+{
+	h_Contrast_Volumes_MNI = data;
+}
+
+void BROCCOLI_LIB::SetOutputContrastVolumesNoWhiteningEPI(float* data)
+{
+	h_Contrast_Volumes_No_Whitening_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputContrastVolumesNoWhiteningMNI(float* data)
+{
+	h_Contrast_Volumes_No_Whitening_MNI = data;
 }
 
 void BROCCOLI_LIB::SetOutputStatisticalMapsEPI(float* data)
@@ -2994,10 +3062,34 @@ void BROCCOLI_LIB::SetOutputStatisticalMapsMNI(float* data)
 	h_Statistical_Maps_MNI = data;
 }
 
-
-void BROCCOLI_LIB::SetOutputPValues(float* data)
+void BROCCOLI_LIB::SetOutputStatisticalMapsNoWhiteningEPI(float* data)
 {
-	h_P_Values = data;
+	h_Statistical_Maps_No_Whitening_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputStatisticalMapsNoWhiteningMNI(float* data)
+{
+	h_Statistical_Maps_No_Whitening_MNI = data;
+}
+
+void BROCCOLI_LIB::SetOutputResiduals(float* data)
+{
+	h_Residuals = data;
+}
+
+void BROCCOLI_LIB::SetOutputResidualVariances(float* data)
+{
+	h_Residual_Variances = data;
+}
+
+void BROCCOLI_LIB::SetOutputPValuesEPI(float* data)
+{
+	h_P_Values_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputPValuesMNI(float* data)
+{
+	h_P_Values_MNI = data;
 }
 
 void BROCCOLI_LIB::SetOutputMotionParameters(float* output)
@@ -3147,12 +3239,20 @@ void BROCCOLI_LIB::SetOutputDownsampledVolume(float* downsampled)
 	h_Downsampled_Volume = downsampled;
 }
 
-void BROCCOLI_LIB::SetOutputAREstimates(float* ar1, float* ar2, float* ar3, float* ar4)
+void BROCCOLI_LIB::SetOutputAREstimatesEPI(float* ar1, float* ar2, float* ar3, float* ar4)
 {
-	h_AR1_Estimates = ar1;
-	h_AR2_Estimates = ar2;
-	h_AR3_Estimates = ar3;
-	h_AR4_Estimates = ar4;
+	h_AR1_Estimates_EPI = ar1;
+	h_AR2_Estimates_EPI = ar2;
+	h_AR3_Estimates_EPI = ar3;
+	h_AR4_Estimates_EPI = ar4;
+}
+
+void BROCCOLI_LIB::SetOutputAREstimatesMNI(float* ar1, float* ar2, float* ar3, float* ar4)
+{
+	h_AR1_Estimates_MNI = ar1;
+	h_AR2_Estimates_MNI = ar2;
+	h_AR3_Estimates_MNI = ar3;
+	h_AR4_Estimates_MNI = ar4;
 }
 
 void BROCCOLI_LIB::SetOutputSliceSums(float* output)
@@ -3481,25 +3581,26 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 	OpenCLCreateKernelErrors[53] = createKernelErrorCalculateClusterSizes;
 	OpenCLCreateKernelErrors[54] = createKernelErrorCalculateClusterMasses;
 	OpenCLCreateKernelErrors[55] = createKernelErrorCalculateLargestCluster;
-	OpenCLCreateKernelErrors[56] = createKernelErrorCalculateBetaWeightsGLM;
-	OpenCLCreateKernelErrors[57] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLCreateKernelErrors[58] = createKernelErrorCalculateGLMResiduals;
-	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
-	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLCreateKernelErrors[69] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[70] = createKernelErrorApplyWhiteningAR4;
-	OpenCLCreateKernelErrors[71] = createKernelErrorGeneratePermutedVolumesFirstLevel;
-	OpenCLCreateKernelErrors[72] = createKernelErrorRemoveLinearFit;
-	OpenCLCreateKernelErrors[73] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLCreateKernelErrors[74] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLCreateKernelErrors[56] = createKernelErrorCalculateTFCEValues;
+	OpenCLCreateKernelErrors[57] = createKernelErrorCalculateBetaWeightsGLM;
+	OpenCLCreateKernelErrors[58] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateGLMResiduals;
+	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLCreateKernelErrors[70] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[71] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[72] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLCreateKernelErrors[73] = createKernelErrorRemoveLinearFit;
+	OpenCLCreateKernelErrors[74] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLCreateKernelErrors[75] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
 	return OpenCLCreateKernelErrors;
 }
@@ -3562,25 +3663,26 @@ int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
 	OpenCLRunKernelErrors[53] = runKernelErrorCalculateClusterSizes;
 	OpenCLRunKernelErrors[54] = runKernelErrorCalculateClusterMasses;
 	OpenCLRunKernelErrors[55] = runKernelErrorCalculateLargestCluster;
-	OpenCLRunKernelErrors[56] = runKernelErrorCalculateBetaWeightsGLM;
-	OpenCLRunKernelErrors[57] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLRunKernelErrors[58] = runKernelErrorCalculateGLMResiduals;
-	OpenCLRunKernelErrors[59] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[56] = runKernelErrorCalculateTFCEValues;
+	OpenCLRunKernelErrors[57] = runKernelErrorCalculateBetaWeightsGLM;
+	OpenCLRunKernelErrors[58] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLRunKernelErrors[59] = runKernelErrorCalculateGLMResiduals;
 	OpenCLRunKernelErrors[60] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLRunKernelErrors[61] = runKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLRunKernelErrors[62] = runKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLRunKernelErrors[63] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
-	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLRunKernelErrors[69] = runKernelErrorEstimateAR4Models;
-	OpenCLRunKernelErrors[70] = runKernelErrorApplyWhiteningAR4;
-	OpenCLRunKernelErrors[71] = runKernelErrorGeneratePermutedVolumesFirstLevel;
-	OpenCLRunKernelErrors[72] = runKernelErrorRemoveLinearFit;
-	OpenCLRunKernelErrors[73] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLRunKernelErrors[74] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLRunKernelErrors[61] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[62] = runKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLRunKernelErrors[63] = runKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLRunKernelErrors[70] = runKernelErrorEstimateAR4Models;
+	OpenCLRunKernelErrors[71] = runKernelErrorApplyWhiteningAR4;
+	OpenCLRunKernelErrors[72] = runKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLRunKernelErrors[73] = runKernelErrorRemoveLinearFit;
+	OpenCLRunKernelErrors[74] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLRunKernelErrors[75] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
 	return OpenCLRunKernelErrors;
 }
@@ -5280,7 +5382,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearSeveralScales(cl_mem d_Original_Align
 		// Less iterations on finest scale
 		if (current_scale == 1)
 		{
-			AlignTwoVolumesNonLinear(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, (int)ceil((float)NUMBER_OF_ITERATIONS/5.0f), INTERPOLATION_MODE);
+			AlignTwoVolumesNonLinear(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D, (int)ceil((float)NUMBER_OF_ITERATIONS/2.0f), INTERPOLATION_MODE);
 		}
 		else
 		{
@@ -6790,6 +6892,21 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 	// Copy the non-linearly aligned volume to host
 	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonLinear, 0, NULL, NULL);
 
+	if (DO_SKULLSTRIP)
+	{
+		// Copy brain mask from host
+		cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+		clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask, 0, NULL, NULL);
+
+		// Multiply the non-linearly aligned volume with the brain mask
+		MultiplyVolumes(d_Input_Volume_Reference_Size, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+		// Copy the skullstripped volume to host
+		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
+
+		clReleaseMemObject(d_MNI_Brain_Mask);
+	}
+
 	// Copy the displacement field to host
 	clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
@@ -6926,7 +7043,7 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstrip()
 	// Do Linear registration between T1 and MNI with several scales (without skull)
 	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_T1_MNI, h_Rotations, d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
 
-	if (WRITE_ALIGNED_T1_LINEAR)
+	if (WRITE_ALIGNED_T1_MNI_LINEAR)
 	{
 		clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_Linear, 0, NULL, NULL);
 	}
@@ -6934,7 +7051,7 @@ void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstrip()
 	// Perform non-Linear registration between registered skullstripped volume and MNI brain volume
 	AlignTwoVolumesNonLinearSeveralScales(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
 
-	if (WRITE_ALIGNED_T1_NONLINEAR)
+	if (WRITE_ALIGNED_T1_MNI_NONLINEAR)
 	{
 		clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonLinear, 0, NULL, NULL);
 	}
@@ -7102,6 +7219,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// T1-MNI registration
 	//------------------------
 
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("\nAligning T1 to MNI\n");
+	}
+
 	// Allocate memory on device
 	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
 	d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
@@ -7116,10 +7238,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
 	//clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
 
+
+
 	PerformRegistrationT1MNINoSkullstrip();
 	//PerformRegistrationT1MNI();
-
-	clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonLinear, 0, NULL, NULL);
 
 	h_Registration_Parameters_T1_MNI_Out[0] = h_Registration_Parameters_T1_MNI[0];
 	h_Registration_Parameters_T1_MNI_Out[1] = h_Registration_Parameters_T1_MNI[1];
@@ -7153,6 +7275,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// fMRI-T1 registration
 	//------------------------
 
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Aligning fMRI to T1\n");
+	}
+
 	// Allocate memory on device
 	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
@@ -7181,22 +7308,56 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_Registration_Parameters_EPI_T1_Out[4] = h_Registration_Parameters_EPI_T1[4];
 	h_Registration_Parameters_EPI_T1_Out[5] = h_Registration_Parameters_EPI_T1[5];
 
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_MNI,h_Registration_Parameters_T1_MNI,h_Registration_Parameters_EPI_T1_Affine);
+
+	h_Registration_Parameters_EPI_MNI_Out[0] = h_Registration_Parameters_EPI_MNI[0];
+	h_Registration_Parameters_EPI_MNI_Out[1] = h_Registration_Parameters_EPI_MNI[1];
+	h_Registration_Parameters_EPI_MNI_Out[2] = h_Registration_Parameters_EPI_MNI[2];
+	h_Registration_Parameters_EPI_MNI_Out[3] = h_Registration_Parameters_EPI_MNI[3];
+	h_Registration_Parameters_EPI_MNI_Out[4] = h_Registration_Parameters_EPI_MNI[4];
+	h_Registration_Parameters_EPI_MNI_Out[5] = h_Registration_Parameters_EPI_MNI[5];
+	h_Registration_Parameters_EPI_MNI_Out[6] = h_Registration_Parameters_EPI_MNI[6];
+	h_Registration_Parameters_EPI_MNI_Out[7] = h_Registration_Parameters_EPI_MNI[7];
+	h_Registration_Parameters_EPI_MNI_Out[8] = h_Registration_Parameters_EPI_MNI[8];
+	h_Registration_Parameters_EPI_MNI_Out[9] = h_Registration_Parameters_EPI_MNI[9];
+	h_Registration_Parameters_EPI_MNI_Out[10] = h_Registration_Parameters_EPI_MNI[10];
+	h_Registration_Parameters_EPI_MNI_Out[11] = h_Registration_Parameters_EPI_MNI[11];
+
 	clReleaseMemObject(d_MNI_T1_Volume);
 	clReleaseMemObject(d_Skullstripped_T1_Volume);
 	clReleaseMemObject(d_EPI_Volume);
 	clReleaseMemObject(d_T1_EPI_Volume);
 
+	//------------------------
+	// Slice timing correction
+	//------------------------
+
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+
+	//PerformSliceTimingCorrection();
+
+	if (WRITE_SLICETIMING_CORRECTED)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);
+	}
 
 	//------------------------
 	// Motion correction
 	//------------------------
 
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Performing motion correction\n");
+	}
 
-	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	d_Motion_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
-	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
 
 	PerformMotionCorrection();
 
@@ -7213,20 +7374,33 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
 	}
 
-
-
 	//------------------------
 	// Segment EPI data
 	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Segmenting EPI data\n");
+	}
 
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
 	SegmentEPIData();
 
+	if (WRITE_EPI_MASK)
+	{
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+	}
+
 	//------------------------
 	// Smoothing
 	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Performing smoothing\n");
+	}
 
 	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
@@ -7245,6 +7419,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// GLM
 	//------------------------
 
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Performing statistical analysis\n");
+	}
+
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -7253,6 +7432,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 
 	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	d_Contrast_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
@@ -7301,8 +7481,147 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		}
 	}
 
+	CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes,3);
 
-	CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes);
+	// Copy data to host
+	if (WRITE_ACTIVITY_EPI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
+		//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	}
+
+	//------------------------------------------------
+	// Transform results to MNI space and copy to host
+	//------------------------------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Transforming results to MNI\n");
+	}
+
+	// Allocate memory on device
+	d_Beta_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
+	d_Contrast_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorContrastVolumesMNI);
+	d_Statistical_Maps_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
+	d_Residual_Variances_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorResidualVariancesMNI);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		d_AR1_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
+		d_AR2_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
+		d_AR3_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
+		d_AR4_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
+	}
+
+	//clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	SetMemory(d_MNI_Brain_Mask, 1.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+
+	TransformFirstLevelResultsToMNI();
+
+	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_MNI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_AR1_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR1_Estimates_MNI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR2_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR2_Estimates_MNI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR3_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR3_Estimates_MNI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR4_Estimates_MNI, 0, NULL, NULL);
+	}
+
+	if (WRITE_AR_ESTIMATES_EPI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
+	}
+
+	if (WRITE_UNWHITENED_RESULTS)
+	{
+		// Now calculate maps without whitening
+		CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes,0);
+
+		// Copy data to host
+		if (WRITE_ACTIVITY_EPI)
+		{
+			clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_No_Whitening_EPI, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_No_Whitening_EPI, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_No_Whitening_EPI, 0, NULL, NULL);
+			//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+		}
+
+		TransformFirstLevelResultsToMNI();
+
+		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_No_Whitening_MNI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_No_Whitening_MNI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_No_Whitening_MNI, 0, NULL, NULL);
+	}
+
+
+	clReleaseMemObject(d_Beta_Volumes_MNI);
+	clReleaseMemObject(d_Contrast_Volumes_MNI);
+	clReleaseMemObject(d_Statistical_Maps_MNI);
+	clReleaseMemObject(d_Residual_Variances_MNI);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		clReleaseMemObject(d_AR1_Estimates_MNI);
+		clReleaseMemObject(d_AR2_Estimates_MNI);
+		clReleaseMemObject(d_AR3_Estimates_MNI);
+		clReleaseMemObject(d_AR4_Estimates_MNI);
+	}
+
+
+	//------------------------
+	// Run permutation test
+	//------------------------
+
+	if (PERMUTE_FIRST_LEVEL)
+	{
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Running permutation test\n");
+		}
+
+		// Allocate temporary memory
+		d_Detrended_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+		d_Permuted_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+		d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
+		d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
+		d_TFCE_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
+		d_P_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+		c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(unsigned short int), NULL, NULL);
+		c_Permutation_Distribution = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_PERMUTATIONS * sizeof(float), NULL, NULL);
+
+		ApplyPermutationTestFirstLevel(d_Smoothed_fMRI_Volumes);
+
+		// Calculate activity map without Cochrane-Orcutt
+		CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes,0);
+
+		// Clusterize original statistical maps
+		if (INFERENCE_MODE != VOXEL)
+		{
+			ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, MAX_CLUSTER, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+		}
+
+		// Calculate permutation p-values
+		CalculatePermutationPValues(d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+		// Free temporary memory
+		clReleaseMemObject(d_Detrended_fMRI_Volumes);
+		clReleaseMemObject(d_Permuted_fMRI_Volumes);
+		clReleaseMemObject(d_Cluster_Indices);
+		clReleaseMemObject(d_Cluster_Sizes);
+		clReleaseMemObject(d_TFCE_Values);
+		clReleaseMemObject(c_Permutation_Vector);
+		clReleaseMemObject(c_Permutation_Distribution);
+	}
 
 	free(h_X_GLM);
 	free(h_xtxxt_GLM);
@@ -7311,16 +7630,154 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	free(h_X_GLM_With_Temporal_Derivatives);
 	free(h_X_GLM_Convolved);
 
-	//clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clReleaseMemObject(d_Whitened_fMRI_Volumes);
+
+	if (WRITE_ACTIVITY_EPI && PERMUTE_FIRST_LEVEL)
+	{
+		clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_P_Values_EPI, 0, NULL, NULL);
+	}
+
+	if (PERMUTE_FIRST_LEVEL)
+	{
+		d_P_Values_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
+
+		TransformPValuesToMNI();
+		clEnqueueReadBuffer(commandQueue, d_P_Values_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
+		clReleaseMemObject(d_P_Values_MNI);
+	}
+
+
+	clReleaseMemObject(d_MNI_Brain_Mask);
+
+	clReleaseMemObject(d_Total_Displacement_Field_X);
+	clReleaseMemObject(d_Total_Displacement_Field_Y);
+	clReleaseMemObject(d_Total_Displacement_Field_Z);
+
+
+	//free(h_Motion_Parameters);
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
+	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
+	clReleaseMemObject(d_Smoothed_fMRI_Volumes);
+
+	clReleaseMemObject(d_EPI_Mask);
+	clReleaseMemObject(d_Smoothed_EPI_Mask);
+
+	clReleaseMemObject(c_X_GLM);
+	clReleaseMemObject(c_xtxxt_GLM);
+	clReleaseMemObject(c_Contrasts);
+	clReleaseMemObject(c_ctxtxc_GLM);
+
+	clReleaseMemObject(d_Beta_Volumes);
+	clReleaseMemObject(d_Contrast_Volumes);
+	clReleaseMemObject(d_Statistical_Maps);
+	clReleaseMemObject(d_Residuals);
+	clReleaseMemObject(d_Residual_Variances);
+
+	if (PERMUTE_FIRST_LEVEL)
+	{
+		clReleaseMemObject(d_P_Values);
+	}
 
 	clReleaseMemObject(d_AR1_Estimates);
 	clReleaseMemObject(d_AR2_Estimates);
 	clReleaseMemObject(d_AR3_Estimates);
 	clReleaseMemObject(d_AR4_Estimates);
-	clReleaseMemObject(d_Whitened_fMRI_Volumes);
+}
+
+
+void BROCCOLI_LIB::PerformFirstLevelAnalysisBayesianWrapper()
+{
+	//------------------------
+	// T1-MNI registration
+	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("\nAligning T1 to MNI\n");
+	}
+
+	// Allocate memory on device
+	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_MNI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Volume , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+	PerformRegistrationT1MNINoSkullstrip();
+	//PerformRegistrationT1MNI();
+
+	h_Registration_Parameters_T1_MNI_Out[0] = h_Registration_Parameters_T1_MNI[0];
+	h_Registration_Parameters_T1_MNI_Out[1] = h_Registration_Parameters_T1_MNI[1];
+	h_Registration_Parameters_T1_MNI_Out[2] = h_Registration_Parameters_T1_MNI[2];
+	h_Registration_Parameters_T1_MNI_Out[3] = h_Registration_Parameters_T1_MNI[3];
+	h_Registration_Parameters_T1_MNI_Out[4] = h_Registration_Parameters_T1_MNI[4];
+	h_Registration_Parameters_T1_MNI_Out[5] = h_Registration_Parameters_T1_MNI[5];
+	h_Registration_Parameters_T1_MNI_Out[6] = h_Registration_Parameters_T1_MNI[6];
+	h_Registration_Parameters_T1_MNI_Out[7] = h_Registration_Parameters_T1_MNI[7];
+	h_Registration_Parameters_T1_MNI_Out[8] = h_Registration_Parameters_T1_MNI[8];
+	h_Registration_Parameters_T1_MNI_Out[9] = h_Registration_Parameters_T1_MNI[9];
+	h_Registration_Parameters_T1_MNI_Out[10] = h_Registration_Parameters_T1_MNI[10];
+	h_Registration_Parameters_T1_MNI_Out[11] = h_Registration_Parameters_T1_MNI[11];
+
+	// Cleanup
+	clReleaseMemObject(d_T1_Volume);
+	clReleaseMemObject(d_MNI_Volume);
+	clReleaseMemObject(d_MNI_Brain_Volume);
+
+
+
+
+	//clReleaseMemObject(d_MNI_T1_Volume);
+	//clReleaseMemObject(d_Skullstripped_T1_Volume);
+	//clReleaseMemObject(d_MNI_Brain_Mask);
+
+
+
+
+	//------------------------
+	// fMRI-T1 registration
+	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Aligning fMRI to T1\n");
+	}
+
+	// Allocate memory on device
+	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+
+	PerformRegistrationEPIT1();
+
+	if (WRITE_ALIGNED_EPI_T1)
+	{
+		clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume_T1, 0, NULL, NULL);
+	}
+
+	if (WRITE_ALIGNED_EPI_MNI)
+	{
+		TransformVolumesLinear(d_T1_EPI_Volume, h_Registration_Parameters_T1_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_T1_EPI_Volume, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume_MNI, 0, NULL, NULL);
+	}
+
+	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1[0];
+	h_Registration_Parameters_EPI_T1_Out[1] = h_Registration_Parameters_EPI_T1[1];
+	h_Registration_Parameters_EPI_T1_Out[2] = h_Registration_Parameters_EPI_T1[2];
+	h_Registration_Parameters_EPI_T1_Out[3] = h_Registration_Parameters_EPI_T1[3];
+	h_Registration_Parameters_EPI_T1_Out[4] = h_Registration_Parameters_EPI_T1[4];
+	h_Registration_Parameters_EPI_T1_Out[5] = h_Registration_Parameters_EPI_T1[5];
 
 	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_MNI,h_Registration_Parameters_T1_MNI,h_Registration_Parameters_EPI_T1_Affine);
 
@@ -7337,43 +7794,213 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_Registration_Parameters_EPI_MNI_Out[10] = h_Registration_Parameters_EPI_MNI[10];
 	h_Registration_Parameters_EPI_MNI_Out[11] = h_Registration_Parameters_EPI_MNI[11];
 
-	// Transform results to MNI space and copy to host
+	clReleaseMemObject(d_MNI_T1_Volume);
+	clReleaseMemObject(d_Skullstripped_T1_Volume);
+	clReleaseMemObject(d_EPI_Volume);
+	clReleaseMemObject(d_T1_EPI_Volume);
 
-	// Allocate memory on device
-	d_Beta_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
-	d_Statistical_Maps_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
-	d_Residual_Variances_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorResidualVariancesMNI);
+	//------------------------
+	// Slice timing correction
+	//------------------------
 
-	//clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
-	SetMemory(d_MNI_Brain_Mask, 1.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+	d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
-	TransformFirstLevelResultsToMNI();
 
-	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
 
-	clReleaseMemObject(d_Beta_Volumes_MNI);
-	clReleaseMemObject(d_Statistical_Maps_MNI);
-	clReleaseMemObject(d_Residual_Variances_MNI);
+	//PerformSliceTimingCorrection();
+
+	if (WRITE_SLICETIMING_CORRECTED)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);
+	}
+
+	//------------------------
+	// Motion correction
+	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Performing motion correction\n");
+	}
+
+	d_Motion_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+
+	PerformMotionCorrection();
+
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		for (int p = 0; p < 6; p++)
+		{
+			h_Motion_Parameters_Out[t + p * EPI_DATA_T] = h_Motion_Parameters[t + p * EPI_DATA_T];
+		}
+	}
+
+	if (WRITE_MOTION_CORRECTED)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
+	}
+
+	//------------------------
+	// Segment EPI data
+	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Segmenting EPI data\n");
+	}
+
+	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	SegmentEPIData();
+
+	if (WRITE_EPI_MASK)
+	{
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+	}
+
+	//------------------------
+	// Smoothing
+	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Performing smoothing\n");
+	}
+
+	d_Smoothed_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+	//PerformSmoothing(d_Smoothed_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+	PerformSmoothingNormalized(d_Smoothed_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+	if (WRITE_SMOOTHED)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Smoothed_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Smoothed_fMRI_Volumes, 0, NULL, NULL);
+	}
+
+
+	//------------------------
+	// GLM
+	//------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Performing statistical analysis\n");
+	}
+
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 10 * sizeof(float), NULL, NULL);
+	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 6 * sizeof(float), NULL, NULL);
+	d_AR1_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+
+	// Copy data to device
+
+	//clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM_In, 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_xtxxt_GLM_In, 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts_In, 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In, 0, NULL, NULL);
+
+
+	h_X_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
+	h_xtxxt_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
+	h_Contrasts = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float));
+	h_ctxtxc_GLM = (float*)malloc(NUMBER_OF_CONTRASTS * sizeof(float));
+
+	h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
+	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
+
+
+	SetupTTestFirstLevel(EPI_DATA_T);
+
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM , 0, NULL, NULL);
+
+	if (WRITE_DESIGNMATRIX)
+	{
+		for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+		{
+			for (int t = 0; t < EPI_DATA_T; t++)
+			{
+				h_X_GLM_Out[t + r * EPI_DATA_T] = h_X_GLM[t + r * EPI_DATA_T];
+				h_xtxxt_GLM_Out[t + r * EPI_DATA_T] = h_xtxxt_GLM[t + r * EPI_DATA_T];
+			}
+		}
+	}
+
+	CalculateStatisticalMapsGLMBayesianFirstLevel(d_Smoothed_fMRI_Volumes);
 
 	// Copy data to host
 	if (WRITE_ACTIVITY_EPI)
 	{
-		//SetMemory(d_Beta_Volumes, 1.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS);
-		//SetMemory(d_Statistical_Maps, 1.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS);
-
-		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_EPI, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
-		//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
-
-		//clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
-
-		//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, 2.0f, h_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
+		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 2 * sizeof(float), h_Beta_Volumes_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 6 * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
 	}
 
-	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
+	//------------------------------------------------
+	// Transform results to MNI space and copy to host
+	//------------------------------------------------
+
+	if ((WRAPPER == BASH) && PRINT)
+	{
+		printf("Transforming results to MNI\n");
+	}
+
+	// Allocate memory on device
+	d_Beta_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * 2 * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
+	d_Statistical_Maps_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * 6 * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		d_AR1_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
+	}
+
+	SetMemory(d_MNI_Brain_Mask, 1.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+
+	TransformBayesianFirstLevelResultsToMNI();
+
+	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * 2 * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * 6 * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_AR1_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR1_Estimates_MNI, 0, NULL, NULL);
+	}
+
+	if (WRITE_AR_ESTIMATES_EPI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	}
+
+	clReleaseMemObject(d_Beta_Volumes_MNI);
+	clReleaseMemObject(d_Statistical_Maps_MNI);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		clReleaseMemObject(d_AR1_Estimates_MNI);
+	}
+
+	free(h_X_GLM);
+	free(h_xtxxt_GLM);
+	free(h_Contrasts);
+	free(h_ctxtxc_GLM);
+	free(h_X_GLM_With_Temporal_Derivatives);
+	free(h_X_GLM_Convolved);
 
 	clReleaseMemObject(d_MNI_Brain_Mask);
 
@@ -7381,9 +8008,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_Total_Displacement_Field_Y);
 	clReleaseMemObject(d_Total_Displacement_Field_Z);
 
-
 	//free(h_Motion_Parameters);
 	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
 	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
 	clReleaseMemObject(d_Smoothed_fMRI_Volumes);
 
@@ -7397,11 +8024,12 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	clReleaseMemObject(d_Beta_Volumes);
 	clReleaseMemObject(d_Statistical_Maps);
-	clReleaseMemObject(d_Residuals);
-	clReleaseMemObject(d_Residual_Variances);
 
+	clReleaseMemObject(d_AR1_Estimates);
 }
 
+// Old version
+/*
 void BROCCOLI_LIB::PerformFirstLevelAnalysisBayesianWrapper()
 {
 	//------------------------
@@ -7582,10 +8210,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisBayesianWrapper()
 	free(h_X_GLM_With_Temporal_Derivatives);
 	free(h_X_GLM_Convolved);
 
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	clReleaseMemObject(d_AR1_Estimates);
 	clReleaseMemObject(d_AR2_Estimates);
@@ -7668,7 +8296,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisBayesianWrapper()
 	clReleaseMemObject(d_Residual_Variances);
 
 }
-
+*/
 
 // Transforms results from EPI space to MNI space
 void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
@@ -7676,6 +8304,10 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 	ChangeVolumesResolutionAndSize(d_Beta_Volumes_MNI, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
 	TransformVolumesLinear(d_Beta_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS, INTERPOLATION_MODE);
 	TransformVolumesNonLinear(d_Beta_Volumes_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS, INTERPOLATION_MODE);
+
+	ChangeVolumesResolutionAndSize(d_Contrast_Volumes_MNI, d_Contrast_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Contrast_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+	TransformVolumesNonLinear(d_Contrast_Volumes_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
 
 	ChangeVolumesResolutionAndSize(d_Statistical_Maps_MNI, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
 	TransformVolumesLinear(d_Statistical_Maps_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
@@ -7686,9 +8318,70 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 	TransformVolumesNonLinear(d_Residual_Variances_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
 
 	MultiplyVolumes(d_Beta_Volumes_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_GLM_REGRESSORS);
+	MultiplyVolumes(d_Contrast_Volumes_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
 	MultiplyVolumes(d_Statistical_Maps_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
 	MultiplyVolumes(d_Residual_Variances_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		ChangeVolumesResolutionAndSize(d_AR1_Estimates_MNI, d_AR1_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR1_Estimates_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_AR1_Estimates_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+		ChangeVolumesResolutionAndSize(d_AR2_Estimates_MNI, d_AR2_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR2_Estimates_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_AR2_Estimates_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+		ChangeVolumesResolutionAndSize(d_AR3_Estimates_MNI, d_AR3_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR3_Estimates_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_AR3_Estimates_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+		ChangeVolumesResolutionAndSize(d_AR4_Estimates_MNI, d_AR4_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR4_Estimates_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_AR4_Estimates_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+	}
 }
+
+// Transforms Bayesian results from EPI space to MNI space
+void BROCCOLI_LIB::TransformBayesianFirstLevelResultsToMNI()
+{
+	ChangeVolumesResolutionAndSize(d_Beta_Volumes_MNI, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 2, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Beta_Volumes_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 2, INTERPOLATION_MODE);
+	TransformVolumesNonLinear(d_Beta_Volumes_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 2, INTERPOLATION_MODE);
+
+	ChangeVolumesResolutionAndSize(d_Statistical_Maps_MNI, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 6, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Statistical_Maps_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 6, INTERPOLATION_MODE);
+	TransformVolumesNonLinear(d_Statistical_Maps_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 6, INTERPOLATION_MODE);
+
+	MultiplyVolumes(d_Beta_Volumes_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 2);
+	MultiplyVolumes(d_Statistical_Maps_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 6);
+
+	if (WRITE_AR_ESTIMATES_MNI)
+	{
+		ChangeVolumesResolutionAndSize(d_AR1_Estimates_MNI, d_AR1_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR1_Estimates_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_AR1_Estimates_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+	}
+}
+
+void BROCCOLI_LIB::TransformPValuesToMNI()
+{
+	// Nearest neighbour interpolation for cluster inference, since all voxels in the cluster should have the same p-value
+	if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
+	{
+		ChangeVolumesResolutionAndSize(d_P_Values_MNI, d_P_Values, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, NEAREST);
+		TransformVolumesLinear(d_P_Values_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, NEAREST);
+		TransformVolumesNonLinear(d_P_Values_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, NEAREST);
+	}
+	// Linear interpolation otherwhise
+	else
+	{
+		ChangeVolumesResolutionAndSize(d_P_Values_MNI, d_P_Values, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_P_Values_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_P_Values_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+	}
+}
+
 
 // Permutation based second level analysis
 void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
@@ -9257,10 +9950,10 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 
 	// Release memory
@@ -9492,10 +10185,10 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 
 	// Release memory
@@ -9573,10 +10266,10 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelPermutationWrapper()
 
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
 
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	clEnqueueReadBuffer(commandQueue, d_Detrended_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Detrended_fMRI_Volumes, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Whitened_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Whitened_fMRI_Volumes, 0, NULL, NULL);
@@ -9659,10 +10352,10 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelPermutationWrapper()
 
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
 
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	clEnqueueReadBuffer(commandQueue, d_Detrended_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Detrended_fMRI_Volumes, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Whitened_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Whitened_fMRI_Volumes, 0, NULL, NULL);
@@ -9796,6 +10489,7 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(unsigned int), NULL, NULL);
 	d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(unsigned int), NULL, NULL);
+	d_TFCE_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Allocate memory for model
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
@@ -9837,7 +10531,14 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 
 	CalculateStatisticalMapsGLMTTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
 
-	ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, MAX_CLUSTER, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	if (INFERENCE_MODE != TFCE)
+	{
+		ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, MAX_CLUSTER, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	}
+	else
+	{
+		//ClusterizeOpenCLTFCE(d_Cluster_Indices, d_Cluster_Sizes, MAX_CLUSTER, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	}
 
 	CalculatePermutationPValues(d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
@@ -9847,7 +10548,7 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
 
-	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
 
 	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
 
@@ -9856,6 +10557,7 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 	clReleaseMemObject(d_MNI_Brain_Mask);
 	clReleaseMemObject(d_Cluster_Indices);
 	clReleaseMemObject(d_Cluster_Sizes);
+	clReleaseMemObject(d_TFCE_Values);
 
 	clReleaseMemObject(c_X_GLM);
 	clReleaseMemObject(c_xtxxt_GLM);
@@ -9882,6 +10584,7 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);
 	d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);
+	d_TFCE_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Allocate memory for model
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
@@ -9913,7 +10616,11 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	ApplyPermutationTestSecondLevel();
 
 	CalculateStatisticalMapsGLMTTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
-	ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, MAX_CLUSTER, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	if (INFERENCE_MODE != TFCE)
+	{
+		ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, MAX_CLUSTER, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	}
 	CalculatePermutationPValues(d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 	// Copy results to  host
@@ -9922,7 +10629,7 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
 
-	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
 
 	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
 
@@ -9931,6 +10638,7 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	clReleaseMemObject(d_MNI_Brain_Mask);
 	clReleaseMemObject(d_Cluster_Indices);
 	clReleaseMemObject(d_Cluster_Sizes);
+	clReleaseMemObject(d_TFCE_Values);
 
 	clReleaseMemObject(c_X_GLM);
 	clReleaseMemObject(c_xtxxt_GLM);
@@ -10050,6 +10758,8 @@ void BROCCOLI_LIB::PerformGLMFTestSecondLevelPermutationWrapper()
 	d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
 	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_Cluster_Indices = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);
+	d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(int), NULL, NULL);
+	d_TFCE_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Allocate memory for model
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
@@ -10093,6 +10803,8 @@ void BROCCOLI_LIB::PerformGLMFTestSecondLevelPermutationWrapper()
 	clReleaseMemObject(d_First_Level_Results);
 	clReleaseMemObject(d_MNI_Brain_Mask);
 	clReleaseMemObject(d_Cluster_Indices);
+	clReleaseMemObject(d_Cluster_Sizes);
+	clReleaseMemObject(d_TFCE_Values);
 
 	clReleaseMemObject(c_X_GLM);
 	clReleaseMemObject(c_xtxxt_GLM);
@@ -10162,10 +10874,10 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
 
 	// Copy AR parameters to host
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	// Loop over voxels
 	int voxel_number = 0;
@@ -10180,10 +10892,10 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 					Eigen::MatrixXd X(DATA_T,NUMBER_OF_REGRESSORS);
 
 					// Get AR parameters for current voxel
-					float AR1 = h_AR1_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR2 = h_AR2_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR3 = h_AR3_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR4 = h_AR4_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR1 = h_AR1_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR2 = h_AR2_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR3 = h_AR3_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR4 = h_AR4_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
 
 					float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
 
@@ -10275,10 +10987,10 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
 
 	// Copy AR parameters to host
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	// Loop over voxels
 	int voxel_number = 0;
@@ -10293,10 +11005,10 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 					Eigen::MatrixXd X(DATA_T,NUMBER_OF_REGRESSORS);
 
 					// Get AR parameters for current voxel
-					float AR1 = h_AR1_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR2 = h_AR2_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR3 = h_AR3_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR4 = h_AR4_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR1 = h_AR1_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR2 = h_AR2_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR3 = h_AR3_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR4 = h_AR4_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
 
 					float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
 
@@ -10402,10 +11114,10 @@ void BROCCOLI_LIB::WhitenDesignMatricesFTest(cl_mem d_X_GLM,
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
 
 	// Copy AR parameters to host
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	// Insert contrast into eigen variable
 	Eigen::MatrixXd Contrasts(NUMBER_OF_CONTRASTS,NUMBER_OF_REGRESSORS);
@@ -10431,10 +11143,10 @@ void BROCCOLI_LIB::WhitenDesignMatricesFTest(cl_mem d_X_GLM,
 					Eigen::MatrixXd X(DATA_T,NUMBER_OF_REGRESSORS);
 
 					// Get AR parameters for current voxel
-					float AR1 = h_AR1_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR2 = h_AR2_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR3 = h_AR3_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR4 = h_AR4_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR1 = h_AR1_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR2 = h_AR2_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR3 = h_AR3_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR4 = h_AR4_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
 
 					float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
 
@@ -10517,7 +11229,7 @@ void BROCCOLI_LIB::WhitenDesignMatricesFTest(cl_mem d_X_GLM,
 
 // Calculates a statistical map for first level analysis, using a Cochrane-Orcutt procedure
 
-void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes, int iterations)
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
@@ -10552,21 +11264,21 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Whitened_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
 
 	// Cochrane-Orcutt procedure, iterate
-	for (int it = 0; it < 3; it++)
+	for (int it = 0; it < iterations; it++)
 	{
 		// Calculate beta values, using whitened data and the whitened voxel-specific models
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1, sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3, sizeof(cl_mem), &d_xtxxt_GLM);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4, sizeof(cl_mem), &d_Voxel_Numbers);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5, sizeof(cl_mem), &c_Censored_Timepoints);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6, sizeof(int), &EPI_DATA_W);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7, sizeof(int), &EPI_DATA_H);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8, sizeof(int), &EPI_DATA_D);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9, sizeof(int), &EPI_DATA_T);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int), &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int), &NUMBER_OF_INVALID_TIMEPOINTS);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0,  sizeof(cl_mem), &d_Beta_Volumes);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2,  sizeof(cl_mem), &d_EPI_Mask);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3,  sizeof(cl_mem), &d_xtxxt_GLM);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4,  sizeof(cl_mem), &d_Voxel_Numbers);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5,  sizeof(cl_mem), &c_Censored_Timepoints);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6,  sizeof(int),    &EPI_DATA_W);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7,  sizeof(int),    &EPI_DATA_H);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8,  sizeof(int),    &EPI_DATA_D);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9,  sizeof(int),    &EPI_DATA_T);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
 		runKernelErrorCalculateBetaWeightsGLMFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMFirstLevelKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
 		clFinish(commandQueue);
 
@@ -10627,18 +11339,18 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 	}
 
 	// Calculate beta values, using whitened data and the whitened voxel-specific models
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1, sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3, sizeof(cl_mem), &d_xtxxt_GLM);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4, sizeof(cl_mem), &d_Voxel_Numbers);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5, sizeof(cl_mem), &c_Censored_Timepoints);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8, sizeof(int),    &EPI_DATA_D);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9, sizeof(int),    &EPI_DATA_T);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int),   &NUMBER_OF_INVALID_TIMEPOINTS);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0,  sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2,  sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3,  sizeof(cl_mem), &d_xtxxt_GLM);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4,  sizeof(cl_mem), &d_Voxel_Numbers);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5,  sizeof(cl_mem), &c_Censored_Timepoints);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6,  sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7,  sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8,  sizeof(int),    &EPI_DATA_D);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9,  sizeof(int),    &EPI_DATA_T);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
 	runKernelErrorCalculateBetaWeightsGLMFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMFirstLevelKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 
@@ -10646,24 +11358,25 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 	WhitenDesignMatricesTTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
 
 	// Finally calculate statistical maps using whitened model and whitened data
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 1, sizeof(cl_mem),  &d_Residuals);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 2, sizeof(cl_mem),  &d_Residual_Variances);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 3, sizeof(cl_mem),  &d_Whitened_fMRI_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 4, sizeof(cl_mem),  &d_Beta_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 5, sizeof(cl_mem),  &d_EPI_Mask);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 6, sizeof(cl_mem),  &d_xtxxt_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 7, sizeof(cl_mem),  &d_GLM_Scalars);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 8, sizeof(cl_mem),  &d_Voxel_Numbers);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 9, sizeof(cl_mem),  &c_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 10, sizeof(cl_mem), &c_Censored_Timepoints);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 11, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 12, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 13, sizeof(int),    &EPI_DATA_D);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 14, sizeof(int),    &EPI_DATA_T);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 15, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 16, sizeof(int),    &NUMBER_OF_CONTRASTS);
-	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 17, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 0,  sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 1,  sizeof(cl_mem), &d_Contrast_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 2,  sizeof(cl_mem), &d_Residuals);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 3,  sizeof(cl_mem), &d_Residual_Variances);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 4,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 5,  sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 6,  sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 7,  sizeof(cl_mem), &d_xtxxt_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 8,  sizeof(cl_mem), &d_GLM_Scalars);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 9,  sizeof(cl_mem), &d_Voxel_Numbers);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 10, sizeof(cl_mem), &c_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 11, sizeof(cl_mem), &c_Censored_Timepoints);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 12, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 13, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 14, sizeof(int),    &EPI_DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 15, sizeof(int),    &EPI_DATA_T);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 16, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 17, sizeof(int),    &NUMBER_OF_CONTRASTS);
+	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 18, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
 	runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestFirstLevelKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 
@@ -10687,7 +11400,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 
 // Calculates a statistical map for first level analysis, using a Cochrane-Orcutt procedure
 
-void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes)
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes, int iterations)
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
@@ -10722,7 +11435,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes)
 	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Whitened_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
 
 	// Cochrane-Orcutt procedure, iterate
-	for (int it = 0; it < 3; it++)
+	for (int it = 0; it < iterations; it++)
 	{
 		// Calculate beta values, using whitened data and the whitened voxel-specific models
 		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
@@ -10843,12 +11556,12 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes)
 	MultiplyVolumes(d_AR3_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 	MultiplyVolumes(d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
-	clEnqueueReadBuffer(commandQueue, d_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Smoothed_fMRI_Volumes, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Smoothed_fMRI_Volumes, 0, NULL, NULL);
 
-	clEnqueueReadBuffer(commandQueue, d_Whitened_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_Whitened_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
 
 	//PutWhitenedModelsIntoVolumes(d_EPI_Mask, d_xtxxt_GLM, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	PutWhitenedModelsIntoVolumes2(d_EPI_Mask, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, h_X_GLM, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	//PutWhitenedModelsIntoVolumes2(d_EPI_Mask, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, h_X_GLM, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS);
 
 	clReleaseMemObject(d_xtxxt_GLM);
 	clReleaseMemObject(d_GLM_Scalars);
@@ -10874,7 +11587,6 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volume
 	float* h_S00 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
 	float* h_S01 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
 	float* h_S11 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
-
 
 	float* h_InvOmega0 = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float));
 
@@ -10941,26 +11653,27 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volume
 		h_Seeds[i] = rand();
 	}
 	clEnqueueWriteBuffer(commandQueue, d_Seeds, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), h_Seeds, 0, NULL, NULL);
+	clFinish(commandQueue);
 	free(h_Seeds);
-
-	int NUMBER_OF_ITERATIONS = 1000;
 
 	// Calculate PPM(s)
 	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 1, sizeof(cl_mem), &d_Regressed_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 3, sizeof(cl_mem), &d_Seeds);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 4, sizeof(cl_mem), &c_X_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 5, sizeof(cl_mem), &c_InvOmega0);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 6, sizeof(cl_mem), &c_S00);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 7, sizeof(cl_mem), &c_S01);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 8, sizeof(cl_mem), &c_S11);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 9, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 10, sizeof(int),   &EPI_DATA_H);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 11, sizeof(int),   &EPI_DATA_D);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 12, sizeof(int),   &EPI_DATA_T);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 13, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 14, sizeof(int),   &NUMBER_OF_ITERATIONS);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 1, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 2, sizeof(cl_mem), &d_AR1_Estimates);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 3, sizeof(cl_mem), &d_Regressed_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 4, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 5, sizeof(cl_mem), &d_Seeds);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 6, sizeof(cl_mem), &c_X_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 7, sizeof(cl_mem), &c_InvOmega0);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 8, sizeof(cl_mem), &c_S00);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 9, sizeof(cl_mem), &c_S01);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 10, sizeof(cl_mem),&c_S11);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 11, sizeof(int),   &EPI_DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 12, sizeof(int),   &EPI_DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 13, sizeof(int),   &EPI_DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 14, sizeof(int),   &EPI_DATA_T);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 15, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 16, sizeof(int),   &NUMBER_OF_MCMC_ITERATIONS);
 	runKernelErrorCalculateStatisticalMapsGLMBayesian = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMBayesianKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 	clFinish(commandQueue);
 
@@ -11184,10 +11897,10 @@ void BROCCOLI_LIB::PutWhitenedModelsIntoVolumes2(cl_mem d_Mask,
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
 
 	// Copy AR parameters to host
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	// Loop over voxels
 	int voxel_number = 0;
@@ -11202,10 +11915,10 @@ void BROCCOLI_LIB::PutWhitenedModelsIntoVolumes2(cl_mem d_Mask,
 					Eigen::MatrixXd X(DATA_T,NUMBER_OF_REGRESSORS);
 
 					// Get AR parameters for current voxel
-					float AR1 = h_AR1_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR2 = h_AR2_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR3 = h_AR3_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
-					float AR4 = h_AR4_Estimates[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR1 = h_AR1_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR2 = h_AR2_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR3 = h_AR3_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR4 = h_AR4_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
 
 					float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
 
@@ -11366,7 +12079,6 @@ void BROCCOLI_LIB::CleanupPermutationTestFirstLevel()
 	clReleaseMemObject(d_Rows_Temp);
 	clReleaseMemObject(d_Columns_Temp);
 
-	clReleaseMemObject(d_Cluster_Sizes);
 	clReleaseMemObject(d_Largest_Cluster);
 	clReleaseMemObject(d_Updated);
 }
@@ -11459,7 +12171,6 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel, 12, sizeof(int),   &NUMBER_OF_CONTRASTS);
 	}
 
-	d_Cluster_Sizes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
 	d_Largest_Cluster = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
 	d_Updated = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
 
@@ -11499,11 +12210,29 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 	clSetKernelArg(CalculateClusterSizesKernel, 6, sizeof(int),    &EPI_DATA_H);
 	clSetKernelArg(CalculateClusterSizesKernel, 7, sizeof(int),    &EPI_DATA_D);
 
+	clSetKernelArg(CalculateClusterMassesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(CalculateClusterMassesKernel, 1, sizeof(cl_mem), &d_Cluster_Sizes);
+	clSetKernelArg(CalculateClusterMassesKernel, 2, sizeof(cl_mem), &d_Statistical_Maps);
+	clSetKernelArg(CalculateClusterMassesKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateClusterMassesKernel, 4, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(CalculateClusterMassesKernel, 5, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateClusterMassesKernel, 6, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateClusterMassesKernel, 7, sizeof(int),    &EPI_DATA_D);
+
 	clSetKernelArg(CalculateLargestClusterKernel, 0, sizeof(cl_mem), &d_Cluster_Sizes);
 	clSetKernelArg(CalculateLargestClusterKernel, 1, sizeof(cl_mem), &d_Largest_Cluster);
 	clSetKernelArg(CalculateLargestClusterKernel, 2, sizeof(int),    &EPI_DATA_W);
 	clSetKernelArg(CalculateLargestClusterKernel, 3, sizeof(int),    &EPI_DATA_H);
 	clSetKernelArg(CalculateLargestClusterKernel, 4, sizeof(int),    &EPI_DATA_D);
+
+	clSetKernelArg(CalculateTFCEValuesKernel, 0, sizeof(cl_mem), &d_TFCE_Values);
+	clSetKernelArg(CalculateTFCEValuesKernel, 1, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateTFCEValuesKernel, 2, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(CalculateTFCEValuesKernel, 3, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(CalculateTFCEValuesKernel, 4, sizeof(cl_mem), &d_Cluster_Sizes);
+	clSetKernelArg(CalculateTFCEValuesKernel, 5, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateTFCEValuesKernel, 6, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateTFCEValuesKernel, 7, sizeof(int),    &EPI_DATA_D);
 }
 
 void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Mask)
@@ -11623,6 +12352,15 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 	clSetKernelArg(CalculateLargestClusterKernel, 2, sizeof(int),    &MNI_DATA_W);
 	clSetKernelArg(CalculateLargestClusterKernel, 3, sizeof(int),    &MNI_DATA_H);
 	clSetKernelArg(CalculateLargestClusterKernel, 4, sizeof(int),    &MNI_DATA_D);
+
+	clSetKernelArg(CalculateTFCEValuesKernel, 0, sizeof(cl_mem), &d_TFCE_Values);
+	clSetKernelArg(CalculateTFCEValuesKernel, 1, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateTFCEValuesKernel, 2, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+	clSetKernelArg(CalculateTFCEValuesKernel, 3, sizeof(cl_mem), &d_Cluster_Indices);
+	clSetKernelArg(CalculateTFCEValuesKernel, 4, sizeof(cl_mem), &d_Cluster_Sizes);
+	clSetKernelArg(CalculateTFCEValuesKernel, 5, sizeof(int),    &MNI_DATA_W);
+	clSetKernelArg(CalculateTFCEValuesKernel, 6, sizeof(int),    &MNI_DATA_H);
+	clSetKernelArg(CalculateTFCEValuesKernel, 7, sizeof(int),    &MNI_DATA_D);
 }
 
 void BROCCOLI_LIB::CleanupPermutationTestSecondLevel()
@@ -11828,6 +12566,11 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 
 	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
 	{
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Starting permutation %i \n",p+1);
+		}
+
 		// Generate new fMRI volumes, through inverse whitening and permutation
 	    GeneratePermutedVolumesFirstLevel(d_Permuted_fMRI_Volumes, d_Whitened_fMRI_Volumes, p);
 
@@ -11835,31 +12578,56 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 		//PerformSmoothingNormalized(d_Permuted_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 		//PerformSmoothingNormalizedPermutation();
 
-		// Calculate statistical maps
+		// Calculate statistical maps, for all contrasts
 		CalculateStatisticalMapsFirstLevelPermutation();
 
-		// Voxel distribution
-		if (INFERENCE_MODE == VOXEL)
+		// Loop over contrasts
+		//for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			// Get max test value
-			h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-		}
-		// Cluster distribution, extent or mass
-		else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
-		{
-			ClusterizeOpenCLPermutation(MAX_CLUSTER, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-			h_Permutation_Distribution[p] = MAX_CLUSTER;
+			// Voxel distribution
+			if (INFERENCE_MODE == VOXEL)
+			{
+				// Get max test value
+				//h_Permutation_Distribution[p + c * NUMBER_OF_PERMUTATIONS] = CalculateMaxAtomic(d_Statistical_Maps, c, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+				h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+			}
+			// Cluster distribution, extent or mass
+			else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
+			{
+				ClusterizeOpenCLPermutation(MAX_CLUSTER, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+				h_Permutation_Distribution[p] = MAX_CLUSTER;
+				//h_Permutation_Distribution[p + c * NUMBER_OF_PERMUTATIONS] = MAX_CLUSTER;
+			}
+			// Threshold free cluster enhancement
+			else if (INFERENCE_MODE == TFCE)
+			{
+				//maxActivation = CalculateMaxAtomic(d_Statistical_Maps, c, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+				float delta = 0.2846;
+				//ClusterizeOpenCLTFCEPermutation(MAX_VALUE, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, maxActivation, delta);
+				//h_Permutation_Distribution[p + c * NUMBER_OF_PERMUTATIONS] = MAX_VALUE;
+			}
 		}
 	}
 
+	// Loop over contrasts
+	//for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	//{
+		// Sort the maximum test values
+		//std::vector<float> max_values (h_Permutation_Distribution + c * NUMBER_OF_PERMUTATIONS, h_Permutation_Distribution + (c + 1) * NUMBER_OF_PERMUTATIONS);
+		std::vector<float> max_values (h_Permutation_Distribution, h_Permutation_Distribution + NUMBER_OF_PERMUTATIONS);
+		std::sort (max_values.begin(), max_values.begin() + NUMBER_OF_PERMUTATIONS);
+
+		// Find the threshold for the specified significance level
+		SIGNIFICANCE_THRESHOLD = max_values[round((1.0f - SIGNIFICANCE_LEVEL) * (float)NUMBER_OF_PERMUTATIONS)];
+
+		if (WRAPPER == BASH)
+		{
+			//printf("Permutation threshold for contrast %i for a significance level of %f is %f \n",c, SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
+			printf("Permutation threshold for a significance level of %f is %f \n",SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
+		}
+	//}
+
 	CleanupPermutationTestFirstLevel();
-
-    // Sort the maximum test values
-	std::vector<float> max_values (h_Permutation_Distribution, h_Permutation_Distribution + NUMBER_OF_PERMUTATIONS);
-	std::sort (max_values.begin(), max_values.begin() + NUMBER_OF_PERMUTATIONS);
-
-	// Find the threshold for the specified significance level
-	SIGNIFICANCE_THRESHOLD = max_values[round((1.0f - SIGNIFICANCE_LEVEL) * (float)NUMBER_OF_PERMUTATIONS)];
 }
 
 //  Applies a permutation test for second level analysis
@@ -11898,10 +12666,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 	{
 		if ((WRAPPER == BASH) && PRINT)
 		{
-			//if ( (p % 100) == 0 )
-			//{
-				printf("Starting permutation %i \n",p+1);
-			//}
+			printf("Starting permutation %i \n",p+1);
 		}
 
 		// Calculate statistical maps
@@ -11913,22 +12678,21 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 			// Calculate max test value
 			h_Permutation_Distribution[p] = CalculateMaxAtomic(d_Statistical_Maps, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		}
-
 		// Cluster distribution, extent or mass
 		else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
 		{
 			ClusterizeOpenCLPermutation(MAX_CLUSTER, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 			h_Permutation_Distribution[p] = MAX_CLUSTER;
 		}
+		// Threshold free cluster enhancement
+		else if (INFERENCE_MODE == TFCE)
+		{
+			maxActivation = CalculateMaxAtomic(d_Statistical_Maps, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			float delta = 0.2846;
+		    ClusterizeOpenCLTFCEPermutation(MAX_VALUE, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, maxActivation, delta);
+		    h_Permutation_Distribution[p] = MAX_VALUE;
+		}
 	}
-
-	//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-			//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, DONT_CALCULATE_CLUSTER_MASS);
-
-	// Calculate max cluster mass
-	//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_STATISTICAL_MAPS * sizeof(float), h_Statistical_Maps, 0, NULL, NULL);
-	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, DONT_CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
-	//h_Permutation_Distribution[p] = MAX_CLUSTER_MASS;
 
 	std::vector<float> max_values (h_Permutation_Distribution, h_Permutation_Distribution + NUMBER_OF_PERMUTATIONS);
 	std::sort (max_values.begin(), max_values.begin() + NUMBER_OF_PERMUTATIONS);
@@ -11944,38 +12708,45 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 	CleanupPermutationTestSecondLevel();
 }
 
-
+// Calculates permutation based p-values in each voxel
 void BROCCOLI_LIB::CalculatePermutationPValues(cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D)
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(DATA_W, DATA_H, DATA_D);
 
-	// Copy max values to constant memory
-	clEnqueueWriteBuffer(commandQueue, c_Permutation_Distribution, CL_TRUE, 0, NUMBER_OF_PERMUTATIONS * sizeof(float), h_Permutation_Distribution, 0, NULL, NULL);
+	// Loop over contrasts
+	//for (int contrast = 0; contrast < NUMBER_OF_CONTRASTS; contrast++)
+	for (int contrast = 0; contrast < 1; contrast++)
+	{
+		// Copy max values to constant memory
+		clEnqueueWriteBuffer(commandQueue, c_Permutation_Distribution, CL_TRUE, 0, NUMBER_OF_PERMUTATIONS * sizeof(float), &h_Permutation_Distribution[contrast * NUMBER_OF_PERMUTATIONS], 0, NULL, NULL);
 
-	if (INFERENCE_MODE == VOXEL)
-	{
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 0, sizeof(cl_mem), &d_P_Values);
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 2, sizeof(cl_mem), &d_Mask);
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 3, sizeof(cl_mem), &c_Permutation_Distribution);
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 4, sizeof(int),    &DATA_W);
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 5, sizeof(int),    &DATA_H);
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 6, sizeof(int),    &DATA_D);
-		clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 7, sizeof(int),    &NUMBER_OF_PERMUTATIONS);
-		runKernelErrorCalculatePermutationPValuesVoxelLevelInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesVoxelLevelInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
-	}
-	else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
-	{
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 0, sizeof(cl_mem), &d_P_Values);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 1, sizeof(cl_mem), &d_Cluster_Indices);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 2, sizeof(cl_mem), &d_Cluster_Sizes);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 3, sizeof(cl_mem), &d_Mask);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 4, sizeof(cl_mem), &c_Permutation_Distribution);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 5, sizeof(int),    &DATA_W);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 6, sizeof(int),    &DATA_H);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 7, sizeof(int),    &DATA_D);
-		clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 8, sizeof(int),    &NUMBER_OF_PERMUTATIONS);
-		runKernelErrorCalculatePermutationPValuesClusterLevelInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesClusterLevelInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
+		if ( (INFERENCE_MODE == VOXEL) || (INFERENCE_MODE == TFCE) )
+		{
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 0, sizeof(cl_mem), &d_P_Values);
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 2, sizeof(cl_mem), &d_Mask);
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 3, sizeof(cl_mem), &c_Permutation_Distribution);
+			//clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 4, sizeof(int),    &contrast);
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 4, sizeof(int),    &DATA_W);
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 5, sizeof(int),    &DATA_H);
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 6, sizeof(int),    &DATA_D);
+			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 7, sizeof(int),    &NUMBER_OF_PERMUTATIONS);
+			runKernelErrorCalculatePermutationPValuesVoxelLevelInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesVoxelLevelInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
+		}
+		else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
+		{
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 0, sizeof(cl_mem), &d_P_Values);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 1, sizeof(cl_mem), &d_Cluster_Indices);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 2, sizeof(cl_mem), &d_Cluster_Sizes);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 3, sizeof(cl_mem), &d_Mask);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 4, sizeof(cl_mem), &c_Permutation_Distribution);
+			//clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 5, sizeof(int),    &contrast);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 5, sizeof(int),    &DATA_W);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 6, sizeof(int),    &DATA_H);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 7, sizeof(int),    &DATA_D);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 8, sizeof(int),    &NUMBER_OF_PERMUTATIONS);
+			runKernelErrorCalculatePermutationPValuesClusterLevelInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesClusterLevelInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
+		}
 	}
 }
 
@@ -13269,6 +14040,59 @@ void BROCCOLI_LIB::ClusterizeOpenCLPermutation(float& MAX_CLUSTER, int DATA_W, i
 	{
 		MAX_CLUSTER = (float)Largest_Cluster/10000.0f;
 	}
+}
+
+
+void BROCCOLI_LIB::ClusterizeOpenCLTFCEPermutation(float& MAX_VALUE, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, float maxThreshold, float delta)
+{
+	// Reset TFCE values
+	SetMemory(d_TFCE_Values, 0.0f, DATA_W * DATA_H * DATA_D);
+
+	// Loop over thresholds
+	for (float threshold = 0.0f; threshold <= maxThreshold; threshold += delta)
+	{
+		// Set new threshold for kernels
+		clSetKernelArg(SetStartClusterIndicesKernel, 3, sizeof(float),  &threshold);
+		clSetKernelArg(ClusterizeScanKernel, 4, sizeof(float), &threshold);
+		clSetKernelArg(ClusterizeRelabelKernel, 3, sizeof(float),  &threshold);
+		clSetKernelArg(CalculateClusterSizesKernel, 4, sizeof(float),  &threshold);
+		clSetKernelArg(CalculateTFCEValuesKernel, 2, sizeof(float),  &threshold);
+
+		// Set initial cluster indices, voxel 0 = 0, voxel 1 = 1 and so on
+		runKernelErrorClusterizeScan = clEnqueueNDRangeKernel(commandQueue, SetStartClusterIndicesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		// Loop until no more updates are done
+		float UPDATED = 1.0f;
+		while (UPDATED == 1.0f)
+		{
+			// Set updated to 0
+			SetMemory(d_Updated, 0.0f, 1);
+
+			// Run the clustering
+			runKernelErrorClusterizeScan = clEnqueueNDRangeKernel(commandQueue, ClusterizeScanKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+			clFinish(commandQueue);
+			runKernelErrorClusterizeRelabel = clEnqueueNDRangeKernel(commandQueue, ClusterizeRelabelKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+			clFinish(commandQueue);
+
+			// Copy update parameter to host
+			clEnqueueReadBuffer(commandQueue, d_Updated, CL_TRUE, 0, sizeof(float), &UPDATED, 0, NULL, NULL);
+		}
+
+		// Reset cluster sizes
+		SetMemoryInt(d_Cluster_Sizes, 0, DATA_W * DATA_H * DATA_D);
+
+		// Calculate the extent of each cluster
+		runKernelErrorCalculateClusterSizes = clEnqueueNDRangeKernel(commandQueue, CalculateClusterSizesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		// Calculate TFCE contributions for this threshold
+		runKernelErrorCalculateTFCEValues = clEnqueueNDRangeKernel(commandQueue, CalculateTFCEValuesKernel, 3, NULL, globalWorkSizeClusterize, localWorkSizeClusterize, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+
+	// Find max TFCE value
+	MAX_VALUE = CalculateMaxAtomic(d_TFCE_Values, d_Mask, DATA_W, DATA_H, DATA_D);
 }
 
 

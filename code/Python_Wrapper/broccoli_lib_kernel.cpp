@@ -4992,6 +4992,7 @@ __kernel void CalculateGLMResiduals(__global float* Residuals,
 }
 
 __kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statistical_Maps,
+														 __global float* Contrast_Volumes,
 		                                       	   	   	 __global float* Residuals,
 		                                       	   	   	 __global float* Residual_Variances,
 		                                       	   	   	 __global const float* Volumes,
@@ -5025,6 +5026,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statist
 
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
+			Contrast_Volumes[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		}
 
@@ -5066,7 +5068,6 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statist
 	//meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
 	meaneps /= ((float)NUMBER_OF_VOLUMES);
 
-
 	// Now calculate the variance of eps, using voxel-specific design models
 	vareps = 0.0f;
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
@@ -5094,6 +5095,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statist
 		{
 			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
 		}
+		Contrast_Volumes[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
 		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * d_GLM_Scalars[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)]);
 	}
 }
@@ -5770,6 +5772,8 @@ void Invert_2x2(float Cxx[2][2], float inv_Cxx[2][2])
 // Generates a posterior probability map (PPM) using Gibbs sampling
 
 __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Maps,
+												  __global float* Beta_Volumes,
+												  __global float* AR_Estimates,
 		                                          __global const float* Volumes,
 		                                          __global const float* Mask,
 		                                          __global const int* Seeds,
@@ -5794,38 +5798,25 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	int seed = Calculate3DIndex(x,y,z,DATA_W,DATA_H) * 1000;
-
-
-	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = (float)unirand(&seed);
-	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = (float)normalrand(&seed);
-
 	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
 	{
 		Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
-
-		/*
 		Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = 0.0f;
 		Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,6,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,7,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,8,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,9,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,10,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,11,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,12,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,13,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		*/
+
+		Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
+
+		AR_Estimates[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
 
 		return;
 	}
 
 	// Get seed from host
-	//int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+	int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
 
 	// Prior options
 	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
@@ -5843,7 +5834,13 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	float betaT[2];
 
 	int nBurnin = (int)round((float)NUMBER_OF_ITERATIONS*(prcBurnin/100.0f));
-	int probability = 0;
+
+	int probability1 = 0;
+	int probability2 = 0;
+	int probability3 = 0;
+	int probability4 = 0;
+	int probability5 = 0;
+	int probability6 = 0;
 	
 	float m00[2];
 	float m01[2];
@@ -5919,7 +5916,6 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 
 	// Loop over iterations
 	for (int i = 0; i < (nBurnin + NUMBER_OF_ITERATIONS); i++)
-	//for (int i = 0; i < 100; i++)
 	{
 		InvOmegaT[0][0] = c_InvOmega0[0 + 0 * NUMBER_OF_REGRESSORS] + Xtildesquared[0][0];
 		InvOmegaT[0][1] = c_InvOmega0[0 + 1 * NUMBER_OF_REGRESSORS] + Xtildesquared[0][1];
@@ -5946,7 +5942,32 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		{
 			if (beta[0] > 0.0f)
 			{
-				probability++;
+				probability1++;
+			}
+
+			if (beta[1] > 0.0f)
+			{
+				probability2++;
+			}
+
+			if (beta[0] < 0.0f)
+			{
+				probability3++;
+			}
+
+			if (beta[1] < 0.0f)
+			{
+				probability4++;
+			}
+
+			if ((beta[0] - beta[1]) > 0.0f)
+			{
+				probability5++;
+			}
+
+			if ((beta[1] - beta[0]) > 0.0f)
+			{
+				probability6++;
 			}
 		}  
 
@@ -5991,8 +6012,17 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		Ytildesquared = g00 - 2.0f * rho * g01 + rho * rho * g11;
 	}
 	
-	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = (float)probability/(float)NUMBER_OF_ITERATIONS;
-	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = rhoT;
+	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = (float)probability1/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = (float)probability2/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = (float)probability3/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = (float)probability4/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = (float)probability5/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = (float)probability6/(float)NUMBER_OF_ITERATIONS;
+
+	Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = beta[0];
+	Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
+
+	AR_Estimates[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = rhoT;
 
 	/*
 	float Sigma = 1.0f;
@@ -10590,6 +10620,7 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
 							   	   	   	   	   	  	  	  	 __global const float* Test_Values,
 							   	   	   	   	   	  	  	  	 __global const float* Mask,
 							   	   	   	   	   	  	  	  	 __constant float* c_Max_Values,
+							   	   	   	   	   	  	  	  	 __private int Contrast,
 							   	   	   	   	   	  	  	  	 __private int DATA_W,
 							   	   	   	   	   	  	  	  	 __private int DATA_H,
 							   	   	   	   	   	  	  	  	 __private int DATA_D,
@@ -10604,7 +10635,7 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
 
     if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 1.0f )
 	{
-    	float Test_Value = Test_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    	float Test_Value = Test_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)];
 
     	float sum = 0.0f;
     	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
@@ -10615,11 +10646,11 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
     			sum += 1.0f;
     		}
     	}
-    	P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = sum / (float)NUMBER_OF_PERMUTATIONS;
+    	P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = sum / (float)NUMBER_OF_PERMUTATIONS;
 	}
     else
     {
-    	P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+    	P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
     }
 }
 
@@ -10902,210 +10933,6 @@ __kernel void SetStartClusterIndicesKernel(__global unsigned int* Cluster_Indice
 
 
 
-
-
-/*
- * Old version, not checking if we read outside the volume
-__kernel void ClusterizeScan(__global unsigned int* Cluster_Indices,
-						  	  volatile __global float* Updated,
-						  	  __global const float* Data,
-						  	  __global const float* Mask,
-						  	  __private float threshold,
-						  	  __private int DATA_W,
-						  	  __private int DATA_H,
-						  	  __private int DATA_D)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
-
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-		return;
-
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
-		return;
-
-	// Threshold data
-	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
-	{
-		unsigned int label1, label2, temp;
-
-		label2 = DATA_W * DATA_H * DATA_D * 3;
-
-		// Original index
-		label1 = Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
-
-		// z - 1
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y-1,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y+1,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y-1,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y+1,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y-1,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y+1,z-1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		// z
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y-1,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y+1,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y-1,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y+1,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y-1,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y+1,z,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		// z + 1
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y-1,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x-1,y+1,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y-1,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x,y+1,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y-1,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		temp = Cluster_Indices[Calculate3DIndex(x+1,y+1,z+1,DATA_W,DATA_H)];
-		if (temp < label2)
-		{
-			label2 = temp;
-		}
-
-		if (label2 < label1)
-		{
-			Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = label2;
-			float one = 1.0f;
-			atomic_xchg(Updated,one);
-		}
-
-	}
-}
-*/
 
 bool IsInsideVolume(int x, int y, int z, int DATA_W, int DATA_H, int DATA_D)
 {
@@ -11510,6 +11337,35 @@ __kernel void CalculateLargestCluster(__global unsigned int* Cluster_Sizes,
 	atomic_max(Largest_Cluster,cluster_size);
 }
 
+__kernel void CalculateTFCEValues(__global float* TFCE_Values,
+								  __global const float* Mask,
+	  	    					  __private float threshold,
+								  __global const unsigned int* Cluster_Indices,
+							      __global const unsigned int* Cluster_Sizes,
+								  __private int DATA_W,
+								  __private int DATA_H,
+								  __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	// Check if the current voxel belongs to a cluster
+	if ( Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] < (DATA_W * DATA_H * DATA_D) )
+	{
+		// Get extent of cluster for current voxel
+		float clusterSize = (float)Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)]];
+		float value = sqrt(clusterSize) * threshold * threshold;
+
+		TFCE_Values[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += value;
+	}
+}
 
 
 __kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P_Values,
@@ -11517,6 +11373,7 @@ __kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P
 															   __global const unsigned int* Cluster_Sizes,
 							   	   	   	   	   	  	  	  	   __global const float* Mask,
 							   	   	   	   	   	  	  	  	   __constant float* c_Max_Values,
+							   	   	   	   	   	  	  	  	   __private int Contrast,
 							   	   	   	   	   	  	  	  	   __private int DATA_W,
 							   	   	   	   	   	  	  	  	   __private int DATA_H,
 							   	   	   	   	   	  	  	  	   __private int DATA_D,
@@ -11545,17 +11402,17 @@ __kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P
     				sum += 1.0f;
     			}
     		}
-    		P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = sum / (float)NUMBER_OF_PERMUTATIONS;
+    		P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = sum / (float)NUMBER_OF_PERMUTATIONS;
     	}
     	// Voxel is not part of a cluster, so p-value should be 0
     	else
     	{
-    		P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+    		P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
     	}
 	}
     else
     {
-    	P_Values[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+    	P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
     }
 }
 

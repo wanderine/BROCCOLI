@@ -327,7 +327,7 @@ int main(int argc, char **argv)
         printf(" -mask                      A mask that defines which voxels to permute (default none) \n");
         printf(" -permutations              Number of permutations to use (default 10,000) \n");
         printf(" -teststatistics            Test statistics to use, 0 = GLM t-test, 1 = GLM F-test, 2 = CCA, 3 = Searchlight (default 0) \n");
-        printf(" -inferencemode             Inference mode to use, 0 = voxel, 1 = cluster extent, 2 = cluster mass (default 1) \n");
+        printf(" -inferencemode             Inference mode to use, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = TFCE (default 1) \n");
         printf(" -cdt                       Cluster defining threshold for cluster inference (default 2.5) \n");
         printf(" -significance              The significance level to calculate the threshold for (default 0.05) \n");		
 		printf(" -output                    Set output filename (default volumes_perm_tvalues.nii and volumes_perm_pvalues.nii) \n");
@@ -471,9 +471,9 @@ int main(int argc, char **argv)
 		        printf("Inference mode must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-            else if ( (INFERENCE_MODE != 0) && (INFERENCE_MODE != 1) && (INFERENCE_MODE != 2) )
+            else if ( (INFERENCE_MODE != 0) && (INFERENCE_MODE != 1) && (INFERENCE_MODE != 2) && (INFERENCE_MODE != 3) )
             {
-                printf("Inference mode must be 0, 1 or 2 !\n");
+                printf("Inference mode must be 0, 1, 2 or 3 !\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -911,7 +911,14 @@ int main(int argc, char **argv)
 		{
 			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
-				design >> h_X_GLM[NUMBER_OF_SUBJECTS * r + s];
+				if (! (design >> h_X_GLM[NUMBER_OF_SUBJECTS * r + s]) )
+				{
+					design.close();
+			        printf("Could not read all values of the design file %s, aborting! Please check if the number of regressors and subjects are correct. \n",DESIGN_FILE);      
+			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			        return EXIT_FAILURE;
+				}
 			}
 		}	
 		design.close();
@@ -971,7 +978,14 @@ int main(int argc, char **argv)
 		{
 			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
-				contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];			
+				if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
+				{
+					contrasts.close();
+			        printf("Could not read all values of the contrasts file %s, aborting! Please check if the number of regressors and contrasts are correct. \n",CONTRASTS_FILE);      
+			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			        return EXIT_FAILURE;			
+				}
 			}
 		}
 		contrasts.close();
@@ -1029,9 +1043,19 @@ int main(int argc, char **argv)
 				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
 				{
 					float temp;
-					permutations >> temp;
-					h_Permutation_Matrix[s + p * NUMBER_OF_SUBJECTS] = (unsigned short int)temp;
-					h_Permutation_Matrix[s + p * NUMBER_OF_SUBJECTS] -= 1;				
+					if (permutations >> temp)
+					{
+						h_Permutation_Matrix[s + p * NUMBER_OF_SUBJECTS] = (unsigned short int)temp;
+						h_Permutation_Matrix[s + p * NUMBER_OF_SUBJECTS] -= 1;				
+					}
+					else
+					{
+						permutations.close();
+				        printf("Could not read all values of the permutation file %s, aborting! \n",PERMUTATION_INPUT_FILE);      
+				        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+				        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+				        return EXIT_FAILURE;
+					}
 				}			
 			}
 			permutations.close();
@@ -1170,19 +1194,6 @@ int main(int argc, char **argv)
         }
 	}
 
-	/*
-	// First slice
-    for (int i = 0; i < DATA_W * DATA_H; i++)
-    {
-        h_Mask[i] = 0.0f;
-    }
-	// Last slice
-    for (int i = 0; i < DATA_W * DATA_H; i++)
-    {
-        h_Mask[i + DATA_W * DATA_H * (DATA_D-1)] = 0.0f;
-    }
-	*/    
-
 	endTime = GetWallTime();
 
 	if (VERBOS)
@@ -1268,7 +1279,7 @@ int main(int argc, char **argv)
         //BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
         BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
         //BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);       
-        BROCCOLI.SetOutputPValues(h_P_Values);        
+        BROCCOLI.SetOutputPValuesMNI(h_P_Values);        
 
 		BROCCOLI.SetDoAllPermutations(DO_ALL_PERMUTATIONS);
 
@@ -1380,13 +1391,13 @@ int main(int argc, char **argv)
 
     // Create new nifti image
 	nifti_image *outputNifti = nifti_copy_nim_info(inputData);      
-	allNiftiImages[numberOfNiftiImages] = outputNifti;
-	numberOfNiftiImages++;    
-
 	// Change number of output volumes
 	outputNifti->nt = NUMBER_OF_CONTRASTS;
 	outputNifti->dim[4] = NUMBER_OF_CONTRASTS;
 	outputNifti->nvox = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS;
+	allNiftiImages[numberOfNiftiImages] = outputNifti;
+	numberOfNiftiImages++;    
+
 
 	if (!CHANGE_OUTPUT_NAME)
 	{

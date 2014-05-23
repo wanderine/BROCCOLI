@@ -298,6 +298,8 @@ int main(int argc, char **argv)
 	float			TSIGMA = 5.0f;
 	float			ESIGMA = 5.0f;
 	float			DSIGMA = 5.0f;
+	bool			MASK = false;
+	const char* 	MASK_NAME;
 
 	float			STARTTRANSX = 0.0f;
 	float			STARTTRANSY = 0.0f;
@@ -359,6 +361,7 @@ int main(int argc, char **argv)
         printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
+        printf(" -mask                      Mask to apply after linear and non-linear registration, to for example do a skullstrip (default none) \n");        
 		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
 		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume, before alignment (default false) \n");        
 		printf(" -output                    Set output filename (default input_volume_aligned_linear.nii and input_volume_aligned_nonlinear.nii) \n");
@@ -800,6 +803,18 @@ int main(int argc, char **argv)
 
             i += 2;
         }
+		else if (strcmp(input,"-mask") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read name after -mask !\n");
+                return EXIT_FAILURE;
+			}
+
+			MASK = true;
+            MASK_NAME = argv[i+1];
+            i += 2;
+        }
         else if (strcmp(input,"-savefield") == 0)
         {
             WRITE_DISPLACEMENT_FIELD = true;
@@ -846,7 +861,8 @@ int main(int argc, char **argv)
     	
 	double startTime = GetWallTime();
     
-    // Read data
+    // Read first volume (to transform)
+	// -----------------------------------
 
     nifti_image *inputT1 = nifti_image_read(argv[1],1);
     
@@ -857,7 +873,17 @@ int main(int argc, char **argv)
     }
 	allNiftiImages[numberOfNiftiImages] = inputT1;
 	numberOfNiftiImages++;
+
+	// Loop over number of extensions
+	//for(int c = 0; c < inputT1->num_ext; c++ )
+    //{
+	//    printf("Extension %i has size %i, code %i and contains %s\n",c,inputT1->ext_list[c].esize,inputT1->ext_list[c].ecode,inputT1->ext_list[c].edata);
+    //}
     
+	// -----------------------------------
+	// Read second volume (reference)
+	// -----------------------------------
+
     nifti_image *inputMNI = nifti_image_read(argv[2],1);
     
     if (inputMNI == NULL)
@@ -868,7 +894,29 @@ int main(int argc, char **argv)
     }
 	allNiftiImages[numberOfNiftiImages] = inputMNI;
 	numberOfNiftiImages++;
+
+	// Loop over number of extensions
+	//for(int c = 0; c < inputMNI->num_ext; c++ )
+    //{
+	//   printf("Extension %i has size %i, code %i and contains %s\n",c,inputMNI->ext_list[c].esize,inputMNI->ext_list[c].ecode,inputMNI->ext_list[c].edata);
+    //}
+
+	nifti_image *inputMask;
+	if (MASK)
+	{
+	    inputMask = nifti_image_read(MASK_NAME,1);
+    
+	    if (inputMask == NULL)
+	    {
+        	printf("Could not open mask volume!\n");
+	        return EXIT_FAILURE;
+	    }
+		allNiftiImages[numberOfNiftiImages] = inputMask;
+		numberOfNiftiImages++;
+	}
     	
+	// -----------------------------------
+
 	double endTime = GetWallTime();
 
 	if (VERBOS)
@@ -899,6 +947,21 @@ int main(int argc, char **argv)
         printf("\n\nWARNING: It is not recommended to use 8 as a lowest scale for a 2 mm reference volume.\n\n");   
     }
     
+	// Check  if mask has same dimensions as reference volume
+	if (MASK)
+	{
+		int TEMP_DATA_W = inputMask->nx;
+		int TEMP_DATA_H = inputMask->ny;
+		int TEMP_DATA_D = inputMask->nz;
+
+		if ( (TEMP_DATA_W != MNI_DATA_W) || (TEMP_DATA_H != MNI_DATA_H) || (TEMP_DATA_D != MNI_DATA_D) )
+		{
+			printf("Reference volume has the dimensions %i x %i x %i, while the mask volume has the dimensions %i x %i x %i. Aborting! \n",MNI_DATA_W,MNI_DATA_H,MNI_DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+	}
+
     // Calculate sizes, in bytes
     
     int DOWNSAMPLED_DATA_W = (int)round((float)MNI_DATA_W/(float)COARSEST_SCALE);
@@ -943,6 +1006,12 @@ int main(int argc, char **argv)
    	AllocateMemory(h_Aligned_T1_Volume_NonLinear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "NONLINEARLY_ALIGNED_INPUT_VOLUME");    
    	AllocateMemory(h_Registration_Parameters, IMAGE_REGISTRATION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "REGISTRATION_PARAMETERS");    
         
+	if (MASK)
+	{
+		AllocateMemory(h_MNI_Brain_Mask, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_BRAIN_MASK");    
+		AllocateMemory(h_Skullstripped_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SKULLSTRIPPED_VOLUME");    
+	}
+
 	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_REAL");    
 	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_IMAG");    
 	AllocateMemory(h_Quadrature_Filter_2_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_REAL");    
@@ -1025,6 +1094,15 @@ int main(int argc, char **argv)
             h_T1_Volume[i] = (float)p[i];
         }
     }
+    else if ( inputT1->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputT1->data;
+    
+        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        {
+            h_T1_Volume[i] = (float)p[i];
+        }
+    }
     else if ( inputT1->datatype == DT_FLOAT )
     {
         float *p = (float*)inputT1->data;
@@ -1077,6 +1155,44 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     
+	if (MASK)
+	{
+	    if ( inputMask->datatype == DT_SIGNED_SHORT )
+	    {
+	        short int *p = (short int*)inputMask->data;
+    
+	        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+	        {
+	            h_MNI_Brain_Mask[i] = (float)p[i];
+	        }
+	    }
+	    else if ( inputMask->datatype == DT_FLOAT )
+	    {
+	        float *p = (float*)inputMask->data;
+    
+	        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        	{
+	            h_MNI_Brain_Mask[i] = p[i];
+	        }
+	    }
+	    else if ( inputMask->datatype == DT_UINT8 )
+	    {
+    	    unsigned char *p = (unsigned char*)inputMask->data;
+    
+	        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+	        {
+	            h_MNI_Brain_Mask[i] = (float)p[i];
+	        }
+	    }
+	    else
+	    {
+	        printf("Unknown data type in mask volume, aborting!\n");
+	        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+	    }
+	}
+
 	endTime = GetWallTime();
 
 	if (VERBOS)
@@ -1184,11 +1300,8 @@ int main(int argc, char **argv)
     {
         // Set all necessary pointers and values
         BROCCOLI.SetInputT1Volume(h_T1_Volume);
-        //BROCCOLI.SetInputMNIVolume(h_MNI_Volume);
-        //BROCCOLI.SetInputMNIBrainVolume(h_MNI_Brain_Volume);
-        //BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
-        
         BROCCOLI.SetInputMNIBrainVolume(h_MNI_Volume);
+        BROCCOLI.SetInputMNIBrainMask(h_MNI_Brain_Mask);
         
         BROCCOLI.SetT1Width(T1_DATA_W);
         BROCCOLI.SetT1Height(T1_DATA_H);
@@ -1227,11 +1340,14 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
         BROCCOLI.SetOutputAlignedT1VolumeLinear(h_Aligned_T1_Volume);
         BROCCOLI.SetOutputAlignedT1VolumeNonLinear(h_Aligned_T1_Volume_NonLinear);                
+		BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume);
         BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
         
+		BROCCOLI.SetDoSkullstrip(MASK);
+
 		BROCCOLI.SetSaveInterpolatedT1(WRITE_INTERPOLATED);
-		BROCCOLI.SetSaveAlignedT1Linear(true);
-		BROCCOLI.SetSaveAlignedT1NonLinear(true);		
+		BROCCOLI.SetSaveAlignedT1MNILinear(true);
+		BROCCOLI.SetSaveAlignedT1MNINonLinear(true);		
 
         if (WRITE_DISPLACEMENT_FIELD)
         {
@@ -1351,6 +1467,11 @@ int main(int argc, char **argv)
 	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
 	{
    		WriteNifti(outputNifti,h_Aligned_T1_Volume_NonLinear,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+
+	if (MASK)
+	{
+   		WriteNifti(outputNifti,h_Skullstripped_T1_Volume,"_skullstripped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
               	
 	if (WRITE_DISPLACEMENT_FIELD)

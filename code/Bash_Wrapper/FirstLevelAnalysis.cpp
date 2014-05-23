@@ -34,6 +34,55 @@
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
 
+void LowpassFilterRegressor(float* h_LowpassFiltered_Regressor, float* h_Regressor, int DATA_T, int HIGHRES_FACTOR, float TR)
+{
+	// Allocate memory for lowpass filter
+	int FILTER_LENGTH = 151;
+	float* h_Filter = (float*)malloc(FILTER_LENGTH * sizeof(float));
+
+	// Create lowpass filter
+	int halfSize = (FILTER_LENGTH - 1) / 2;
+	double smoothing_FWHM = 150.0;
+	double sigma = smoothing_FWHM / 2.354 / (double)TR;
+	double sigma2 = 2.0 * sigma * sigma;
+
+	double u;
+	float sum = 0.0f;
+	for (int i = 0; i < FILTER_LENGTH; i++)
+	{
+		u = (double)(i - halfSize);
+		h_Filter[i] = (float)exp(-pow(u,2.0) / sigma2);
+		sum += h_Filter[i];
+	}
+
+	// Normalize
+	for (int i = 0; i < FILTER_LENGTH; i++)
+	{
+		h_Filter[i] /= sum;
+	}
+
+	// Convolve regressor with filter
+	for (int t = 0; t < (DATA_T * HIGHRES_FACTOR); t++)
+	{
+		h_LowpassFiltered_Regressor[t] = 0.0f;
+
+		// 1D convolution
+		//int offset = -(int)(((float)HRF_LENGTH - 1.0f)/2.0f);
+		int offset = -(int)(((float)FILTER_LENGTH - 1.0f)/2.0f);
+		for (int tt = FILTER_LENGTH - 1; tt >= 0; tt--)
+		{
+			if ( ((t + offset) >= 0) && ((t + offset) < (DATA_T * HIGHRES_FACTOR)) )
+			{
+				h_LowpassFiltered_Regressor[t] += h_Regressor[t + offset] * h_Filter[tt];
+			}
+			offset++;
+		}
+	}
+
+	free(h_Filter);
+}
+
+
 void ConvertFloat2ToFloats(float* Real, float* Imag, cl_float2* Complex, int DATA_W, int DATA_H, int DATA_D)
 {
     for (int z = 0; z < DATA_D; z++)
@@ -115,6 +164,24 @@ void AllocateMemory(float *& pointer, int size, void** pointers, int& Npointers,
 		exit(EXIT_FAILURE);        
     }
 }
+
+void AllocateMemoryInt(unsigned short int *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
+{
+    pointer = (unsigned short int*)malloc(size);
+    if (pointer != NULL)
+    {
+        pointers[Npointers] = (void*)pointer;
+        Npointers++;
+    }
+    else
+    {
+        printf("Could not allocate host memory for variable %s ! \n",variable);        
+		FreeAllMemory(pointers, Npointers);
+		FreeAllNiftiImages(niftiImages, Nimages);
+		exit(EXIT_FAILURE);        
+    }
+}
+
     
 void AllocateMemoryFloat2(cl_float2 *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
 {
@@ -259,16 +326,23 @@ int main(int argc, char **argv)
     
     float           *h_Filter_Directions_X, *h_Filter_Directions_Y, *h_Filter_Directions_Z;
     
+	float			*h_EPI_Mask;
     float           *h_Slice_Timing_Corrected_fMRI_Volumes;
     float           *h_Motion_Corrected_fMRI_Volumes;
     float           *h_Smoothed_fMRI_Volumes;    
     
-    float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressor;
-    
-	float			*h_Beta_Volumes_MNI, *h_Statistical_Maps_MNI, *h_P_Values_MNI;
-	float			*h_Beta_Volumes_EPI, *h_Statistical_Maps_EPI, *h_P_Values_EPI;
-    float           *h_AR1_Estimates_MNI, *h_AR2_Estimates_MNI, *h_AR3_Estimates_MNI, *h_AR4_Estimates_MNI;
+    float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressor, *h_LowpassFiltered_Regressor;
+    unsigned short int        *h_Permutation_Matrix;
+    float           *h_Permutation_Distribution;
+
+	float			*h_Beta_Volumes_EPI, *h_Contrast_Volumes_EPI, *h_Statistical_Maps_EPI, *h_P_Values_EPI;    
+	float			*h_Beta_Volumes_MNI, *h_Contrast_Volumes_MNI, *h_Statistical_Maps_MNI, *h_P_Values_MNI;
+
+	float			*h_Beta_Volumes_No_Whitening_EPI, *h_Contrast_Volumes_No_Whitening_EPI, *h_Statistical_Maps_No_Whitening_EPI;    
+	float			*h_Beta_Volumes_No_Whitening_MNI, *h_Contrast_Volumes_No_Whitening_MNI, *h_Statistical_Maps_No_Whitening_MNI;
+
     float           *h_AR1_Estimates_EPI, *h_AR2_Estimates_EPI, *h_AR3_Estimates_EPI, *h_AR4_Estimates_EPI;
+    float           *h_AR1_Estimates_MNI, *h_AR2_Estimates_MNI, *h_AR3_Estimates_MNI, *h_AR4_Estimates_MNI;
         
     int             EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
     int             T1_DATA_H, T1_DATA_W, T1_DATA_D;
@@ -289,11 +363,8 @@ int main(int argc, char **argv)
     //-----------------------
     // Output pointers
     
-    int             *h_Cluster_Indices_Out, *h_Cluster_Indices;
-    float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps;    
     float           *h_Design_Matrix, *h_Design_Matrix2;
     float           *h_Whitened_Models;
-    float           *h_EPI_Mask;
     
     //----------
     
@@ -327,21 +398,23 @@ int main(int argc, char **argv)
     
     int             USE_TEMPORAL_DERIVATIVES = 0;
     bool            PERMUTE = false;
-    int				NUMBER_OF_PERMUTATIONS = 10000;
+    int				NUMBER_OF_PERMUTATIONS = 1000;
+
     int				INFERENCE_MODE = 1;
     float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
     bool            BAYESIAN = false;
-    int             NUMBER_OF_ITERATIONS_FOR_MCMC = 1000;
+    int             NUMBER_OF_MCMC_ITERATIONS = 1000;
 	bool			MASK = false;
 	const char*		MASK_NAME;
     float			SIGNIFICANCE_LEVEL = 0.05f;
 	int				TEST_STATISTICS = 0;
     
     bool            WRITE_INTERPOLATED_T1 = false;
-    bool            WRITE_ALIGNED_T1_LINEAR = false;
-    bool            WRITE_ALIGNED_T1_NONLINEAR = false;
+    bool            WRITE_ALIGNED_T1_MNI_LINEAR = false;
+    bool            WRITE_ALIGNED_T1_MNI_NONLINEAR = false;
     bool            WRITE_ALIGNED_EPI_T1 = false;
     bool            WRITE_ALIGNED_EPI_MNI = false;
+	bool			WRITE_EPI_MASK = false;
     bool            WRITE_SLICETIMING_CORRECTED = false;
     bool            WRITE_MOTION_CORRECTED = false;
     bool            WRITE_SMOOTHED = false;
@@ -349,8 +422,10 @@ int main(int argc, char **argv)
     bool            WRITE_RESIDUALS = false;
     bool            WRITE_RESIDUALS_MNI = false;
     bool            WRITE_DESIGNMATRIX = false;
+	bool			WRITE_ORIGINAL_DESIGNMATRIX = false;
     bool            WRITE_AR_ESTIMATES_EPI = false;
     bool            WRITE_AR_ESTIMATES_MNI = false;
+	bool			WRITE_UNWHITENED_RESULTS = false;
     
     bool            PRINT = true;
     bool            VERBOS = false;
@@ -366,7 +441,7 @@ int main(int argc, char **argv)
     {   
 		printf("\nThe function performs first level analysis of one fMRI dataset. The processing includes registration between T1 and MNI, registration between fMRI and T1, slice timing correction, motion correction, smoothing and statistical analysis. \n\n");     
         printf("Usage:\n\n");
-        printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii regressors.txt contrasts.txt  [options]\n\n");
+        printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii regressors.txt contrasts.txt [options]\n\n");
         
         printf("OpenCL options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
@@ -378,10 +453,10 @@ int main(int argc, char **argv)
         printf(" -lowestscalet1             The lowest scale for the linear and non-linear registration of the T1 volume to MNI, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
-        printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
+        printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");
         printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
-        printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
+        printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n\n");        
         
         printf("Preprocessing options:\n\n");
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
@@ -391,8 +466,8 @@ int main(int argc, char **argv)
         printf(" -regressmotion             Include motion parameters in design matrix (default no) \n");
         printf(" -temporalderivatives       Use temporal derivatives for the activity regressors (default no) \n");
         printf(" -permute                   Apply a permutation test to get p-values (default no) \n");
-        printf(" -permutations              Number of permutations to use for permutation test (default 10,000) \n");
-        printf(" -inferencemode             Inference mode to use for permutation test, 0 = voxel, 1 = cluster extent, 2 = cluster mass (default 1) \n");
+        printf(" -permutations              Number of permutations to use for permutation test (default 1,000) \n");
+        printf(" -inferencemode             Inference mode to use for permutation test, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = TFCE (default 1) \n");
         printf(" -cdt                       Cluster defining threshold for cluster inference (default 2.5) \n");
         printf(" -bayesian                  Do Bayesian analysis using MCMC, currently only supports 2 regressors (default no) \n");
         printf(" -iterationsmcmc            Number of iterations for MCMC chains (default 1,000) \n");
@@ -404,15 +479,20 @@ int main(int argc, char **argv)
         printf(" -savet1alignednonlinear    Save T1 volume non-linearly aligned to the MNI volume (default no) \n");
         printf(" -saveepialignedt1          Save EPI volume aligned to the T1 volume (default no) \n");
         printf(" -saveepialignedmni         Save EPI volume aligned to the MNI volume (default no) \n");
+        printf(" -saveepimask               Save mask for fMRI data  (default no) \n");
         printf(" -saveslicetimingcorrected  Save slice timing corrected fMRI volumes  (default no) \n");
         printf(" -savemotioncorrected       Save motion corrected fMRI volumes (default no) \n");
         printf(" -savesmoothed              Save smoothed fMRI volumes (default no) \n");
         printf(" -saveactivityepi           Save activity maps in EPI space (in addition to MNI space, default no) \n");
         printf(" -saveresiduals             Save residuals after GLM analysis (default no) \n");
         printf(" -saveresidualsmni          Save residuals after GLM analysis, in MNI space (default no) \n");
+        printf(" -saveoriginaldesignmatrix  Save the original design matrix used (default no) \n");
         printf(" -savedesignmatrix          Save the total design matrix used (default no) \n");
         printf(" -savearparameters          Save the estimated AR coefficients (default no) \n");
         printf(" -savearparametersmni       Save the estimated AR coefficients, in MNI space (default no) \n");
+        printf(" -saveallaligned            Save all aligned volumes (T1-MNI linear, T1-MNI non-linear, EPI-T1, EPI-MNI) (default no) \n");
+        printf(" -saveallpreprocessed       Save all preprocessed fMRI data (slice timing corrected, motion corrected, smoothed) (default no) \n");
+        printf(" -saveunwhitenedresults     Save all statistical results without voxel-wise whitening (default no) \n");
         printf(" -saveall                   Save everything (default no) \n");
         printf(" -quiet                     Don't print anything to the terminal (default false) \n");
         printf(" -verbose                   Print extra stuff (default false) \n");
@@ -425,7 +505,7 @@ int main(int argc, char **argv)
     {
         printf("\nNeed fMRI data, T1 volume, MNI volume, regressors and contrasts!\n\n");
         printf("Usage:\n\n");
-        printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii regressors.txt contrasts.txt  [options]\n\n");
+        printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii regressors.txt contrasts.txt [options]\n\n");
 		return EXIT_FAILURE;
     }
     // Try to open all files
@@ -750,6 +830,28 @@ int main(int argc, char **argv)
             PERMUTE = true;
             i += 1;
         }
+        else if (strcmp(input,"-permutations") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -permutations !\n");
+                return EXIT_FAILURE;
+			}
+
+            NUMBER_OF_PERMUTATIONS = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Number of permutations must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (NUMBER_OF_PERMUTATIONS <= 0)
+            {
+                printf("Number of permutations must be > 0!\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
         else if (strcmp(input,"-inferencemode") == 0)
         {
             if ( (i+1) >= argc  )
@@ -765,9 +867,9 @@ int main(int argc, char **argv)
 		        printf("Inference mode must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-            else if ( (INFERENCE_MODE != 0) && (INFERENCE_MODE != 1) && (INFERENCE_MODE != 2) )
+            else if ( (INFERENCE_MODE != 0) && (INFERENCE_MODE != 1) && (INFERENCE_MODE != 2) && (INFERENCE_MODE != 3) )
             {
-                printf("Inference mode must be 0, 1 or 2 !\n");
+                printf("Inference mode must be 0, 1, 2 or 3 !\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -802,14 +904,14 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 			}
             
-            NUMBER_OF_ITERATIONS_FOR_MCMC = (int)strtol(argv[i+1], &p, 10);
+            NUMBER_OF_MCMC_ITERATIONS = (int)strtol(argv[i+1], &p, 10);
             
 			if (!isspace(*p) && *p != 0)
 		    {
 		        printf("Number of iterations for MCMC must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-            else if (NUMBER_OF_ITERATIONS_FOR_MCMC <= 0)
+            else if (NUMBER_OF_MCMC_ITERATIONS <= 0)
             {
                 printf("Number of iterations for MCMC must be > 0 !\n");
                 return EXIT_FAILURE;
@@ -837,12 +939,12 @@ int main(int argc, char **argv)
         }
         else if (strcmp(input,"-savet1alignedlinear") == 0)
         {
-            WRITE_ALIGNED_T1_LINEAR = true;
+            WRITE_ALIGNED_T1_MNI_LINEAR = true;
             i += 1;
         }
         else if (strcmp(input,"-savet1alignednonlinear") == 0)
         {
-            WRITE_ALIGNED_T1_NONLINEAR = true;
+            WRITE_ALIGNED_T1_MNI_NONLINEAR = true;
             i += 1;
         }
         else if (strcmp(input,"-saveepialignedt1") == 0)
@@ -853,6 +955,11 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-saveepialignedmni") == 0)
         {
             WRITE_ALIGNED_EPI_MNI = true;
+            i += 1;
+        }
+        else if (strcmp(input,"-saveepimask") == 0)
+        {
+            WRITE_EPI_MASK = true;
             i += 1;
         }
         else if (strcmp(input,"-saveslicetimingcorrected") == 0)
@@ -890,6 +997,11 @@ int main(int argc, char **argv)
             WRITE_DESIGNMATRIX = true;
             i += 1;
         }
+        else if (strcmp(input,"-saveoriginaldesignmatrix") == 0)
+        {
+            WRITE_ORIGINAL_DESIGNMATRIX = true;
+            i += 1;
+        }
         else if (strcmp(input,"-savearparameters") == 0)
         {
             WRITE_AR_ESTIMATES_EPI = true;
@@ -900,13 +1012,35 @@ int main(int argc, char **argv)
             WRITE_AR_ESTIMATES_MNI = true;
             i += 1;
         }
+        else if (strcmp(input,"-saveallaligned") == 0)
+        {
+            WRITE_INTERPOLATED_T1 = true;
+            WRITE_ALIGNED_T1_MNI_LINEAR = true;
+            WRITE_ALIGNED_T1_MNI_NONLINEAR = true;
+            WRITE_ALIGNED_EPI_T1 = true;
+            WRITE_ALIGNED_EPI_MNI = true;
+            i += 1;
+        }
+        else if (strcmp(input,"-saveallpreprocessed") == 0)
+        {
+            WRITE_SLICETIMING_CORRECTED = true;
+            WRITE_MOTION_CORRECTED = true;
+            WRITE_SMOOTHED = true;
+			i += 1;
+		}
+        else if (strcmp(input,"-saveunwhitenedresults") == 0)
+        {
+            WRITE_UNWHITENED_RESULTS = true;
+			i += 1;
+		}
         else if (strcmp(input,"-saveall") == 0)
         {
             WRITE_INTERPOLATED_T1 = true;
-            WRITE_ALIGNED_T1_LINEAR = true;
-            WRITE_ALIGNED_T1_NONLINEAR = true;
+            WRITE_ALIGNED_T1_MNI_LINEAR = true;
+            WRITE_ALIGNED_T1_MNI_NONLINEAR = true;
             WRITE_ALIGNED_EPI_T1 = true;
             WRITE_ALIGNED_EPI_MNI = true;
+			WRITE_EPI_MASK = true;
             WRITE_SLICETIMING_CORRECTED = true;
             WRITE_MOTION_CORRECTED = true;
             WRITE_SMOOTHED = true;
@@ -915,10 +1049,9 @@ int main(int argc, char **argv)
             WRITE_RESIDUALS_MNI = true;
             WRITE_AR_ESTIMATES_EPI = true;
             WRITE_AR_ESTIMATES_MNI = true;
+			WRITE_UNWHITENED_RESULTS = true;
             i += 1;
         }
-
- 
         else if (strcmp(input,"-quiet") == 0)
         {
             PRINT = false;
@@ -969,8 +1102,7 @@ int main(int argc, char **argv)
     if (tempString.compare(NR) != 0)
     {
         design.close();
-        printf("First element of the design file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
-        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+        printf("First element of the design file %s should be the string 'NumRegressors', but it is %s. Aborting! \n",argv[4],tempString.c_str());
         return EXIT_FAILURE;
     }
     design >> NUMBER_OF_GLM_REGRESSORS;
@@ -978,70 +1110,86 @@ int main(int argc, char **argv)
     if (NUMBER_OF_GLM_REGRESSORS <= 0)
     {
         design.close();
-        printf("Number of regressors must be > 0 ! You provided %i regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
+        printf("Number of regressors must be > 0 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
         return EXIT_FAILURE;
     }
     else if (NUMBER_OF_GLM_REGRESSORS > 25)
     {
         design.close();
-        printf("Number of regressors must be <= 25 ! You provided %i regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
+        printf("Number of regressors must be <= 25 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+        return EXIT_FAILURE;
+    }
+    else if ( BAYESIAN && (NUMBER_OF_GLM_REGRESSORS != 2) )
+    {
+        design.close();
+        printf("Number of regressors must currently be exactly 2 for Bayesian fMRI analysis! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
         return EXIT_FAILURE;
     }
     design.close();
     
     // Read contrasts
+   	std::ifstream contrasts;    
+
+	if (!BAYESIAN)
+	{
+	    contrasts.open(argv[5]);
     
-    std::ifstream contrasts;
-    contrasts.open(argv[5]);
+	    if (!contrasts.good())
+	    {
+	        contrasts.close();
+	        printf("Unable to open contrasts file %s. Aborting! \n",argv[5]);
+	        return EXIT_FAILURE;
+	    }
     
-    if (!contrasts.good())
-    {
-        contrasts.close();
-        printf("Unable to open contrasts file %s. Aborting! \n",argv[5]);
-        return EXIT_FAILURE;
-    }
+	    contrasts >> tempString; // NumRegressors as string
+	    if (tempString.compare(NR) != 0)
+	    {
+	        contrasts.close();
+	        printf("First element of the contrasts file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
+	        return EXIT_FAILURE;
+	    }
+	    contrasts >> tempNumber;
     
-    contrasts >> tempString; // NumRegressors as string
-    if (tempString.compare(NR) != 0)
-    {
-        contrasts.close();
-        printf("First element of the contrasts file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
-        return EXIT_FAILURE;
-    }
-    contrasts >> tempNumber;
+	    // Check for consistency
+	    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
+    	{
+	        contrasts.close();
+	        printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+	        return EXIT_FAILURE;
+	    }
     
-    // Check for consistency
-    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
-    {
-        contrasts.close();
-        printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
-        return EXIT_FAILURE;
-    }
-    
-    contrasts >> tempString; // NumContrasts as string
-    std::string NC("NumContrasts");
-    if (tempString.compare(NC) != 0)
-    {
-        contrasts.close();
-        printf("Third element of the contrasts file should be the string 'NumContrasts', but it is %s. Aborting! \n",tempString.c_str());
-        return EXIT_FAILURE;
-    }
-    contrasts >> NUMBER_OF_CONTRASTS;
-	
-    if (NUMBER_OF_CONTRASTS <= 0)
-    {
-        contrasts.close();
-        printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
-        return EXIT_FAILURE;
-    }
-    contrasts.close();
+	    contrasts >> tempString; // NumContrasts as string
+	    std::string NC("NumContrasts");
+	    if (tempString.compare(NC) != 0)
+	    {
+	        contrasts.close();
+	        printf("Third element of the contrasts file should be the string 'NumContrasts', but it is %s. Aborting! \n",tempString.c_str());
+	        return EXIT_FAILURE;
+	    }
+	    contrasts >> NUMBER_OF_CONTRASTS;
+		
+	    if (NUMBER_OF_CONTRASTS <= 0)
+	    {
+	        contrasts.close();
+    	    printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+	        return EXIT_FAILURE;
+	    }
+	    contrasts.close();
+	}
+	else if (BAYESIAN)
+	{
+		NUMBER_OF_CONTRASTS = 6;
+        printf("Warning: Your contrasts are not used for the Bayesian fMRI analysis. Since only 2 regressors are currently supported, all the 6 possible contrasts are always calculated\n");
+	}
     
     
 	//------------------------------------------
 
 	double startTime = GetWallTime();
-    
-    // Read data
+
+	// -----------------------    
+    // Read fMRI data
+	// -----------------------
 
 	nifti_image *inputfMRI = nifti_image_read(argv[1],1);
     
@@ -1052,6 +1200,10 @@ int main(int argc, char **argv)
     }
 	allNiftiImages[numberOfNiftiImages] = inputfMRI;
 	numberOfNiftiImages++;
+
+	// -----------------------    
+    // Read T1 volume
+	// -----------------------
 
 	nifti_image *inputT1 = nifti_image_read(argv[2],1);
     
@@ -1064,6 +1216,10 @@ int main(int argc, char **argv)
 	allNiftiImages[numberOfNiftiImages] = inputT1;
 	numberOfNiftiImages++;
 
+	// -----------------------    
+    // Read brain template
+	// -----------------------
+
 	nifti_image *inputMNI = nifti_image_read(argv[3],1);
     
     if (inputMNI == NULL)
@@ -1075,6 +1231,10 @@ int main(int argc, char **argv)
 	allNiftiImages[numberOfNiftiImages] = inputMNI;
 	numberOfNiftiImages++;
     
+	// -----------------------    
+    // Read mask
+	// -----------------------
+
     nifti_image *inputMask;
     if (MASK)
     {
@@ -1128,7 +1288,14 @@ int main(int argc, char **argv)
 
     // Calculate sizes, in bytes
     
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION; //NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	if (!BAYESIAN)
+	{
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION; //NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	}
+	else
+	{
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = 2;
+	}
     
     if (NUMBER_OF_TOTAL_GLM_REGRESSORS > 25)
     {
@@ -1174,24 +1341,27 @@ int main(int argc, char **argv)
     int STATISTICAL_MAPS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
     int RESIDUALS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
     
+	int PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int);
+	int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * sizeof(float);
+
     // Print some info
     if (PRINT)
     {
-        printf("Authored by K.A. Eklund \n");
-	    printf("fMRI data size : %i x %i x %i x %i \n", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-		printf("fMRI voxel size : %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
-		printf("fMRI TR  : %f s \n", TR);		
-    	printf("T1 data size : %i x %i x %i \n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
-		printf("T1 voxel size : %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);
-	    printf("MNI data size : %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-		printf("MNI voxel size : %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);
-	    printf("Number of GLM regressors : %i \n",  NUMBER_OF_GLM_REGRESSORS);
+        printf("\nAuthored by K.A. Eklund \n");
+	    printf("fMRI data size: %i x %i x %i x %i \n", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		printf("fMRI voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+		printf("fMRI TR: %f s \n", TR);		
+    	printf("T1 data size: %i x %i x %i \n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
+		printf("T1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);
+	    printf("MNI data size: %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+		printf("MNI voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);
+	    printf("Number of original GLM regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
 		if (REGRESS_CONFOUNDS)
 		{
-	    	printf("Number of confound regressors : %i \n",  NUMBER_OF_CONFOUND_REGRESSORS);
+	    	printf("Number of confound regressors: %i \n",  NUMBER_OF_CONFOUND_REGRESSORS);
 		}
-	    printf("Number of total GLM regressors : %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	    printf("Number of contrasts : %i \n",  NUMBER_OF_CONTRASTS);
+	    printf("Number of total GLM regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	    printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
     } 
     
     // ------------------------------------------------
@@ -1204,22 +1374,16 @@ int main(int argc, char **argv)
 	AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "T1_VOLUME");
 	AllocateMemory(h_MNI_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_VOLUME");
 	AllocateMemory(h_MNI_Brain_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_BRAIN_VOLUME");
-
-    //h_MNI_Brain_Mask                    = (float *)mxMalloc(MNI_DATA_SIZE);
-
-	//AllocateMemory(h_EPI_Mask, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "EPI_MASK");
-    
-    //h_Cluster_Indices                   = (int *)mxMalloc(EPI_VOLUME_SIZE_INT);
-   
+ 
     if (WRITE_INTERPOLATED_T1)
     {
         AllocateMemory(h_Interpolated_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "T1_INTERPOLATED");
     }
-    if (WRITE_ALIGNED_T1_LINEAR)
+    if (WRITE_ALIGNED_T1_MNI_LINEAR)
     {
         AllocateMemory(h_Aligned_T1_Volume_Linear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "ALIGNED_T1_LINEAR");
     }
-    if (WRITE_ALIGNED_T1_NONLINEAR)
+    if (WRITE_ALIGNED_T1_MNI_NONLINEAR)
     {
         AllocateMemory(h_Aligned_T1_Volume_NonLinear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "ALIGNED_T1_NONLINEAR");
     }
@@ -1265,6 +1429,10 @@ int main(int argc, char **argv)
    
 	AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MOTION_PARAMETERS");       
 
+	if (WRITE_EPI_MASK)
+	{
+		AllocateMemory(h_EPI_Mask, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "EPI_MASK");
+	}
 	if (WRITE_SLICETIMING_CORRECTED)
 	{
 		AllocateMemory(h_Slice_Timing_Corrected_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SLICETIMINGCORRECTED_fMRI_VOLUMES");
@@ -1279,12 +1447,28 @@ int main(int argc, char **argv)
 	}
 
     AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
+	AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
 	AllocateMemory(h_Statistical_Maps_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
     
+	if (WRITE_UNWHITENED_RESULTS)
+	{
+	    AllocateMemory(h_Beta_Volumes_No_Whitening_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
+		AllocateMemory(h_Contrast_Volumes_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
+		AllocateMemory(h_Statistical_Maps_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
+	}
+
     if (WRITE_ACTIVITY_EPI)
     {
         AllocateMemory(h_Beta_Volumes_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
+        AllocateMemory(h_Contrast_Volumes_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
         AllocateMemory(h_Statistical_Maps_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
+
+		if (WRITE_UNWHITENED_RESULTS)
+		{
+        	AllocateMemory(h_Beta_Volumes_No_Whitening_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
+	        AllocateMemory(h_Contrast_Volumes_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
+	        AllocateMemory(h_Statistical_Maps_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
+		}
 
 		if (PERMUTE)
 		{
@@ -1294,11 +1478,14 @@ int main(int argc, char **argv)
 
 	if (PERMUTE)
 	{
+		AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_MATRIX");
+		AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_DISTRIBUTION");             
 		AllocateMemory(h_P_Values_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_MNI");
 	}
     
     AllocateMemory(h_X_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DESIGN_MATRIX");
     AllocateMemory(h_Highres_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "HIGHRES_REGRESSOR");
+    AllocateMemory(h_LowpassFiltered_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "LOWPASSFILTERED_REGRESSOR");
     AllocateMemory(h_xtxxt_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DESIGN_MATRIX_INVERSE");
     AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRASTS");
     AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_SCALARS");
@@ -1366,7 +1553,7 @@ int main(int argc, char **argv)
         std::string NE("NumEvents");
         if (tempString.compare(NE) != 0)
         {
-            contrasts.close();
+            design.close();
             printf("First element of each regressor file should be the string 'NumEvents', but it is %s for the regressor file %s. Aborting! \n",tempString.c_str(),filename.c_str());
             FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
             FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
@@ -1387,9 +1574,35 @@ int main(int argc, char **argv)
             float value;
             
             // Read onset, duration and value for current event
-            regressor >> onset;
-            regressor >> duration;
-            regressor >> value;
+			if (! (regressor >> onset) )
+			{
+				regressor.close();
+                design.close();
+                printf("Unable to read the onset for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+                return EXIT_FAILURE;
+			}
+
+            if (! (regressor >> duration) )
+			{
+				regressor.close();
+                design.close();
+                printf("Unable to read the duration for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+                return EXIT_FAILURE;
+			}
+
+			if (! (regressor >> value) )
+			{
+				regressor.close();
+                design.close();
+                printf("Unable to read the value for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+                return EXIT_FAILURE;
+			}
         
 			if (DEBUG)
 			{
@@ -1413,44 +1626,55 @@ int main(int argc, char **argv)
                 }
                 else
                 {
+					regressor.close();
                     design.close();
-                    printf("The activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! \n",e,filename.c_str());
+                    printf("The activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! Check the regressor file .\n",e,filename.c_str());
                     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
                     FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
                     return EXIT_FAILURE;
                 }
             }            
         }
+
+        // Lowpass filter highres regressor
+		LowpassFilterRegressor(h_LowpassFiltered_Regressor,h_Highres_Regressor,EPI_DATA_T,HIGHRES_FACTOR,TR);
         
         // Downsample highres GLM and put values into regular GLM
-        // Should do some lowpass filtering first...
-        // Loop over TRs
         for (int t = 0; t < EPI_DATA_T; t++)
         {
-            h_X_GLM[t + r * EPI_DATA_T] = h_Highres_Regressor[t*HIGHRES_FACTOR];
+            h_X_GLM[t + r * EPI_DATA_T] = h_LowpassFiltered_Regressor[t*HIGHRES_FACTOR];
         }
-        
     }
     design.close();
     
-    // Open contrast file again
-    contrasts.open(argv[5]);
-
-    // Read first two values again
-	contrasts >> tempString; // NumRegressors as string
-    contrasts >> tempNumber;
-    contrasts >> tempString; // NumContrasts as string
-    contrasts >> tempNumber;
-   
-	// Read contrast values, should check for errors...
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	if (!BAYESIAN)
 	{
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+	    // Open contrast file again
+	    contrasts.open(argv[5]);
+
+	    // Read first two values again
+		contrasts >> tempString; // NumRegressors as string
+	    contrasts >> tempNumber;
+	    contrasts >> tempString; // NumContrasts as string
+	    contrasts >> tempNumber;
+   
+		// Read all contrast values
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
+				{
+				    contrasts.close();
+	                printf("Unable to read all the contrast values, aborting! Check the contrasts file. \n");
+	                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+	                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	                return EXIT_FAILURE;
+				}
+			}
 		}
+		contrasts.close();
 	}
-	contrasts.close();
 
 	endTime = GetWallTime();
 
@@ -1460,7 +1684,7 @@ int main(int argc, char **argv)
 	}
     
 	// Write original design matrix to file
-	if (DEBUG)
+	if (WRITE_ORIGINAL_DESIGNMATRIX)
 	{
 		std::ofstream designmatrix;
 	    designmatrix.open("original_designmatrix.txt");  
@@ -1480,7 +1704,7 @@ int main(int argc, char **argv)
 	    else
 	    {
 			designmatrix.close();
-	        printf("Could not open the file for writing the design matrix!\n");
+	        printf("Could not open the file for writing the original design matrix!\n");
 	    }
 	}
 
@@ -1493,6 +1717,15 @@ int main(int argc, char **argv)
     if ( inputfMRI->datatype == DT_SIGNED_SHORT )
     {
         short int *p = (short int*)inputfMRI->data;
+    
+        for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
+        {
+            h_fMRI_Volumes[i] = (float)p[i];
+        }
+    }
+    else if ( inputfMRI->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputfMRI->data;
     
         for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
         {
@@ -1526,6 +1759,15 @@ int main(int argc, char **argv)
             h_T1_Volume[i] = (float)p[i];
         }
     }
+    else if ( inputT1->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputT1->data;
+    
+        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        {
+            h_T1_Volume[i] = (float)p[i];
+        }
+    }
     else if ( inputT1->datatype == DT_FLOAT )
     {
         float *p = (float*)inputT1->data;
@@ -1547,6 +1789,15 @@ int main(int argc, char **argv)
     if ( inputMNI->datatype == DT_SIGNED_SHORT )
     {
         short int *p = (short int*)inputMNI->data;
+    
+        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        {
+            h_MNI_Brain_Volume[i] = (float)p[i];
+        }
+    }
+    else if ( inputMNI->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputMNI->data;
     
         for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         {
@@ -1725,33 +1976,36 @@ int main(int argc, char **argv)
         BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
 
 		BROCCOLI.SetSaveInterpolatedT1(WRITE_INTERPOLATED_T1);
-		BROCCOLI.SetSaveAlignedT1Linear(WRITE_ALIGNED_T1_LINEAR);
-		BROCCOLI.SetSaveAlignedT1NonLinear(WRITE_ALIGNED_T1_NONLINEAR);	
+		BROCCOLI.SetSaveAlignedT1MNILinear(WRITE_ALIGNED_T1_MNI_LINEAR);
+		BROCCOLI.SetSaveAlignedT1MNINonLinear(WRITE_ALIGNED_T1_MNI_NONLINEAR);	
 		BROCCOLI.SetSaveAlignedEPIT1(WRITE_ALIGNED_EPI_T1);	
 		BROCCOLI.SetSaveAlignedEPIMNI(WRITE_ALIGNED_EPI_MNI);	
+
+		BROCCOLI.SetSaveEPIMask(WRITE_EPI_MASK);
 		BROCCOLI.SetSaveSliceTimingCorrected(WRITE_SLICETIMING_CORRECTED);
 		BROCCOLI.SetSaveMotionCorrected(WRITE_MOTION_CORRECTED);
 		BROCCOLI.SetSaveSmoothed(WRITE_SMOOTHED);				
+
 		BROCCOLI.SetSaveActivityEPI(WRITE_ACTIVITY_EPI);
 		BROCCOLI.SetSaveDesignMatrix(WRITE_DESIGNMATRIX);
+		BROCCOLI.SetSaveAREstimatesEPI(WRITE_AR_ESTIMATES_EPI);
+		BROCCOLI.SetSaveAREstimatesMNI(WRITE_AR_ESTIMATES_MNI);
 
-		if (WRITE_SLICETIMING_CORRECTED)
-		{
-	        BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
-		}
-		if (WRITE_MOTION_CORRECTED)
-		{
-	        BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
-		}
-		if (WRITE_SMOOTHED)
-		{
-	        BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
-		}
+        BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
+        BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
+        BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
     
+		BROCCOLI.SetPermuteFirstLevel(PERMUTE);
+        BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
+		BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);      
+        BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
+
         BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
         BROCCOLI.SetRegressMotion(REGRESS_MOTION);
         BROCCOLI.SetRegressConfounds(REGRESS_CONFOUNDS);
         BROCCOLI.SetBetaSpace(BETA_SPACE);
+
+        BROCCOLI.SetNumberOfMCMCIterations(NUMBER_OF_MCMC_ITERATIONS);
     
         if (REGRESS_CONFOUNDS == 1)
         {
@@ -1764,6 +2018,10 @@ int main(int argc, char **argv)
         BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
         BROCCOLI.SetContrasts(h_Contrasts);
         BROCCOLI.SetGLMScalars(h_ctxtxc_GLM);
+
+        BROCCOLI.SetInferenceMode(INFERENCE_MODE);        
+        BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
+        BROCCOLI.SetSignificanceLevel(SIGNIFICANCE_LEVEL);		
     
         BROCCOLI.SetOutputT1MNIRegistrationParameters(h_T1_MNI_Registration_Parameters);
         BROCCOLI.SetOutputEPIT1RegistrationParameters(h_EPI_T1_Registration_Parameters);
@@ -1775,34 +2033,47 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputAlignedT1VolumeNonLinear(h_Aligned_T1_Volume_NonLinear);
         BROCCOLI.SetOutputAlignedEPIVolumeT1(h_Aligned_EPI_Volume_T1);
         BROCCOLI.SetOutputAlignedEPIVolumeMNI(h_Aligned_EPI_Volume_MNI);
+        BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
         BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
         BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
         BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
 
         BROCCOLI.SetOutputBetaVolumesEPI(h_Beta_Volumes_EPI);
+        BROCCOLI.SetOutputContrastVolumesEPI(h_Contrast_Volumes_EPI);
         BROCCOLI.SetOutputStatisticalMapsEPI(h_Statistical_Maps_EPI);
+        BROCCOLI.SetOutputPValuesEPI(h_P_Values_EPI);
+
+        BROCCOLI.SetOutputBetaVolumesNoWhiteningEPI(h_Beta_Volumes_No_Whitening_EPI);
+        BROCCOLI.SetOutputContrastVolumesNoWhiteningEPI(h_Contrast_Volumes_No_Whitening_EPI);
+        BROCCOLI.SetOutputStatisticalMapsNoWhiteningEPI(h_Statistical_Maps_No_Whitening_EPI);
 
         BROCCOLI.SetOutputBetaVolumesMNI(h_Beta_Volumes_MNI);
+        BROCCOLI.SetOutputContrastVolumesMNI(h_Contrast_Volumes_MNI);
         BROCCOLI.SetOutputStatisticalMapsMNI(h_Statistical_Maps_MNI);
+        BROCCOLI.SetOutputPValuesMNI(h_P_Values_MNI);
 
-        BROCCOLI.SetOutputResiduals(h_Residuals);
-        BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
-        BROCCOLI.SetOutputAREstimates(h_AR1_Estimates_EPI, h_AR2_Estimates_EPI, h_AR3_Estimates_EPI, h_AR4_Estimates_EPI);
+        BROCCOLI.SetOutputBetaVolumesNoWhiteningMNI(h_Beta_Volumes_No_Whitening_MNI);
+        BROCCOLI.SetOutputContrastVolumesNoWhiteningMNI(h_Contrast_Volumes_No_Whitening_MNI);
+        BROCCOLI.SetOutputStatisticalMapsNoWhiteningMNI(h_Statistical_Maps_No_Whitening_MNI);
+
+        //BROCCOLI.SetOutputResiduals(h_Residuals);
+        //BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
+        BROCCOLI.SetOutputAREstimatesEPI(h_AR1_Estimates_EPI, h_AR2_Estimates_EPI, h_AR3_Estimates_EPI, h_AR4_Estimates_EPI);
+        BROCCOLI.SetOutputAREstimatesMNI(h_AR1_Estimates_MNI, h_AR2_Estimates_MNI, h_AR3_Estimates_MNI, h_AR4_Estimates_MNI);
         BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
 		    
+		BROCCOLI.SetPrint(PRINT);
+
         BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
-
-        BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
-        BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
-
+        
 		startTime = GetWallTime();
-		if (!BAYESIAN)
+		if (BAYESIAN)
 		{
-        	BROCCOLI.PerformFirstLevelAnalysisWrapper();
+        	BROCCOLI.PerformFirstLevelAnalysisBayesianWrapper();	        
 		}
 		else
 		{
-			//BROCCOLI.PerformFirstLevelAnalysisBayesianWrapper();	        
+			BROCCOLI.PerformFirstLevelAnalysisWrapper();			
 		}
 		endTime = GetWallTime();
 
@@ -1831,6 +2102,23 @@ int main(int argc, char **argv)
             }
         } 
     }
+
+	// Print build info to file
+    fp = fopen("buildinfo.txt","w");
+    if (fp == NULL)
+    {     
+        printf("Could not open buildinfo.txt! \n");
+    }
+    if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
+    {
+        int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
+        if (error == EOF)
+        {
+            printf("Could not write to buildinfo.txt! \n");
+        }
+    }
+    fclose(fp);
+
     
     startTime = GetWallTime();
 
@@ -1873,11 +2161,11 @@ int main(int argc, char **argv)
 	{
     	WriteNifti(outputNiftiT1,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
-    if (WRITE_ALIGNED_T1_LINEAR)
+    if (WRITE_ALIGNED_T1_MNI_LINEAR)
 	{
     	WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_Linear,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
-    if (WRITE_ALIGNED_T1_NONLINEAR)
+    if (WRITE_ALIGNED_T1_MNI_NONLINEAR)
 	{
     	WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_NonLinear,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
@@ -1919,12 +2207,29 @@ int main(int argc, char **argv)
     	WriteNifti(outputNiftifMRI,h_Smoothed_fMRI_Volumes,"_smoothed",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
     
+    // Create new nifti image
+    nifti_image *outputNiftifMRISingleVolume = nifti_copy_nim_info(inputfMRI);
+    outputNiftifMRISingleVolume->nt = 1;
+    outputNiftifMRISingleVolume->dim[4] = 1;
+    outputNiftifMRISingleVolume->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
+    allNiftiImages[numberOfNiftiImages] = outputNiftifMRISingleVolume;
+	numberOfNiftiImages++;
+
+    if (WRITE_EPI_MASK)
+	{
+    	WriteNifti(outputNiftifMRISingleVolume,h_EPI_Mask,"_mask",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+
     //------------------------------------------
     // Write statistical results, MNI space
     //------------------------------------------
     
     std::string beta = "_beta";
+    std::string cope = "_cope";
     std::string tscores = "_tscores";
+    std::string betaNoWhitening = "_beta_no_whitening";
+    std::string copeNoWhitening = "_cope_no_whitening";
+    std::string tscoresNoWhitening = "_tscores_no_whitening";
     std::string pvalues = "_pvalues";
     std::string PPM = "_PPM";
     std::string mni = "_mni";
@@ -1936,9 +2241,9 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsMNI;
 	numberOfNiftiImages++;
     
-    // Write each beta weight as a separate file
     if (!BAYESIAN)
     {
+	    // Write each beta weight as a separate file
         for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
         {
             std::string temp = beta;
@@ -1949,6 +2254,17 @@ int main(int argc, char **argv)
             temp.append(mni);
             WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         }
+	    // Write each contrast volume as a separate file
+        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+        {
+            std::string temp = cope;
+            std::stringstream ss;
+            ss << "_contrast";
+            ss << i + 1;
+            temp.append(ss.str());
+            temp.append(mni);
+            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+        }  
         // Write each t-map as a separate file
         for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
         {
@@ -1960,6 +2276,45 @@ int main(int argc, char **argv)
             temp.append(mni);
             WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         }
+
+		// No whitening
+
+		if (WRITE_UNWHITENED_RESULTS)
+		{
+			// Write each beta weight as a separate file
+	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	        {
+	            std::string temp = betaNoWhitening;
+	            std::stringstream ss;
+	            ss << "_regressor";
+	            ss << i + 1;
+	            temp.append(ss.str());
+	            temp.append(mni);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        }
+		    // Write each contrast volume as a separate file
+	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	        {
+	            std::string temp = copeNoWhitening;
+	            std::stringstream ss;
+	            ss << "_contrast";
+	            ss << i + 1;
+	            temp.append(ss.str());
+	            temp.append(mni);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        }  
+    	    // Write each t-map as a separate file
+	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	        {
+	            std::string temp = tscoresNoWhitening;
+	            std::stringstream ss;
+	            ss << "_contrast";
+	            ss << i + 1;
+	            temp.append(ss.str());
+	            temp.append(mni);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        }
+		}
         if (PERMUTE)
         {
             // Write each p-map as a separate file
@@ -1977,6 +2332,17 @@ int main(int argc, char **argv)
     }
     else if (BAYESIAN)
     {
+	    // Write each beta weight as a separate file
+        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+        {
+            std::string temp = beta;
+            std::stringstream ss;
+            ss << "_regressor";
+            ss << i + 1;
+            temp.append(ss.str());
+            temp.append(mni);
+            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+        }
         // Write each PPM as a separate file
         for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
         {
@@ -1990,13 +2356,17 @@ int main(int argc, char **argv)
         }
     }
 
-    if (WRITE_AR_ESTIMATES_MNI)
+    if (WRITE_AR_ESTIMATES_MNI && !BAYESIAN)
     {
         WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsMNI,h_AR2_Estimates_MNI,"_ar2_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsMNI,h_AR3_Estimates_MNI,"_ar3_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsMNI,h_AR4_Estimates_MNI,"_ar4_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     }
+	else if (WRITE_AR_ESTIMATES_MNI && BAYESIAN)
+	{
+        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
 
     //------------------------------------------
     // Write statistical results, EPI space
@@ -2025,6 +2395,17 @@ int main(int argc, char **argv)
                 temp.append(epi);
                 WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
             }
+            // Write each contrast volume as a separate file
+            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+            {
+                std::string temp = cope;
+                std::stringstream ss;
+                ss << "_contrast";
+                ss << i + 1;
+                temp.append(ss.str());
+                temp.append(epi);
+                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+            }
             // Write each t-map as a separate file
             for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
             {
@@ -2036,6 +2417,46 @@ int main(int argc, char **argv)
                 temp.append(epi);
                 WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
             }
+
+			// No whitening
+
+			if (WRITE_UNWHITENED_RESULTS)
+			{
+				// Write each beta weight as a separate file
+    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	            {
+	                std::string temp = betaNoWhitening;
+	                std::stringstream ss;
+	                ss << "_regressor";
+					ss << i + 1;
+	                temp.append(ss.str());
+	                temp.append(epi);
+	                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            }
+	            // Write each contrast volume as a separate file
+	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	            {
+	                std::string temp = copeNoWhitening;
+	                std::stringstream ss;
+	                ss << "_contrast";
+	                ss << i + 1;
+	                temp.append(ss.str());
+	                temp.append(epi);
+	                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            }
+	            // Write each t-map as a separate file
+	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	            {
+	                std::string temp = tscoresNoWhitening;
+	                std::stringstream ss;
+	                ss << "_contrast";
+	                ss << i + 1;
+	                temp.append(ss.str());
+	                temp.append(epi);
+	                WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            }
+			}
+
             if (PERMUTE)
             {
                 // Write each p-map as a separate file
@@ -2053,6 +2474,17 @@ int main(int argc, char **argv)
         }
         else if (BAYESIAN)
         {
+            // Write each beta weight as a separate file
+            for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+            {
+                std::string temp = beta;
+                std::stringstream ss;
+                ss << "_regressor";
+				ss << i + 1;
+                temp.append(ss.str());
+                temp.append(epi);
+                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+            }
             // Write each PPM as a separate file
             for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
             {
@@ -2067,12 +2499,16 @@ int main(int argc, char **argv)
         }
     }
     
-    if (WRITE_AR_ESTIMATES_EPI)
+    if (WRITE_AR_ESTIMATES_EPI && !BAYESIAN)
     {
         WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsEPI,h_AR2_Estimates_EPI,"_ar2_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsEPI,h_AR3_Estimates_EPI,"_ar3_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNiftiStatisticsEPI,h_AR4_Estimates_EPI,"_ar4_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);	
+    }    
+    else if (WRITE_AR_ESTIMATES_EPI && BAYESIAN)
+    {
+        WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     }    
     
     endTime = GetWallTime();
@@ -2080,8 +2516,7 @@ int main(int argc, char **argv)
 	if (VERBOS)
  	{
 		printf("It took %f seconds to write the nifti files\n",(float)(endTime - startTime));
-	}
-    
+	}  
     
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
