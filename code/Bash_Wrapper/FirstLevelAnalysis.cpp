@@ -335,13 +335,16 @@ int main(int argc, char **argv)
     unsigned short int        *h_Permutation_Matrix;
     float           *h_Permutation_Distribution;
 
-	float			*h_Beta_Volumes_EPI, *h_Contrast_Volumes_EPI, *h_Statistical_Maps_EPI, *h_P_Values_EPI;    
+	float			*h_Beta_Volumes_EPI, *h_Contrast_Volumes_EPI, *h_Statistical_Maps_EPI, *h_P_Values_EPI;
+	float			*h_Beta_Volumes_T1, *h_Contrast_Volumes_T1, *h_Statistical_Maps_T1, *h_P_Values_T1;        
 	float			*h_Beta_Volumes_MNI, *h_Contrast_Volumes_MNI, *h_Statistical_Maps_MNI, *h_P_Values_MNI;
 
 	float			*h_Beta_Volumes_No_Whitening_EPI, *h_Contrast_Volumes_No_Whitening_EPI, *h_Statistical_Maps_No_Whitening_EPI;    
+	float			*h_Beta_Volumes_No_Whitening_T1, *h_Contrast_Volumes_No_Whitening_T1, *h_Statistical_Maps_No_Whitening_T1;    
 	float			*h_Beta_Volumes_No_Whitening_MNI, *h_Contrast_Volumes_No_Whitening_MNI, *h_Statistical_Maps_No_Whitening_MNI;
 
     float           *h_AR1_Estimates_EPI, *h_AR2_Estimates_EPI, *h_AR3_Estimates_EPI, *h_AR4_Estimates_EPI;
+    float           *h_AR1_Estimates_T1, *h_AR2_Estimates_T1, *h_AR3_Estimates_T1, *h_AR4_Estimates_T1;
     float           *h_AR1_Estimates_MNI, *h_AR2_Estimates_MNI, *h_AR3_Estimates_MNI, *h_AR4_Estimates_MNI;
         
     int             EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
@@ -419,11 +422,13 @@ int main(int argc, char **argv)
     bool            WRITE_MOTION_CORRECTED = false;
     bool            WRITE_SMOOTHED = false;
     bool            WRITE_ACTIVITY_EPI = false;
+    bool            WRITE_ACTIVITY_T1 = false;
     bool            WRITE_RESIDUALS = false;
     bool            WRITE_RESIDUALS_MNI = false;
     bool            WRITE_DESIGNMATRIX = false;
 	bool			WRITE_ORIGINAL_DESIGNMATRIX = false;
     bool            WRITE_AR_ESTIMATES_EPI = false;
+    bool            WRITE_AR_ESTIMATES_T1 = false;
     bool            WRITE_AR_ESTIMATES_MNI = false;
 	bool			WRITE_UNWHITENED_RESULTS = false;
     
@@ -484,11 +489,13 @@ int main(int argc, char **argv)
         printf(" -savemotioncorrected       Save motion corrected fMRI volumes (default no) \n");
         printf(" -savesmoothed              Save smoothed fMRI volumes (default no) \n");
         printf(" -saveactivityepi           Save activity maps in EPI space (in addition to MNI space, default no) \n");
+        printf(" -saveactivityt1            Save activity maps in T1 space (in addition to MNI space, default no) \n");
         printf(" -saveresiduals             Save residuals after GLM analysis (default no) \n");
         printf(" -saveresidualsmni          Save residuals after GLM analysis, in MNI space (default no) \n");
         printf(" -saveoriginaldesignmatrix  Save the original design matrix used (default no) \n");
         printf(" -savedesignmatrix          Save the total design matrix used (default no) \n");
         printf(" -savearparameters          Save the estimated AR coefficients (default no) \n");
+        printf(" -savearparameterst1        Save the estimated AR coefficients, in T1 space (default no) \n");
         printf(" -savearparametersmni       Save the estimated AR coefficients, in MNI space (default no) \n");
         printf(" -saveallaligned            Save all aligned volumes (T1-MNI linear, T1-MNI non-linear, EPI-T1, EPI-MNI) (default no) \n");
         printf(" -saveallpreprocessed       Save all preprocessed fMRI data (slice timing corrected, motion corrected, smoothed) (default no) \n");
@@ -982,6 +989,11 @@ int main(int argc, char **argv)
             WRITE_ACTIVITY_EPI = true;
             i += 1;
         }
+        else if (strcmp(input,"-saveactivityt1") == 0)
+        {
+            WRITE_ACTIVITY_T1 = true;
+            i += 1;
+        }
         else if (strcmp(input,"-saveresiduals") == 0)
         {
             WRITE_RESIDUALS = true;
@@ -1005,6 +1017,11 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-savearparameters") == 0)
         {
             WRITE_AR_ESTIMATES_EPI = true;
+            i += 1;
+        }
+        else if (strcmp(input,"-savearparameterst1") == 0)
+        {
+            WRITE_AR_ESTIMATES_T1 = true;
             i += 1;
         }
         else if (strcmp(input,"-savearparametersmni") == 0)
@@ -1269,14 +1286,14 @@ int main(int argc, char **argv)
     MNI_DATA_W = inputMNI->nx;
     MNI_DATA_H = inputMNI->ny;
     MNI_DATA_D = inputMNI->nz;    
+
+    // Get repetition time from input data
+    TR = inputfMRI->dt;
     
     // Get voxel sizes from input data
     EPI_VOXEL_SIZE_X = inputfMRI->dx;
     EPI_VOXEL_SIZE_Y = inputfMRI->dy;
     EPI_VOXEL_SIZE_Z = inputfMRI->dz;
-
-    // Get repetition time from input data
-    TR = inputfMRI->dt;
 
     T1_VOXEL_SIZE_X = inputT1->dx;
     T1_VOXEL_SIZE_Y = inputT1->dy;
@@ -1340,6 +1357,10 @@ int main(int argc, char **argv)
     int BETA_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
     int STATISTICAL_MAPS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
     int RESIDUALS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+
+    int BETA_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+    int STATISTICAL_MAPS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    int RESIDUALS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * EPI_DATA_T * sizeof(float);
     
 	int PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int);
 	int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * sizeof(float);
@@ -1476,6 +1497,26 @@ int main(int argc, char **argv)
 		}
     }        
 
+    if (WRITE_ACTIVITY_T1)
+    {
+        AllocateMemory(h_Beta_Volumes_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
+        AllocateMemory(h_Contrast_Volumes_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
+        AllocateMemory(h_Statistical_Maps_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
+
+		if (WRITE_UNWHITENED_RESULTS)
+		{
+        	AllocateMemory(h_Beta_Volumes_No_Whitening_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
+	        AllocateMemory(h_Contrast_Volumes_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
+	        AllocateMemory(h_Statistical_Maps_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
+		}
+
+		if (PERMUTE)
+		{
+			AllocateMemory(h_P_Values_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_T1");
+		}
+    }        
+
+
 	if (PERMUTE)
 	{
 		AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_MATRIX");
@@ -1503,6 +1544,14 @@ int main(int argc, char **argv)
         AllocateMemory(h_AR2_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR2_ESTIMATES_MNI");
         AllocateMemory(h_AR3_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR3_ESTIMATES_MNI");
         AllocateMemory(h_AR4_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR4_ESTIMATES_MNI");
+    }
+
+    if (WRITE_AR_ESTIMATES_T1)
+    {
+        AllocateMemory(h_AR1_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR1_ESTIMATES_T1");
+        AllocateMemory(h_AR2_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR2_ESTIMATES_T1");
+        AllocateMemory(h_AR3_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR3_ESTIMATES_T1");
+        AllocateMemory(h_AR4_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR4_ESTIMATES_T1");
     }
     
 	endTime = GetWallTime();
@@ -1987,8 +2036,10 @@ int main(int argc, char **argv)
 		BROCCOLI.SetSaveSmoothed(WRITE_SMOOTHED);				
 
 		BROCCOLI.SetSaveActivityEPI(WRITE_ACTIVITY_EPI);
+		BROCCOLI.SetSaveActivityT1(WRITE_ACTIVITY_T1);
 		BROCCOLI.SetSaveDesignMatrix(WRITE_DESIGNMATRIX);
 		BROCCOLI.SetSaveAREstimatesEPI(WRITE_AR_ESTIMATES_EPI);
+		BROCCOLI.SetSaveAREstimatesT1(WRITE_AR_ESTIMATES_T1);
 		BROCCOLI.SetSaveAREstimatesMNI(WRITE_AR_ESTIMATES_MNI);
 
         BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
@@ -2046,6 +2097,15 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputBetaVolumesNoWhiteningEPI(h_Beta_Volumes_No_Whitening_EPI);
         BROCCOLI.SetOutputContrastVolumesNoWhiteningEPI(h_Contrast_Volumes_No_Whitening_EPI);
         BROCCOLI.SetOutputStatisticalMapsNoWhiteningEPI(h_Statistical_Maps_No_Whitening_EPI);
+
+        BROCCOLI.SetOutputBetaVolumesT1(h_Beta_Volumes_T1);
+        BROCCOLI.SetOutputContrastVolumesT1(h_Contrast_Volumes_T1);
+        BROCCOLI.SetOutputStatisticalMapsT1(h_Statistical_Maps_T1);
+        BROCCOLI.SetOutputPValuesT1(h_P_Values_T1);
+
+        BROCCOLI.SetOutputBetaVolumesNoWhiteningT1(h_Beta_Volumes_No_Whitening_T1);
+        BROCCOLI.SetOutputContrastVolumesNoWhiteningT1(h_Contrast_Volumes_No_Whitening_T1);
+        BROCCOLI.SetOutputStatisticalMapsNoWhiteningT1(h_Statistical_Maps_No_Whitening_T1);
 
         BROCCOLI.SetOutputBetaVolumesMNI(h_Beta_Volumes_MNI);
         BROCCOLI.SetOutputContrastVolumesMNI(h_Contrast_Volumes_MNI);
@@ -2234,6 +2294,7 @@ int main(int argc, char **argv)
     std::string PPM = "_PPM";
     std::string mni = "_mni";
     std::string epi = "_epi";
+    std::string t1 = "_T1";
     
     // Create new nifti image
     nifti_image *outputNiftiStatisticsMNI = nifti_copy_nim_info(inputMNI);
@@ -2510,7 +2571,140 @@ int main(int argc, char **argv)
     {
         WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     }    
+
+
+    //------------------------------------------
+    // Write statistical results, T1 space
+    //------------------------------------------
     
+    // Create new nifti image
+    nifti_image *outputNiftiStatisticsT1 = nifti_copy_nim_info(inputT1);
+	nifti_set_filenames(outputNiftiStatisticsT1, inputfMRI->fname, DONT_CHECK_EXISTING_FILE, 1);
+    outputNiftiStatisticsT1->nt = 1;
+    outputNiftiStatisticsT1->dim[4] = 1;
+    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D;
+    allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsT1;
+    numberOfNiftiImages++;
+    
+    if (WRITE_ACTIVITY_T1)
+    {
+        if (!BAYESIAN)
+        {
+            // Write each beta weight as a separate file
+            for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+            {
+                std::string temp = beta;
+                std::stringstream ss;
+                ss << "_regressor";
+				ss << i + 1;
+                temp.append(ss.str());
+                temp.append(t1);
+                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+            }
+            // Write each contrast volume as a separate file
+            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+            {
+                std::string temp = cope;
+                std::stringstream ss;
+                ss << "_contrast";
+                ss << i + 1;
+                temp.append(ss.str());
+                temp.append(t1);
+                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+            }
+            // Write each t-map as a separate file
+            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+            {
+                std::string temp = tscores;
+                std::stringstream ss;
+                ss << "_contrast";
+                ss << i + 1;
+                temp.append(ss.str());
+                temp.append(t1);
+                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+            }
+
+			// No whitening
+
+			if (WRITE_UNWHITENED_RESULTS)
+			{
+				// Write each beta weight as a separate file
+    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	            {
+	                std::string temp = betaNoWhitening;
+	                std::stringstream ss;
+	                ss << "_regressor";
+					ss << i + 1;
+	                temp.append(ss.str());
+	                temp.append(t1);
+	                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            }
+	            // Write each contrast volume as a separate file
+	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	            {
+	                std::string temp = copeNoWhitening;
+	                std::stringstream ss;
+	                ss << "_contrast";
+	                ss << i + 1;
+	                temp.append(ss.str());
+	                temp.append(t1);
+	                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            }
+	            // Write each t-map as a separate file
+	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	            {
+	                std::string temp = tscoresNoWhitening;
+	                std::stringstream ss;
+	                ss << "_contrast";
+	                ss << i + 1;
+	                temp.append(ss.str());
+	                temp.append(t1);
+	                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            }
+			}
+
+            if (PERMUTE)
+            {
+                // Write each p-map as a separate file
+                for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+                {
+                    std::string temp = pvalues;
+                    std::stringstream ss;
+	                ss << "_contrast";
+                    ss << i + 1;
+                    temp.append(ss.str());
+                    temp.append(t1);
+                    WriteNifti(outputNiftiStatisticsT1,&h_P_Values_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+                }
+            }
+        }
+        else if (BAYESIAN)
+        {
+            // Write each beta weight as a separate file
+            for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+            {
+                std::string temp = beta;
+                std::stringstream ss;
+                ss << "_regressor";
+				ss << i + 1;
+                temp.append(ss.str());
+                temp.append(t1);
+                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+            }
+            // Write each PPM as a separate file
+            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+            {
+                std::string temp = PPM;
+                std::stringstream ss;
+                ss << "_contrast";
+                ss << i + 1;
+                temp.append(ss.str());
+                temp.append(t1);
+                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+            }
+        }
+    }
+   
     endTime = GetWallTime();
     
 	if (VERBOS)

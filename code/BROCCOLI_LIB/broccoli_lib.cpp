@@ -2971,6 +2971,11 @@ void BROCCOLI_LIB::SetSaveActivityEPI(bool value)
 	WRITE_ACTIVITY_EPI = value;
 }
 
+void BROCCOLI_LIB::SetSaveActivityT1(bool value)
+{
+	WRITE_ACTIVITY_T1 = value;
+}
+
 void BROCCOLI_LIB::SetSaveDesignMatrix(bool value)
 {
 	WRITE_DESIGNMATRIX = value;
@@ -2979,6 +2984,11 @@ void BROCCOLI_LIB::SetSaveDesignMatrix(bool value)
 void BROCCOLI_LIB::SetSaveAREstimatesEPI(bool value)
 {
 	WRITE_AR_ESTIMATES_EPI = value;
+}
+
+void BROCCOLI_LIB::SetSaveAREstimatesT1(bool value)
+{
+	WRITE_AR_ESTIMATES_T1 = value;
 }
 
 void BROCCOLI_LIB::SetSaveAREstimatesMNI(bool value)
@@ -3017,6 +3027,11 @@ void BROCCOLI_LIB::SetOutputBetaVolumesEPI(float* data)
 	h_Beta_Volumes_EPI = data;
 }
 
+void BROCCOLI_LIB::SetOutputBetaVolumesT1(float* data)
+{
+	h_Beta_Volumes_T1 = data;
+}
+
 void BROCCOLI_LIB::SetOutputBetaVolumesMNI(float* data)
 {
 	h_Beta_Volumes_MNI = data;
@@ -3025,6 +3040,11 @@ void BROCCOLI_LIB::SetOutputBetaVolumesMNI(float* data)
 void BROCCOLI_LIB::SetOutputBetaVolumesNoWhiteningEPI(float* data)
 {
 	h_Beta_Volumes_No_Whitening_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputBetaVolumesNoWhiteningT1(float* data)
+{
+	h_Beta_Volumes_No_Whitening_T1 = data;
 }
 
 void BROCCOLI_LIB::SetOutputBetaVolumesNoWhiteningMNI(float* data)
@@ -3037,6 +3057,11 @@ void BROCCOLI_LIB::SetOutputContrastVolumesEPI(float* data)
 	h_Contrast_Volumes_EPI = data;
 }
 
+void BROCCOLI_LIB::SetOutputContrastVolumesT1(float* data)
+{
+	h_Contrast_Volumes_T1 = data;
+}
+
 void BROCCOLI_LIB::SetOutputContrastVolumesMNI(float* data)
 {
 	h_Contrast_Volumes_MNI = data;
@@ -3045,6 +3070,11 @@ void BROCCOLI_LIB::SetOutputContrastVolumesMNI(float* data)
 void BROCCOLI_LIB::SetOutputContrastVolumesNoWhiteningEPI(float* data)
 {
 	h_Contrast_Volumes_No_Whitening_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputContrastVolumesNoWhiteningT1(float* data)
+{
+	h_Contrast_Volumes_No_Whitening_T1 = data;
 }
 
 void BROCCOLI_LIB::SetOutputContrastVolumesNoWhiteningMNI(float* data)
@@ -3057,6 +3087,11 @@ void BROCCOLI_LIB::SetOutputStatisticalMapsEPI(float* data)
 	h_Statistical_Maps_EPI = data;
 }
 
+void BROCCOLI_LIB::SetOutputStatisticalMapsT1(float* data)
+{
+	h_Statistical_Maps_T1 = data;
+}
+
 void BROCCOLI_LIB::SetOutputStatisticalMapsMNI(float* data)
 {
 	h_Statistical_Maps_MNI = data;
@@ -3065,6 +3100,11 @@ void BROCCOLI_LIB::SetOutputStatisticalMapsMNI(float* data)
 void BROCCOLI_LIB::SetOutputStatisticalMapsNoWhiteningEPI(float* data)
 {
 	h_Statistical_Maps_No_Whitening_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputStatisticalMapsNoWhiteningT1(float* data)
+{
+	h_Statistical_Maps_No_Whitening_T1 = data;
 }
 
 void BROCCOLI_LIB::SetOutputStatisticalMapsNoWhiteningMNI(float* data)
@@ -3085,6 +3125,11 @@ void BROCCOLI_LIB::SetOutputResidualVariances(float* data)
 void BROCCOLI_LIB::SetOutputPValuesEPI(float* data)
 {
 	h_P_Values_EPI = data;
+}
+
+void BROCCOLI_LIB::SetOutputPValuesT1(float* data)
+{
+	h_P_Values_T1 = data;
 }
 
 void BROCCOLI_LIB::SetOutputPValuesMNI(float* data)
@@ -3245,6 +3290,14 @@ void BROCCOLI_LIB::SetOutputAREstimatesEPI(float* ar1, float* ar2, float* ar3, f
 	h_AR2_Estimates_EPI = ar2;
 	h_AR3_Estimates_EPI = ar3;
 	h_AR4_Estimates_EPI = ar4;
+}
+
+void BROCCOLI_LIB::SetOutputAREstimatesT1(float* ar1, float* ar2, float* ar3, float* ar4)
+{
+	h_AR1_Estimates_T1 = ar1;
+	h_AR2_Estimates_T1 = ar2;
+	h_AR3_Estimates_T1 = ar3;
+	h_AR4_Estimates_T1 = ar4;
 }
 
 void BROCCOLI_LIB::SetOutputAREstimatesMNI(float* ar1, float* ar2, float* ar3, float* ar4)
@@ -6656,7 +6709,7 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1Wrapper()
 }
 
 
-// Not fully optimized
+// Not fully optimized, T1 is of MNI size
 void BROCCOLI_LIB::PerformRegistrationEPIT1()
 {
 	// Reset total registration parameters
@@ -6732,6 +6785,80 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1()
 	clReleaseMemObject(d_Skullstripped_T1_Tensor_Magnitude);
 }
 
+
+void BROCCOLI_LIB::PerformRegistrationEPIT1_()
+{
+	// Reset total registration parameters
+	for (int p = 0; p < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; p++)
+	{
+		h_Registration_Parameters_EPI_T1_Affine[p] = 0.0f;
+	}
+
+	// Make a segmentation of the EPI volume first
+	//SegmentEPIData(d_EPI_Volume);
+
+	// Interpolate EPI volume to T1 resolution and make sure it has the same size,
+	ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume_, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, INTERPOLATION_MODE);
+
+	cl_mem d_T1_EPI_Tensor_Magnitude = clCreateBuffer(context, CL_MEM_READ_WRITE, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Skullstripped_T1_Tensor_Magnitude = clCreateBuffer(context, CL_MEM_READ_WRITE, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+
+	CalculateTensorMagnitude(d_T1_EPI_Tensor_Magnitude, d_T1_EPI_Volume_, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+	CalculateTensorMagnitude(d_Skullstripped_T1_Tensor_Magnitude, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+
+	// Do the registration between EPI and skullstripped T1 with several scales, first translation
+	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Translation, h_Rotations, d_T1_EPI_Volume_, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, TRANSLATION, DO_OVERWRITE, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_T1_EPI_Tensor_Magnitude, h_Registration_Parameters_EPI_T1_Translation, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Affine,h_Registration_Parameters_EPI_T1_Translation);
+
+	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Rigid, h_Rotations, d_T1_EPI_Volume_, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_T1_EPI_Tensor_Magnitude, h_Registration_Parameters_EPI_T1_Rigid, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Affine,h_Registration_Parameters_EPI_T1_Rigid);
+
+	//AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Translation, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_Linear_IMAGE_REGISTRATION, TRANSLATION, DO_OVERWRITE, INTERPOLATION_MODE);
+	//AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Translation, h_Rotations, d_T1_EPI_Tensor_Magnitude, d_Skullstripped_T1_Tensor_Magnitude, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1/2, NUMBER_OF_ITERATIONS_FOR_Linear_IMAGE_REGISTRATION, TRANSLATION, DO_OVERWRITE, INTERPOLATION_MODE);
+
+	// Do the registration between EPI and skullstripped T1 with several scales, now rigid
+	//AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Rigid, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_Linear_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE, INTERPOLATION_MODE);
+
+	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Rigid, h_Rotations, d_T1_EPI_Tensor_Magnitude, d_Skullstripped_T1_Tensor_Magnitude, T1_DATA_W, T1_DATA_H, T1_DATA_D, 2, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, RIGID, DO_OVERWRITE, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_T1_EPI_Volume, h_Registration_Parameters_EPI_T1_Rigid, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Affine,h_Registration_Parameters_EPI_T1_Rigid);
+
+	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Rigid, h_Rotations, d_T1_EPI_Tensor_Magnitude, d_Skullstripped_T1_Tensor_Magnitude, T1_DATA_W, T1_DATA_H, T1_DATA_D, 2, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_T1_EPI_Volume, h_Registration_Parameters_EPI_T1_Rigid, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Affine,h_Registration_Parameters_EPI_T1_Rigid);
+
+
+	//ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE);
+	//TransformVolumesLinear(d_T1_EPI_Volume, h_Registration_Parameters_EPI_T1_Affine, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+	//AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Rigid, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1/2, NUMBER_OF_ITERATIONS_FOR_Linear_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
+
+	// Get translations
+	//h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Affine[0];
+	//h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Affine[1];
+	//h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Affine[2];
+
+	//AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Affine, h_Registration_Parameters_EPI_T1_Rigid, h_Registration_Parameters_EPI_T1_Translation);
+	//AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Affine, h_Registration_Parameters_EPI_T1_Translation, h_Registration_Parameters_EPI_T1_Rigid);
+
+	//TransformVolumesLinear(d_T1_EPI_Volume, h_Registration_Parameters_EPI_T1_Affine, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+
+
+//	h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Translation[0] + h_Registration_Parameters_EPI_T1_Rigid[0];
+//	h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Translation[1] + h_Registration_Parameters_EPI_T1_Rigid[1];
+//	h_Registration_Parameters_EPI_T1[2] = h_Registration_Parameters_EPI_T1_Translation[2] + h_Registration_Parameters_EPI_T1_Rigid[2];
+
+	// Get rotations
+//	h_Registration_Parameters_EPI_T1[3] = h_Rotations[0];
+//	h_Registration_Parameters_EPI_T1[4] = h_Rotations[1];
+//	h_Registration_Parameters_EPI_T1[5] = h_Rotations[2];
+
+	clReleaseMemObject(d_T1_EPI_Tensor_Magnitude);
+	clReleaseMemObject(d_Skullstripped_T1_Tensor_Magnitude);
+}
 
 
 
@@ -7257,7 +7384,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_Registration_Parameters_T1_MNI_Out[11] = h_Registration_Parameters_T1_MNI[11];
 
 	// Cleanup
-	clReleaseMemObject(d_T1_Volume);
 	clReleaseMemObject(d_MNI_Volume);
 	clReleaseMemObject(d_MNI_Brain_Volume);
 
@@ -7325,7 +7451,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	clReleaseMemObject(d_MNI_T1_Volume);
 	clReleaseMemObject(d_Skullstripped_T1_Volume);
-	clReleaseMemObject(d_EPI_Volume);
+
 	clReleaseMemObject(d_T1_EPI_Volume);
 
 	//------------------------
@@ -7483,7 +7609,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes,3);
 
-	// Copy data to host
+	// Copy data in EPI space to host
+
 	if (WRITE_ACTIVITY_EPI)
 	{
 		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_EPI, 0, NULL, NULL);
@@ -7491,6 +7618,68 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
 		//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 	}
+
+	if (WRITE_AR_ESTIMATES_EPI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
+	}
+
+	//------------------------------------------------
+	// Transform results to T1 space and copy to host
+	//------------------------------------------------
+
+	if (WRITE_ACTIVITY_T1)
+	{
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Transforming results to T1\n");
+		}
+
+		d_T1_EPI_Volume_ = clCreateBuffer(context, CL_MEM_READ_WRITE, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+		PerformRegistrationEPIT1_();
+		clReleaseMemObject(d_T1_EPI_Volume_);
+
+		// Allocate memory on device
+		d_Beta_Volumes_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, &createBufferErrorBetaVolumesT1);
+		d_Contrast_Volumes_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorContrastVolumesT1);
+		d_Statistical_Maps_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsT1);
+		//d_Residual_Variances_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, &createBufferErrorResidualVariancesT1);
+
+		if (WRITE_AR_ESTIMATES_T1)
+		{
+			d_AR1_Estimates_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesT1);
+			d_AR2_Estimates_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesT1);
+			d_AR3_Estimates_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesT1);
+			d_AR4_Estimates_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesT1);
+		}
+
+		TransformFirstLevelResultsToT1();
+
+		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_T1, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_T1, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_T1, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_T1, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_T1, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_T1, 0, NULL, NULL);
+		//clEnqueueReadBuffer(commandQueue, d_Residual_Variances_T1, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_Residual_Variances_T1, 0, NULL, NULL);
+
+		// Free memory
+		clReleaseMemObject(d_Beta_Volumes_T1);
+		clReleaseMemObject(d_Contrast_Volumes_T1);
+		clReleaseMemObject(d_Statistical_Maps_T1);
+		clReleaseMemObject(d_Residual_Variances_T1);
+
+		if (WRITE_AR_ESTIMATES_T1)
+		{
+			clReleaseMemObject(d_AR1_Estimates_T1);
+			clReleaseMemObject(d_AR2_Estimates_T1);
+			clReleaseMemObject(d_AR3_Estimates_T1);
+			clReleaseMemObject(d_AR4_Estimates_T1);
+		}
+	}
+	clReleaseMemObject(d_EPI_Volume);
+	clReleaseMemObject(d_T1_Volume);
+
 
 	//------------------------------------------------
 	// Transform results to MNI space and copy to host
@@ -7524,7 +7713,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances_MNI, 0, NULL, NULL);
 
 	if (WRITE_AR_ESTIMATES_MNI)
 	{
@@ -7534,13 +7723,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR4_Estimates_MNI, 0, NULL, NULL);
 	}
 
-	if (WRITE_AR_ESTIMATES_EPI)
-	{
-		clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
-	}
+
 
 	if (WRITE_UNWHITENED_RESULTS)
 	{
@@ -8339,6 +8522,42 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 		ChangeVolumesResolutionAndSize(d_AR4_Estimates_MNI, d_AR4_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
 		TransformVolumesLinear(d_AR4_Estimates_MNI, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
 		TransformVolumesNonLinear(d_AR4_Estimates_MNI, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+	}
+}
+
+// Transforms results from EPI space to T1 space
+void BROCCOLI_LIB::TransformFirstLevelResultsToT1()
+{
+	ChangeVolumesResolutionAndSize(d_Beta_Volumes_T1, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Beta_Volumes_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS, INTERPOLATION_MODE);
+
+	ChangeVolumesResolutionAndSize(d_Contrast_Volumes_T1, d_Contrast_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Contrast_Volumes_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+
+	ChangeVolumesResolutionAndSize(d_Statistical_Maps_T1, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Statistical_Maps_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+
+	//ChangeVolumesResolutionAndSize(d_Residual_Variances_T1, d_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+	//TransformVolumesLinear(d_Residual_Variances_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+
+	//MultiplyVolumes(d_Beta_Volumes_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_GLM_REGRESSORS);
+	//MultiplyVolumes(d_Contrast_Volumes_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
+	//MultiplyVolumes(d_Statistical_Maps_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
+	//MultiplyVolumes(d_Residual_Variances_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1);
+
+	if (WRITE_AR_ESTIMATES_T1)
+	{
+		ChangeVolumesResolutionAndSize(d_AR1_Estimates_T1, d_AR1_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR1_Estimates_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+
+		ChangeVolumesResolutionAndSize(d_AR2_Estimates_T1, d_AR2_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR2_Estimates_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+
+		ChangeVolumesResolutionAndSize(d_AR3_Estimates_T1, d_AR3_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR3_Estimates_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+
+		ChangeVolumesResolutionAndSize(d_AR4_Estimates_T1, d_AR4_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
+		TransformVolumesLinear(d_AR4_Estimates_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
 	}
 }
 
@@ -12583,7 +12802,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 
 		// Loop over contrasts
 		//for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-		{
+		//{
 			// Voxel distribution
 			if (INFERENCE_MODE == VOXEL)
 			{
@@ -12606,7 +12825,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 				//ClusterizeOpenCLTFCEPermutation(MAX_VALUE, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, maxActivation, delta);
 				//h_Permutation_Distribution[p + c * NUMBER_OF_PERMUTATIONS] = MAX_VALUE;
 			}
-		}
+		//}
 	}
 
 	// Loop over contrasts

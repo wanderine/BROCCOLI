@@ -220,20 +220,27 @@ class BROCCOLI_LIB
 
 		// Output statistics
 		void SetOutputBetaVolumesEPI(float* output);
+		void SetOutputBetaVolumesT1(float* output);
 		void SetOutputBetaVolumesMNI(float* output);
 		void SetOutputBetaVolumesNoWhiteningEPI(float* output);
+		void SetOutputBetaVolumesNoWhiteningT1(float* output);
 		void SetOutputBetaVolumesNoWhiteningMNI(float* output);
 		void SetOutputContrastVolumesEPI(float* output);
+		void SetOutputContrastVolumesT1(float* output);
 		void SetOutputContrastVolumesMNI(float* output);
 		void SetOutputContrastVolumesNoWhiteningEPI(float* output);
+		void SetOutputContrastVolumesNoWhiteningT1(float* output);
 		void SetOutputContrastVolumesNoWhiteningMNI(float* output);
 		void SetOutputStatisticalMapsEPI(float* output);
+		void SetOutputStatisticalMapsT1(float* output);
 		void SetOutputStatisticalMapsMNI(float* output);
 		void SetOutputStatisticalMapsNoWhiteningEPI(float* output);
+		void SetOutputStatisticalMapsNoWhiteningT1(float* output);
 		void SetOutputStatisticalMapsNoWhiteningMNI(float* output);
 		void SetOutputResiduals(float* output);
 		void SetOutputResidualVariances(float* output);
 		void SetOutputPValuesEPI(float* output);
+		void SetOutputPValuesT1(float* output);
 		void SetOutputPValuesMNI(float* output);
 		void SetOutputEPIMask(float*);
 		void SetOutputClusterIndices(int*);
@@ -270,6 +277,7 @@ class BROCCOLI_LIB
 		void SetOutputPermutedfMRIVolumes(float*);
 		void SetOutputPermutedFirstLevelResults(float*);
 		void SetOutputAREstimatesEPI(float*, float*, float*, float*);
+		void SetOutputAREstimatesT1(float*, float*, float*, float*);
 		void SetOutputAREstimatesMNI(float*, float*, float*, float*);
 		void SetOutputSliceSums(float*);
 		void SetOutputTopSlice(float*);
@@ -289,8 +297,10 @@ class BROCCOLI_LIB
 		void SetSaveMotionCorrected(bool);
 		void SetSaveSmoothed(bool);
 		void SetSaveActivityEPI(bool);
+		void SetSaveActivityT1(bool);
 		void SetSaveDesignMatrix(bool);
 		void SetSaveAREstimatesEPI(bool);
+		void SetSaveAREstimatesT1(bool);
 		void SetSaveAREstimatesMNI(bool);
 		void SetSaveUnwhitenedResults(bool);
 
@@ -418,6 +428,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 
 		void PerformRegistrationEPIT1();
+		void PerformRegistrationEPIT1_();
 		void PerformRegistrationT1MNI();
 		void PerformRegistrationT1MNINoSkullstrip();
 		void SegmentEPIData();
@@ -501,8 +512,10 @@ class BROCCOLI_LIB
 		void TransformVolumesLinear(cl_mem d_Volumes, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformVolumesNonLinear(cl_mem d_Volumes, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformFirstLevelResultsToMNI();
+		void TransformFirstLevelResultsToT1();
 		void TransformBayesianFirstLevelResultsToMNI();
 		void TransformPValuesToMNI();
+		void TransformPValuesToT1();
 
 		//------------------------------------------------
 		// Help functions
@@ -747,6 +760,11 @@ class BROCCOLI_LIB
 		cl_int createBufferErrorAMatrix, createBufferErrorHVector, createBufferErrorAMatrix2DValues, createBufferErrorAMatrix1DValues, createBufferErrorHVector2DValues, createBufferErrorHVector1DValues;
 		cl_int createBufferErrorQuadratureFilter1Real, createBufferErrorQuadratureFilter1Imag, createBufferErrorQuadratureFilter2Real, createBufferErrorQuadratureFilter2Imag, createBufferErrorQuadratureFilter3Real, createBufferErrorQuadratureFilter3Imag, createBufferErrorQuadratureFilter4Real, createBufferErrorQuadratureFilter4Imag, createBufferErrorQuadratureFilter5Real, createBufferErrorQuadratureFilter5Imag, createBufferErrorQuadratureFilter6Real, createBufferErrorQuadratureFilter6Imag;
 		cl_int createBufferErrorRegistrationParameters;
+		cl_int createBufferErrorBetaVolumesT1;
+		cl_int createBufferErrorContrastVolumesT1;
+		cl_int createBufferErrorStatisticalMapsT1;
+		cl_int createBufferErrorResidualVariancesT1;
+		cl_int createBufferErrorAREstimatesT1;
 		cl_int createBufferErrorBetaVolumesMNI;
 		cl_int createBufferErrorContrastVolumesMNI;
 		cl_int createBufferErrorStatisticalMapsMNI;
@@ -905,6 +923,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		// General variables
 		//------------------------------------------------
+
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;
 		bool DEBUG;
@@ -927,9 +946,12 @@ class BROCCOLI_LIB
 		bool WRITE_SMOOTHED;
 
 		bool WRITE_ACTIVITY_EPI;
+		bool WRITE_ACTIVITY_T1;
+
 		bool WRITE_DESIGNMATRIX;
 
 		bool WRITE_AR_ESTIMATES_EPI;
+		bool WRITE_AR_ESTIMATES_T1;
 		bool WRITE_AR_ESTIMATES_MNI;
 
 		bool WRITE_UNWHITENED_RESULTS;
@@ -940,13 +962,12 @@ class BROCCOLI_LIB
 		int CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D;
 
 		// Resolution variables
-		float EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
 		float TR;
+		float EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
 		float T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
 		float MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
 
 		double processing_times[20];
-
 
 		int SLICE_ORDER;
 
@@ -1094,17 +1115,18 @@ class BROCCOLI_LIB
 		float		*h_X_GLM_Out, *h_X_GLM_In, *h_X_GLM_Confounds, *h_xtxxt_GLM_In, *h_ctxtxc_GLM_In;
 		float		*h_X_GLM, *h_X_GLM_With_Temporal_Derivatives, *h_X_GLM_Convolved, *h_xtxxt_GLM, *h_xtxxt_GLM_Out, *h_ctxtxc_GLM;
 		float		*h_Censored_Timepoints, *h_Censored_Volumes;
-		float       *h_Beta_Volumes_MNI, *h_Beta_Volumes_EPI;
-		float       *h_Beta_Volumes_No_Whitening_MNI, *h_Beta_Volumes_No_Whitening_EPI;
-		float       *h_Contrast_Volumes_MNI, *h_Contrast_Volumes_EPI;
-		float       *h_Contrast_Volumes_No_Whitening_MNI, *h_Contrast_Volumes_No_Whitening_EPI;
-		float		*h_Statistical_Maps_MNI, *h_Statistical_Maps_EPI;
-		float		*h_Statistical_Maps_No_Whitening_MNI, *h_Statistical_Maps_No_Whitening_EPI;
-		float		*h_P_Values_MNI, *h_P_Values_EPI;
+		float       *h_Beta_Volumes_MNI, *h_Beta_Volumes_EPI, *h_Beta_Volumes_T1;
+		float       *h_Beta_Volumes_No_Whitening_MNI, *h_Beta_Volumes_No_Whitening_EPI, *h_Beta_Volumes_No_Whitening_T1;
+		float       *h_Contrast_Volumes_MNI, *h_Contrast_Volumes_EPI, *h_Contrast_Volumes_T1;
+		float       *h_Contrast_Volumes_No_Whitening_MNI, *h_Contrast_Volumes_No_Whitening_EPI, *h_Contrast_Volumes_No_Whitening_T1;
+		float		*h_Statistical_Maps_MNI, *h_Statistical_Maps_EPI, *h_Statistical_Maps_T1;
+		float		*h_Statistical_Maps_No_Whitening_MNI, *h_Statistical_Maps_No_Whitening_EPI, *h_Statistical_Maps_No_Whitening_T1;
+		float		*h_P_Values_MNI, *h_P_Values_EPI, *h_P_Values_T1;
 		float		*h_First_Level_Results;
 		float       *h_Residuals;
 		float       *h_Residual_Variances;
 		float		*h_AR1_Estimates_EPI, *h_AR2_Estimates_EPI, *h_AR3_Estimates_EPI, *h_AR4_Estimates_EPI;
+		float		*h_AR1_Estimates_T1, *h_AR2_Estimates_T1, *h_AR3_Estimates_T1, *h_AR4_Estimates_T1;
 		float		*h_AR1_Estimates_MNI, *h_AR2_Estimates_MNI, *h_AR3_Estimates_MNI, *h_AR4_Estimates_MNI;
 		int			*h_Cluster_Indices;
 		int 		*h_Largest_Cluster;
@@ -1170,7 +1192,7 @@ class BROCCOLI_LIB
 
 		// T1-MNI and EPI-T1 registration
 		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_MNI_Brain_Volume, d_MNI_T1_Volume, d_Interpolated_fMRI_Volume, d_Skullstripped_T1_Volume, d_MNI_Brain_Mask;
-		cl_mem		d_EPI_Volume, d_T1_EPI_Volume;
+		cl_mem		d_EPI_Volume, d_T1_EPI_Volume, d_T1_EPI_Volume_;
 
 		// Smoothing
 		cl_mem		d_Certainty;
@@ -1189,19 +1211,20 @@ class BROCCOLI_LIB
 
 		// Statistical analysis
 		cl_mem		d_First_Level_Results;
-		cl_mem		d_Beta_Volumes, d_Beta_Volumes_MNI;
-		cl_mem		d_Contrast_Volumes, d_Contrast_Volumes_MNI;
-		cl_mem		d_Statistical_Maps, d_Statistical_Maps_MNI;
+		cl_mem		d_Beta_Volumes, d_Beta_Volumes_T1, d_Beta_Volumes_MNI;
+		cl_mem		d_Contrast_Volumes, d_Contrast_Volumes_T1, d_Contrast_Volumes_MNI;
+		cl_mem		d_Statistical_Maps, d_Statistical_Maps_T1, d_Statistical_Maps_MNI;
 		cl_mem		c_Censor;
 		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrasts, c_ctxtxc_GLM;
 		cl_mem		d_Residuals;
-		cl_mem		d_Residual_Variances, d_Residual_Variances_MNI;
+		cl_mem		d_Residual_Variances, d_Residual_Variances_T1, d_Residual_Variances_MNI;
 		cl_mem		c_Censored_Timepoints, c_Censored_Volumes;
-		cl_mem		d_P_Values, d_P_Values_MNI;
+		cl_mem		d_P_Values, d_P_Values_T1, d_P_Values_MNI;
 		cl_mem		c_Permutation_Distribution;
 
 		// Paraneters for single subject permutations
 		cl_mem		d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates;
+		cl_mem		d_AR1_Estimates_T1, d_AR2_Estimates_T1, d_AR3_Estimates_T1, d_AR4_Estimates_T1;
 		cl_mem		d_AR1_Estimates_MNI, d_AR2_Estimates_MNI, d_AR3_Estimates_MNI, d_AR4_Estimates_MNI;
 
 		cl_mem		d_BOLD_Regressed_fMRI_Volumes;
