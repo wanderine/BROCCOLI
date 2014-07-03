@@ -7353,7 +7353,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	// Allocate memory on device
 	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
-	d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	//d_MNI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_MNI_Brain_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
@@ -7364,8 +7364,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	//clEnqueueWriteBuffer(commandQueue, d_MNI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Volume , 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
 	//clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
-
-
 
 	PerformRegistrationT1MNINoSkullstrip();
 	//PerformRegistrationT1MNI();
@@ -7384,18 +7382,12 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_Registration_Parameters_T1_MNI_Out[11] = h_Registration_Parameters_T1_MNI[11];
 
 	// Cleanup
-	clReleaseMemObject(d_MNI_Volume);
+	//clReleaseMemObject(d_MNI_Volume);
 	clReleaseMemObject(d_MNI_Brain_Volume);
-
-
-
 
 	//clReleaseMemObject(d_MNI_T1_Volume);
 	//clReleaseMemObject(d_Skullstripped_T1_Volume);
 	//clReleaseMemObject(d_MNI_Brain_Mask);
-
-
-
 
 	//------------------------
 	// fMRI-T1 registration
@@ -7427,6 +7419,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume_MNI, 0, NULL, NULL);
 	}
 
+	clReleaseMemObject(d_MNI_T1_Volume);
+	clReleaseMemObject(d_Skullstripped_T1_Volume);
+	clReleaseMemObject(d_T1_EPI_Volume);
+
 	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1[0];
 	h_Registration_Parameters_EPI_T1_Out[1] = h_Registration_Parameters_EPI_T1[1];
 	h_Registration_Parameters_EPI_T1_Out[2] = h_Registration_Parameters_EPI_T1[2];
@@ -7449,23 +7445,19 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_Registration_Parameters_EPI_MNI_Out[10] = h_Registration_Parameters_EPI_MNI[10];
 	h_Registration_Parameters_EPI_MNI_Out[11] = h_Registration_Parameters_EPI_MNI[11];
 
-	clReleaseMemObject(d_MNI_T1_Volume);
-	clReleaseMemObject(d_Skullstripped_T1_Volume);
+	//------------------------
 
-	clReleaseMemObject(d_T1_EPI_Volume);
+	// Allocate memory for fMRI volumes
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
 
 	//------------------------
 	// Slice timing correction
 	//------------------------
 
-	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
-
-	d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
-
-
-	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
-
+	//d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	//PerformSliceTimingCorrection();
 
 	if (WRITE_SLICETIMING_CORRECTED)
@@ -7484,9 +7476,12 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	d_Motion_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
+	PerformMotionCorrection(d_fMRI_Volumes);
 
-	PerformMotionCorrection();
+	//PerformMotionCorrection(d_Slice_Timing_Corrected_fMRI_Volumes);
+	//clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
 
+	// Copy motion parameters
 	for (int t = 0; t < EPI_DATA_T; t++)
 	{
 		for (int p = 0; p < 6; p++)
@@ -7519,6 +7514,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
 	}
 
+	// Now safe to free original data
+	clReleaseMemObject(d_fMRI_Volumes);
+
 	//------------------------
 	// Smoothing
 	//------------------------
@@ -7534,6 +7532,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	//PerformSmoothing(d_Smoothed_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
 	PerformSmoothingNormalized(d_Smoothed_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+	// Now safe to remove motion corrected volumes
+	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
 
 	if (WRITE_SMOOTHED)
 	{
@@ -7656,8 +7657,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			d_AR4_Estimates_T1 = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesT1);
 		}
 
+		// Apply transformation
 		TransformFirstLevelResultsToT1();
 
+		// Copy to host
 		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_T1, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_T1, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_T1, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_T1, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_T1, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_T1, 0, NULL, NULL);
@@ -7708,8 +7711,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	SetMemory(d_MNI_Brain_Mask, 1.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
 
+	// Apply transformations
 	TransformFirstLevelResultsToMNI();
 
+	// Copy to host
 	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
@@ -7722,7 +7727,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_AR3_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR3_Estimates_MNI, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR4_Estimates_MNI, 0, NULL, NULL);
 	}
-
 
 
 	if (WRITE_UNWHITENED_RESULTS)
@@ -7739,8 +7743,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 		}
 
+		// Apply transformations
 		TransformFirstLevelResultsToMNI();
 
+		// Copy to host
 		clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_No_Whitening_MNI, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_No_Whitening_MNI, 0, NULL, NULL);
 		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_No_Whitening_MNI, 0, NULL, NULL);
@@ -7782,7 +7788,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(unsigned short int), NULL, NULL);
 		c_Permutation_Distribution = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_PERMUTATIONS * sizeof(float), NULL, NULL);
 
-		ApplyPermutationTestFirstLevel(d_Smoothed_fMRI_Volumes);
+		ApplyPermutationTestFirstLevel(d_Smoothed_fMRI_Volumes); // Right now no smoothing in each permutation
 
 		// Calculate activity map without Cochrane-Orcutt
 		CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes,0);
@@ -7823,7 +7829,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	if (PERMUTE_FIRST_LEVEL)
 	{
 		d_P_Values_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
-
 		TransformPValuesToMNI();
 		clEnqueueReadBuffer(commandQueue, d_P_Values_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
 		clReleaseMemObject(d_P_Values_MNI);
@@ -7836,11 +7841,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_Total_Displacement_Field_Y);
 	clReleaseMemObject(d_Total_Displacement_Field_Z);
 
-
 	//free(h_Motion_Parameters);
-	clReleaseMemObject(d_fMRI_Volumes);
-	clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
-	clReleaseMemObject(d_Motion_Corrected_fMRI_Volumes);
 	clReleaseMemObject(d_Smoothed_fMRI_Volumes);
 
 	clReleaseMemObject(d_EPI_Mask);
@@ -8012,8 +8013,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisBayesianWrapper()
 
 	d_Motion_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
-
-	PerformMotionCorrection();
+	PerformMotionCorrection(d_fMRI_Volumes);
 
 	for (int t = 0; t < EPI_DATA_T; t++)
 	{
@@ -8993,16 +8993,16 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapperSeveralScales()
 
 
 // Performs motion correction of an fMRI dataset
-void BROCCOLI_LIB::PerformMotionCorrection()
+void BROCCOLI_LIB::PerformMotionCorrection(cl_mem d_Volumes)
 {
 	// Setup all parameters and allocate memory on device
 	AlignTwoVolumesLinearSetup(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Set the first volume as the reference volume
-	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Reference_Volume, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
+	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Reference_Volume, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 
 	// Copy the first volume to the corrected volumes
-	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Motion_Corrected_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
+	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Motion_Corrected_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 
 	// Translations
 	h_Motion_Parameters[0 * EPI_DATA_T] = 0.0f;
@@ -9018,12 +9018,12 @@ void BROCCOLI_LIB::PerformMotionCorrection()
 	for (int t = 1; t < EPI_DATA_T; t++)
 	{
 		// Set a new volume to be aligned
-		clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Aligned_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
+		clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Aligned_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 
 		// Also copy the same volume to an image (texture) to interpolate from
 		size_t origin[3] = {0, 0, 0};
 		size_t region[3] = {EPI_DATA_W, EPI_DATA_H, EPI_DATA_D};
-		clEnqueueCopyBufferToImage(commandQueue, d_fMRI_Volumes, d_Original_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), origin, region, 0, NULL, NULL);
+		clEnqueueCopyBufferToImage(commandQueue, d_Volumes, d_Original_Volume, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), origin, region, 0, NULL, NULL);
 
 		// Do rigid registration with only one scale
 		AlignTwoVolumesLinear(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION, RIGID, INTERPOLATION_MODE);
@@ -9958,7 +9958,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysis()
 	PerformRegistrationT1MNI();
 	PerformRegistrationEPIT1();
 	//PerformSliceTimingCorrection();
-	PerformMotionCorrection();
+	//PerformMotionCorrection();
 	//PerformSmoothing();
 	//PerformDetrending();
 	//CalculateStatisticalMapsGLMFirstLevel(d_Smoothed_fMRI_Volumes);

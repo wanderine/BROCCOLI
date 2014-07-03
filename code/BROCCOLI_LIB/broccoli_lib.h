@@ -434,7 +434,7 @@ class BROCCOLI_LIB
 		void SegmentEPIData();
 		void SegmentEPIData(cl_mem Volume);
 		void PerformSliceTimingCorrection();
-		void PerformMotionCorrection();
+		void PerformMotionCorrection(cl_mem Volumes);
 		void PerformFirstLevelAnalysis();
 
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);
