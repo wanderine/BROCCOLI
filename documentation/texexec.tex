@@ -1,0 +1,19 @@
+% format=english
+\definepapersize
+  [offset=0pt]
+\setuplayout
+  [backspace=0pt,
+    topspace=0pt,
+       width=middle,
+      height=middle,
+    location=middle,
+      header=0pt,
+      footer=0pt]
+\setuppagenumbering
+  [alternative=doublesided]
+\starttext
+\insertpages
+  [lic.pdf][width=0pt]
+\insertpages
+  [/papers/paper_1.pdf][width=0pt]
+\stoptext

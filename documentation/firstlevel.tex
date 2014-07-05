@@ -1,0 +1,86 @@
+\section{Introduction}
+
+BROCCOLI performs first level fMRI analysis using a single command. The analysis involves registering the anatomical volume to a brain template (using linear as well as non-linear registration), registering one fMRI volume to the anatomical volume, slice timing correction, motion correction, smoothing and statistical analysis. Contrary to other software packages, it is up to the user to decide which intermediate results to save. In its simplest form, a first level analysis can with the bash wrapper be performed as
+
+\begin{verbatim}
+./FirstLevelAnalysis fMRI.nii T1_brain.nii BrainTemplate.nii ... 
+  regressors.txt contrasts.txt 
+\end{verbatim}
+
+fMRI.nii is here the 4D fMRI data, T1\_brain.nii is the skullstripped anatomical volume of the subject and BrainTemplate.nii is for example the MNI template in the FSL software (without skull). Currently it is necessary that all the NIfTI files are stored in the same orientation (e.g. RPI). The orientation can for example be checked with the AFNI function 3dinfo, and the orientation can be changed using the function 3dresample (e.g. 3dresample -orient RPI -input volume.nii -prefix volume\_RPI.nii).
+
+regressors.txt is a text file that contains the number of regressors to use, and the filename of each regressor. It can for example look like
+
+\begin{verbatim}
+NumRegressors 3
+
+task1.txt
+task2.txt
+task3.txt
+\end{verbatim}
+
+Each task file needs to include the number of events, the start time of each event, the length of each event and the value for the regressor of each event (this format is very similar to the one used by the FSL software). A task file can for example look like
+
+\begin{verbatim}
+NumEvents 8
+
+47.532543       2.517515        1
+68.789386       2.950905        1
+93.547212       2.934332        1
+165.670213      3.584591        1
+190.078151      1.817203        1
+257.349564      2.584177        1
+280.457018      1.367038        1
+308.66593       2.084071        1
+\end{verbatim}
+
+contrasts.txt contains a list of all the contrasts for which BROCCOLI will calculate a volume with t-scores. An example is given by
+
+\begin{verbatim}
+NumRegressors 3
+NumContrasts 9
+
+1.0 0.0 0.0
+0.0 1.0 0.0
+0.0 0.0 1.0
+1.0 -1.0 0.0
+-1.0 1.0 0.0
+1.0 0.0 -1.0
+0.0 1.0 -1.0
+-1.0 0.0 1.0
+0.0 -1.0 1.0
+\end{verbatim}
+
+
+\section{Registration options}
+
+Several options can be used to control the image registration, see the chapter about image registration for further information.
+
+\section{Preprocessing options}
+
+There are currently two options for the preprocessing; the option -iterationsmc controls the number of iterations used for the motion correction (the default is 5) and the option -smoothing controls the amount of smoothing applied to each fMRI volume (the default is 6 mm). 
+
+\section{Statistical options}
+
+A number of statistical options are available to the user. The option \\-regressmotion adds the 6 estimated motion parameters (3 for translation and 3 for rotation) to the design matrix, to further suppress the effect of head motion. The option -temporalderivatives adds one additional regressor for each original regressor; the temporal derivative of each regressor. This makes it possible to adjust for a small time difference between the original regressor and the time series in each voxel. For both these options, the contrast vectors are automatically extended with zeros for these additional regressors.
+
+The option -permute results in that a permutation test is applied after the conventional first level analysis. In each permutation, a random reshuffling of the fMRI volumes is performed to create a new set of null data. The statistical analysis is performed in each permutation, to empirically estimate the null distribution. The option -inferencemode determines if voxel-wise or cluster-wise p-values should be calculated, and the option -cdt sets the initial (uncorrected) voxel-wise threshold applied to the statistical map to define the clusters. The default number of permutations is 1,000, and can be changed with the option -permutations.
+
+Bayesian first level analysis can be performed by using the option -bayesian.  Note that this option currently only works for 2 regressors. In each voxel, a Gibbs sampler is used to estimate the posterior probability of each contrast being larger than 0. The option -iterationsmcmc sets the number of MCMC iterations to be used (the default is 1,000).
+
+\section{Checking the results}
+
+To check the quality of the registrations, the option -saveallaligned can be used. This will save the anatomical (T1) volume interpolated and resized to match the brain template, the anatomical volume linearly aligned to the template, the anatomical volume non-linearly aligned to the template, the fMRI volume aligned to the anatomical volume and the fMRI volume aligned to the brain template. 
+
+To check the registration between the anatomical volume and the brain template, set one volume as the underlay (e.g. T1\_brain\_aligned\_linear.nii or T1\_brain\_aligned\_nonlinear.nii) and one as the overlay \\ (e.g. MNI152\_T1\_1mm\_brain.nii.gz). To check the registration between the fMRI volume and the anatomical volume, set the interpolated anatomical volume (e.g. T1\_brain\_interpolated.nii) as the underlay and the aligned fMRI volume (e.g. fMRI\_aligned\_t1.nii) as the overlay.
+
+The total design matrix being used by BROCCOLI can be saved to a text file by using the option -savedesignmatrix. This design matrix contains the original regressors (and their temporal derivatives, if -temporalderivatives is used) convolved with a hemodynamic response function, detrending regressors (mean, linear trend, quadratic trend, cubic trend) and motion regressors (if -regressmotion is used). The unconvolved regressors can be saved to a text file by using the option -saveoriginaldesignmatrix.
+
+
+
+
+
+
+
+
+

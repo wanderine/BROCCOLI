@@ -1,0 +1,140 @@
+\documentclass[11pt,a4paper,swedish]{book}
+\usepackage[latin1]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{myphdstyle}
+\usepackage{lmodern}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{color}
+\usepackage{rotating}
+\usepackage[]{subfigure}
+\usepackage[round]{natbib}
+\usepackage{fancyhdr,lastpage}
+%\usepackage{algpseudocode}
+
+\makeatletter
+\newcommand{\rmnum}[1]{\romannumeral #1}
+\newcommand{\Rmnum}[1]{\expandafter\@slowromancap\romannumeral #1@}
+\makeatother
+
+%%% Clear Header %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Clear Header Style on the Last Empty Odd pages
+\makeatletter
+\def\cleardoublepage{\clearpage\if@twoside \ifodd\c@page\else
+\hbox{}
+\thispagestyle{empty}     
+\newpage 
+\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+%\setcounter{page}{1}
+%\pagenumbering{roman}
+
+%\pagenumbering{roman}
+
+
+\thispagestyle{empty}
+\makeatletter
+\begin{center}
+  {\huge \textbf{BROCCOLI \\ - \\ Software for Fast fMRI Analysis \\ on Many-Core CPUs and GPUs}}\\[1 cm]
+  {\Large Anders Eklund}\\[1.5 cm]
+  {\Large 2014-07-04}\\[1.5 cm]
+\end{center}
+
+
+%\cleardoublepage
+%\newpage
+\renewcommand{\contentsname}{Table of Contents}
+\tableofcontents
+
+
+%\cleardoublepage
+%\newpage
+
+\pagenumbering{arabic}
+%\chapter{Introduction}
+%\label{sec:information}
+%\input{introduction.tex}
+
+
+%\cleardoublepage
+%\newpage
+\chapter{Introduction}
+\label{sec:intro}
+\input{introduction.tex}
+
+\cleardoublepage
+\newpage
+\chapter{First level analysis}
+\label{sec:firstlevel}
+\input{firstlevel.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Preprocessing of fMRI Data}
+%\label{sec:preprocessing}
+%\input{Preprocessing/preprocessing.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Phase Based Image Registration}
+%\label{sec:registration}
+%\input{Registration/registration.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Parametric fMRI Analysis}
+%\label{sec:parametric}
+%\input{Parametric/parametric.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Non-Parametric fMRI Analysis}
+%\label{sec:nonparametric}
+%\input{Nonparametric/nonparametric.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Non-Local fMRI Analysis}
+%\label{sec:nonlocal}
+%\input{Nonlocal/nonlocal.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Real-time fMRI Analysis}
+%\label{sec:realtime}
+%\input{Realtime/realtime.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Medical Image Processing on the GPU}
+%\label{sec:gpu}
+%\input{GPU/gpu.tex}
+
+
+\cleardoublepage
+\newpage
+%\chapter{Summary of Papers}
+%\label{sec:review}
+%\input{review.tex}
+
+\cleardoublepage
+\newpage
+%\chapter{Discussion}
+%\label{sec:discussion}
+%\input{discussion.tex}
+
+\cleardoublepage
+\newpage
+
+\bibliographystyle{abbrvnat}
+\bibliography{refs}
+
+\cleardoublepage
+
+\end{document}
+

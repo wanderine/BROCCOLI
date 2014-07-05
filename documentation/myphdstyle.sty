@@ -1,0 +1,158 @@
+%
+%  Package file with options making me feel better...
+%  Originally authored by Stefan Langemark)
+%  Modified by Ola Friman
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{myphdstyle}
+
+%\RequirePackage{times}
+\RequirePackage{parskip}
+\RequirePackage{geometry}
+%\RequirePackage{layout}
+\RequirePackage[latin1]{inputenc}
+\RequirePackage[T1]{fontenc}
+%\RequirePackage[swedish]{babel}
+\RequirePackage{fancyhdr}
+\RequirePackage[hang, bf, small]{caption}
+%
+%--------------------------------
+%    Paper layout
+%    (no room for margin notes)
+%--------------------------------
+%
+% paper=b5paper,
+\geometry{
+%  paperwidth = 165mm, paperheight = 240mm ,
+   paper = a4paper,
+  total = {125mm,210mm},
+%  marginparsep = 2mm,
+%  marginparwidth = 15mm,
+  includemp = false,
+  twosideshift = 10pt
+}
+\addtolength{\headheight}{2pt}
+
+%-------------------------------
+%    Header/Footer
+%-------------------------------
+
+\renewcommand{\headrulewidth}{0.4pt}
+\fancyhf{}
+\fancyhead[LO]{\bfseries\rightmark}
+\fancyhead[RE]{\bfseries\leftmark}
+\fancyhead[RO,LE]{\bfseries\thepage}
+\pagestyle{fancy}
+%\pagestyle{plain}
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \renewcommand{\headrulewidth}{0pt}
+}
+
+%
+%-------------------------------
+%  Redefining section styles
+%  to suit parskip > 0
+%-------------------------------
+%
+%\addtocounter{secnumdepth}{1}% Number subsubsections too
+%\addtocounter{tocdepth}{1}%    Include subsections in table of contents.
+
+\renewcommand\section{\@startsection%
+  {section}%
+  {1}%
+  {\z@}%
+  {-2.5ex \@plus -1ex \@minus -.2ex}%
+  {1.3ex \@plus.2ex}%
+  {\normalfont\Large\bfseries}%
+}
+\renewcommand\subsection{\@startsection%
+  {subsection}%
+  {2}%
+  {\z@}%
+  {-2.25ex\@plus -1ex \@minus -.2ex}%
+  {0.5ex \@plus .2ex}%
+  {\normalfont\large\bfseries}%
+}
+\renewcommand\subsubsection{\@startsection%
+  {subsubsection}%
+  {3}%
+  {\z@}%
+  {-2.25ex\@plus -1ex \@minus -.2ex}%
+  {0.1pt \@plus .2ex}%
+  {\normalfont\mdseries\large\itshape}%
+}
+%
+%-------------------------------------
+%  Redefine {chapter,section}mark to 
+%  remove ugly all-uppercase
+%-------------------------------------
+%
+\renewcommand{\chaptermark}[1]{\markboth{\chaptername\ \thechapter.\enspace #1}{
+}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\enspace #1}}
+%
+%
+\renewcommand\tableofcontents{%
+    \if@twocolumn
+      \@restonecoltrue\onecolumn
+    \else
+      \@restonecolfalse
+    \fi
+    \chapter*{\contentsname}%
+    \markboth{\contentsname}{\contentsname}%
+    \@starttoc{toc}%
+    \if@restonecol\twocolumn\fi
+    }
+\renewcommand\listoffigures{%
+    \if@twocolumn
+      \@restonecoltrue\onecolumn
+    \else
+      \@restonecolfalse
+    \fi
+    \chapter*{\listfigurename}%
+    \markboth{\listfigurename}{\listfigurename}%
+    \@starttoc{lof}%
+    \if@restonecol\twocolumn\fi
+    }
+\renewcommand\listoftables{%
+    \if@twocolumn
+      \@restonecoltrue\onecolumn
+    \else
+      \@restonecolfalse
+    \fi
+    \chapter*{\listtablename}%
+    \markboth{\listtablename}{\listtablename}%
+    \@starttoc{lot}%
+    \if@restonecol\twocolumn\fi
+    }
+%
+%-------------------------------------------
+%  Chapter (stolen from Kluwer book style)
+%-------------------------------------------
+%
+\font\chapnumber=cmbx10 at 50pt                  %% chapter number
+%\font\chaptitle=cmbx10 scaled\magstep3           %% chapter title
+\font\chaptitle=cmbx10 at 20pt           %% chapter title
+
+\def\bigraggedleft{\leftskip0pt plus1fil\relax}
+
+\def\@makechapterhead#1{%\null\vskip-5pc
+\vbox to 14pc{\hbox to\textwidth{\hfill\chapnumber\thechapter}
+\hyphenpenalty=10000 % No hyphenation in chapter heads
+\vskip8pt
+\hrule height 1.5pt
+\vskip12pt\vskip-\parskip
+\def\\ {\vskip-\parskip}\parfillskip=0pt
+\bigraggedleft
+\LARGE\chaptitle{\def\\ {\vskip-\parskip}#1}\vskip1sp
+\vfill}
+}
+
+\def\@makeschapterhead#1{\vbox to 7.5pc{
+\hrule height 1.5pt
+\hyphenpenalty=10000 % No hyphenation in chapter heads
+\vskip12pt\vskip-\parskip
+\def\\ {\vskip-\parskip}\parfillskip=0pt
+\LARGE\bigraggedleft
+\chaptitle{#1}\vskip1sp\vfill}}

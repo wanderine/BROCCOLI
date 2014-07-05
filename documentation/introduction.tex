@@ -1,0 +1,237 @@
+\section{Introduction}
+
+BROCCOLI is a software mainly created for analysis of functional magnetic resonance imaging (fMRI) data. The major advantage of BROCCOLI, compared to other software packages, is that it is much faster. The main reason for this is that BROCCOLI is written in OpenCL (Open Computing Language), making it possible to run the analysis in parallel on a large variety of hardware platforms (such as CPUs, Nvidia GPUs and AMD GPUs). 
+
+\section{Downloading BROCCOLI}
+
+BROCCOLI is available as open source at https://github.com/wanderine/BROCCOLI/. For Linux and Mac computers, the following git command can be used to download BROCCOLI into the folder BROCCOLI. 
+
+\begin{verbatim}
+git clone https://github.com/wanderine/BROCCOLI.git BROCCOLI
+\end{verbatim}
+
+For Windows computers, see https://windows.github.com/ or download BROCCOLI as a zip file from github. 
+
+\section{Installing OpenCL}
+
+BROCCOLI requires that at least one OpenCL driver is installed. All hardware platforms (e.g. Intel, AMD and Nvidia) require a specific OpenCL driver. It is possible to install several OpenCL drivers on a single machine.
+
+Intel drivers are currently located at \\ https://software.intel.com/en-us/articles/opencl-drivers. 
+
+AMD drivers can be found at http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-tools-sdks/amd-accelerated-parallel-processing-app-sdk/. 
+
+Nvidia drivers can be found at http://www.nvidia.com/Download/index.aspx. Note that a driver for an Nvidia graphics cards includes an OpenCL driver. 
+
+\section{Compiling the BROCCOLI library}
+
+BROCCOLI is written as a C++/OpenCL library, such that it can be linked to a number of softwares. To compile the BROCCOLI library on a Linux or a Mac computer, the following command
+can be used from the folder BROCCOLI/code/BROCCOLI\_LIB (where BROCCOLI denotes where you saved BROCCOLI from github).
+
+\begin{verbatim}
+ ./compile_broccoli_library.sh 
+\end{verbatim}
+
+Note that you may need to edit compile\_broccoli\_library.sh to point to a directory which contains opencl.h.
+
+On Windows computers, the BROCCOLI library can for example be compiled using Microsoft Visual Studio. Visual Studio project files are available in BROCCOLI/code/BROCCOLI\_LIB. 
+
+\section{Compiling the bash wrappers}
+
+It is possible to run BROCCOLI in a number of ways, for example from a Matlab terminal or from a Python terminal. The fMRI software packages AFNI and FSL can be launched from a Linux terminal, and BROCCOLI includes a bash wrapper for this purpose. The bash wrapper functions first need to be compiled, and the following command can be used from the folder BROCCOLI/code/Bash\_Wrapper
+
+\begin{verbatim}
+ ./compile_wrappers.sh 
+\end{verbatim}
+
+Since BROCCOLI uses the NIfTI library to read NIfTI files, it may be necessary to first compile the NIfTI library, by running Make in the folder BROCCOLI/code/Bash\_Wrapper/nifticlib-2.0.0.
+
+
+\section{Checking the OpenCL drivers}
+
+To check the installation of the OpenCL driver(s), the function GetOpenCLInfo can be used. It lists all the available devices for each OpenCL platform. The following output is from a computer with three OpenCL drivers (Intel, AMD, Nvidia) and one Intel CPU (with 32 GB of memory), one AMD graphics card (3 GB of memory) and one Nvidia graphics card (6 GB of memory). For each bash function, it is easy to select which platform and which device to use. Note that the Intel CPU can be used with the Intel platform or the AMD platform. 
+
+\begin{verbatim}
+
+[andek@d1l-a10003 Bash_Wrapper]$ ./GetOpenCLInfo 
+Device info 
+ 
+---------------------------------------------
+Platform number: 0
+---------------------------------------------
+Platform vendor: Intel(R) Corporation
+Platform name: Intel(R) OpenCL
+Platform extentions: cl_khr_fp64 cl_khr_icd cl_khr_global_int32_base_atomics 
+cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics 
+cl_khr_local_int32_extended_atomics cl_khr_byte_addressable_store 
+cl_intel_printf cl_ext_device_fission cl_intel_exec_by_local_thread 
+Platform profile: FULL_PROFILE
+---------------------------------------------
+
+---------------------------------------------
+Device number: 0
+---------------------------------------------
+Device vendor: Intel(R) Corporation
+Device name:        Intel(R) Core(TM) i7-3770K CPU @ 3.50GHz
+Hardware version: OpenCL 1.2 (Build 67279)
+Software version: 1.2
+OpenCL C version: OpenCL C 1.2 
+Device extensions: cl_khr_fp64 cl_khr_icd cl_khr_global_int32_base_atomics 
+cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics 
+cl_khr_local_int32_extended_atomics cl_khr_byte_addressable_store 
+cl_intel_printf cl_ext_device_fission cl_intel_exec_by_local_thread 
+Global memory size in MB: 32071
+Global memory cache size in KB: 256
+Local memory size in KB: 32
+Constant memory size in KB: 128
+Parallel compute units: 8
+Clock frequency in MHz: 3500
+Max number of threads per block: 1024
+Max number of threads in each dimension: 1024 1024 1024
+
+---------------------------------------------
+Platform number: 1
+---------------------------------------------
+Platform vendor: Advanced Micro Devices, Inc.
+Platform name: AMD Accelerated Parallel Processing
+Platform extentions: cl_khr_icd cl_amd_event_callback cl_amd_offline_devices
+Platform profile: FULL_PROFILE
+---------------------------------------------
+
+---------------------------------------------
+Device number: 0
+---------------------------------------------
+Device vendor: Advanced Micro Devices, Inc.
+Device name: Tahiti
+Hardware version: OpenCL 1.2 AMD-APP (1214.3)
+Software version: 1214.3 (VM)
+OpenCL C version: OpenCL C 1.2 
+Device extensions: cl_khr_fp64 cl_amd_fp64 cl_khr_global_int32_base_atomics 
+cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics 
+cl_khr_local_int32_extended_atomics cl_khr_int64_base_atomics 
+cl_khr_int64_extended_atomics cl_khr_3d_image_writes 
+cl_khr_byte_addressable_store cl_khr_gl_sharing cl_ext_atomic_counters_32 
+cl_amd_device_attribute_query cl_amd_vec3 cl_amd_printf 
+cl_amd_media_ops cl_amd_media_ops2 cl_amd_popcnt cl_khr_image2d_from_buffer 
+Global memory size in MB: 3035
+Global memory cache size in KB: 16
+Local memory size in KB: 32
+Constant memory size in KB: 64
+Parallel compute units: 32
+Clock frequency in MHz: 1000
+Max number of threads per block: 256
+Max number of threads in each dimension: 256 256 256
+
+---------------------------------------------
+Device number: 1
+---------------------------------------------
+Device vendor: GenuineIntel
+Device name: Intel(R) Core(TM) i7-3770K CPU @ 3.50GHz
+Hardware version: OpenCL 1.2 AMD-APP (1214.3)
+Software version: 1214.3 (sse2,avx)
+OpenCL C version: OpenCL C 1.2 
+Device extensions: cl_khr_fp64 cl_amd_fp64 cl_khr_global_int32_base_atomics 
+cl_khr_global_int32_extended_atomics cl_khr_local_int32_base_atomics 
+cl_khr_local_int32_extended_atomics cl_khr_int64_base_atomics 
+cl_khr_int64_extended_atomics cl_khr_3d_image_writes 
+cl_khr_byte_addressable_store cl_khr_gl_sharing cl_ext_device_fission 
+cl_amd_device_attribute_query cl_amd_vec3 cl_amd_printf cl_amd_media_ops 
+cl_amd_media_ops2 cl_amd_popcnt 
+Global memory size in MB: 32071
+Global memory cache size in KB: 32
+Local memory size in KB: 32
+Constant memory size in KB: 64
+Parallel compute units: 8
+Clock frequency in MHz: 1600
+Max number of threads per block: 1024
+Max number of threads in each dimension: 1024 1024 1024
+
+---------------------------------------------
+Platform number: 2
+---------------------------------------------
+Platform vendor: NVIDIA Corporation
+Platform name: NVIDIA CUDA
+Platform extentions: cl_khr_byte_addressable_store cl_khr_icd 
+cl_khr_gl_sharing cl_nv_compiler_options cl_nv_device_attribute_query 
+cl_nv_pragma_unroll 
+Platform profile: FULL_PROFILE
+---------------------------------------------
+
+---------------------------------------------
+Device number: 0
+---------------------------------------------
+Device vendor: NVIDIA Corporation
+Device name: GeForce GTX TITAN
+Hardware version: OpenCL 1.1 CUDA
+Software version: 331.67
+OpenCL C version: OpenCL C 1.1 
+Device extensions: cl_khr_byte_addressable_store cl_khr_icd cl_khr_gl_sharing 
+cl_nv_compiler_options cl_nv_device_attribute_query cl_nv_pragma_unroll  
+cl_khr_global_int32_base_atomics cl_khr_global_int32_extended_atomics 
+cl_khr_local_int32_base_atomics cl_khr_local_int32_extended_atomics cl_khr_fp64 
+Global memory size in MB: 6143
+Global memory cache size in KB: 224
+Local memory size in KB: 48
+Constant memory size in KB: 64
+Parallel compute units: 14
+Clock frequency in MHz: 875
+Max number of threads per block: 1024
+Max number of threads in each dimension: 1024 1024 64
+
+\end{verbatim}
+
+\section{Selecting the OpenCL platform and device}
+
+As mentioned previously, it is easy to select which OpenCL platform and device to use for each BROCCOLI function (the default platform and device is 0). For each bash function, the option -platform sets the OpenCL platform to use, and the option -device sets the device to use. The first level analysis can, for example, be performed using platform 1 and device 1 by using the command
+
+\begin{verbatim}
+./FirstLevelAnalysis fMRI.nii T1.nii BrainTemplate.nii ...
+ regressors.txt contrasts.txt -platform 1 -device 1
+\end{verbatim}
+	
+For the test computer used in the introduction, this means that the analysis runs on the Intel CPU using the AMD platform. By changing the device to 0, the AMD graphics card will instead be used. 
+
+\section{Compiling the OpenCL kernel code}
+
+The file broccoli\_lib\_kernel.cpp contains all the OpenCL code that runs on the selected device. The first time BROCCOLI uses a specific device, it has to compile all the OpenCL code to a form that can be used by the device. For this reason, the first function call will take more time. The compiled code will however be saved as a binary file, such that BROCCOLI can simply read the compiled code for all subsequent function calls. For our specific test computer, BROCCOLI will produce the following binary files
+
+\begin{verbatim}
+broccoli_lib_kernel_Intel_Intel(R)Core(TM)i7-3770KCPU@3.50GHz.bin
+broccoli_lib_kernel_AMD_Intel(R)Core(TM)i7-3770KCPU@3.50GHz.bin 
+broccoli_lib_kernel_AMD_Tahiti.bin
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN.bin
+\end{verbatim}
+
+
+%\clearpage
+%\newpage
+
+%\section{Abbreviations}
+
+%This table lists some of the abbreviations that are used in this thesis, along with their meanings.\\
+
+%\begin{flushleft}
+%\begin{tabular}{l l}
+%AFNI & Analysis of Functional Neuro Images \\
+%AR   & Auto Regressive \\
+%BOLD & Blood Oxygen Level Dependent \\
+%CCA  & Canonical Correlation Analysis \\
+%CPU  & Central Processing Unit \\
+%CUDA & Compute Unified Device Architecture \\
+%FFT  & Fast Fourier Transform\\
+%FSL & FMRI Software Library \\
+%FWE  & Familywise error rate\\
+%fMRI & functional Magnetic Resonance Imaging \\
+%GLM  & General Linear Model \\
+%GPU  & Graphics Processing Unit \\
+%ICA  & Independent Component Analysis \\
+%MI   & Mutual Information \\
+%MR   & Magnetic Resonance \\
+%MRI  & Magnetic Resonance Imaging \\
+%PCA  & Principal Components Analysis \\
+%RCCA & Restricted Canonical Correlation Analysis \\
+%SNR  & Signal to Noise Ratio \\ 
+%SPM  & Statistical Parametric Mapping\\
+%\end{tabular}
+%\end{flushleft}
+
+

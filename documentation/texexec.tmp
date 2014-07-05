@@ -1,0 +1,9 @@
+% texexec.top
+\unprotect
+\setupsystem[file=lic_final]
+\setupoutput[pdftex]
+\setupsystem[\c!directory={/home/andek/}]
+\setupsystem[\c!n=3]
+\setuparranging[standard]
+\setupsystem[inputfile=texexec.tex]
+\protect
