@@ -68,13 +68,82 @@ The option -permute results in that a permutation test is applied after the conv
 
 Bayesian first level analysis can be performed by using the option -bayesian.  Note that this option currently only works for 2 regressors. In each voxel, a Gibbs sampler is used to estimate the posterior probability of each contrast being larger than 0. The option -iterationsmcmc sets the number of MCMC iterations to be used (the default is 1,000).
 
-\section{Checking the results}
+\section{Outputs}
+
+The first level analysis results in beta weights, contrast estimates, t-scores and p-values (if the option -permute is used). For an analysis with 2 regressors, a total of 6 regressors will be used (the 2 original regressors and 4 detrending regressors). The beta weights for these regressors will be saved in the brain template space as
+
+\begin{verbatim}
+fMRI_beta_regressor1_MNI.nii 
+fMRI_beta_regressor2_MNI.nii 
+fMRI_beta_regressor3_MNI.nii 
+fMRI_beta_regressor4_MNI.nii 
+fMRI_beta_regressor5_MNI.nii 
+fMRI_beta_regressor6_MNI.nii 
+\end{verbatim}
+
+For each contrast, BROCCOLI will also store the contrast of parameter estimate (COPE) and the corresponding t-scores, e.g.
+
+\begin{verbatim}
+fMRI_cope_contrast1_MNI.nii  
+fMRI_cope_contrast2_MNI.nii  
+
+fMRI_tscores_contrast1_MNI.nii
+fMRI_tscores_contrast2_MNI.nii
+\end{verbatim}
+
+If the option -saveactivityt1 is used, all the results will also be stored in the anatomical space of the subject, i.e. as
+
+\begin{verbatim}
+fMRI_beta_regressor1_T1.nii 
+fMRI_beta_regressor2_T1.nii 
+fMRI_beta_regressor3_T1.nii 
+fMRI_beta_regressor4_T1.nii 
+fMRI_beta_regressor5_T1.nii 
+fMRI_beta_regressor6_T1.nii 
+\end{verbatim}
+
+and
+
+\begin{verbatim}
+fMRI_cope_contrast1_T1.nii  
+fMRI_cope_contrast2_T1.nii  
+
+fMRI_tscores_contrast1_T1.nii
+fMRI_tscores_contrast2_T1.nii
+\end{verbatim}
+
+In a similar manner, if the option -saveactivityepi is used, all the results will also be stored in the original fMRI data space, i.e. as
+
+\begin{verbatim}
+fMRI_beta_regressor1_EPI.nii 
+fMRI_beta_regressor2_EPI.nii 
+fMRI_beta_regressor3_EPI.nii 
+fMRI_beta_regressor4_EPI.nii 
+fMRI_beta_regressor5_EPI.nii 
+fMRI_beta_regressor6_EPI.nii 
+\end{verbatim}
+
+and
+
+\begin{verbatim}
+fMRI_cope_contrast1_EPI.nii  
+fMRI_cope_contrast2_EPI.nii  
+
+fMRI_tscores_contrast1_EPI.nii
+fMRI_tscores_contrast2_EPI.nii
+\end{verbatim}
+
+If the option -permute is used, BROCCOLI will also create one file with p-values for each contrast. The default is that these p-values are stored in the space of the brain template, but they will also be stored in anatomical space if the -saveactivityt1 option is used, and in fMRI space if the option -saveactivityepi is used.
+
+\section{Checking the registration}
 
 To check the quality of the registrations, the option -saveallaligned can be used. This will save the anatomical (T1) volume interpolated and resized to match the brain template, the anatomical volume linearly aligned to the template, the anatomical volume non-linearly aligned to the template, the fMRI volume aligned to the anatomical volume and the fMRI volume aligned to the brain template. 
 
 To check the registration between the anatomical volume and the brain template, set one volume as the underlay (e.g. T1\_brain\_aligned\_linear.nii or T1\_brain\_aligned\_nonlinear.nii) and one as the overlay \\ (e.g. MNI152\_T1\_1mm\_brain.nii.gz). To check the registration between the fMRI volume and the anatomical volume, set the interpolated anatomical volume (e.g. T1\_brain\_interpolated.nii) as the underlay and the aligned fMRI volume (e.g. fMRI\_aligned\_t1.nii) as the overlay.
 
-The total design matrix being used by BROCCOLI can be saved to a text file by using the option -savedesignmatrix. This design matrix contains the original regressors (and their temporal derivatives, if -temporalderivatives is used) convolved with a hemodynamic response function, detrending regressors (mean, linear trend, quadratic trend, cubic trend) and motion regressors (if -regressmotion is used). The unconvolved regressors can be saved to a text file by using the option -saveoriginaldesignmatrix.
+\section{Checking the design matrix}
+
+The total design matrix being used by BROCCOLI can be saved to a text file by using the option -savedesignmatrix. This design matrix contains the original regressors (and their temporal derivatives, if -temporalderivatives is used) convolved with a hemodynamic response function, detrending regressors (mean, linear trend, quadratic trend, cubic trend) and motion regressors (if -regressmotion is used). The unconvolved regressors can be saved to a text file by using the option -saveoriginaldesignmatrix. The design matrices can for example be visualized by using the AFNI function 1dplot (e.g. 1dplot total\_designmatrix.txt).
 
 
 
