@@ -9,7 +9,7 @@ For more information, see
 
 --------------------------------------------------------------------
 
-[Documentation](https://github.com/wanderine/BROCCOLI/blob/master/documentation/broccoli.pdf)
+[Documentation](https://github.com/wanderine/BROCCOLI/raw/master/documentation/broccoli.pdf)
 
 
 
