@@ -135,6 +135,11 @@ void BROCCOLI_LIB::SetDoAllPermutations(bool doall)
 	DO_ALL_PERMUTATIONS = doall;
 }
 
+void BROCCOLI_LIB::SetRawRegressors(bool raw)
+{
+	RAW_REGRESSORS = raw;
+}
+
 void BROCCOLI_LIB::SetDoSkullstrip(bool doskullstrip)
 {
 	DO_SKULLSTRIP = doskullstrip;
@@ -13386,14 +13391,28 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 	Cubic = Cubic / Cubic.maxCoeff();
 
 	// Create temporal derivatives if requested and then convolve all regressors with HRF
-	if (USE_TEMPORAL_DERIVATIVES)
+	if (USE_TEMPORAL_DERIVATIVES && !RAW_REGRESSORS)
 	{
 		GenerateRegressorTemporalDerivatives(h_X_GLM_With_Temporal_Derivatives, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
 		ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_With_Temporal_Derivatives, N, NUMBER_OF_GLM_REGRESSORS*2);
 	}
-	else
+	// Convolve regressors with HRF
+	else if (!RAW_REGRESSORS)
 	{
 		ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
+	}
+	// Just copy raw regressors
+	else if (RAW_REGRESSORS)
+	{
+		// Loop over samples
+		for (int i = 0; i < N; i++)
+		{
+			// Loop over regressors
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				h_X_GLM_Convolved[i + r * N] = h_X_GLM_In[i + r * N];
+			}
+		}
 	}
 
 	// Setup total design matrix

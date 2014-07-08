@@ -147,6 +147,7 @@ class BROCCOLI_LIB
 		void SetSignMatrix(float*);
 		void SetPermutationFileUsage(bool);
 		void SetDoAllPermutations(bool);
+		void SetRawRegressors(bool);
 
 
 		// Smoothing
@@ -1014,6 +1015,7 @@ class BROCCOLI_LIB
 		int NUMBER_OF_CONFOUND_REGRESSORS;
 		int INFERENCE_MODE;
 		int USE_TEMPORAL_DERIVATIVES;
+		bool RAW_REGRESSORS;
 		int REGRESS_MOTION;
 		int REGRESS_CONFOUNDS;
 		bool PERMUTE_FIRST_LEVEL;
