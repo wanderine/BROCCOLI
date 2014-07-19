@@ -108,6 +108,7 @@ private:
 class BROCCOLI_LIB
 {
 	public:
+
 		// Constructors & destructor
 		BROCCOLI_LIB();
 		BROCCOLI_LIB(cl_uint platform, cl_uint device);
@@ -118,6 +119,7 @@ class BROCCOLI_LIB
 
 		void SetDebug(bool debug);
 		void SetPrint(bool print);
+		void SetVerbose(bool verbos);
 		void SetWrapper(int wrapper);
 
 		void SetMask(float* input);
@@ -336,6 +338,7 @@ class BROCCOLI_LIB
 		const char* GetOpenCLDeviceInfoChar();
 		const char* GetOpenCLBuildInfoChar();
 		const char* GetOpenCLErrorMessage(int error);
+		const char* GetOpenCLKernelName(int kernel);
 
 		std::string GetOpenCLDeviceInfoString();
 		std::string GetOpenCLBuildInfoString();
@@ -507,7 +510,7 @@ class BROCCOLI_LIB
 		void ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
 		void ChangeVolumeSize(cl_mem d_New_Volume, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);
 		void ChangeVolumeSize(cl_mem& d_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);
-		void ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int MM_Z_CUT, int INTERPOLATION_MODE);
+		void ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int MM_Z_CUT, int INTERPOLATION_MODE, int offset);
 		void CalculateTensorMagnitude(cl_mem d_Tensor_Magnitudes, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
 
 		void TransformVolumesLinear(cl_mem d_Volumes, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
@@ -572,6 +575,8 @@ class BROCCOLI_LIB
 		void CreateHRF();
 		void ConvolveRegressorsWithHRF(float* Convolved_Regressors, float* Regressors, int NUMBER_OF_TIMEPOINTS, int NUMBER_OF_REGRESSORS);
 		void GenerateRegressorTemporalDerivatives(float * Regressors_With_Temporal_Derivatives, float* Regressors, int NUMBER_OF_TIMEPOINTS, int NUMBER_OF_REGRESSORS);
+
+		void PrintMemoryStatus(const char* text);
 
 		//------------------------------------------------
 		// Set functions
@@ -930,6 +935,7 @@ class BROCCOLI_LIB
 		bool DEBUG;
 		int WRAPPER;
 		bool PRINT;
+		bool VERBOS;
 		bool DO_ALL_PERMUTATIONS;
 
 		bool WRITE_INTERPOLATED_T1;
@@ -1237,6 +1243,8 @@ class BROCCOLI_LIB
 		cl_mem		c_Permutation_Vector;
 		cl_mem		c_Sign_Vector;
 
+		int			memoryAllocations, memoryDeallocations;
+		unsigned int allocatedMemory;
 
 };
 
