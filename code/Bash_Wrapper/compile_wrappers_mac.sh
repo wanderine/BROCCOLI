@@ -1,11 +1,9 @@
 #!/bin/bash
 
-#cp /Users/andek/cuda-workspace/BROCCOLI_LIB/Release/libBROCCOLI_LIB.a ../BROCCOLI_LIB
-
 BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 OPENCL_HEADER_DIRECTORY=/System/Library/Frameworks/OpenCL.framework/Headers
 
-# First run make for Nifti library
+# Fist run make for Nifti library
 cd nifticlib-2.0.0
 make
 cd ..
