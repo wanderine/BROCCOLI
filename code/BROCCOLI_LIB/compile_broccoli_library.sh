@@ -1,11 +1,15 @@
 #!/bin/bash
 
+# Set OpenCL package to use
 AMD=0
 INTEL=1
 NVIDIA=2
-
-# Set OpenCL package to use
 OPENCL_PACKAGE=$INTEL
+
+# Set compilation mode to use
+RELEASE=0
+DEBUG=1
+COMPILATION=$RELEASE
 
 BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 
@@ -29,15 +33,14 @@ else
     echo "-------------------------------------"
 fi
 
-# Compile BROCCOLI
-
-DEBUG_FLAGS="-O0 -g"
-RELEASE_FLAGS="-O3 -DNDEBUG"
-
-FLAGS=${RELEASE_FLAGS}
-
-# Using nvcc from the CUDA toolkit
-#nvcc -I${OPENCL_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -m64 -Xcompiler -fPIC -c -o broccoli_lib.o broccoli_lib.cpp
+# Set compilation flags
+if [ "$COMPILATION" -eq "$RELEASE" ] ; then
+    FLAGS="-O3 -DNDEBUG"
+elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
+    FLAGS="-O0 -g"
+else
+    echo "Unknown compilation mode"
+fi
 
 # Using g++
 g++ -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -m64 -fPIC -c -o broccoli_lib.o broccoli_lib.cpp
@@ -45,4 +48,16 @@ g++ -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT
 # Make a library
 ar rcs libBROCCOLI_LIB.a broccoli_lib.o
 
+# Move to correct folder
+if [ "$COMPILATION" -eq "$RELEASE" ] ; then
+    mv libBROCCOLI_LIB.a Compiled/Linux/Release
+elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
+    mv libBROCCOLI_LIB.a Compiled/Linux/Debug
+else
+    echo "Unknown compilation mode"
+fi
+
+
+# Old approach using nvcc from the CUDA toolkit
+#nvcc -I${OPENCL_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -m64 -Xcompiler -fPIC -c -o broccoli_lib.o broccoli_lib.cpp
 
