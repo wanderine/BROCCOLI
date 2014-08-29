@@ -618,6 +618,10 @@ class BROCCOLI_LIB
 		cl_program program;
 		cl_device_id device;
 
+		cl_ulong localMemorySize;
+		size_t maxThreadsPerBlock;
+		size_t maxThreadsPerDimension[3];
+
 		std::string binaryFilename;
 		std::string device_info;
 		std::string build_info;

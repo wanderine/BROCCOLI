@@ -3184,3 +3184,435 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes)
 
 
 
+/*
+ * Old version of OpenCLInitiate, hard to read and lacks some error checking
+ *
+
+void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE)
+{
+	char* value;
+	size_t valueSize;
+	cl_device_id *clDevices;
+
+  	// Get number of platforms
+	cl_uint platformIdCount = 0;
+	getPlatformIDsError = clGetPlatformIDs (0, NULL, &platformIdCount);
+
+	if (getPlatformIDsError == SUCCESS)
+	{
+		// Get platform IDs
+		std::vector<cl_platform_id> platformIds(platformIdCount);
+		getPlatformIDsError = clGetPlatformIDs(platformIdCount, platformIds.data(), NULL);              
+
+		if (getPlatformIDsError == SUCCESS)
+		{	
+			// Check if the requested platform exists
+			if ((OPENCL_PLATFORM >= 0) &&  (OPENCL_PLATFORM < platformIdCount))
+			{
+				// Create context
+				const cl_context_properties contextProperties [] =
+				{
+					CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[OPENCL_PLATFORM]), 0, 0
+				};
+
+				// Get number of devices for selected platform
+				cl_uint deviceIdCount = 0;
+				getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
+	
+				if (getDeviceIDsError == SUCCESS)
+				{
+					// Get device IDs for selected platform
+					std::vector<cl_device_id> deviceIds(deviceIdCount);
+					getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
+
+					// Check if the requested device exists
+					if ((OPENCL_DEVICE >= 0) &&  (OPENCL_DEVICE < deviceIdCount))
+					{
+						if (getDeviceIDsError == SUCCESS)
+						{
+							// Create context for selected device
+							//context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &createContextError);
+							context = clCreateContext(contextProperties, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, &createContextError);
+
+							if (createContextError == SUCCESS)
+							{
+								// Get size of context info
+								getContextInfoError = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
+
+								if (getContextInfoError == SUCCESS)
+								{
+									// Get context info
+									clDevices = (cl_device_id *) malloc(valueSize);
+									getContextInfoError = clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
+
+									if (getContextInfoError == SUCCESS)
+									{
+										// Get size of name of current platform
+										clGetPlatformInfo(platformIds[OPENCL_PLATFORM], CL_PLATFORM_NAME, 0, NULL, &valueSize);
+										value = (char*) malloc(valueSize);
+										// Get name of current platform
+										clGetPlatformInfo(platformIds[OPENCL_PLATFORM], CL_PLATFORM_NAME, valueSize, value, NULL);
+										std::string vendor_string(value);
+										free(value);
+
+										// Figure out the vendor
+										size_t npos = vendor_string.find("NVIDIA");
+										size_t ipos = vendor_string.find("Intel");
+										size_t apos = vendor_string.find("AMD");
+
+										binaryFilename = "broccoli_lib_kernel_unknown";
+										if (npos != std::string::npos)
+										{
+											VENDOR = NVIDIA;
+											binaryFilename = "broccoli_lib_kernel_Nvidia";
+										}
+										else if (ipos != std::string::npos)
+										{
+											VENDOR = INTEL;
+											binaryFilename = "broccoli_lib_kernel_Intel";
+										}
+										else if (apos != std::string::npos)
+										{
+											VENDOR = AMD;
+											binaryFilename = "broccoli_lib_kernel_AMD";
+										}
+										else if (WRAPPER == BASH)
+										{
+											printf("\nUnsupported OpenCL vendor!\n\n");
+										}
+
+										// Create a command queue for the selected device
+										commandQueue = clCreateCommandQueue(context, deviceIds[OPENCL_DEVICE], CL_QUEUE_PROFILING_ENABLE, &createCommandQueueError);
+
+										if (createCommandQueueError == SUCCESS)
+										{
+											// Support for running functions from any folder
+											//std::string kernelFileName = Getexepath();
+											//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
+											//kernelFileName.append(binaryFilename);
+
+											std::string kernelFileName;
+											kernelFileName.append(binaryFilename);
+
+											// First try to compile from binary file for the selected device
+											//createProgramError = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], kernelFileName);
+											createProgramError = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryFilename);
+											//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+
+											if (VENDOR == NVIDIA)
+											{
+												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
+											}
+											else
+											{
+												//buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-opt-disable", NULL, NULL);
+												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+											}
+
+											// Otherwise compile from source code
+											if (buildProgramError != SUCCESS)
+											{
+												// Read the kernel code from file
+												//std::string kernelFileName = Getexepath();
+												//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
+
+												//std::string kernelFileName;
+												//kernelFileName.append("broccoli_lib_kernel.cpp");
+												//std::fstream kernelFile(kernelFileName.c_str(),std::ios::in);
+												std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
+												std::ostringstream oss;
+												oss << kernelFile.rdbuf();
+												std::string src = oss.str();
+												const char *srcstr = src.c_str();
+
+												// Create program and build the code for the selected device
+												program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);
+												//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
+
+												if (VENDOR == NVIDIA)
+												{
+													buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
+												}
+												else
+												{
+													buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+												}
+
+												// If successful build, save to binary file
+												if (buildProgramError == SUCCESS)
+												{
+													SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename);
+												}
+											}
+
+											// Always get build info
+
+											// Get size of build info
+											valueSize = 0;
+											getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
+
+											// Get build info
+											if (getProgramBuildInfoError == SUCCESS)
+											{
+												value = (char*)malloc(valueSize);
+												getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
+
+												if (getProgramBuildInfoError == SUCCESS)
+												{
+													build_info.append(value);
+												}
+												else if (WRAPPER == BASH)
+												{
+													printf("\nUnable to get OpenCL build info! \n\n");
+												}
+												free(value);
+											}
+											else if (WRAPPER == BASH)
+											{
+												printf("\nUnable to get size of OpenCL build info!\n\n");
+											}
+
+											if (buildProgramError == SUCCESS)
+											{
+												// Create kernels
+
+												// Convolution kernels
+												if ( (VENDOR == NVIDIA) || (VENDOR == INTEL))
+												{
+													NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&createKernelErrorSeparableConvolutionRows);
+													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&createKernelErrorSeparableConvolutionColumns);
+													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&createKernelErrorSeparableConvolutionRods);
+												}
+												else if (VENDOR == AMD)
+												{
+													NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsAMD",&createKernelErrorSeparableConvolutionRows);
+													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsAMD",&createKernelErrorSeparableConvolutionColumns);
+													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsAMD",&createKernelErrorSeparableConvolutionRods);
+												}
+
+												OpenCLKernels[0] = NonseparableConvolution3DComplexThreeFiltersKernel;
+												OpenCLKernels[1] = SeparableConvolutionRowsKernel;
+												OpenCLKernels[2] = SeparableConvolutionColumnsKernel;
+												OpenCLKernels[3] = SeparableConvolutionRodsKernel;
+
+												SliceTimingCorrectionKernel = clCreateKernel(program,"SliceTimingCorrection",&createKernelErrorSliceTimingCorrection);
+
+												OpenCLKernels[4] = SliceTimingCorrectionKernel;
+
+												// Kernels for Linear registration
+												CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
+												CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
+												CalculatePhaseGradientsYKernel = clCreateKernel(program,"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
+												CalculatePhaseGradientsZKernel = clCreateKernel(program,"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
+												CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
+												CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
+												CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
+												CalculateAMatrix1DValuesKernel = clCreateKernel(program,"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
+												CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
+												CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
+												CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);
+
+												OpenCLKernels[5] = CalculatePhaseDifferencesAndCertaintiesKernel;
+												OpenCLKernels[6] = CalculatePhaseGradientsXKernel;
+												OpenCLKernels[7] = CalculatePhaseGradientsYKernel;
+												OpenCLKernels[8] = CalculatePhaseGradientsZKernel;
+												OpenCLKernels[9] = CalculateAMatrixAndHVector2DValuesXKernel;
+												OpenCLKernels[10] = CalculateAMatrixAndHVector2DValuesYKernel;
+												OpenCLKernels[11] = CalculateAMatrixAndHVector2DValuesZKernel;
+												OpenCLKernels[12] = CalculateAMatrix1DValuesKernel;
+												OpenCLKernels[13] = CalculateHVector1DValuesKernel;
+												OpenCLKernels[14] = CalculateAMatrixKernel;
+												OpenCLKernels[15] = CalculateHVectorKernel;
+
+												// Kernels for non-Linear registration
+												CalculateTensorComponentsKernel = clCreateKernel(program, "CalculateTensorComponents", &createKernelErrorCalculateTensorComponents);
+												CalculateTensorNormsKernel = clCreateKernel(program, "CalculateTensorNorms", &createKernelErrorCalculateTensorNorms);
+												CalculateAMatricesAndHVectorsKernel = clCreateKernel(program, "CalculateAMatricesAndHVectors", &createKernelErrorCalculateAMatricesAndHVectors);
+												CalculateDisplacementUpdateKernel = clCreateKernel(program, "CalculateDisplacementUpdate", &createKernelErrorCalculateDisplacementUpdate);
+												AddLinearAndNonLinearDisplacementKernel = clCreateKernel(program, "AddLinearAndNonLinearDisplacement", &createKernelErrorAddLinearAndNonLinearDisplacement);
+
+												OpenCLKernels[16] = CalculateTensorComponentsKernel;
+												OpenCLKernels[17] = CalculateTensorNormsKernel;
+												OpenCLKernels[18] = CalculateAMatricesAndHVectorsKernel;
+												OpenCLKernels[19] = CalculateDisplacementUpdateKernel;
+												OpenCLKernels[20] = AddLinearAndNonLinearDisplacementKernel;
+
+												CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);
+												CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);
+												CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);
+												CalculateColumnMaxsKernel = clCreateKernel(program,"CalculateColumnMaxs",&createKernelErrorCalculateColumnMaxs);
+												CalculateRowMaxsKernel = clCreateKernel(program,"CalculateRowMaxs",&createKernelErrorCalculateRowMaxs);
+												CalculateMaxAtomicKernel = clCreateKernel(program,"CalculateMaxAtomic",&createKernelErrorCalculateMaxAtomic);
+												ThresholdVolumeKernel = clCreateKernel(program,"ThresholdVolume",&createKernelErrorThresholdVolume);
+
+												OpenCLKernels[21] = CalculateMagnitudesKernel;
+												OpenCLKernels[22] = CalculateColumnSumsKernel;
+												OpenCLKernels[23] = CalculateRowSumsKernel;
+												OpenCLKernels[24] = CalculateColumnMaxsKernel;
+												OpenCLKernels[25] = CalculateRowMaxsKernel;
+												OpenCLKernels[26] = CalculateMaxAtomicKernel;
+												OpenCLKernels[27] = ThresholdVolumeKernel;
+
+												// Interpolation kernels
+												InterpolateVolumeNearestLinearKernel = clCreateKernel(program,"InterpolateVolumeNearestLinear",&createKernelErrorInterpolateVolumeNearestLinear);
+												InterpolateVolumeLinearLinearKernel = clCreateKernel(program,"InterpolateVolumeLinearLinear",&createKernelErrorInterpolateVolumeLinearLinear);
+												InterpolateVolumeCubicLinearKernel = clCreateKernel(program,"InterpolateVolumeCubicLinear",&createKernelErrorInterpolateVolumeCubicLinear);
+												InterpolateVolumeNearestNonLinearKernel = clCreateKernel(program,"InterpolateVolumeNearestNonLinear",&createKernelErrorInterpolateVolumeNearestNonLinear);
+												InterpolateVolumeLinearNonLinearKernel = clCreateKernel(program,"InterpolateVolumeLinearNonLinear",&createKernelErrorInterpolateVolumeLinearNonLinear);
+												InterpolateVolumeCubicNonLinearKernel = clCreateKernel(program,"InterpolateVolumeCubicNonLinear",&createKernelErrorInterpolateVolumeCubicNonLinear);
+
+												OpenCLKernels[28] = InterpolateVolumeNearestLinearKernel;
+												OpenCLKernels[29] = InterpolateVolumeLinearLinearKernel;
+												OpenCLKernels[30] = InterpolateVolumeCubicLinearKernel;
+												OpenCLKernels[31] = InterpolateVolumeNearestNonLinearKernel;
+												OpenCLKernels[32] = InterpolateVolumeLinearNonLinearKernel;
+												OpenCLKernels[33] = InterpolateVolumeCubicNonLinearKernel;
+
+												RescaleVolumeLinearKernel = clCreateKernel(program,"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
+												RescaleVolumeCubicKernel = clCreateKernel(program,"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
+												RescaleVolumeNearestKernel = clCreateKernel(program,"RescaleVolumeNearest",&createKernelErrorRescaleVolumeNearest);
+
+												OpenCLKernels[34] = RescaleVolumeLinearKernel;
+												OpenCLKernels[35] = RescaleVolumeCubicKernel;
+												OpenCLKernels[36] = RescaleVolumeNearestKernel;
+
+												CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
+												CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
+												CopyVolumeToNewKernel = clCreateKernel(program,"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
+
+												OpenCLKernels[37] = CopyT1VolumeToMNIKernel;
+												OpenCLKernels[38] = CopyEPIVolumeToT1Kernel;
+												OpenCLKernels[39] = CopyVolumeToNewKernel;
+
+												// Help kernels
+												MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
+												MemsetIntKernel = clCreateKernel(program,"MemsetInt",&createKernelErrorMemsetInt);
+												MemsetFloat2Kernel = clCreateKernel(program,"MemsetFloat2",&createKernelErrorMemsetFloat2);
+												MultiplyVolumeKernel = clCreateKernel(program,"MultiplyVolume",&createKernelErrorMultiplyVolume);
+												MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
+												MultiplyVolumesOverwriteKernel = clCreateKernel(program,"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
+												AddVolumeKernel = clCreateKernel(program,"AddVolume",&createKernelErrorAddVolume);
+												AddVolumesKernel = clCreateKernel(program,"AddVolumes",&createKernelErrorAddVolumes);
+												AddVolumesOverwriteKernel = clCreateKernel(program,"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
+												RemoveMeanKernel = clCreateKernel(program,"RemoveMean",&createKernelErrorRemoveMean);
+												SetStartClusterIndicesKernel = clCreateKernel(program,"SetStartClusterIndicesKernel",&createKernelErrorSetStartClusterIndices);
+												ClusterizeScanKernel = clCreateKernel(program,"ClusterizeScan",&createKernelErrorClusterizeScan);
+												ClusterizeRelabelKernel = clCreateKernel(program,"ClusterizeRelabel",&createKernelErrorClusterizeRelabel);
+												CalculateClusterSizesKernel = clCreateKernel(program,"CalculateClusterSizes",&createKernelErrorCalculateClusterSizes);
+												CalculateLargestClusterKernel = clCreateKernel(program,"CalculateLargestCluster",&createKernelErrorCalculateLargestCluster);
+
+
+												OpenCLKernels[40] = MemsetKernel;
+												OpenCLKernels[41] = MemsetIntKernel;
+												OpenCLKernels[42] = MemsetFloat2Kernel;
+												OpenCLKernels[43] = MultiplyVolumeKernel;
+												OpenCLKernels[44] = MultiplyVolumesKernel;
+												OpenCLKernels[45] = MultiplyVolumesOverwriteKernel;
+												OpenCLKernels[46] = AddVolumeKernel;
+												OpenCLKernels[47] = AddVolumesKernel;
+												OpenCLKernels[48] = AddVolumesOverwriteKernel;
+												OpenCLKernels[49] = RemoveMeanKernel;
+												OpenCLKernels[50] = SetStartClusterIndicesKernel;
+												OpenCLKernels[51] = ClusterizeScanKernel;
+												OpenCLKernels[52] = ClusterizeRelabelKernel;
+												OpenCLKernels[53] = CalculateClusterSizesKernel;
+												OpenCLKernels[54] = CalculateLargestClusterKernel;
+
+												// Statistical kernels
+												CalculateBetaWeightsGLMKernel = clCreateKernel(program,"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
+												CalculateBetaWeightsGLMFirstLevelKernel = clCreateKernel(program,"CalculateBetaWeightsGLMFirstLevel",&createKernelErrorCalculateBetaWeightsGLMFirstLevel);
+												CalculateGLMResidualsKernel = clCreateKernel(program,"CalculateGLMResiduals",&createKernelErrorCalculateGLMResiduals);
+												CalculateStatisticalMapsGLMTTestFirstLevelKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel);
+												CalculateStatisticalMapsGLMFTestFirstLevelKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel);
+												CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
+												CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
+												CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
+												CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation);
+												CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation);
+												CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation);
+												CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation);
+												EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
+												ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
+												GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
+												RemoveLinearFitKernel = clCreateKernel(program,"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
+
+												OpenCLKernels[55] = CalculateBetaWeightsGLMKernel;
+												OpenCLKernels[56] = CalculateBetaWeightsGLMFirstLevelKernel;
+												OpenCLKernels[57] = CalculateGLMResidualsKernel;
+												OpenCLKernels[58] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+												OpenCLKernels[59] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+												OpenCLKernels[60] = CalculateStatisticalMapsGLMTTestKernel;
+												OpenCLKernels[61] = CalculateStatisticalMapsGLMFTestKernel;
+												OpenCLKernels[62] = CalculateStatisticalMapsGLMBayesianKernel;
+												OpenCLKernels[63] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
+												OpenCLKernels[64] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+												OpenCLKernels[65] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
+												OpenCLKernels[66] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+												OpenCLKernels[67] = EstimateAR4ModelsKernel;
+												OpenCLKernels[68] = ApplyWhiteningAR4Kernel;
+												OpenCLKernels[69] = GeneratePermutedVolumesFirstLevelKernel;
+												OpenCLKernels[70] = RemoveLinearFitKernel;
+
+												OPENCL_INITIATED = 1;
+											}
+											else if (WRAPPER == BASH)
+											{
+												printf("\nUnable to build OpenCL program. Aborting! \n\n");
+											}
+										}
+										else if (WRAPPER == BASH)
+										{
+											printf("\nUnable to create an OpenCL command queue. Aborting! \n\n");
+										}
+									}
+									else if (WRAPPER == BASH)
+									{
+										printf("\nUnable to get OpenCL context info. Aborting! \n\n");
+									}
+									free(clDevices);
+								}
+								else if (WRAPPER == BASH)
+								{
+									printf("\nUnable to get size of OpenCL context info. Aborting! \n\n");
+								}
+							}
+							else if (WRAPPER == BASH)
+							{
+								printf("\nUnable to create an OpenCL context. Aborting! \n\n");
+							}
+						}
+						else if (WRAPPER == BASH)
+						{
+							printf("\nUnable to get OpenCL device id's for the specified platform. Aborting! \n\n");
+						}
+					}
+					else if (WRAPPER == BASH)
+					{
+						printf("\nYou tried to use the invalid OpenCL device %i, valid devices for the selected platform are 0 <= device < %i. Aborting! \n\n",OPENCL_DEVICE,deviceIdCount);
+					}
+				}
+				else if (WRAPPER == BASH)
+				{
+					printf("\nUnable to get number of OpenCL devices for the specified platform. Aborting! \n\n");
+				}
+			}
+			else if (WRAPPER == BASH)
+			{
+				printf("\nYou tried to use the invalid OpenCL platform %i, valid platforms are 0 <= platform < %i. Aborting! \n\n",OPENCL_PLATFORM,platformIdCount);
+			}
+		}
+		else if (WRAPPER == BASH)
+		{
+			printf("\nUnable to get OpenCL platform id's. Aborting! \n\n");
+		}
+	}
+	else if (WRAPPER == BASH)
+	{
+		printf("\nUnable to get number of OpenCL platforms. Aborting! \n\n");
+	}
+}
+*/
+
+

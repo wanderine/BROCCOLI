@@ -187,7 +187,7 @@ void GetParameterIndices(int* i, int* j, int parameter)
 
 
 
-__kernel void SeparableConvolutionRows(__global float *Filter_Response,
+__kernel void SeparableConvolutionRows_16KB_512threads(__global float *Filter_Response,
 	                                   __global const float* Volume, 
 									   __global const float* Certainty, 
 									   __constant float *c_Smoothing_Filter_Y, 
@@ -344,7 +344,7 @@ __kernel void SeparableConvolutionRows(__global float *Filter_Response,
 	
 }
 
-__kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response, 
+__kernel void SeparableConvolutionRows_16KB_256threads(__global float *Filter_Response, 
 	                                      __global const float* Volume, 
 										  __global const float* Certainty, 
 										  __constant float *c_Smoothing_Filter_Y, 
@@ -626,7 +626,7 @@ __kernel void SeparableConvolutionRowsAMD(__global float *Filter_Response,
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS 8
 
 
-__kernel void SeparableConvolutionColumns(__global float *Filter_Response, 
+__kernel void SeparableConvolutionColumns_16KB_512threads(__global float *Filter_Response, 
 	                                      __global float* Volume, 
 										  __constant float *c_Smoothing_Filter_X, 
 										  __private int t, 
@@ -847,7 +847,7 @@ __kernel void SeparableConvolutionColumns(__global float *Filter_Response,
 	}
 }
 
-__kernel void SeparableConvolutionColumnsAMD(__global float *Filter_Response, 
+__kernel void SeparableConvolutionColumns_16KB_256threads(__global float *Filter_Response, 
 	                                         __global float* Volume, 
 											 __constant float *c_Smoothing_Filter_X, 
 											 __private int t, 
@@ -1257,7 +1257,7 @@ __kernel void SeparableConvolutionColumnsAMD(__global float *Filter_Response,
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS 8
 
 
-__kernel void SeparableConvolutionRods(__global float *Filter_Response, 
+__kernel void SeparableConvolutionRods_16KB_512threads(__global float *Filter_Response, 
 	                                   __global float* Volume, 
 									   __global const float* Smoothed_Certainty, 
 									   __constant float *c_Smoothing_Filter_Z, 
@@ -1413,7 +1413,7 @@ __kernel void SeparableConvolutionRods(__global float *Filter_Response,
 }
 
 
-__kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response,
+__kernel void SeparableConvolutionRods_16KB_256threads(__global float *Filter_Response,
 	                                      __global float* Volume, 
 										  __global const float* Smoothed_Certainty, 
 										  __constant float *c_Smoothing_Filter_Z, 
@@ -1682,11 +1682,11 @@ __kernel void SeparableConvolutionRodsAMD(__global float *Filter_Response,
 
 #define HALO 3
 
-#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D 90
-#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D 58
+#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_24KB 90
+#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_24KB 58
 
-#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_AMD 122
-#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_AMD 58
+#define VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_32KB 122
+#define VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_32KB 58
 
 // Non-separable 3D convolution
 
@@ -1695,7 +1695,8 @@ typedef struct tag_float66 {float a; float b; float c; float d; float e; float f
 
 // Non-separable 2D convolution for three complex valued 7 x 7 filters, unrolled for performance
 
-float66 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float* image,
+// Shared memory is 64 * 96 pixels
+float66 Conv_2D_Unrolled_7x7_ThreeFilters_24KB(__local float* image,
 	                                      int y, 
 										  int x, 
 										  __constant float* Filter_1_Real, 
@@ -2069,8 +2070,381 @@ float66 Conv_2D_Unrolled_7x7_ThreeFilters_(__local float* image,
 
 
 
+// Shared memory is 64 * 128 pixels
+float66 Conv_2D_Unrolled_7x7_ThreeFilters_32KB(__local float* image,
+	                                      	  int y,
+	                                      	  int x,
+	                                      	  __constant float* Filter_1_Real,
+	                                      	  __constant float* Filter_1_Imag,
+	                                      	  __constant float* Filter_2_Real,
+	                                      	  __constant float* Filter_2_Imag,
+	                                      	  __constant float* Filter_3_Real,
+	                                      	  __constant float* Filter_3_Imag)
+{
+	float pixel;
+	float66 sum;
+	sum.a = 0.0f;
+	sum.b = 0.0f;
+	sum.c = 0.0f;
+	sum.d = 0.0f;
+	sum.e = 0.0f;
+	sum.f = 0.0f;
+	
+    pixel = image[(y - 3)*128 + x - 3];
+    sum.a += pixel * Filter_1_Real[6*7 + 6];
+	sum.b += pixel * Filter_1_Imag[6*7 + 6];
+	sum.c += pixel * Filter_2_Real[6*7 + 6];
+	sum.d += pixel * Filter_2_Imag[6*7 + 6];
+	sum.e += pixel * Filter_3_Real[6*7 + 6];
+	sum.f += pixel * Filter_3_Imag[6*7 + 6];
+    pixel = image[(y - 2)*128 + x - 3];
+    sum.a += pixel * Filter_1_Real[5*7 + 6];
+	sum.b += pixel * Filter_1_Imag[5*7 + 6];
+	sum.c += pixel * Filter_2_Real[5*7 + 6];
+	sum.d += pixel * Filter_2_Imag[5*7 + 6];
+	sum.e += pixel * Filter_3_Real[5*7 + 6];
+	sum.f += pixel * Filter_3_Imag[5*7 + 6];
+	pixel = image[(y - 1)*128 + x - 3];
+    sum.a += pixel * Filter_1_Real[4*7 + 6];
+	sum.b += pixel * Filter_1_Imag[4*7 + 6];
+	sum.c += pixel * Filter_2_Real[4*7 + 6];
+	sum.d += pixel * Filter_2_Imag[4*7 + 6];
+	sum.e += pixel * Filter_3_Real[4*7 + 6];
+	sum.f += pixel * Filter_3_Imag[4*7 + 6];
+	pixel = image[y*128 + x - 3];
+    sum.a += pixel * Filter_1_Real[3*7 + 6];
+	sum.b += pixel * Filter_1_Imag[3*7 + 6];
+	sum.c += pixel * Filter_2_Real[3*7 + 6];
+	sum.d += pixel * Filter_2_Imag[3*7 + 6];
+	sum.e += pixel * Filter_3_Real[3*7 + 6];
+	sum.f += pixel * Filter_3_Imag[3*7 + 6];
+    pixel = image[(y + 1)*128 + x - 3];
+    sum.a += pixel * Filter_1_Real[2*7 + 6];
+	sum.b += pixel * Filter_1_Imag[2*7 + 6];
+	sum.c += pixel * Filter_2_Real[2*7 + 6];
+	sum.d += pixel * Filter_2_Imag[2*7 + 6];
+	sum.e += pixel * Filter_3_Real[2*7 + 6];
+	sum.f += pixel * Filter_3_Imag[2*7 + 6];
+	pixel = image[(y + 2)*128 + x - 3];
+    sum.a += pixel * Filter_1_Real[1*7 + 6];
+	sum.b += pixel * Filter_1_Imag[1*7 + 6];
+	sum.c += pixel * Filter_2_Real[1*7 + 6];
+	sum.d += pixel * Filter_2_Imag[1*7 + 6];
+	sum.e += pixel * Filter_3_Real[1*7 + 6];
+	sum.f += pixel * Filter_3_Imag[1*7 + 6];
+	pixel = image[(y + 3)*128 + x - 3];
+    sum.a += pixel * Filter_1_Real[6];
+	sum.b += pixel * Filter_1_Imag[6];
+	sum.c += pixel * Filter_2_Real[6];
+	sum.d += pixel * Filter_2_Imag[6];
+	sum.e += pixel * Filter_3_Real[6];
+	sum.f += pixel * Filter_3_Imag[6];
 
-float66 Conv_2D_Unrolled_7x7_ThreeFilters_AMD_(__local float* image,
+    pixel = image[(y - 3)*128 + x - 2];
+    sum.a += pixel * Filter_1_Real[6*7 + 5];
+	sum.b += pixel * Filter_1_Imag[6*7 + 5];
+	sum.c += pixel * Filter_2_Real[6*7 + 5];
+	sum.d += pixel * Filter_2_Imag[6*7 + 5];
+	sum.e += pixel * Filter_3_Real[6*7 + 5];
+	sum.f += pixel * Filter_3_Imag[6*7 + 5];
+    pixel = image[(y - 2)*128 + x - 2];
+    sum.a += pixel * Filter_1_Real[5*7 + 5];
+	sum.b += pixel * Filter_1_Imag[5*7 + 5];
+	sum.c += pixel * Filter_2_Real[5*7 + 5];
+	sum.d += pixel * Filter_2_Imag[5*7 + 5];
+	sum.e += pixel * Filter_3_Real[5*7 + 5];
+	sum.f += pixel * Filter_3_Imag[5*7 + 5];
+	pixel = image[(y - 1)*128 + x - 2];
+    sum.a += pixel * Filter_1_Real[4*7 + 5];
+	sum.b += pixel * Filter_1_Imag[4*7 + 5];
+	sum.c += pixel * Filter_2_Real[4*7 + 5];
+	sum.d += pixel * Filter_2_Imag[4*7 + 5];
+	sum.e += pixel * Filter_3_Real[4*7 + 5];
+	sum.f += pixel * Filter_3_Imag[4*7 + 5];
+	pixel = image[y*128 + x - 2];
+    sum.a += pixel * Filter_1_Real[3*7 + 5];
+	sum.b += pixel * Filter_1_Imag[3*7 + 5];
+	sum.c += pixel * Filter_2_Real[3*7 + 5];
+	sum.d += pixel * Filter_2_Imag[3*7 + 5];
+	sum.e += pixel * Filter_3_Real[3*7 + 5];
+	sum.f += pixel * Filter_3_Imag[3*7 + 5];
+    pixel = image[(y + 1)*128 + x - 2];
+    sum.a += pixel * Filter_1_Real[2*7 + 5];
+	sum.b += pixel * Filter_1_Imag[2*7 + 5];
+	sum.c += pixel * Filter_2_Real[2*7 + 5];
+	sum.d += pixel * Filter_2_Imag[2*7 + 5];
+	sum.e += pixel * Filter_3_Real[2*7 + 5];
+	sum.f += pixel * Filter_3_Imag[2*7 + 5];
+	pixel = image[(y + 2)*128 + x - 2];
+    sum.a += pixel * Filter_1_Real[1*7 + 5];
+	sum.b += pixel * Filter_1_Imag[1*7 + 5];
+	sum.c += pixel * Filter_2_Real[1*7 + 5];
+	sum.d += pixel * Filter_2_Imag[1*7 + 5];
+	sum.e += pixel * Filter_3_Real[1*7 + 5];
+	sum.f += pixel * Filter_3_Imag[1*7 + 5];
+	pixel = image[(y + 3)*128 + x - 2];
+    sum.a += pixel * Filter_1_Real[5];
+	sum.b += pixel * Filter_1_Imag[5];
+	sum.c += pixel * Filter_2_Real[5];
+	sum.d += pixel * Filter_2_Imag[5];
+	sum.e += pixel * Filter_3_Real[5];
+	sum.f += pixel * Filter_3_Imag[5];
+
+    pixel = image[(y - 3)*128 + x - 1];
+    sum.a += pixel * Filter_1_Real[6*7 + 4];
+	sum.b += pixel * Filter_1_Imag[6*7 + 4];
+	sum.c += pixel * Filter_2_Real[6*7 + 4];
+	sum.d += pixel * Filter_2_Imag[6*7 + 4];
+	sum.e += pixel * Filter_3_Real[6*7 + 4];
+	sum.f += pixel * Filter_3_Imag[6*7 + 4];
+    pixel = image[(y - 2)*128 + x - 1];
+    sum.a += pixel * Filter_1_Real[5*7 + 4];
+	sum.b += pixel * Filter_1_Imag[5*7 + 4];
+	sum.c += pixel * Filter_2_Real[5*7 + 4];
+	sum.d += pixel * Filter_2_Imag[5*7 + 4];
+	sum.e += pixel * Filter_3_Real[5*7 + 4];
+	sum.f += pixel * Filter_3_Imag[5*7 + 4];
+	pixel = image[(y - 1)*128 + x - 1];
+    sum.a += pixel * Filter_1_Real[4*7 + 4];
+	sum.b += pixel * Filter_1_Imag[4*7 + 4];
+	sum.c += pixel * Filter_2_Real[4*7 + 4];
+	sum.d += pixel * Filter_2_Imag[4*7 + 4];
+	sum.e += pixel * Filter_3_Real[4*7 + 4];
+	sum.f += pixel * Filter_3_Imag[4*7 + 4];
+	pixel = image[y*128 + x - 1];
+    sum.a += pixel * Filter_1_Real[3*7 + 4];
+	sum.b += pixel * Filter_1_Imag[3*7 + 4];
+	sum.c += pixel * Filter_2_Real[3*7 + 4];
+	sum.d += pixel * Filter_2_Imag[3*7 + 4];
+	sum.e += pixel * Filter_3_Real[3*7 + 4];
+	sum.f += pixel * Filter_3_Imag[3*7 + 4];
+    pixel = image[(y + 1)*128 + x - 1];
+    sum.a += pixel * Filter_1_Real[2*7 + 4];
+	sum.b += pixel * Filter_1_Imag[2*7 + 4];
+	sum.c += pixel * Filter_2_Real[2*7 + 4];
+	sum.d += pixel * Filter_2_Imag[2*7 + 4];
+	sum.e += pixel * Filter_3_Real[2*7 + 4];
+	sum.f += pixel * Filter_3_Imag[2*7 + 4];
+	pixel = image[(y + 2)*128 + x - 1];
+    sum.a += pixel * Filter_1_Real[1*7 + 4];
+	sum.b += pixel * Filter_1_Imag[1*7 + 4];
+	sum.c += pixel * Filter_2_Real[1*7 + 4];
+	sum.d += pixel * Filter_2_Imag[1*7 + 4];
+	sum.e += pixel * Filter_3_Real[1*7 + 4];
+	sum.f += pixel * Filter_3_Imag[1*7 + 4];
+	pixel = image[(y + 3)*128 + x - 1];
+    sum.a += pixel * Filter_1_Real[4];
+	sum.b += pixel * Filter_1_Imag[4];
+	sum.c += pixel * Filter_2_Real[4];
+	sum.d += pixel * Filter_2_Imag[4];
+	sum.e += pixel * Filter_3_Real[4];
+	sum.f += pixel * Filter_3_Imag[4];
+
+    pixel = image[(y - 3)*128 + x];
+    sum.a += pixel * Filter_1_Real[6*7 + 3];
+	sum.b += pixel * Filter_1_Imag[6*7 + 3];
+	sum.c += pixel * Filter_2_Real[6*7 + 3];
+	sum.d += pixel * Filter_2_Imag[6*7 + 3];
+	sum.e += pixel * Filter_3_Real[6*7 + 3];
+	sum.f += pixel * Filter_3_Imag[6*7 + 3];
+    pixel = image[(y - 2)*128 + x];
+    sum.a += pixel * Filter_1_Real[5*7 + 3];
+	sum.b += pixel * Filter_1_Imag[5*7 + 3];
+	sum.c += pixel * Filter_2_Real[5*7 + 3];
+	sum.d += pixel * Filter_2_Imag[5*7 + 3];
+	sum.e += pixel * Filter_3_Real[5*7 + 3];
+	sum.f += pixel * Filter_3_Imag[5*7 + 3];
+	pixel = image[(y - 1)*128 + x];
+    sum.a += pixel * Filter_1_Real[4*7 + 3];
+	sum.b += pixel * Filter_1_Imag[4*7 + 3];
+	sum.c += pixel * Filter_2_Real[4*7 + 3];
+	sum.d += pixel * Filter_2_Imag[4*7 + 3];
+	sum.e += pixel * Filter_3_Real[4*7 + 3];
+	sum.f += pixel * Filter_3_Imag[4*7 + 3];
+	pixel = image[y*128 + x];
+    sum.a += pixel * Filter_1_Real[3*7 + 3];
+	sum.b += pixel * Filter_1_Imag[3*7 + 3];
+	sum.c += pixel * Filter_2_Real[3*7 + 3];
+	sum.d += pixel * Filter_2_Imag[3*7 + 3];
+	sum.e += pixel * Filter_3_Real[3*7 + 3];
+	sum.f += pixel * Filter_3_Imag[3*7 + 3];
+    pixel = image[(y + 1)*128 + x];
+    sum.a += pixel * Filter_1_Real[2*7 + 3];
+	sum.b += pixel * Filter_1_Imag[2*7 + 3];
+	sum.c += pixel * Filter_2_Real[2*7 + 3];
+	sum.d += pixel * Filter_2_Imag[2*7 + 3];
+	sum.e += pixel * Filter_3_Real[2*7 + 3];
+	sum.f += pixel * Filter_3_Imag[2*7 + 3];
+	pixel = image[(y + 2)*128 + x];
+    sum.a += pixel * Filter_1_Real[1*7 + 3];
+	sum.b += pixel * Filter_1_Imag[1*7 + 3];
+	sum.c += pixel * Filter_2_Real[1*7 + 3];
+	sum.d += pixel * Filter_2_Imag[1*7 + 3];
+	sum.e += pixel * Filter_3_Real[1*7 + 3];
+	sum.f += pixel * Filter_3_Imag[1*7 + 3];
+	pixel = image[(y + 3)*128 + x];
+    sum.a += pixel * Filter_1_Real[3];
+	sum.b += pixel * Filter_1_Imag[3];
+	sum.c += pixel * Filter_2_Real[3];
+	sum.d += pixel * Filter_2_Imag[3];
+	sum.e += pixel * Filter_3_Real[3];
+	sum.f += pixel * Filter_3_Imag[3];
+
+    pixel = image[(y - 3)*128 + x + 1];
+    sum.a += pixel * Filter_1_Real[6*7 + 2];
+	sum.b += pixel * Filter_1_Imag[6*7 + 2];
+	sum.c += pixel * Filter_2_Real[6*7 + 2];
+	sum.d += pixel * Filter_2_Imag[6*7 + 2];
+	sum.e += pixel * Filter_3_Real[6*7 + 2];
+	sum.f += pixel * Filter_3_Imag[6*7 + 2];
+    pixel = image[(y - 2)*128 + x + 1];
+    sum.a += pixel * Filter_1_Real[5*7 + 2];
+	sum.b += pixel * Filter_1_Imag[5*7 + 2];
+	sum.c += pixel * Filter_2_Real[5*7 + 2];
+	sum.d += pixel * Filter_2_Imag[5*7 + 2];
+	sum.e += pixel * Filter_3_Real[5*7 + 2];
+	sum.f += pixel * Filter_3_Imag[5*7 + 2];
+	pixel = image[(y - 1)*128 + x + 1];
+    sum.a += pixel * Filter_1_Real[4*7 + 2];
+	sum.b += pixel * Filter_1_Imag[4*7 + 2];
+	sum.c += pixel * Filter_2_Real[4*7 + 2];
+	sum.d += pixel * Filter_2_Imag[4*7 + 2];
+	sum.e += pixel * Filter_3_Real[4*7 + 2];
+	sum.f += pixel * Filter_3_Imag[4*7 + 2];
+	pixel = image[y*128 + x + 1];
+    sum.a += pixel * Filter_1_Real[3*7 + 2];
+	sum.b += pixel * Filter_1_Imag[3*7 + 2];
+	sum.c += pixel * Filter_2_Real[3*7 + 2];
+	sum.d += pixel * Filter_2_Imag[3*7 + 2];
+	sum.e += pixel * Filter_3_Real[3*7 + 2];
+	sum.f += pixel * Filter_3_Imag[3*7 + 2];
+    pixel = image[(y + 1)*128 + x + 1];
+    sum.a += pixel * Filter_1_Real[2*7 + 2];
+	sum.b += pixel * Filter_1_Imag[2*7 + 2];
+	sum.c += pixel * Filter_2_Real[2*7 + 2];
+	sum.d += pixel * Filter_2_Imag[2*7 + 2];
+	sum.e += pixel * Filter_3_Real[2*7 + 2];
+	sum.f += pixel * Filter_3_Imag[2*7 + 2];
+	pixel = image[(y + 2)*128 + x + 1];
+    sum.a += pixel * Filter_1_Real[1*7 + 2];
+	sum.b += pixel * Filter_1_Imag[1*7 + 2];
+	sum.c += pixel * Filter_2_Real[1*7 + 2];
+	sum.d += pixel * Filter_2_Imag[1*7 + 2];
+	sum.e += pixel * Filter_3_Real[1*7 + 2];
+	sum.f += pixel * Filter_3_Imag[1*7 + 2];
+	pixel = image[(y + 3)*128 + x + 1];
+    sum.a += pixel * Filter_1_Real[2];
+	sum.b += pixel * Filter_1_Imag[2];
+	sum.c += pixel * Filter_2_Real[2];
+	sum.d += pixel * Filter_2_Imag[2];
+	sum.e += pixel * Filter_3_Real[2];
+	sum.f += pixel * Filter_3_Imag[2];
+
+    pixel = image[(y - 3)*128 + x + 2];
+    sum.a += pixel * Filter_1_Real[6*7 + 1];
+	sum.b += pixel * Filter_1_Imag[6*7 + 1];
+	sum.c += pixel * Filter_2_Real[6*7 + 1];
+	sum.d += pixel * Filter_2_Imag[6*7 + 1];
+	sum.e += pixel * Filter_3_Real[6*7 + 1];
+	sum.f += pixel * Filter_3_Imag[6*7 + 1];
+    pixel = image[(y - 2)*128 + x + 2];
+    sum.a += pixel * Filter_1_Real[5*7 + 1];
+	sum.b += pixel * Filter_1_Imag[5*7 + 1];
+	sum.c += pixel * Filter_2_Real[5*7 + 1];
+	sum.d += pixel * Filter_2_Imag[5*7 + 1];
+	sum.e += pixel * Filter_3_Real[5*7 + 1];
+	sum.f += pixel * Filter_3_Imag[5*7 + 1];
+	pixel = image[(y - 1)*128 + x + 2];
+    sum.a += pixel * Filter_1_Real[4*7 + 1];
+	sum.b += pixel * Filter_1_Imag[4*7 + 1];
+	sum.c += pixel * Filter_2_Real[4*7 + 1];
+	sum.d += pixel * Filter_2_Imag[4*7 + 1];
+	sum.e += pixel * Filter_3_Real[4*7 + 1];
+	sum.f += pixel * Filter_3_Imag[4*7 + 1];
+	pixel = image[y*128 + x + 2];
+    sum.a += pixel * Filter_1_Real[3*7 + 1];
+	sum.b += pixel * Filter_1_Imag[3*7 + 1];
+	sum.c += pixel * Filter_2_Real[3*7 + 1];
+	sum.d += pixel * Filter_2_Imag[3*7 + 1];
+	sum.e += pixel * Filter_3_Real[3*7 + 1];
+	sum.f += pixel * Filter_3_Imag[3*7 + 1];
+    pixel = image[(y + 1)*128 + x + 2];
+    sum.a += pixel * Filter_1_Real[2*7 + 1];
+	sum.b += pixel * Filter_1_Imag[2*7 + 1];
+	sum.c += pixel * Filter_2_Real[2*7 + 1];
+	sum.d += pixel * Filter_2_Imag[2*7 + 1];
+	sum.e += pixel * Filter_3_Real[2*7 + 1];
+	sum.f += pixel * Filter_3_Imag[2*7 + 1];
+	pixel = image[(y + 2)*128 + x + 2];
+    sum.a += pixel * Filter_1_Real[1*7 + 1];
+	sum.b += pixel * Filter_1_Imag[1*7 + 1];
+	sum.c += pixel * Filter_2_Real[1*7 + 1];
+	sum.d += pixel * Filter_2_Imag[1*7 + 1];
+	sum.e += pixel * Filter_3_Real[1*7 + 1];
+	sum.f += pixel * Filter_3_Imag[1*7 + 1];
+	pixel = image[(y + 3)*128 + x + 2];
+    sum.a += pixel * Filter_1_Real[1];
+	sum.b += pixel * Filter_1_Imag[1];
+	sum.c += pixel * Filter_2_Real[1];
+	sum.d += pixel * Filter_2_Imag[1];
+	sum.e += pixel * Filter_3_Real[1];
+	sum.f += pixel * Filter_3_Imag[1];
+
+    pixel = image[(y - 3)*128 + x + 3];
+    sum.a += pixel * Filter_1_Real[6*7];
+	sum.b += pixel * Filter_1_Imag[6*7];
+	sum.c += pixel * Filter_2_Real[6*7];
+	sum.d += pixel * Filter_2_Imag[6*7];
+	sum.e += pixel * Filter_3_Real[6*7];
+	sum.f += pixel * Filter_3_Imag[6*7];
+    pixel = image[(y - 2)*128 + x + 3];
+    sum.a += pixel * Filter_1_Real[5*7];
+	sum.b += pixel * Filter_1_Imag[5*7];
+	sum.c += pixel * Filter_2_Real[5*7];
+	sum.d += pixel * Filter_2_Imag[5*7];
+	sum.e += pixel * Filter_3_Real[5*7];
+	sum.f += pixel * Filter_3_Imag[5*7];
+	pixel = image[(y - 1)*128 + x + 3];
+    sum.a += pixel * Filter_1_Real[4*7];
+	sum.b += pixel * Filter_1_Imag[4*7];
+	sum.c += pixel * Filter_2_Real[4*7];
+	sum.d += pixel * Filter_2_Imag[4*7];
+	sum.e += pixel * Filter_3_Real[4*7];
+	sum.f += pixel * Filter_3_Imag[4*7];
+	pixel = image[y*128 + x + 3];
+    sum.a += pixel * Filter_1_Real[3*7];
+	sum.b += pixel * Filter_1_Imag[3*7];
+	sum.c += pixel * Filter_2_Real[3*7];
+	sum.d += pixel * Filter_2_Imag[3*7];
+	sum.e += pixel * Filter_3_Real[3*7];
+	sum.f += pixel * Filter_3_Imag[3*7];
+    pixel = image[(y + 1)*128 + x + 3];
+    sum.a += pixel * Filter_1_Real[2*7];
+	sum.b += pixel * Filter_1_Imag[2*7];
+	sum.c += pixel * Filter_2_Real[2*7];
+	sum.d += pixel * Filter_2_Imag[2*7];
+	sum.e += pixel * Filter_3_Real[2*7];
+	sum.f += pixel * Filter_3_Imag[2*7];
+	pixel = image[(y + 2)*128 + x + 3];
+    sum.a += pixel * Filter_1_Real[1*7];
+	sum.b += pixel * Filter_1_Imag[1*7];
+	sum.c += pixel * Filter_2_Real[1*7];
+	sum.d += pixel * Filter_2_Imag[1*7];
+	sum.e += pixel * Filter_3_Real[1*7];
+	sum.f += pixel * Filter_3_Imag[1*7];
+	pixel = image[(y + 3)*128 + x + 3];
+    sum.a += pixel * Filter_1_Real[0];
+	sum.b += pixel * Filter_1_Imag[0];
+	sum.c += pixel * Filter_2_Real[0];
+	sum.d += pixel * Filter_2_Imag[0];
+	sum.e += pixel * Filter_3_Real[0];
+	sum.f += pixel * Filter_3_Imag[0];
+
+	return sum;
+}
+
+// Shared memory is 128 * 128 pixels
+float66 Conv_2D_Unrolled_7x7_ThreeFilters_64KB(__local float* image,
 	                                      	  int y,
 	                                      	  int x,
 	                                      	  __constant float* Filter_1_Real,
@@ -2486,15 +2860,7 @@ __kernel void MemsetFloat2(__global float2 *Data,
 
 
 
-__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
-																	 __global float* Filter_Response_1_Real,
-	                                                                 __global float* Filter_Response_1_Imag,
-																	 __global float* Filter_Response_2_Real,
-																	 __global float* Filter_Response_2_Imag,
-																	 __global float* Filter_Response_3_Real,
-																	 __global float* Filter_Response_3_Imag, 
-																	 */
-
+__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters_24KB_1024threads(
 																	 __global float2* Filter_Response_1,
 	                                                                 __global float2* Filter_Response_2,
 																	 __global float2* Filter_Response_3,
@@ -2513,8 +2879,8 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
 																	 __private int DATA_H, 
 																	 __private int DATA_D)
 {   
-    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D + get_local_id(0);
-	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D + get_local_id(1);
+    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_24KB + get_local_id(0);
+	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_24KB + get_local_id(1);
 	int z = get_global_id(2);
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
@@ -2559,7 +2925,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
 
     if ( (x < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_24KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);	    
@@ -2567,7 +2933,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
 
     if ( ((x + 32) < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_24KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -2578,7 +2944,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( ((x + 64) < DATA_W) && (y < DATA_H) )
 	    {
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_24KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -2589,7 +2955,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( (x < DATA_W) && ((y + 32) < DATA_H) )
 	    {
- 		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+ 		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_24KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -2600,7 +2966,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
 	    {
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_24KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -2611,7 +2977,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
     {
         if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
 	    {
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_24KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a,temp.b);
 			Filter_Response_2[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c,temp.d);
 			Filter_Response_3[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e,temp.f);
@@ -2621,8 +2987,258 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters(/*
 
 
 
+__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_512threads(__global float2 *Filter_Response_1,
+			  	                                                                     __global float2 *Filter_Response_2, 
+			  																		 __global float2 *Filter_Response_3, 																		
+																					 __global const float* Volume, 
+																					 __constant float* c_Quadrature_Filter_1_Real, 
+																					 __constant float* c_Quadrature_Filter_1_Imag, 
+																					 __constant float* c_Quadrature_Filter_2_Real, 
+																					 __constant float* c_Quadrature_Filter_2_Imag, 
+																					 __constant float* c_Quadrature_Filter_3_Real, 
+																					 __constant float* c_Quadrature_Filter_3_Imag, 
+																					 __private int z_offset, 
+																					 __private int DATA_W, 
+																					 __private int DATA_H, 
+																					 __private int DATA_D)
+{   
+    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_32KB + get_local_id(0);
+	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_32KB + get_local_id(1);
+	int z = get_global_id(2);
 
-__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global float2 *Filter_Response_1,
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+    
+	
+    __local float l_Image[64][128]; // y, x
+
+    // Reset shared memory
+    l_Image[tIdx.y][tIdx.x]           = 0.0f;
+    l_Image[tIdx.y][tIdx.x + 32]      = 0.0f;
+	l_Image[tIdx.y][tIdx.x + 64]      = 0.0f;
+	l_Image[tIdx.y][tIdx.x + 96]      = 0.0f;
+
+	l_Image[tIdx.y + 16][tIdx.x]           = 0.0f;
+    l_Image[tIdx.y + 16][tIdx.x + 32]      = 0.0f;
+	l_Image[tIdx.y + 16][tIdx.x + 64]      = 0.0f;
+	l_Image[tIdx.y + 16][tIdx.x + 96]      = 0.0f;
+
+	l_Image[tIdx.y + 32][tIdx.x]           = 0.0f;
+    l_Image[tIdx.y + 32][tIdx.x + 32]      = 0.0f;
+	l_Image[tIdx.y + 32][tIdx.x + 64]      = 0.0f;
+	l_Image[tIdx.y + 32][tIdx.x + 96]      = 0.0f;
+
+	l_Image[tIdx.y + 48][tIdx.x]           = 0.0f;
+    l_Image[tIdx.y + 48][tIdx.x + 32]      = 0.0f;
+	l_Image[tIdx.y + 48][tIdx.x + 64]      = 0.0f;
+	l_Image[tIdx.y + 48][tIdx.x + 96]      = 0.0f;
+
+    // Read data into shared memory
+
+    if ( ((z + z_offset) >= 0) && ((z + z_offset) < DATA_D) )
+    {
+        if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )   
+            l_Image[tIdx.y][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  ) 
+            l_Image[tIdx.y][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )
+            l_Image[tIdx.y][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+		if ( ((x+96-HALO) < DATA_W) && ((y-HALO) >= 0) && ((y-HALO) < DATA_H)  )
+            l_Image[tIdx.y][tIdx.x + 96] = Volume[Calculate3DIndex(x+96-HALO,y-HALO,z+z_offset,DATA_W,DATA_H)];
+
+		if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y+16-HALO) < DATA_H)  )   
+            l_Image[tIdx.y + 16][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y+16-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y+16-HALO) < DATA_H)  ) 
+            l_Image[tIdx.y + 16][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y+16-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y+16-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 16][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y+16-HALO,z+z_offset,DATA_W,DATA_H)];
+
+		if ( ((x+96-HALO) < DATA_W) && ((y+16-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 16][tIdx.x + 96] = Volume[Calculate3DIndex(x+96-HALO,y+16-HALO,z+z_offset,DATA_W,DATA_H)];
+
+
+		if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )   
+            l_Image[tIdx.y + 32][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  ) 
+            l_Image[tIdx.y + 32][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+		if ( ((x+96-HALO) < DATA_W) && ((y+32-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 32][tIdx.x + 96] = Volume[Calculate3DIndex(x+96-HALO,y+32-HALO,z+z_offset,DATA_W,DATA_H)];
+
+
+		if ( ((x-HALO) >= 0) && ((x-HALO) < DATA_W) && ((y+48-HALO) < DATA_H)  )   
+            l_Image[tIdx.y + 48][tIdx.x] = Volume[Calculate3DIndex(x-HALO,y+48-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+32-HALO) < DATA_W) && ((y+48-HALO) < DATA_H)  ) 
+            l_Image[tIdx.y + 48][tIdx.x + 32] = Volume[Calculate3DIndex(x+32-HALO,y+48-HALO,z+z_offset,DATA_W,DATA_H)];
+
+        if ( ((x+64-HALO) < DATA_W) && ((y+48-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 48][tIdx.x + 64] = Volume[Calculate3DIndex(x+64-HALO,y+48-HALO,z+z_offset,DATA_W,DATA_H)];
+
+		if ( ((x+96-HALO) < DATA_W) && ((y+48-HALO) < DATA_H)  )
+            l_Image[tIdx.y + 48][tIdx.x + 96] = Volume[Calculate3DIndex(x+96-HALO,y+48-HALO,z+z_offset,DATA_W,DATA_H)];
+
+    }
+	
+   	// Make sure all threads have written to local memory
+	barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Only threads inside the image do the convolution
+
+    if ( (x < DATA_W) && (y < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+	    Filter_Response_2[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+	    Filter_Response_3[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
+    }
+
+    if ( ((x + 32) < DATA_W) && (y < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+		Filter_Response_2[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+		Filter_Response_3[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+    }
+
+	if ( ((x + 64) < DATA_W) && (y < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+		Filter_Response_2[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+		Filter_Response_3[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+    }
+
+    if (tIdx.x < (32 - HALO*2))
+    {
+		if ( ((x + 96) < DATA_W) && (y < DATA_H) )
+	    {
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	        Filter_Response_1[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+			Filter_Response_2[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+			Filter_Response_3[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+	    }
+	}
+
+	if ( (x < DATA_W) && ((y + 16) < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+	    Filter_Response_2[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+	    Filter_Response_3[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
+    }
+
+    if ( ((x + 32) < DATA_W) && ((y + 16) < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+		Filter_Response_2[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+		Filter_Response_3[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
+    }
+
+	if ( ((x + 64) < DATA_W) && ((y + 16) < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+		Filter_Response_2[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+		Filter_Response_3[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+    }
+
+	if (tIdx.x < (32 - HALO*2))
+    {
+		if ( ((x + 96) < DATA_W) && ((y + 16) < DATA_H) )
+    	{
+	    	float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	        Filter_Response_1[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+			Filter_Response_2[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+			Filter_Response_3[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+	    }
+	}
+
+	if ( (x < DATA_W) && ((y + 32) < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+	    Filter_Response_2[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+	    Filter_Response_3[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
+    }
+
+    if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+		Filter_Response_2[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+		Filter_Response_3[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+    }
+
+	if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
+    {
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+        Filter_Response_1[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+		Filter_Response_2[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+		Filter_Response_3[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
+    }
+
+    if (tIdx.x < (32 - HALO*2))
+    {
+		if ( ((x + 96) < DATA_W) && ((y + 32) < DATA_H) )
+	    {
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	        Filter_Response_1[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+			Filter_Response_2[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+			Filter_Response_3[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+	    }
+	}
+    
+	if (tIdx.y < (16 - HALO*2))
+    {	
+		if ( (x < DATA_W) && ((y + 48) < DATA_H) )
+		{
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+			Filter_Response_1[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+			Filter_Response_2[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+			Filter_Response_3[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+		}
+
+		if ( ((x + 32) < DATA_W) && ((y + 48) < DATA_H) )
+		{
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+			Filter_Response_1[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+			Filter_Response_2[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+			Filter_Response_3[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
+		}
+
+		if ( ((x + 64) < DATA_W) && ((y + 48) < DATA_H) )
+		{
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+			Filter_Response_1[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+			Filter_Response_2[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+			Filter_Response_3[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
+		}
+
+		if (tIdx.x < (32 - HALO*2))
+		{
+			if ( ((x + 96) < DATA_W) && ((y + 48) < DATA_H) )
+			{
+			    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+				Filter_Response_1[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
+				Filter_Response_2[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
+				Filter_Response_3[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
+			}
+		}
+	}	
+}
+
+
+__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_256threads(__global float2 *Filter_Response_1,
 	                                                                    __global float2 *Filter_Response_2, 
 																		__global float2 *Filter_Response_3, 																		
 																		__global const float* Volume, 
@@ -2637,8 +3253,8 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 																		__private int DATA_H, 
 																		__private int DATA_D)
 {   
-    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_AMD + get_local_id(0);
-	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_AMD + get_local_id(1);
+    int x = get_group_id(0) * VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_32KB + get_local_id(0);
+	int y = get_group_id(1) * VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_32KB + get_local_id(1);
 	int z = get_global_id(2);
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
@@ -2795,7 +3411,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( (x < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -2803,7 +3419,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 16) < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+16,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+16,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+16,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -2811,7 +3427,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( ((x + 32) < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+32,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2819,7 +3435,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 48) < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+48,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+48,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+48,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -2827,7 +3443,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 64) < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+64,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2835,7 +3451,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 80) < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+80,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+80,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+80,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -2843,7 +3459,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 96) < DATA_W) && (y < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+96,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2853,7 +3469,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {
         if ( ((x + 112) < DATA_W) && (y < DATA_H) )
 	    {
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
             Filter_Response_1[Calculate3DIndex(x+112,y,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		    Filter_Response_2[Calculate3DIndex(x+112,y,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		    Filter_Response_3[Calculate3DIndex(x+112,y,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -2862,7 +3478,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( (x < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -2870,7 +3486,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 16) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+16,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+16,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+16,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -2878,7 +3494,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( ((x + 32) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+32,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -2886,7 +3502,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 48) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+48,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+48,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+48,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -2894,7 +3510,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 64) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+64,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2902,7 +3518,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 80) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+80,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+80,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+80,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2910,7 +3526,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 96) < DATA_W) && ((y + 16) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+96,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2920,7 +3536,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {
         if ( ((x + 112) < DATA_W) && ((y + 16) < DATA_H) )
 	    {
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+16+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
             Filter_Response_1[Calculate3DIndex(x+112,y+16,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		    Filter_Response_2[Calculate3DIndex(x+112,y+16,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		    Filter_Response_3[Calculate3DIndex(x+112,y+16,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -2930,7 +3546,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( (x < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -2938,7 +3554,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 16) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+16,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 	    Filter_Response_2[Calculate3DIndex(x+16,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 	    Filter_Response_3[Calculate3DIndex(x+16,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			    
@@ -2946,7 +3562,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
     if ( ((x + 32) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+32,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2954,7 +3570,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 48) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+48,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+48,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+48,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -2962,7 +3578,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 64) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+64,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				
@@ -2970,7 +3586,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 80) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+80,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+80,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+80,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2978,7 +3594,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 	if ( ((x + 96) < DATA_W) && ((y + 32) < DATA_H) )
     {
-	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+	    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
         Filter_Response_1[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		Filter_Response_2[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		Filter_Response_3[Calculate3DIndex(x+96,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -2988,7 +3604,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {
         if ( ((x + 112) < DATA_W) && ((y + 32) < DATA_H) )
 	    {
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+32+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
             Filter_Response_1[Calculate3DIndex(x+112,y+32,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 		    Filter_Response_2[Calculate3DIndex(x+112,y+32,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 		    Filter_Response_3[Calculate3DIndex(x+112,y+32,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);				    
@@ -2999,7 +3615,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
     {	
 		if ( (x < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3007,7 +3623,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 16) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+16+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+16,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+16,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+16,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3015,7 +3631,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 32) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+32+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+32,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3023,7 +3639,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 48) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+48+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 	        Filter_Response_1[Calculate3DIndex(x+48,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+48,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+48,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3031,7 +3647,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 64) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+64+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+64,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);						
@@ -3039,7 +3655,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 80) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+80+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+80,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+80,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+80,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3047,7 +3663,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 
 		if ( ((x + 96) < DATA_W) && ((y + 48) < DATA_H) )
 		{
-		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+		    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+96+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 			Filter_Response_1[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 			Filter_Response_2[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 			Filter_Response_3[Calculate3DIndex(x+96,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);					
@@ -3057,7 +3673,7 @@ __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD(__global
 		{
 	        if ( ((x + 112) < DATA_W) && ((y + 48) < DATA_H) )
 			{
-			    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_AMD_((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
+			    float66 temp = Conv_2D_Unrolled_7x7_ThreeFilters_32KB((__local float*)l_Image,tIdx.y+48+HALO,tIdx.x+112+HALO,c_Quadrature_Filter_1_Real,c_Quadrature_Filter_1_Imag,c_Quadrature_Filter_2_Real,c_Quadrature_Filter_2_Imag,c_Quadrature_Filter_3_Real,c_Quadrature_Filter_3_Imag);
 				Filter_Response_1[Calculate3DIndex(x+112,y+48,z,DATA_W,DATA_H)] += (float2)(temp.a, temp.b);
 				Filter_Response_2[Calculate3DIndex(x+112,y+48,z,DATA_W,DATA_H)] += (float2)(temp.c, temp.d);
 				Filter_Response_3[Calculate3DIndex(x+112,y+48,z,DATA_W,DATA_H)] += (float2)(temp.e, temp.f);			

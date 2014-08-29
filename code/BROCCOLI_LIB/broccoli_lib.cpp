@@ -166,6 +166,12 @@ void BROCCOLI_LIB::SetStartValues()
 	INITIALIZATION_ERROR = "";
 	OPENCL_ERROR = "";
 
+	localMemorySize = 0;
+	maxThreadsPerBlock = 0;
+	maxThreadsPerDimension[0] = 0;
+	maxThreadsPerDimension[1] = 0;
+	maxThreadsPerDimension[2] = 0;
+
 	DEBUG = false;
 	WRAPPER = -1;
 	PRINT = true;
@@ -861,442 +867,12 @@ std::string BROCCOLI_LIB::Getexepath()
   return std::string( result, (count > 0) ? count : 0 );
 }
 
-/*
- * Old version of OpenCLInitiate, hard to read and lacks some error checking
- *
 
-void BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE)
-{
-	char* value;
-	size_t valueSize;
-	cl_device_id *clDevices;
-
-  	// Get number of platforms
-	cl_uint platformIdCount = 0;
-	getPlatformIDsError = clGetPlatformIDs (0, NULL, &platformIdCount);
-
-	if (getPlatformIDsError == SUCCESS)
-	{
-		// Get platform IDs
-		std::vector<cl_platform_id> platformIds(platformIdCount);
-		getPlatformIDsError = clGetPlatformIDs(platformIdCount, platformIds.data(), NULL);              
-
-		if (getPlatformIDsError == SUCCESS)
-		{	
-			// Check if the requested platform exists
-			if ((OPENCL_PLATFORM >= 0) &&  (OPENCL_PLATFORM < platformIdCount))
-			{
-				// Create context
-				const cl_context_properties contextProperties [] =
-				{
-					CL_CONTEXT_PLATFORM, reinterpret_cast<cl_context_properties> (platformIds[OPENCL_PLATFORM]), 0, 0
-				};
-
-				// Get number of devices for selected platform
-				cl_uint deviceIdCount = 0;
-				getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, 0, NULL, &deviceIdCount);
-	
-				if (getDeviceIDsError == SUCCESS)
-				{
-					// Get device IDs for selected platform
-					std::vector<cl_device_id> deviceIds(deviceIdCount);
-					getDeviceIDsError = clGetDeviceIDs(platformIds[OPENCL_PLATFORM], CL_DEVICE_TYPE_ALL, deviceIdCount, deviceIds.data(), NULL);
-
-					// Check if the requested device exists
-					if ((OPENCL_DEVICE >= 0) &&  (OPENCL_DEVICE < deviceIdCount))
-					{
-						if (getDeviceIDsError == SUCCESS)
-						{
-							// Create context for selected device
-							//context = clCreateContext(contextProperties, deviceIdCount, deviceIds.data(), NULL, NULL, &createContextError);
-							context = clCreateContext(contextProperties, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, &createContextError);
-
-							if (createContextError == SUCCESS)
-							{
-								// Get size of context info
-								getContextInfoError = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
-
-								if (getContextInfoError == SUCCESS)
-								{
-									// Get context info
-									clDevices = (cl_device_id *) malloc(valueSize);
-									getContextInfoError = clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
-
-									if (getContextInfoError == SUCCESS)
-									{
-										// Get size of name of current platform
-										clGetPlatformInfo(platformIds[OPENCL_PLATFORM], CL_PLATFORM_NAME, 0, NULL, &valueSize);
-										value = (char*) malloc(valueSize);
-										// Get name of current platform
-										clGetPlatformInfo(platformIds[OPENCL_PLATFORM], CL_PLATFORM_NAME, valueSize, value, NULL);
-										std::string vendor_string(value);
-										free(value);
-
-										// Figure out the vendor
-										size_t npos = vendor_string.find("NVIDIA");
-										size_t ipos = vendor_string.find("Intel");
-										size_t apos = vendor_string.find("AMD");
-
-										binaryFilename = "broccoli_lib_kernel_unknown";
-										if (npos != std::string::npos)
-										{
-											VENDOR = NVIDIA;
-											binaryFilename = "broccoli_lib_kernel_Nvidia";
-										}
-										else if (ipos != std::string::npos)
-										{
-											VENDOR = INTEL;
-											binaryFilename = "broccoli_lib_kernel_Intel";
-										}
-										else if (apos != std::string::npos)
-										{
-											VENDOR = AMD;
-											binaryFilename = "broccoli_lib_kernel_AMD";
-										}
-										else if (WRAPPER == BASH)
-										{
-											printf("\nUnsupported OpenCL vendor!\n\n");
-										}
-
-										// Create a command queue for the selected device
-										commandQueue = clCreateCommandQueue(context, deviceIds[OPENCL_DEVICE], CL_QUEUE_PROFILING_ENABLE, &createCommandQueueError);
-
-										if (createCommandQueueError == SUCCESS)
-										{
-											// Support for running functions from any folder
-											//std::string kernelFileName = Getexepath();
-											//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
-											//kernelFileName.append(binaryFilename);
-
-											std::string kernelFileName;
-											kernelFileName.append(binaryFilename);
-
-											// First try to compile from binary file for the selected device
-											//createProgramError = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], kernelFileName);
-											createProgramError = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryFilename);
-											//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
-
-											if (VENDOR == NVIDIA)
-											{
-												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
-											}
-											else
-											{
-												//buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-opt-disable", NULL, NULL);
-												buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
-											}
-
-											// Otherwise compile from source code
-											if (buildProgramError != SUCCESS)
-											{
-												// Read the kernel code from file
-												//std::string kernelFileName = Getexepath();
-												//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
-
-												//std::string kernelFileName;
-												//kernelFileName.append("broccoli_lib_kernel.cpp");
-												//std::fstream kernelFile(kernelFileName.c_str(),std::ios::in);
-												std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
-												std::ostringstream oss;
-												oss << kernelFile.rdbuf();
-												std::string src = oss.str();
-												const char *srcstr = src.c_str();
-
-												// Create program and build the code for the selected device
-												program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &createProgramError);
-												//buildProgramError = clBuildProgram(program, deviceIdCount, deviceIds.data(), NULL, NULL, NULL);
-
-												if (VENDOR == NVIDIA)
-												{
-													buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
-												}
-												else
-												{
-													buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
-												}
-
-												// If successful build, save to binary file
-												if (buildProgramError == SUCCESS)
-												{
-													SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename);
-												}
-											}
-
-											// Always get build info
-
-											// Get size of build info
-											valueSize = 0;
-											getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
-
-											// Get build info
-											if (getProgramBuildInfoError == SUCCESS)
-											{
-												value = (char*)malloc(valueSize);
-												getProgramBuildInfoError = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
-
-												if (getProgramBuildInfoError == SUCCESS)
-												{
-													build_info.append(value);
-												}
-												else if (WRAPPER == BASH)
-												{
-													printf("\nUnable to get OpenCL build info! \n\n");
-												}
-												free(value);
-											}
-											else if (WRAPPER == BASH)
-											{
-												printf("\nUnable to get size of OpenCL build info!\n\n");
-											}
-
-											if (buildProgramError == SUCCESS)
-											{
-												// Create kernels
-
-												// Convolution kernels
-												if ( (VENDOR == NVIDIA) || (VENDOR == INTEL))
-												{
-													NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
-													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&createKernelErrorSeparableConvolutionRows);
-													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&createKernelErrorSeparableConvolutionColumns);
-													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&createKernelErrorSeparableConvolutionRods);
-												}
-												else if (VENDOR == AMD)
-												{
-													NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
-													SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsAMD",&createKernelErrorSeparableConvolutionRows);
-													SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsAMD",&createKernelErrorSeparableConvolutionColumns);
-													SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsAMD",&createKernelErrorSeparableConvolutionRods);
-												}
-
-												OpenCLKernels[0] = NonseparableConvolution3DComplexThreeFiltersKernel;
-												OpenCLKernels[1] = SeparableConvolutionRowsKernel;
-												OpenCLKernels[2] = SeparableConvolutionColumnsKernel;
-												OpenCLKernels[3] = SeparableConvolutionRodsKernel;
-
-												SliceTimingCorrectionKernel = clCreateKernel(program,"SliceTimingCorrection",&createKernelErrorSliceTimingCorrection);
-
-												OpenCLKernels[4] = SliceTimingCorrectionKernel;
-
-												// Kernels for Linear registration
-												CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
-												CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
-												CalculatePhaseGradientsYKernel = clCreateKernel(program,"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
-												CalculatePhaseGradientsZKernel = clCreateKernel(program,"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
-												CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
-												CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
-												CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
-												CalculateAMatrix1DValuesKernel = clCreateKernel(program,"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
-												CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
-												CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
-												CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);
-
-												OpenCLKernels[5] = CalculatePhaseDifferencesAndCertaintiesKernel;
-												OpenCLKernels[6] = CalculatePhaseGradientsXKernel;
-												OpenCLKernels[7] = CalculatePhaseGradientsYKernel;
-												OpenCLKernels[8] = CalculatePhaseGradientsZKernel;
-												OpenCLKernels[9] = CalculateAMatrixAndHVector2DValuesXKernel;
-												OpenCLKernels[10] = CalculateAMatrixAndHVector2DValuesYKernel;
-												OpenCLKernels[11] = CalculateAMatrixAndHVector2DValuesZKernel;
-												OpenCLKernels[12] = CalculateAMatrix1DValuesKernel;
-												OpenCLKernels[13] = CalculateHVector1DValuesKernel;
-												OpenCLKernels[14] = CalculateAMatrixKernel;
-												OpenCLKernels[15] = CalculateHVectorKernel;
-
-												// Kernels for non-Linear registration
-												CalculateTensorComponentsKernel = clCreateKernel(program, "CalculateTensorComponents", &createKernelErrorCalculateTensorComponents);
-												CalculateTensorNormsKernel = clCreateKernel(program, "CalculateTensorNorms", &createKernelErrorCalculateTensorNorms);
-												CalculateAMatricesAndHVectorsKernel = clCreateKernel(program, "CalculateAMatricesAndHVectors", &createKernelErrorCalculateAMatricesAndHVectors);
-												CalculateDisplacementUpdateKernel = clCreateKernel(program, "CalculateDisplacementUpdate", &createKernelErrorCalculateDisplacementUpdate);
-												AddLinearAndNonLinearDisplacementKernel = clCreateKernel(program, "AddLinearAndNonLinearDisplacement", &createKernelErrorAddLinearAndNonLinearDisplacement);
-
-												OpenCLKernels[16] = CalculateTensorComponentsKernel;
-												OpenCLKernels[17] = CalculateTensorNormsKernel;
-												OpenCLKernels[18] = CalculateAMatricesAndHVectorsKernel;
-												OpenCLKernels[19] = CalculateDisplacementUpdateKernel;
-												OpenCLKernels[20] = AddLinearAndNonLinearDisplacementKernel;
-
-												CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);
-												CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);
-												CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);
-												CalculateColumnMaxsKernel = clCreateKernel(program,"CalculateColumnMaxs",&createKernelErrorCalculateColumnMaxs);
-												CalculateRowMaxsKernel = clCreateKernel(program,"CalculateRowMaxs",&createKernelErrorCalculateRowMaxs);
-												CalculateMaxAtomicKernel = clCreateKernel(program,"CalculateMaxAtomic",&createKernelErrorCalculateMaxAtomic);
-												ThresholdVolumeKernel = clCreateKernel(program,"ThresholdVolume",&createKernelErrorThresholdVolume);
-
-												OpenCLKernels[21] = CalculateMagnitudesKernel;
-												OpenCLKernels[22] = CalculateColumnSumsKernel;
-												OpenCLKernels[23] = CalculateRowSumsKernel;
-												OpenCLKernels[24] = CalculateColumnMaxsKernel;
-												OpenCLKernels[25] = CalculateRowMaxsKernel;
-												OpenCLKernels[26] = CalculateMaxAtomicKernel;
-												OpenCLKernels[27] = ThresholdVolumeKernel;
-
-												// Interpolation kernels
-												InterpolateVolumeNearestLinearKernel = clCreateKernel(program,"InterpolateVolumeNearestLinear",&createKernelErrorInterpolateVolumeNearestLinear);
-												InterpolateVolumeLinearLinearKernel = clCreateKernel(program,"InterpolateVolumeLinearLinear",&createKernelErrorInterpolateVolumeLinearLinear);
-												InterpolateVolumeCubicLinearKernel = clCreateKernel(program,"InterpolateVolumeCubicLinear",&createKernelErrorInterpolateVolumeCubicLinear);
-												InterpolateVolumeNearestNonLinearKernel = clCreateKernel(program,"InterpolateVolumeNearestNonLinear",&createKernelErrorInterpolateVolumeNearestNonLinear);
-												InterpolateVolumeLinearNonLinearKernel = clCreateKernel(program,"InterpolateVolumeLinearNonLinear",&createKernelErrorInterpolateVolumeLinearNonLinear);
-												InterpolateVolumeCubicNonLinearKernel = clCreateKernel(program,"InterpolateVolumeCubicNonLinear",&createKernelErrorInterpolateVolumeCubicNonLinear);
-
-												OpenCLKernels[28] = InterpolateVolumeNearestLinearKernel;
-												OpenCLKernels[29] = InterpolateVolumeLinearLinearKernel;
-												OpenCLKernels[30] = InterpolateVolumeCubicLinearKernel;
-												OpenCLKernels[31] = InterpolateVolumeNearestNonLinearKernel;
-												OpenCLKernels[32] = InterpolateVolumeLinearNonLinearKernel;
-												OpenCLKernels[33] = InterpolateVolumeCubicNonLinearKernel;
-
-												RescaleVolumeLinearKernel = clCreateKernel(program,"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
-												RescaleVolumeCubicKernel = clCreateKernel(program,"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
-												RescaleVolumeNearestKernel = clCreateKernel(program,"RescaleVolumeNearest",&createKernelErrorRescaleVolumeNearest);
-
-												OpenCLKernels[34] = RescaleVolumeLinearKernel;
-												OpenCLKernels[35] = RescaleVolumeCubicKernel;
-												OpenCLKernels[36] = RescaleVolumeNearestKernel;
-
-												CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
-												CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
-												CopyVolumeToNewKernel = clCreateKernel(program,"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
-
-												OpenCLKernels[37] = CopyT1VolumeToMNIKernel;
-												OpenCLKernels[38] = CopyEPIVolumeToT1Kernel;
-												OpenCLKernels[39] = CopyVolumeToNewKernel;
-
-												// Help kernels
-												MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
-												MemsetIntKernel = clCreateKernel(program,"MemsetInt",&createKernelErrorMemsetInt);
-												MemsetFloat2Kernel = clCreateKernel(program,"MemsetFloat2",&createKernelErrorMemsetFloat2);
-												MultiplyVolumeKernel = clCreateKernel(program,"MultiplyVolume",&createKernelErrorMultiplyVolume);
-												MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
-												MultiplyVolumesOverwriteKernel = clCreateKernel(program,"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
-												AddVolumeKernel = clCreateKernel(program,"AddVolume",&createKernelErrorAddVolume);
-												AddVolumesKernel = clCreateKernel(program,"AddVolumes",&createKernelErrorAddVolumes);
-												AddVolumesOverwriteKernel = clCreateKernel(program,"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
-												RemoveMeanKernel = clCreateKernel(program,"RemoveMean",&createKernelErrorRemoveMean);
-												SetStartClusterIndicesKernel = clCreateKernel(program,"SetStartClusterIndicesKernel",&createKernelErrorSetStartClusterIndices);
-												ClusterizeScanKernel = clCreateKernel(program,"ClusterizeScan",&createKernelErrorClusterizeScan);
-												ClusterizeRelabelKernel = clCreateKernel(program,"ClusterizeRelabel",&createKernelErrorClusterizeRelabel);
-												CalculateClusterSizesKernel = clCreateKernel(program,"CalculateClusterSizes",&createKernelErrorCalculateClusterSizes);
-												CalculateLargestClusterKernel = clCreateKernel(program,"CalculateLargestCluster",&createKernelErrorCalculateLargestCluster);
-
-
-												OpenCLKernels[40] = MemsetKernel;
-												OpenCLKernels[41] = MemsetIntKernel;
-												OpenCLKernels[42] = MemsetFloat2Kernel;
-												OpenCLKernels[43] = MultiplyVolumeKernel;
-												OpenCLKernels[44] = MultiplyVolumesKernel;
-												OpenCLKernels[45] = MultiplyVolumesOverwriteKernel;
-												OpenCLKernels[46] = AddVolumeKernel;
-												OpenCLKernels[47] = AddVolumesKernel;
-												OpenCLKernels[48] = AddVolumesOverwriteKernel;
-												OpenCLKernels[49] = RemoveMeanKernel;
-												OpenCLKernels[50] = SetStartClusterIndicesKernel;
-												OpenCLKernels[51] = ClusterizeScanKernel;
-												OpenCLKernels[52] = ClusterizeRelabelKernel;
-												OpenCLKernels[53] = CalculateClusterSizesKernel;
-												OpenCLKernels[54] = CalculateLargestClusterKernel;
-
-												// Statistical kernels
-												CalculateBetaWeightsGLMKernel = clCreateKernel(program,"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
-												CalculateBetaWeightsGLMFirstLevelKernel = clCreateKernel(program,"CalculateBetaWeightsGLMFirstLevel",&createKernelErrorCalculateBetaWeightsGLMFirstLevel);
-												CalculateGLMResidualsKernel = clCreateKernel(program,"CalculateGLMResiduals",&createKernelErrorCalculateGLMResiduals);
-												CalculateStatisticalMapsGLMTTestFirstLevelKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel);
-												CalculateStatisticalMapsGLMFTestFirstLevelKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel);
-												CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
-												CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
-												CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
-												CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation);
-												CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation);
-												CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation);
-												CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation);
-												EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
-												ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
-												GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
-												RemoveLinearFitKernel = clCreateKernel(program,"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
-
-												OpenCLKernels[55] = CalculateBetaWeightsGLMKernel;
-												OpenCLKernels[56] = CalculateBetaWeightsGLMFirstLevelKernel;
-												OpenCLKernels[57] = CalculateGLMResidualsKernel;
-												OpenCLKernels[58] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-												OpenCLKernels[59] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-												OpenCLKernels[60] = CalculateStatisticalMapsGLMTTestKernel;
-												OpenCLKernels[61] = CalculateStatisticalMapsGLMFTestKernel;
-												OpenCLKernels[62] = CalculateStatisticalMapsGLMBayesianKernel;
-												OpenCLKernels[63] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
-												OpenCLKernels[64] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
-												OpenCLKernels[65] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
-												OpenCLKernels[66] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-												OpenCLKernels[67] = EstimateAR4ModelsKernel;
-												OpenCLKernels[68] = ApplyWhiteningAR4Kernel;
-												OpenCLKernels[69] = GeneratePermutedVolumesFirstLevelKernel;
-												OpenCLKernels[70] = RemoveLinearFitKernel;
-
-												OPENCL_INITIATED = 1;
-											}
-											else if (WRAPPER == BASH)
-											{
-												printf("\nUnable to build OpenCL program. Aborting! \n\n");
-											}
-										}
-										else if (WRAPPER == BASH)
-										{
-											printf("\nUnable to create an OpenCL command queue. Aborting! \n\n");
-										}
-									}
-									else if (WRAPPER == BASH)
-									{
-										printf("\nUnable to get OpenCL context info. Aborting! \n\n");
-									}
-									free(clDevices);
-								}
-								else if (WRAPPER == BASH)
-								{
-									printf("\nUnable to get size of OpenCL context info. Aborting! \n\n");
-								}
-							}
-							else if (WRAPPER == BASH)
-							{
-								printf("\nUnable to create an OpenCL context. Aborting! \n\n");
-							}
-						}
-						else if (WRAPPER == BASH)
-						{
-							printf("\nUnable to get OpenCL device id's for the specified platform. Aborting! \n\n");
-						}
-					}
-					else if (WRAPPER == BASH)
-					{
-						printf("\nYou tried to use the invalid OpenCL device %i, valid devices for the selected platform are 0 <= device < %i. Aborting! \n\n",OPENCL_DEVICE,deviceIdCount);
-					}
-				}
-				else if (WRAPPER == BASH)
-				{
-					printf("\nUnable to get number of OpenCL devices for the specified platform. Aborting! \n\n");
-				}
-			}
-			else if (WRAPPER == BASH)
-			{
-				printf("\nYou tried to use the invalid OpenCL platform %i, valid platforms are 0 <= platform < %i. Aborting! \n\n",OPENCL_PLATFORM,platformIdCount);
-			}
-		}
-		else if (WRAPPER == BASH)
-		{
-			printf("\nUnable to get OpenCL platform id's. Aborting! \n\n");
-		}
-	}
-	else if (WRAPPER == BASH)
-	{
-		printf("\nUnable to get number of OpenCL platforms. Aborting! \n\n");
-	}
-}
-*/
 
 bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE)
 {
-	char* value;
+	char* value = NULL;
 	size_t valueSize;
-	cl_device_id *clDevices;
 
   	// Get number of platforms
 	cl_uint platformIdCount = 0;
@@ -1374,35 +950,13 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		return false;
 	}
 
-	// Get size of context info
-	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, 0, NULL, &valueSize);
-
-	if (error != SUCCESS)
-	{
-		INITIALIZATION_ERROR = "Unable to get size of OpenCL context info.";
-		OPENCL_ERROR = GetOpenCLErrorMessage(error);
-		return false;
-	}
-
-	// Get context info
-	clDevices = (cl_device_id *) malloc(valueSize);
-	error = clGetContextInfo(context, CL_CONTEXT_DEVICES, valueSize, clDevices, NULL);
-
-	if (error != SUCCESS)
-	{
-		INITIALIZATION_ERROR = "Unable to get OpenCL context info.";
-		OPENCL_ERROR = GetOpenCLErrorMessage(error);
-		free(clDevices);
-		return false;
-	}
-
 	// Get size of name of current platform
 	error = clGetPlatformInfo(platformIds[OPENCL_PLATFORM], CL_PLATFORM_NAME, 0, NULL, &valueSize);
 
 	if (error != SUCCESS)
 	{
 		INITIALIZATION_ERROR = "Unable to get size of platform name.";
-		OPENCL_ERROR = GetOpenCLErrorMessage(error);
+		OPENCL_ERROR = GetOpenCLErrorMessage(error);		
 		return false;
 	}
 
@@ -1575,22 +1129,66 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	}
 
 
+	// Get some info about the selected device
+
+	// Find out the size of the local (shared) memory in KB
+	clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(localMemorySize), &localMemorySize, NULL);            
+	localMemorySize /= 1024;            
+	
+	// Find out the maximum number of threads per thread block
+	clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(maxThreadsPerBlock), &maxThreadsPerBlock, NULL);            
+       
+	// Get maximum block dimensions
+	clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(maxThreadsPerDimension), maxThreadsPerDimension, NULL);            
+
+	if ( (WRAPPER == BASH) && VERBOS )
+	{
+		printf("The selected OpenCL device has %i KB of local memory, and can run %i threads per thread block, max threads per dimension are %i %i %i\n",localMemorySize,maxThreadsPerBlock,maxThreadsPerDimension[0],maxThreadsPerDimension[1],maxThreadsPerDimension[2]);
+	}
+
 	// Create kernels
 
-	// Convolution kernels
-	if ( (VENDOR == NVIDIA) || (VENDOR == INTEL) || (VENDOR == APPLE) )
+	// Non-separable convolution kernel using 24 KB of shared memory and 1024 threads per thread block (32 * 32)
+	if ( (localMemorySize >= 24) && (maxThreadsPerBlock >= 1024) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 32)  )
 	{
-		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
-		SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows",&createKernelErrorSeparableConvolutionRows);
-		SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns",&createKernelErrorSeparableConvolutionColumns);
-		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods",&createKernelErrorSeparableConvolutionRods);
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_24KB_1024threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
 	}
-	else if (VENDOR == AMD)
+	// Non-separable convolution kernel using 32 KB of shared memory and 512 threads per thread block (32 * 16)
+	else if ( (localMemorySize >= 32) && (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 16)  )
 	{
-		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersAMD",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
-		SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsAMD",&createKernelErrorSeparableConvolutionRows);
-		SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsAMD",&createKernelErrorSeparableConvolutionColumns);
-		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsAMD",&createKernelErrorSeparableConvolutionRods);
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_512threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+	}
+	// Non-separable convolution kernel using 32 KB of shared memory and 256 threads per thread block (16 * 16)
+	else if ( (localMemorySize >= 32) && (maxThreadsPerBlock >= 256) && (maxThreadsPerDimension[0] >= 16) && (maxThreadsPerDimension[1] >= 16)  )
+	{
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_256threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+	}
+	// Non-separable convolution kernel using global memory only (backup)
+	else
+	{
+		//NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersGlobalMemory",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+	}
+
+	// Separable convolution kernels using 16 KB of shared memory and 512 threads per thread block (32 * 8 * 2 and 32 * 2 * 8)
+	if ( (localMemorySize >= 16) && (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 8) && (maxThreadsPerDimension[2] >= 8)  )
+	{
+		SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows_16KB_512threads",&createKernelErrorSeparableConvolutionRows);
+		SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns_16KB_512threads",&createKernelErrorSeparableConvolutionColumns);
+		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods_16KB_512threads",&createKernelErrorSeparableConvolutionRods);
+	}
+	// Separable convolution kernels using 16 KB of shared memory and 256 threads per thread block (32 * 8 * 1 and 32 * 1 * 8)
+	else if ( (localMemorySize >= 16) && (maxThreadsPerBlock >= 256) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 8) && (maxThreadsPerDimension[2] >= 8)  )
+	{
+		SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows_16KB_256threads",&createKernelErrorSeparableConvolutionRows);
+		SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns_16KB_256threads",&createKernelErrorSeparableConvolutionColumns);
+		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods_16KB_256threadsD",&createKernelErrorSeparableConvolutionRods);
+	}
+	// Separable convolution kernels using global memory only (backup)
+	else
+	{
+		//SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsGlobalMemory",&createKernelErrorSeparableConvolutionRows);
+		//SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsGlobalMemory",&createKernelErrorSeparableConvolutionColumns);
+		//SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsGlobalMemory",&createKernelErrorSeparableConvolutionRods);
 	}
 
 	OpenCLKernels[0] = NonseparableConvolution3DComplexThreeFiltersKernel;
@@ -1784,7 +1382,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	{
 		INITIALIZATION_ERROR = "One or several kernels were not created.";
 		OPENCL_ERROR = "";
-		return false;
+		if (WRAPPER == BASH)
+		{
+			printf("One or several kernels were not created correctly!\n.");
+		}
+		return true;
 	}
 	else
 	{
@@ -1830,7 +1432,8 @@ void BROCCOLI_LIB::OpenCLCleanup()
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, int DATA_H, int DATA_D)
 {
-	if ( (VENDOR == NVIDIA) || (VENDOR == INTEL) || (VENDOR == APPLE) )
+	// Separable convolution for 512 threads per thread block
+	if ( (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 8) && (maxThreadsPerDimension[2] >= 8) )
 	{
 		//----------------------------------
 		// Separable convolution rows
@@ -1889,7 +1492,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, in
 		globalWorkSizeSeparableConvolutionRods[1] = yBlocks * localWorkSizeSeparableConvolutionRods[1];
 		globalWorkSizeSeparableConvolutionRods[2] = zBlocks * localWorkSizeSeparableConvolutionRods[2];
 	}
-	else if (VENDOR == AMD)
+	// Separable convolution for 256 threads per thread block
+	else if ( (maxThreadsPerBlock >= 256) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 8) && (maxThreadsPerDimension[2] >= 8) )
 	{
 		//----------------------------------
 		// Separable convolution rows
@@ -1948,6 +1552,64 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, in
 		globalWorkSizeSeparableConvolutionRods[1] = yBlocks * localWorkSizeSeparableConvolutionRods[1];
 		globalWorkSizeSeparableConvolutionRods[2] = zBlocks * localWorkSizeSeparableConvolutionRods[2];
 	}
+	// Backup version for global memory
+	else if ( (maxThreadsPerBlock >= 128) && (maxThreadsPerDimension[0] >= 128) )
+	{
+		//----------------------------------
+		// Separable convolution rows
+		//----------------------------------
+
+		localWorkSizeSeparableConvolutionRows[0] = 128;
+		localWorkSizeSeparableConvolutionRows[1] = 1;
+		localWorkSizeSeparableConvolutionRows[2] = 1;
+
+		// Calculate how many blocks are required
+		xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeSeparableConvolutionRows[0]);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeSeparableConvolutionRows[1]);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeSeparableConvolutionRows[2]);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionRows[0] = xBlocks * localWorkSizeSeparableConvolutionRows[0];
+		globalWorkSizeSeparableConvolutionRows[1] = yBlocks * localWorkSizeSeparableConvolutionRows[1];
+		globalWorkSizeSeparableConvolutionRows[2] = zBlocks * localWorkSizeSeparableConvolutionRows[2];
+
+		//----------------------------------
+		// Separable convolution columns
+		//----------------------------------
+
+		localWorkSizeSeparableConvolutionColumns[0] = 128;
+		localWorkSizeSeparableConvolutionColumns[1] = 1;
+		localWorkSizeSeparableConvolutionColumns[2] = 1;
+
+		// Calculate how many blocks are required
+		xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeSeparableConvolutionColumns[0]);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeSeparableConvolutionColumns[1]);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeSeparableConvolutionColumns[2]);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionColumns[0] = xBlocks * localWorkSizeSeparableConvolutionColumns[0];
+		globalWorkSizeSeparableConvolutionColumns[1] = yBlocks * localWorkSizeSeparableConvolutionColumns[1];
+		globalWorkSizeSeparableConvolutionColumns[2] = zBlocks * localWorkSizeSeparableConvolutionColumns[2];
+
+		//----------------------------------
+		// Separable convolution rods
+		//----------------------------------
+
+		localWorkSizeSeparableConvolutionRods[0] = 128;
+		localWorkSizeSeparableConvolutionRods[1] = 1;
+		localWorkSizeSeparableConvolutionRods[2] = 1;
+
+		// Calculate how many blocks are required
+		// ConvolutionRods yields 32 * 8 * 8 valid filter responses per block (x,y,z)
+		xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeSeparableConvolutionRods[0]);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeSeparableConvolutionRods[1]);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeSeparableConvolutionRods[2]);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeSeparableConvolutionRods[0] = xBlocks * localWorkSizeSeparableConvolutionRods[0];
+		globalWorkSizeSeparableConvolutionRods[1] = yBlocks * localWorkSizeSeparableConvolutionRods[1];
+		globalWorkSizeSeparableConvolutionRods[2] = zBlocks * localWorkSizeSeparableConvolutionRods[2];
+	}
 }
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMemset(int N)
@@ -1965,15 +1627,16 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMemset(int N)
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D)
 {
-	if ( (VENDOR == NVIDIA) || (VENDOR == INTEL) || (VENDOR == APPLE) )
+	// 1024 threads per block, as 32 * 32 threads
+	if ( (maxThreadsPerBlock >= 1024) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 32)  )
 	{
 		localWorkSizeNonseparableConvolution3DComplex[0] = 32;
 		localWorkSizeNonseparableConvolution3DComplex[1] = 32;
 		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
 
 		// Calculate how many blocks are required
-		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D);
-		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D);
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_24KB);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_24KB);
 		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
 
 		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
@@ -1981,15 +1644,50 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W,
 		globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
 		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
 	}
-	else if (VENDOR == AMD)
+	// 512 threads per block, as 32 * 16 threads
+	else if ( (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 16)  )
+	{
+		localWorkSizeNonseparableConvolution3DComplex[0] = 32;
+		localWorkSizeNonseparableConvolution3DComplex[1] = 16;
+		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
+
+		// Calculate how many blocks are required
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_32KB);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_32KB);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeNonseparableConvolution3DComplex[0] = xBlocks * localWorkSizeNonseparableConvolution3DComplex[0];
+		globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
+		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
+	}
+	// 256 threads per block, as 16 * 16 threads
+	else if ( (maxThreadsPerBlock >= 256) && (maxThreadsPerDimension[0] >= 16) && (maxThreadsPerDimension[1] >= 16)  )
 	{
 		localWorkSizeNonseparableConvolution3DComplex[0] = 16;
 		localWorkSizeNonseparableConvolution3DComplex[1] = 16;
 		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
 
 		// Calculate how many blocks are required
-		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_AMD);
-		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_AMD);
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_32KB);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_32KB);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeNonseparableConvolution3DComplex[0] = xBlocks * localWorkSizeNonseparableConvolution3DComplex[0];
+		globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
+		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
+	}
+	// Backup version for global memory, 128 threads per block, along one dimension (e.g. for Intel on the Apple platform)
+	else if ( (maxThreadsPerBlock >= 128) && (maxThreadsPerDimension[0] >= 128)   )
+	{
+		localWorkSizeNonseparableConvolution3DComplex[0] = 128;
+		localWorkSizeNonseparableConvolution3DComplex[1] = 1;
+		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
+
+		// Calculate how many blocks are required
+		xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeNonseparableConvolution3DComplex[0]);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeNonseparableConvolution3DComplex[1]);
 		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
 
 		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
@@ -7255,7 +6953,7 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 	// Copy the linearly aligned volume to host
 	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_Linear, 0, NULL, NULL);
 
-	// Perform non-Linear registration between tramsformed skullstripped volume and MNI brain volume
+	// Perform non-Linear registration
 	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
 	{
 		AlignTwoVolumesNonLinearSeveralScales(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
