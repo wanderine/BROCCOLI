@@ -1074,8 +1074,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		if (error != SUCCESS)
 		{
 			INITIALIZATION_ERROR = "Unable to create program with source.";
-			OPENCL_ERROR = GetOpenCLErrorMessage(error);
-			return false;
+			OPENCL_ERROR = GetOpenCLErrorMessage(error);			
 		}
 
 		if (VENDOR == NVIDIA)
@@ -1093,6 +1092,58 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename);
 		}
 	}
+
+	// Otherwise compile from source code, short version
+	if (buildProgramError != SUCCESS)
+	{
+		// Check if kernel file exists
+		std::ifstream file("broccoli_lib_kernel_short.cpp");
+		if ( !file.good() )
+		{
+			INITIALIZATION_ERROR = "Unable to open broccoli_lib_kernel_short.cpp.";
+			OPENCL_ERROR = "";
+			return false;
+		}
+
+		// Support for running BROCCOLI from any directory
+		//std::string kernelFileName = Getexepath();
+		//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
+		//kernelFileName.append("broccoli_lib_kernel.cpp");
+		//std::fstream kernelFile(kernelFileName.c_str(),std::ios::in);
+
+		// Read the kernel code from file
+		std::fstream kernelFile("broccoli_lib_kernel_short.cpp",std::ios::in);
+
+		std::ostringstream oss;
+		oss << kernelFile.rdbuf();
+		std::string src = oss.str();
+		const char *srcstr = src.c_str();
+
+		// Create program and build the code for the selected device
+		program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &error);
+
+		if (error != SUCCESS)
+		{
+			INITIALIZATION_ERROR = "Unable to create program with source.";
+			OPENCL_ERROR = GetOpenCLErrorMessage(error);			
+		}
+
+		if (VENDOR == NVIDIA)
+		{
+			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
+		}
+		else
+		{
+			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+		}
+
+		// If successful build, save to binary file
+		if (buildProgramError == SUCCESS)
+		{
+			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename);
+		}
+	}
+
 
 	// Always get build info
 
