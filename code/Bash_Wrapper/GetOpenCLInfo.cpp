@@ -35,7 +35,7 @@ int main(int argc, char **argv)
 
 	BROCCOLI.GetOpenCLInfo();
     
-	printf("Device info \n \n %s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
+	printf("\nDevice info \n \n%s \n", BROCCOLI.GetOpenCLDeviceInfoChar());
             
     return EXIT_SUCCESS;
 }
