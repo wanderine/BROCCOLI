@@ -1096,6 +1096,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	// Otherwise compile from source code, short version
 	if (buildProgramError != SUCCESS)
 	{
+		if (WRAPPER == BASH)
+		{
+			printf("Warning! Compilation of broccoli_lib_kernel.cpp failed, trying with broccoli_lib_kernel_short.cpp instead!\n");
+		}
+
 		// Check if kernel file exists
 		std::ifstream file("broccoli_lib_kernel_short.cpp");
 		if ( !file.good() )
@@ -1435,7 +1440,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		OPENCL_ERROR = "";
 		if (WRAPPER == BASH)
 		{
-			printf("One or several kernels were not created correctly!\n.");
+			printf("One or several kernels were not created correctly!\n");
 		}
 		return true;
 	}
