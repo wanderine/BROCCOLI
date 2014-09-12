@@ -620,7 +620,7 @@ int main(int argc, char **argv)
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
     
     // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated())
+    if ( !BROCCOLI.GetOpenCLInitiated() )
     {              
         printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
 		printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
