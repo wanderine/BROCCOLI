@@ -51,6 +51,19 @@ NumContrasts 9
 0.0 -1.0 1.0
 \end{verbatim}
 
+\section{OpenCL options}
+
+The following OpenCL options are available
+
+\begin{itemize}
+
+\item -platform
+\newline \newline The OpenCL platform to use (default 0).
+
+\item -device
+\newline \newline The OpenCL device to use (default 0).
+
+\end{itemize}
 
 \section{Registration options}
 
@@ -58,15 +71,54 @@ Several options can be used to control the image registration, see the chapter a
 
 \section{Preprocessing options}
 
-There are currently two options for the preprocessing; the option -iterationsmc controls the number of iterations used for the motion correction (the default is 5) and the option -smoothing controls the amount of smoothing applied to each fMRI volume (the default is 6 mm). 
+The following preprocessing options are available
+
+\begin{itemize}
+
+\item -iterationsmc 
+\newline \newline Set the number of iterations used for the \newline motion correction (the default is 5).
+
+\item -smoothing 
+\newline \newline Set the amount of smoothing applied to \newline each fMRI volume (the default is 6 mm FWHM). 
+
+\end{itemize}
+
 
 \section{Statistical options}
 
-A number of statistical options are available to the user. The option \\-regressmotion adds the 6 estimated motion parameters (3 for translation and 3 for rotation) to the design matrix, to further suppress the effect of head motion. The option -temporalderivatives adds one additional regressor for each original regressor; the temporal derivative of each regressor. This makes it possible to adjust for a small time difference between the original regressor and the time series in each voxel. For both these options, the contrast vectors are automatically extended with zeros for these additional regressors.
+The following statistical options are available
 
-The option -permute results in that a permutation test is applied after the conventional first level analysis. In each permutation, a random reshuffling of the fMRI volumes is performed to create a new set of null data. The statistical analysis is performed in each permutation, to empirically estimate the null distribution. The option -inferencemode determines if voxel-wise or cluster-wise p-values should be calculated, and the option -cdt sets the initial (uncorrected) voxel-wise threshold applied to the statistical map to define the clusters. The default number of permutations is 1,000, and can be changed with the option -permutations.
+\begin{itemize}
 
-Bayesian first level analysis can be performed by using the option -bayesian.  Note that this option currently only works for 2 regressors. In each voxel, a Gibbs sampler is used to estimate the posterior probability of each contrast being larger than 0. The option -iterationsmcmc sets the number of MCMC iterations to be used (the default is 1,000).
+\item -rawregressors
+\newline \newline Use raw regressors (FSL format, one line per volume/TR). These regressors will not be convolved with any hemodynamic response function.
+
+\item -regressmotion 
+\newline \newline Add the 6 estimated motion parameters (3 for translation and 3 for rotation) to the design matrix, to further suppress the effect of head motion. The contrast vectors are automatically extended with zeros for these additional regressors. 
+
+\item -temporalderivatives 
+\newline \newline Add one additional regressor for each original regressor; the temporal derivative of each regressor. This makes it possible to adjust for a small time difference between the original regressor and the time series in each voxel. The contrast vectors are automatically extended with zeros for these additional regressors.
+
+\newpage
+\item -permute
+\newline \newline Run a permutation test after the conventional first level analysis. In each permutation, a random reshuffling of the fMRI volumes is performed to create a new set of null data. The statistical analysis is performed in each permutation, to empirically estimate the null distribution. 
+
+\item -inferencemode 
+\newline \newline Set if voxel-wise or cluster-wise p-values should be calculated for the permutation test, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = threshold free cluster enhancement (TFCE) (default 1)
+
+\item -cdt 
+\newline \newline Cluster defining threshold for permutation based cluster inference (default 2.5). 
+
+\item -permutations 
+\newline \newline Set the number of permutations (default 1,000)
+
+\item -bayesian 
+\newline \newline Run Bayesian first level analysis.  Note that this option currently only works for 2 regressors. In each voxel, a Gibbs sampler is used to estimate the posterior probability of each contrast being larger than 0. This option cannot be combined with -permute.
+
+\item -iterationsmcmc 
+\newline \newline Set the number of MCMC iterations to be used (default 1,000).
+
+\end{itemize}
 
 \section{Outputs}
 
@@ -91,60 +143,101 @@ fMRI_tscores_contrast1_MNI.nii
 fMRI_tscores_contrast2_MNI.nii
 \end{verbatim}
 
-If the option -saveactivityt1 is used, all the results will also be stored in the anatomical space of the subject, i.e. as
+\section{Output options}
 
-\begin{verbatim}
-fMRI_beta_regressor1_T1.nii 
-fMRI_beta_regressor2_T1.nii 
-fMRI_beta_regressor3_T1.nii 
-fMRI_beta_regressor4_T1.nii 
-fMRI_beta_regressor5_T1.nii 
-fMRI_beta_regressor6_T1.nii 
-\end{verbatim}
+The following output options are available
 
-and
+\begin{itemize}
 
-\begin{verbatim}
-fMRI_cope_contrast1_T1.nii  
-fMRI_cope_contrast2_T1.nii  
+\item -savet1interpolated        
+\newline \newline Save T1 volume after resampling to MNI voxel size and resizing to MNI size (default no). 
 
-fMRI_tscores_contrast1_T1.nii
-fMRI_tscores_contrast2_T1.nii
-\end{verbatim}
+\item -savet1alignedlinear       
+\newline \newline Save T1 volume linearly aligned to the MNI volume (default no). 
 
-In a similar manner, if the option -saveactivityepi is used, all the results will also be stored in the original fMRI data space, i.e. as
+\item -savet1alignednonlinear    
+\newline \newline Save T1 volume non-linearly aligned to the MNI volume (default no). 
 
-\begin{verbatim}
-fMRI_beta_regressor1_EPI.nii 
-fMRI_beta_regressor2_EPI.nii 
-fMRI_beta_regressor3_EPI.nii 
-fMRI_beta_regressor4_EPI.nii 
-fMRI_beta_regressor5_EPI.nii 
-fMRI_beta_regressor6_EPI.nii 
-\end{verbatim}
+\item -saveepialignedt1          
+\newline \newline Save EPI volume aligned to the T1 volume (default no). 
 
-and
+\item -saveepialignedmni         
+\newline \newline Save EPI volume aligned to the MNI volume (default no). 
 
-\begin{verbatim}
-fMRI_cope_contrast1_EPI.nii  
-fMRI_cope_contrast2_EPI.nii  
+\item -saveallaligned            
+\newline \newline Save all aligned volumes (T1 interpolated, T1-MNI linear, T1-MNI non-linear, EPI-T1, EPI-MNI) (default no). 
 
-fMRI_tscores_contrast1_EPI.nii
-fMRI_tscores_contrast2_EPI.nii
-\end{verbatim}
+\item -saveepimask               
+\newline \newline Save mask for fMRI data  (default no). 
 
-If the option -permute is used, BROCCOLI will also create one file with p-values for each contrast. The default is that these p-values are stored in the space of the brain template, but they will also be stored in anatomical space if the -saveactivityt1 option is used, and in fMRI space if the option -saveactivityepi is used.
+\item -saveslicetimingcorrected  
+\newline \newline Save slice timing corrected fMRI volumes  (default no). 
+
+\item -savemotioncorrected       
+\newline \newline Save motion corrected fMRI volumes (default no). 
+
+\item -savesmoothed              
+\newline \newline Save smoothed fMRI volumes (default no). 
+
+\item -saveactivityepi           
+\newline \newline Save activity maps in EPI space (in addition to MNI space, default no). 
+
+\item -saveactivityt1            
+\newline \newline Save activity maps in T1 space (in addition to MNI space, default no). 
+
+\item -saveresiduals             
+\newline \newline Save residuals after GLM analysis (default no). 
+
+\item -saveresidualsmni          
+\newline \newline Save residuals after GLM analysis, in MNI space (default no). 
+
+\item -saveoriginaldesignmatrix  
+\newline \newline Save the original design matrix used (default no). This is the design matrix before convolving the regressors with the hemodynamic response function.
+
+\item -savedesignmatrix          
+\newline \newline Save the total design matrix used (default no). This is the total design matrix being used by BROCCOLI. It contains detrending regressors and motion regressors (if -regressmotion is used).
+
+\item -savearparameters          
+\newline \newline Save the estimated AR coefficients (default no). 
+
+\item -savearparameterst1        
+\newline \newline Save the estimated AR coefficients, in T1 space (default no). 
+
+\item -savearparametersmni       
+\newline \newline Save the estimated AR coefficients, in MNI space (default no). 
+
+\item -saveallpreprocessed       
+\newline \newline Save all preprocessed fMRI data (slice timing corrected, motion corrected, smoothed) (default no). 
+
+\item -saveunwhitenedresults     
+\newline \newline Save all statistical results without voxel-wise whitening (default no). 
+
+\item -saveall                   
+\newline \newline Save everything (default no). 
+
+
+\end{itemize}
+
+\section{Additional options}
+
+The following additional options are available
+
+\begin{itemize}
+
+\item -quiet
+\newline \newline Don't print anything to the terminal (default false). 
+
+\item -verbose
+\newline \newline Print extra stuff (default false).
+
+\item -debug
+\newline \newline Get additional debug information saved as nifti files (default no). Warning: This will use a lot of extra memory! 
+
+\end{itemize}
 
 \section{Checking the registration}
 
-To check the quality of the registrations, the option -saveallaligned can be used. This will save the anatomical (T1) volume interpolated and resized to match the brain template, the anatomical volume linearly aligned to the template, the anatomical volume non-linearly aligned to the template, the fMRI volume aligned to the anatomical volume and the fMRI volume aligned to the brain template. 
-
 To check the registration between the anatomical volume and the brain template, set one volume as the underlay (e.g. T1\_brain\_aligned\_linear.nii or T1\_brain\_aligned\_nonlinear.nii) and one as the overlay \\ (e.g. MNI152\_T1\_1mm\_brain.nii.gz). To check the registration between the fMRI volume and the anatomical volume, set the interpolated anatomical volume (e.g. T1\_brain\_interpolated.nii) as the underlay and the aligned fMRI volume (e.g. fMRI\_aligned\_t1.nii) as the overlay.
-
-\section{Checking the design matrix}
-
-The total design matrix being used by BROCCOLI can be saved to a text file by using the option -savedesignmatrix. This design matrix contains the original regressors (and their temporal derivatives, if -temporalderivatives is used) convolved with a hemodynamic response function, detrending regressors (mean, linear trend, quadratic trend, cubic trend) and motion regressors (if -regressmotion is used). The unconvolved regressors can be saved to a text file by using the option -saveoriginaldesignmatrix. The design matrices can for example be visualized by using the AFNI function 1dplot (e.g. 1dplot total\_designmatrix.txt).
-
 
 
 

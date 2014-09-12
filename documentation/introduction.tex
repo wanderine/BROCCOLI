@@ -24,14 +24,18 @@ Nvidia drivers can be found at http://www.nvidia.com/Download/index.aspx. Note t
 
 \section{Compiling the BROCCOLI library}
 
-BROCCOLI is written as a C++/OpenCL library, such that it can be linked to a number of softwares. To compile the BROCCOLI library on a Linux or a Mac computer, the following command
+BROCCOLI is written as a C++/OpenCL library, such that it can be linked to a number of softwares. To compile the BROCCOLI library on a Linux computer, the following command
 can be used from the folder BROCCOLI/code/BROCCOLI\_LIB (where BROCCOLI denotes where you saved BROCCOLI from github).
 
 \begin{verbatim}
  ./compile_broccoli_library.sh 
 \end{verbatim}
 
-Note that you may need to edit compile\_broccoli\_library.sh to point to a directory which contains opencl.h.
+Note that you may need to edit compile\_broccoli\_library.sh to point to a directory which contains opencl.h. For Mac, a similar bash script exists
+
+\begin{verbatim}
+ ./compile_broccoli_library_mac.sh 
+\end{verbatim}
 
 On Windows computers, the BROCCOLI library can for example be compiled using Microsoft Visual Studio. Visual Studio project files are available in BROCCOLI/code/BROCCOLI\_LIB. 
 
@@ -41,6 +45,12 @@ It is possible to run BROCCOLI in a number of ways, for example from a Matlab te
 
 \begin{verbatim}
  ./compile_wrappers.sh 
+\end{verbatim}
+
+Similarly, the following command can be used for Mac
+
+\begin{verbatim}
+ ./compile_wrappers_mac.sh 
 \end{verbatim}
 
 Since BROCCOLI uses the NIfTI library to read NIfTI files, it may be necessary to first compile the NIfTI library, by running Make in the folder BROCCOLI/code/Bash\_Wrapper/nifticlib-2.0.0.
@@ -201,37 +211,5 @@ broccoli_lib_kernel_AMD_Tahiti.bin
 broccoli_lib_kernel_Nvidia_GeForceGTXTITAN.bin
 \end{verbatim}
 
-
-%\clearpage
-%\newpage
-
-%\section{Abbreviations}
-
-%This table lists some of the abbreviations that are used in this thesis, along with their meanings.\\
-
-%\begin{flushleft}
-%\begin{tabular}{l l}
-%AFNI & Analysis of Functional Neuro Images \\
-%AR   & Auto Regressive \\
-%BOLD & Blood Oxygen Level Dependent \\
-%CCA  & Canonical Correlation Analysis \\
-%CPU  & Central Processing Unit \\
-%CUDA & Compute Unified Device Architecture \\
-%FFT  & Fast Fourier Transform\\
-%FSL & FMRI Software Library \\
-%FWE  & Familywise error rate\\
-%fMRI & functional Magnetic Resonance Imaging \\
-%GLM  & General Linear Model \\
-%GPU  & Graphics Processing Unit \\
-%ICA  & Independent Component Analysis \\
-%MI   & Mutual Information \\
-%MR   & Magnetic Resonance \\
-%MRI  & Magnetic Resonance Imaging \\
-%PCA  & Principal Components Analysis \\
-%RCCA & Restricted Canonical Correlation Analysis \\
-%SNR  & Signal to Noise Ratio \\ 
-%SPM  & Statistical Parametric Mapping\\
-%\end{tabular}
-%\end{flushleft}
 
 

@@ -1,0 +1,68 @@
+\section{Introduction}
+
+BROCCOLI provides a separate function for motion correction. In its simplest form, motion correction can with the bash wrapper be performed as
+
+\begin{verbatim}
+./MotionCorrection fMRI.nii
+\end{verbatim}
+
+where fMRI.nii is a 4D fMRI dataset.
+
+\section{OpenCL options}
+
+The following OpenCL options are available
+
+\begin{itemize}
+
+\item -platform
+\newline \newline The OpenCL platform to use (default 0).
+
+\item -device
+\newline \newline The OpenCL device to use (default 0).
+
+\end{itemize}
+
+\section{Motion correction options}
+
+The following motion correction options are available
+
+\begin{itemize}
+
+\item -iterations  
+\newline \newline Number of iterations for the motion correction (default 5). 
+
+\end{itemize}
+
+\section{Outputs}
+
+By default, the function saves the results as input\_mc.nii. The estimated motion parameters are saved as motion.1D. They can for example be viewed using the AFNI function 1dplot (1dplot motion.1D).
+
+\section{Output options}
+
+The following output options are available
+
+\begin{itemize}
+
+\item -output 
+\newline \newline Set output filename (default input\_mc.nii). 
+
+\end{itemize}
+
+\section{Additional options}
+
+The following additional options are available
+
+\begin{itemize}
+
+\item -quiet 
+\newline \newline Don't print anything to the terminal (default false). 
+
+\item -verbose
+\newline \newline Print extra stuff (default false).
+ 
+\item -debug 
+\newline \newline Get additional debug information saved as nifti files (default no). Warning: This will use a lot of extra memory! 
+
+\end{itemize}
+
+

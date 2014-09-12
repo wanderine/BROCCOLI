@@ -1,0 +1,127 @@
+\section{Randomise}
+
+BROCCOLI provides a function for permutation testing at the group level, similar to the FSL function randomise. In its simplest form, a permutation test can with the bash wrapper be performed as
+
+\begin{verbatim}
+./RandomiseGroupLevel volumes.nii -design design.mat -contrasts design.con 
+\end{verbatim}
+
+where volumes.nii is a 4D file with data from all subjects in the group(s). The design.mat file can for example be defined as
+
+\begin{verbatim}
+NumRegressors 2
+NumSubjects 10
+
+1.0 0.0
+1.0 0.0
+1.0 0.0
+1.0 0.0
+1.0 0.0
+0.0 1.0
+0.0 1.0
+0.0 1.0
+0.0 1.0
+0.0 1.0
+\end{verbatim}
+
+while the design.con file can be defined as
+
+\begin{verbatim}
+NumRegressors 2
+NumContrasts 2
+
+1.0 -1.0
+-1.0 1.0
+\end{verbatim}
+
+
+\section{OpenCL options}
+
+The following OpenCL options are available
+
+\begin{itemize}
+
+\item -platform
+\newline \newline The OpenCL platform to use (default 0).
+
+\item -device
+\newline \newline The OpenCL device to use (default 0).
+
+\end{itemize}
+
+\section{Permutation options}
+
+The following permutation options are available
+
+\begin{itemize}
+
+\item -design
+\newline \newline The design matrix to apply in each permutation. 
+
+\item -contrasts                 
+\newline \newline The contrast vector(s) to apply to the estimated beta values. 
+
+\item -groupmean                 
+\newline \newline Test for group mean, using sign flipping \newline (design and contrast not needed). 
+
+\item -mask                      
+\newline \newline A mask that defines which voxels to permute (default none). 
+
+\item -permutations              
+\newline \newline Number of permutations to use (default 10,000). 
+
+\item -teststatistics            
+\newline \newline Test statistics to use, 0 = GLM t-test, 1 = GLM F-test, 2 = CCA, 3 = Searchlight (default 0). Only t-test is currently implemented. 
+
+\item -inferencemode             
+\newline \newline Inference mode to use, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = threshold free cluster enhancement (TFCE) (default 1). 
+
+\item -cdt                       
+\newline \newline Cluster defining threshold for cluster inference (default 2.5). 
+
+\item -significance              
+\newline \newline The significance level to calculate the threshold for (default 0.05). 
+
+\item -permutationfile 
+\newline \newline Use a specific permutation file or sign flipping file (e.g. from FSL), \newline provide the filename after the option.
+
+\end{itemize}
+
+\section{Outputs}
+
+By default, the function saves the results as volumes\_perm\_tvalues.nii (t-scores for the unpermuted case) and volumes\_perm\_pvalues.nii (p-values from the permutation test).
+
+\section{Output options}
+
+The following output options are available
+
+\begin{itemize}
+
+\item -output 
+\newline \newline Set output filename (default volumes\_perm\_tvalues.nii and volumes\_perm\_pvalues.nii).
+
+\item -writepermutationvalues    
+\newline \newline Write all the permutation values to a text file, \newline provide the filename after the option.
+
+\item -writepermutations         
+\newline \newline Write all the random permutations (or sign flips) to a text file, \newline provide the filename after the option.
+
+\end{itemize}
+
+\newpage
+
+\section{Additional options}
+
+The following additional options are available
+
+\begin{itemize}
+
+\item -quiet 
+\newline \newline Don't print anything to the terminal (default false). 
+
+\item -verbose
+\newline \newline Print extra stuff (default false). 
+
+\end{itemize}
+
+
