@@ -12609,6 +12609,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 
 	// Partition design matrix into two sets of regressors, effects of interest and nuisance effects
 
+	/*
 	// First calculate the design matrix X that corresponds to the effects of interest
 	Eigen::MatrixXd M = Xorig;
 	Eigen::MatrixXd xtx = M.transpose() * M;
@@ -12632,7 +12633,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 	Eigen::MatrixXd CvDCv = Cv.transpose() * D * Cv;
 	Eigen::MatrixXd inv_CvDCv = CvDCv.inverse();
 	Eigen::MatrixXd Z = M * D * Cv * inv_CvDCv;
-
+	*/
 
 	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
 	{
