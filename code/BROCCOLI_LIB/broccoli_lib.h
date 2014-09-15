@@ -1,5 +1,5 @@
 /*
-    BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
+    BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
     Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
 
     This program is free software: you can redistribute it and/or modify
@@ -381,14 +381,10 @@ class BROCCOLI_LIB
 
 		// Wrappers
 		void ChangeT1VolumeResolutionAndSizeWrapper();
-		void PerformRegistrationT1MNIWrapper();
-		void PerformRegistrationT1MNINoSkullstripWrapper();
 		void PerformRegistrationTwoVolumesWrapper();
 		void TransformVolumesNonLinearWrapper();
-		void PerformRegistrationEPIT1Wrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
-		void PerformMotionCorrectionWrapperSeveralScales();
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
 		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
@@ -406,10 +402,6 @@ class BROCCOLI_LIB
 		void PerformFirstLevelAnalysisWrapper();
 		void PerformFirstLevelAnalysisBayesianWrapper();
 		void PerformSecondLevelAnalysisWrapper();
-
-		void ClusterizeOpenCLWrapper();
-		void ClusterizeOpenCLWrapper2();
-		void ClusterizeOpenCLWrapper3();
 
 		void GetOpenCLInfo();
 		bool OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
@@ -485,6 +477,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		// Convolution functions
 		//------------------------------------------------
+
 		void CopyThreeQuadratureFiltersToConstantMemory(cl_mem c_Quadrature_Filter_1_Real, cl_mem c_Quadrature_Filter_1_Imag, cl_mem c_Quadrature_Filter_2_Real, cl_mem c_Quadrature_Filter_2_Imag, cl_mem c_Quadrature_Filter_3_Real, cl_mem c_Quadrature_Filter_3_Imag, float* h_Quadrature_Filter_1_Real, float* h_Quadrature_Filter_1_Imag, float* h_Quadrature_Filter_2_Real, float* h_Quadrature_Filter_2_Imag, float* h_Quadrature_Filter_3_Real, float* Quadrature_h_Filter_3_Imag, int z, int FILTER_SIZE);
 		void NonseparableConvolution3D(cl_mem d_q1, cl_mem d_q2, cl_mem d_q3, cl_mem d_Volume, cl_mem c_Filter_1_Real, cl_mem c_Filter_1_Imag, cl_mem c_Filter_2_Real, cl_mem c_Filter_2_Imag, cl_mem c_Filter_3_Real, cl_mem c_Filter_3_Imag, float* h_Filter_1_Real, float* h_Filter_1_Imag, float* h_Filter_2_Real, float* h_Filter_2_Imag, float* h_Filter_3_Real, float* h_Filter_3_Imag, int DATA_W, int DATA_H, int DATA_D);
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
@@ -496,6 +489,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		// Functions for image registration
 		//------------------------------------------------
+
 		void AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D);
 		void AlignTwoVolumesLinear(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
 		void AlignTwoVolumesLinearSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
