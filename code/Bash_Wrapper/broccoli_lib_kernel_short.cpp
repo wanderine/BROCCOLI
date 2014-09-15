@@ -5543,3 +5543,526 @@ __kernel void MultiplyVolumesOverwrite(__global float* Volume1,
 }
 
 
+
+__kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
+												__global const float* Volumes,
+												__global const float* Mask,
+												__global const float* d_xtxxt_GLM,
+												__global const float* d_Voxel_Numbers,
+												__constant float* c_Censored_Timepoints,
+												__private int DATA_W,
+												__private int DATA_H,
+												__private int DATA_D,
+												__private int NUMBER_OF_VOLUMES,
+												__private int NUMBER_OF_REGRESSORS,
+												__private int NUMBER_OF_INVALID_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+    
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+    
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+    
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+		return;
+	}
+    
+	int t = 0;
+	float beta[25];
+	
+	// Reset all beta values
+	//for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	//{
+	//	beta[r] = 0.0f;
+	//}
+    
+    beta[0] = 0.0f;
+    beta[1] = 0.0f;
+    beta[2] = 0.0f;
+    beta[3] = 0.0f;
+    beta[4] = 0.0f;
+    beta[5] = 0.0f;
+    beta[6] = 0.0f;
+    beta[7] = 0.0f;
+    beta[8] = 0.0f;
+    beta[9] = 0.0f;
+    beta[10] = 0.0f;
+    beta[11] = 0.0f;
+    beta[12] = 0.0f;
+    beta[13] = 0.0f;
+    beta[14] = 0.0f;
+    beta[15] = 0.0f;
+    beta[16] = 0.0f;
+    beta[17] = 0.0f;
+    beta[18] = 0.0f;
+    beta[19] = 0.0f;
+    beta[20] = 0.0f;
+    beta[21] = 0.0f;
+    beta[22] = 0.0f;
+    beta[23] = 0.0f;
+    beta[24] = 0.0f;
+    
+    
+	// Get the specific voxel number for this brain voxel
+	int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+    
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = NUMBER_OF_INVALID_TIMEPOINTS; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+        
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			beta[r] += temp * d_xtxxt_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v];
+		}
+	}
+    
+	// Save beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
+	}
+}
+
+__kernel void CalculateGLMResiduals(__global float* Residuals,
+		                            __global const float* Volumes,
+		                            __global const float* Beta_Volumes,
+		                            __global const float* Mask,
+		                            __constant float *c_X_GLM,
+		                            __private int DATA_W,
+		                            __private int DATA_H,
+		                            __private int DATA_D,
+		                            __private int NUMBER_OF_VOLUMES,
+		                            __private int NUMBER_OF_REGRESSORS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+    
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+    
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+    
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+        
+		return;
+	}
+    
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+    
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+    
+	// Calculate the residual
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+        
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+}
+
+__kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statistical_Maps,
+														 __global float* Contrast_Volumes,
+		                                       	   	   	 __global float* Residuals,
+		                                       	   	   	 __global float* Residual_Variances,
+		                                       	   	   	 __global const float* Volumes,
+		                                       	   	   	 __global const float* Beta_Volumes,
+		                                       	   	   	 __global const float* Mask,
+		                                       	   	   	 __global const float* d_X_GLM,
+		                                       	   	   	 __global const float* d_GLM_Scalars,
+		                                       	   	   	 __global const float* d_Voxel_Numbers,
+		                                       	   	   	 __constant float* c_Contrasts,
+		                                       	   	   	 __constant float* c_Censored_Timepoints,
+		                                       	   	   	 __private int DATA_W,
+		                                       	   	   	 __private int DATA_H,
+		                                       	   	   	 __private int DATA_D,
+		                                       	   	   	 __private int NUMBER_OF_VOLUMES,
+		                                       	   	   	 __private int NUMBER_OF_REGRESSORS,
+		                                       	   	   	 __private int NUMBER_OF_CONTRASTS,
+		                                       	   	   	 __private int NUMBER_OF_CENSORED_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+    
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+    
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+    
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+        
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Contrast_Volumes[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+			Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+        
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+        
+		return;
+	}
+    
+	int t = 0;
+	float eps, meaneps, vareps;
+	float beta[25];
+    
+	// Load beta values into registers
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+    
+    // Get the specific voxel number for this brain voxel
+    int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+    
+	// Calculate the mean of the error eps, using voxel-specific design models
+	meaneps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		eps *= c_Censored_Timepoints[v];
+		meaneps += eps;
+		Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+	}
+	//meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
+	meaneps /= ((float)NUMBER_OF_VOLUMES);
+    
+	// Now calculate the variance of eps, using voxel-specific design models
+	vareps = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+		}
+		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+		//vareps += (eps - meaneps) * (eps - meaneps);
+	}
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
+	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
+	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
+    
+	// Loop over contrasts and calculate t-values, using a voxel-specific GLM scalar
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		float contrast_value = 0.0f;
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+		}
+		Contrast_Volumes[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
+		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * d_GLM_Scalars[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)]);
+	}
+}
+
+
+
+
+float Determinant_4x4(float Cxx[4][4])
+{
+    return Cxx[0][3] * Cxx[1][2] * Cxx[2][1] * Cxx[3][0] - Cxx[0][2] * Cxx[1][3] * Cxx[2][1] * Cxx[3][0] - Cxx[0][3] * Cxx[1][1] * Cxx[2][2] * Cxx[3][0]
+    + Cxx[0][1] * Cxx[1][3] * Cxx[2][2] * Cxx[3][0] + Cxx[0][2] * Cxx[1][1] * Cxx[2][3] * Cxx[3][0] - Cxx[0][1] * Cxx[1][2] * Cxx[2][3] * Cxx[3][0]
+    - Cxx[0][3] * Cxx[1][2] * Cxx[2][0] * Cxx[3][1] + Cxx[0][2] * Cxx[1][3] * Cxx[2][0] * Cxx[3][1] + Cxx[0][3] * Cxx[1][0] * Cxx[2][2] * Cxx[3][1]
+    - Cxx[0][0] * Cxx[1][3] * Cxx[2][2] * Cxx[3][1] - Cxx[0][2] * Cxx[1][0] * Cxx[2][3] * Cxx[3][1] + Cxx[0][0] * Cxx[1][2] * Cxx[2][3] * Cxx[3][1]
+    + Cxx[0][3] * Cxx[1][1] * Cxx[2][0] * Cxx[3][2] - Cxx[0][1] * Cxx[1][3] * Cxx[2][0] * Cxx[3][2] - Cxx[0][3] * Cxx[1][0] * Cxx[2][1] * Cxx[3][2]
+    + Cxx[0][0] * Cxx[1][3] * Cxx[2][1] * Cxx[3][2] + Cxx[0][1] * Cxx[1][0] * Cxx[2][3] * Cxx[3][2] - Cxx[0][0] * Cxx[1][1] * Cxx[2][3] * Cxx[3][2]
+    - Cxx[0][2] * Cxx[1][1] * Cxx[2][0] * Cxx[3][3] + Cxx[0][1] * Cxx[1][2] * Cxx[2][0] * Cxx[3][3] + Cxx[0][2] * Cxx[1][0] * Cxx[2][1] * Cxx[3][3]
+    - Cxx[0][0] * Cxx[1][2] * Cxx[2][1] * Cxx[3][3] - Cxx[0][1] * Cxx[1][0] * Cxx[2][2] * Cxx[3][3] + Cxx[0][0] * Cxx[1][1] * Cxx[2][2] * Cxx[3][3];
+}
+
+
+
+void Invert_4x4(float Cxx[4][4], float inv_Cxx[4][4])
+{
+	float determinant = Determinant_4x4(Cxx) + 0.001f;
+    
+	inv_Cxx[0][0] = Cxx[1][2]*Cxx[2][3]*Cxx[3][1] - Cxx[1][3]*Cxx[2][2]*Cxx[3][1] + Cxx[1][3]*Cxx[2][1]*Cxx[3][2] - Cxx[1][1]*Cxx[2][3]*Cxx[3][2] - Cxx[1][2]*Cxx[2][1]*Cxx[3][3] + Cxx[1][1]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[0][1] = Cxx[0][3]*Cxx[2][2]*Cxx[3][1] - Cxx[0][2]*Cxx[2][3]*Cxx[3][1] - Cxx[0][3]*Cxx[2][1]*Cxx[3][2] + Cxx[0][1]*Cxx[2][3]*Cxx[3][2] + Cxx[0][2]*Cxx[2][1]*Cxx[3][3] - Cxx[0][1]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[0][2] = Cxx[0][2]*Cxx[1][3]*Cxx[3][1] - Cxx[0][3]*Cxx[1][2]*Cxx[3][1] + Cxx[0][3]*Cxx[1][1]*Cxx[3][2] - Cxx[0][1]*Cxx[1][3]*Cxx[3][2] - Cxx[0][2]*Cxx[1][1]*Cxx[3][3] + Cxx[0][1]*Cxx[1][2]*Cxx[3][3];
+	inv_Cxx[0][3] = Cxx[0][3]*Cxx[1][2]*Cxx[2][1] - Cxx[0][2]*Cxx[1][3]*Cxx[2][1] - Cxx[0][3]*Cxx[1][1]*Cxx[2][2] + Cxx[0][1]*Cxx[1][3]*Cxx[2][2] + Cxx[0][2]*Cxx[1][1]*Cxx[2][3] - Cxx[0][1]*Cxx[1][2]*Cxx[2][3];
+	inv_Cxx[1][0] = Cxx[1][3]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][0]*Cxx[3][2] + Cxx[1][0]*Cxx[2][3]*Cxx[3][2] + Cxx[1][2]*Cxx[2][0]*Cxx[3][3] - Cxx[1][0]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[1][1] = Cxx[0][2]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][2]*Cxx[3][0] + Cxx[0][3]*Cxx[2][0]*Cxx[3][2] - Cxx[0][0]*Cxx[2][3]*Cxx[3][2] - Cxx[0][2]*Cxx[2][0]*Cxx[3][3] + Cxx[0][0]*Cxx[2][2]*Cxx[3][3];
+	inv_Cxx[1][2] = Cxx[0][3]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][0]*Cxx[3][2] + Cxx[0][0]*Cxx[1][3]*Cxx[3][2] + Cxx[0][2]*Cxx[1][0]*Cxx[3][3] - Cxx[0][0]*Cxx[1][2]*Cxx[3][3];
+	inv_Cxx[1][3] = Cxx[0][2]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][2]*Cxx[2][0] + Cxx[0][3]*Cxx[1][0]*Cxx[2][2] - Cxx[0][0]*Cxx[1][3]*Cxx[2][2] - Cxx[0][2]*Cxx[1][0]*Cxx[2][3] + Cxx[0][0]*Cxx[1][2]*Cxx[2][3];
+	inv_Cxx[2][0] = Cxx[1][1]*Cxx[2][3]*Cxx[3][0] - Cxx[1][3]*Cxx[2][1]*Cxx[3][0] + Cxx[1][3]*Cxx[2][0]*Cxx[3][1] - Cxx[1][0]*Cxx[2][3]*Cxx[3][1] - Cxx[1][1]*Cxx[2][0]*Cxx[3][3] + Cxx[1][0]*Cxx[2][1]*Cxx[3][3];
+	inv_Cxx[2][1] = Cxx[0][3]*Cxx[2][1]*Cxx[3][0] - Cxx[0][1]*Cxx[2][3]*Cxx[3][0] - Cxx[0][3]*Cxx[2][0]*Cxx[3][1] + Cxx[0][0]*Cxx[2][3]*Cxx[3][1] + Cxx[0][1]*Cxx[2][0]*Cxx[3][3] - Cxx[0][0]*Cxx[2][1]*Cxx[3][3];
+	inv_Cxx[2][2] = Cxx[0][1]*Cxx[1][3]*Cxx[3][0] - Cxx[0][3]*Cxx[1][1]*Cxx[3][0] + Cxx[0][3]*Cxx[1][0]*Cxx[3][1] - Cxx[0][0]*Cxx[1][3]*Cxx[3][1] - Cxx[0][1]*Cxx[1][0]*Cxx[3][3] + Cxx[0][0]*Cxx[1][1]*Cxx[3][3];
+	inv_Cxx[2][3] = Cxx[0][3]*Cxx[1][1]*Cxx[2][0] - Cxx[0][1]*Cxx[1][3]*Cxx[2][0] - Cxx[0][3]*Cxx[1][0]*Cxx[2][1] + Cxx[0][0]*Cxx[1][3]*Cxx[2][1] + Cxx[0][1]*Cxx[1][0]*Cxx[2][3] - Cxx[0][0]*Cxx[1][1]*Cxx[2][3];
+	inv_Cxx[3][0] = Cxx[1][2]*Cxx[2][1]*Cxx[3][0] - Cxx[1][1]*Cxx[2][2]*Cxx[3][0] - Cxx[1][2]*Cxx[2][0]*Cxx[3][1] + Cxx[1][0]*Cxx[2][2]*Cxx[3][1] + Cxx[1][1]*Cxx[2][0]*Cxx[3][2] - Cxx[1][0]*Cxx[2][1]*Cxx[3][2];
+	inv_Cxx[3][1] = Cxx[0][1]*Cxx[2][2]*Cxx[3][0] - Cxx[0][2]*Cxx[2][1]*Cxx[3][0] + Cxx[0][2]*Cxx[2][0]*Cxx[3][1] - Cxx[0][0]*Cxx[2][2]*Cxx[3][1] - Cxx[0][1]*Cxx[2][0]*Cxx[3][2] + Cxx[0][0]*Cxx[2][1]*Cxx[3][2];
+	inv_Cxx[3][2] = Cxx[0][2]*Cxx[1][1]*Cxx[3][0] - Cxx[0][1]*Cxx[1][2]*Cxx[3][0] - Cxx[0][2]*Cxx[1][0]*Cxx[3][1] + Cxx[0][0]*Cxx[1][2]*Cxx[3][1] + Cxx[0][1]*Cxx[1][0]*Cxx[3][2] - Cxx[0][0]*Cxx[1][1]*Cxx[3][2];
+	inv_Cxx[3][3] = Cxx[0][1]*Cxx[1][2]*Cxx[2][0] - Cxx[0][2]*Cxx[1][1]*Cxx[2][0] + Cxx[0][2]*Cxx[1][0]*Cxx[2][1] - Cxx[0][0]*Cxx[1][2]*Cxx[2][1] - Cxx[0][1]*Cxx[1][0]*Cxx[2][2] + Cxx[0][0]*Cxx[1][1]*Cxx[2][2];
+    
+	inv_Cxx[0][0] /= determinant;
+	inv_Cxx[0][1] /= determinant;
+	inv_Cxx[0][2] /= determinant;
+	inv_Cxx[0][3] /= determinant;
+	inv_Cxx[1][0] /= determinant;
+	inv_Cxx[1][1] /= determinant;
+	inv_Cxx[1][2] /= determinant;
+	inv_Cxx[1][3] /= determinant;
+	inv_Cxx[2][0] /= determinant;
+	inv_Cxx[2][1] /= determinant;
+	inv_Cxx[2][2] /= determinant;
+	inv_Cxx[2][3] /= determinant;
+	inv_Cxx[3][0] /= determinant;
+	inv_Cxx[3][1] /= determinant;
+	inv_Cxx[3][2] /= determinant;
+	inv_Cxx[3][3] /= determinant;
+    
+}
+
+
+
+// Estimates voxel specific AR(4) models
+__kernel void EstimateAR4Models(__global float* AR1_Estimates,
+                                __global float* AR2_Estimates,
+								__global float* AR3_Estimates,
+								__global float* AR4_Estimates,
+								__global const float* fMRI_Volumes,
+								__global const float* Mask,
+								__private int DATA_W,
+								__private int DATA_H,
+								__private int DATA_D,
+								__private int DATA_T,
+								__private int INVALID_TIMEPOINTS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+    
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+    
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+	{
+        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+        
+		return;
+	}
+    
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+	float c0 = 0.0f;
+    float c1 = 0.0f;
+    float c2 = 0.0f;
+    float c3 = 0.0f;
+    float c4 = 0.0f;
+    
+    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_1 * old_value_1;
+    old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_2 * old_value_2;
+    c1 += old_value_2 * old_value_1;
+    old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_3 * old_value_3;
+    c1 += old_value_3 * old_value_2;
+    c2 += old_value_3 * old_value_1;
+    old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    c0 += old_value_4 * old_value_4;
+    c1 += old_value_4 * old_value_3;
+    c2 += old_value_4 * old_value_2;
+    c3 += old_value_4 * old_value_1;
+    
+    // Estimate c0, c1, c2, c3, c4
+    for (t = 4 + INVALID_TIMEPOINTS; t < DATA_T; t++)
+    {
+        // Read data into register
+        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+        
+        // Sum and multiply the values in fast registers
+        c0 += old_value_5 * old_value_5;
+        c1 += old_value_5 * old_value_4;
+        c2 += old_value_5 * old_value_3;
+        c3 += old_value_5 * old_value_2;
+        c4 += old_value_5 * old_value_1;
+        
+		// Save old values
+        old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
+    }
+    
+    c0 /= ((float)DATA_T - 1.0f - (float)INVALID_TIMEPOINTS);
+    c1 /= ((float)DATA_T - 2.0f - (float)INVALID_TIMEPOINTS);
+    c2 /= ((float)DATA_T - 3.0f - (float)INVALID_TIMEPOINTS);
+    c3 /= ((float)DATA_T - 4.0f - (float)INVALID_TIMEPOINTS);
+    c4 /= ((float)DATA_T - 5.0f - (float)INVALID_TIMEPOINTS);
+    
+    // Calculate alphas
+    float r1, r2, r3, r4;
+    float alpha1, alpha2, alpha3, alpha4;
+    
+
+        r1 = c1/c0;
+        r2 = c2/c0;
+        r3 = c3/c0;
+        r4 = c4/c0;
+        
+        float matrix[4][4];
+        matrix[0][0] = 1.0f;
+        matrix[1][0] = r1 + 0.001f;
+        matrix[2][0] = r2 + 0.001f;
+        matrix[3][0] = r3 + 0.001f;
+        
+        matrix[0][1] = r1 + 0.001f;
+        matrix[1][1] = 1.0f;
+        matrix[2][1] = r1 + 0.001f;
+        matrix[3][1] = r2 + 0.001f;
+        
+        matrix[0][2] = r2 + 0.001f;
+        matrix[1][2] = r1 + 0.001f;
+        matrix[2][2] = 1.0f;
+        matrix[3][2] = r1 + 0.001f;
+        
+        matrix[0][3] = r3 + 0.001f;
+        matrix[1][3] = r2 + 0.001f;
+        matrix[2][3] = r1 + 0.001f;
+        matrix[3][3] = 1.0f;
+        
+		float inv_matrix[4][4];
+        
+        Invert_4x4(matrix, inv_matrix);
+        
+        alpha1 = inv_matrix[0][0] * r1 + inv_matrix[0][1] * r2 + inv_matrix[0][2] * r3 + inv_matrix[0][3] * r4;
+        alpha2 = inv_matrix[1][0] * r1 + inv_matrix[1][1] * r2 + inv_matrix[1][2] * r3 + inv_matrix[1][3] * r4;
+        alpha3 = inv_matrix[2][0] * r1 + inv_matrix[2][1] * r2 + inv_matrix[2][2] * r3 + inv_matrix[2][3] * r4;
+        alpha4 = inv_matrix[3][0] * r1 + inv_matrix[3][1] * r2 + inv_matrix[3][2] * r3 + inv_matrix[3][3] * r4;
+    
+    
+        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alpha1;
+		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alpha2;
+		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alpha3;
+    AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alpha4;
+
+}
+
+
+
+
+__kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes,
+                                __global float* fMRI_Volumes,
+								__global const float* AR1_Estimates,
+								__global const float* AR2_Estimates,
+								__global const float* AR3_Estimates,
+								__global const float* AR4_Estimates,
+								__global const float* Mask,
+								__private int DATA_W,
+								__private int DATA_H,
+								__private int DATA_D,
+								__private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+    
+    if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
+        return;
+    
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+        return;
+    
+    int t = 0;
+	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+    float4 alphas;
+	alphas.x = AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.y = AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.z = AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    alphas.w = AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+    
+    // Calculate the whitened timeseries
+    
+    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)] = old_value_1;
+    old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)] = old_value_2  - alphas.x * old_value_1;
+    old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 2, DATA_W, DATA_H, DATA_D)] = old_value_3 - alphas.x * old_value_2 - alphas.y * old_value_1;
+    old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)];
+    Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)] = old_value_4 - alphas.x * old_value_3 - alphas.y * old_value_2 - alphas.z * old_value_1;
+    
+    for (t = 4; t < DATA_T; t++)
+    {
+        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+        
+        Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
+        
+		// Save old values
+        old_value_1 = old_value_2;
+        old_value_2 = old_value_3;
+        old_value_3 = old_value_4;
+        old_value_4 = old_value_5;
+    }
+}
+
+
+__kernel void ThresholdVolume(__global float* Thresholded_Volume,
+	                          __global const float* Volume,
+							  __private float threshold,
+							  __private int DATA_W,
+							  __private int DATA_H,
+							  __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+    
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+    
+	if ( Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
+	{
+		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 1.0f;
+	}
+	else
+	{
+		Thresholded_Volume[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.001f;
+	}
+}
+
+
