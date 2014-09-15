@@ -1,5 +1,5 @@
 /*
- * BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many core CPUs and GPUS
+ * BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
  * Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
@@ -295,9 +295,7 @@ int main(int argc, char **argv)
     bool            WRITE_DISPLACEMENT_FIELD = false;
 	bool			WRITE_INTERPOLATED = false;
    	bool			CHANGE_OUTPUT_NAME = false;    
-	float			TSIGMA = 5.0f;
-	float			ESIGMA = 5.0f;
-	float			DSIGMA = 5.0f;
+	float			SIGMA = 5.0f;
 	bool			MASK = false;
 	const char* 	MASK_NAME;
 
@@ -357,9 +355,7 @@ int main(int argc, char **argv)
         printf(" -endrotz               	Rotation around z-axis to be applied after registration, in degrees (default 0) \n");
 		*/
 
-        printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
-        printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
-        printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
+        printf(" -sigma                     Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
         printf(" -mask                      Mask to apply after linear and non-linear registration, to for example do a skullstrip (default none) \n");        
 		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
@@ -515,68 +511,24 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
-        else if (strcmp(input,"-tsigma") == 0)
+        else if (strcmp(input,"-sigma") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
-			    printf("Unable to read value after -tsigma !\n");
+			    printf("Unable to read value after -sigma !\n");
                 return EXIT_FAILURE;
 			}
 
-            TSIGMA = strtod(argv[i+1], &p);
+            SIGMA = (float)strtod(argv[i+1], &p);
 
 			if (!isspace(*p) && *p != 0)
 		    {
-		        printf("tsigma must be a float! You provided %s \n",argv[i+1]);
+		        printf("sigma must be a float! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-  			else if ( TSIGMA < 0.0f )
+  			else if ( SIGMA < 0.0f )
             {
-                printf("tsigma must be >= 0.0 !\n");
-                return EXIT_FAILURE;
-            }
-            i += 2;
-        }
-        else if (strcmp(input,"-esigma") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -esigma !\n");
-                return EXIT_FAILURE;
-			}
-
-            ESIGMA = (float)strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("esigma must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-  			else if ( ESIGMA < 0.0f )
-            {
-                printf("esigma must be >= 0.0 !\n");
-                return EXIT_FAILURE;
-            }
-            i += 2;
-        }
-        else if (strcmp(input,"-dsigma") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -dsigma !\n");
-                return EXIT_FAILURE;
-			}
-
-            DSIGMA = (float)strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("dsigma must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-  			else if ( DSIGMA < 0.0f )
-            {
-                printf("dsigma must be >= 0.0 !\n");
+                printf("sigma must be >= 0.0 !\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -946,6 +898,10 @@ int main(int argc, char **argv)
     {
         printf("\n\nWARNING: It is not recommended to use 8 as a lowest scale for a 2 mm reference volume.\n\n");   
     }
+	else if (MNI_VOXEL_SIZE_X < 1.5f)
+	{
+		COARSEST_SCALE = 8;
+	}
     
 	// Check  if mask has same dimensions as reference volume
 	if (MASK)
@@ -1333,9 +1289,9 @@ int main(int argc, char **argv)
         BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE);
         BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
 
-		BROCCOLI.SetTsigma(TSIGMA);
-		BROCCOLI.SetEsigma(ESIGMA);
-		BROCCOLI.SetDsigma(DSIGMA);
+		BROCCOLI.SetTsigma(SIGMA);
+		BROCCOLI.SetEsigma(SIGMA);
+		BROCCOLI.SetDsigma(SIGMA);
         
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
         BROCCOLI.SetOutputAlignedT1VolumeLinear(h_Aligned_T1_Volume);
@@ -1348,6 +1304,8 @@ int main(int argc, char **argv)
 		BROCCOLI.SetSaveInterpolatedT1(WRITE_INTERPOLATED);
 		BROCCOLI.SetSaveAlignedT1MNILinear(true);
 		BROCCOLI.SetSaveAlignedT1MNINonLinear(true);		
+
+		BROCCOLI.SetVerbose(VERBOS);
 
         if (WRITE_DISPLACEMENT_FIELD)
         {
