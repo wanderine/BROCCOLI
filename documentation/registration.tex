@@ -37,14 +37,8 @@ The following registration options are available
 \item -lowestscale               
 \newline \newline The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension. A lower scale means that a larger distance between the two volumes can be handled.
 
-\item -tsigma                    
-\newline \newline Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 5.0).  
-
-\item -esigma                    
-\newline \newline Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0).  
-
-\item -dsigma                    
-\newline \newline Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0).  
+\item -sigma                    
+\newline \newline Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0).
 
 \item -zcut                      
 \newline \newline Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0). 
