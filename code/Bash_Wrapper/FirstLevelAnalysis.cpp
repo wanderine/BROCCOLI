@@ -1,5 +1,5 @@
 /*
- * BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many core CPUs and GPUS
+ * BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
  * Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
@@ -389,9 +389,7 @@ int main(int argc, char **argv)
 	int				COARSEST_SCALE_EPI_T1 = 4;
 	int				MM_T1_Z_CUT = 0;
 	int				MM_EPI_Z_CUT = 0;
-    float           TSIGMA = 5.0f;
-    float           ESIGMA = 5.0f;
-    float           DSIGMA = 5.0f;
+    float           SIGMA = 5.0f;
     
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
 
@@ -461,9 +459,7 @@ int main(int argc, char **argv)
         printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
         printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");
-        printf(" -tsigma                    Amount of Gaussian smoothing applied to the estimated tensor components, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
-        printf(" -esigma                    Amount of Gaussian smoothing applied to the equation systems (one in each voxel), defined as sigma of the Gaussian kernel (default 5.0)  \n");        
-        printf(" -dsigma                    Amount of Gaussian smoothing applied to the displacement fields (x,y,z), defined as sigma of the Gaussian kernel (default 5.0)  \n\n");        
+        printf(" -sigma                    Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         
         printf("Preprocessing options:\n\n");
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
@@ -711,68 +707,24 @@ int main(int argc, char **argv)
 
             i += 2;
         }
-        else if (strcmp(input,"-tsigma") == 0)
+        else if (strcmp(input,"-sigma") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
-			    printf("Unable to read value after -tsigma !\n");
+			    printf("Unable to read value after -sigma !\n");
                 return EXIT_FAILURE;
 			}
 
-            TSIGMA = strtod(argv[i+1], &p);
+            SIGMA = (float)strtod(argv[i+1], &p);
 
 			if (!isspace(*p) && *p != 0)
 		    {
-		        printf("tsigma must be a float! You provided %s \n",argv[i+1]);
+		        printf("sigma must be a float! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-  			else if ( TSIGMA < 0.0f )
+  			else if ( SIGMA < 0.0f )
             {
-                printf("tsigma must be >= 0.0 !\n");
-                return EXIT_FAILURE;
-            }
-            i += 2;
-        }
-        else if (strcmp(input,"-esigma") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -esigma !\n");
-                return EXIT_FAILURE;
-			}
-
-            ESIGMA = (float)strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("esigma must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-  			else if ( ESIGMA < 0.0f )
-            {
-                printf("esigma must be >= 0.0 !\n");
-                return EXIT_FAILURE;
-            }
-            i += 2;
-        }
-        else if (strcmp(input,"-dsigma") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -dsigma !\n");
-                return EXIT_FAILURE;
-			}
-
-            DSIGMA = (float)strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("dsigma must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-  			else if ( DSIGMA < 0.0f )
-            {
-                printf("dsigma must be >= 0.0 !\n");
+                printf("sigma must be >= 0.0 !\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -1311,6 +1263,33 @@ int main(int argc, char **argv)
     MNI_VOXEL_SIZE_Y = inputMNI->dy;
     MNI_VOXEL_SIZE_Z = inputMNI->dz;
 
+	// The filter size is 7, so select a lowest scale for the registrations that gives at least 10 valid samples (3 data points are lost on each side in each dimension, i.e. 6 total)
+	if ( (MNI_DATA_W/16 >= 16) && (MNI_DATA_H/16 >= 16) && (MNI_DATA_D/16 >= 16) )
+	{
+		COARSEST_SCALE_T1_MNI = 16;
+		COARSEST_SCALE_EPI_T1 = 16;
+	}
+	else if ( (MNI_DATA_W/8 >= 16) && (MNI_DATA_H/8 >= 16) && (MNI_DATA_D/8 >= 16) )
+	{
+		COARSEST_SCALE_T1_MNI = 8;
+		COARSEST_SCALE_EPI_T1 = 8;
+	}
+	else if ( (MNI_DATA_W/4 >= 16) && (MNI_DATA_H/4 >= 16) && (MNI_DATA_D/4 >= 16) )
+	{
+		COARSEST_SCALE_T1_MNI = 4;
+		COARSEST_SCALE_EPI_T1 = 4;
+	}
+	else if ( (MNI_DATA_W/2 >= 16) && (MNI_DATA_H/2 >= 16) && (MNI_DATA_D/2 >= 16) )
+	{
+		COARSEST_SCALE_T1_MNI = 2;
+		COARSEST_SCALE_EPI_T1 = 2;
+	}
+	else
+	{
+		COARSEST_SCALE_T1_MNI = 1;
+		COARSEST_SCALE_EPI_T1 = 1;
+	}
+
     // Calculate sizes, in bytes
     
 	if (!BAYESIAN)
@@ -1392,7 +1371,11 @@ int main(int argc, char **argv)
 	    printf("Number of total GLM regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
 	    printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
     } 
-    
+   	if (VERBOS)
+ 	{
+		printf("Selected lowest scale %i for the registration \n",COARSEST_SCALE_T1_MNI);
+	}
+
     // ------------------------------------------------
     
     // Allocate memory on the host

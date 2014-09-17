@@ -519,6 +519,13 @@ class BROCCOLI_LIB
 		// Help functions
 		//------------------------------------------------
 
+		void ChangeVolumeResolutionAndSize(cl_mem d_New_Volume, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
+		void CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
+		void CenterVolumeMass(cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
+		void CenterVolumeMass(cl_mem d_Volume, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
+		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
+		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
+
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryInt(cl_mem memory, int value, int N);
 		void SetMemoryFloat2(cl_mem memory, float value, int N);
@@ -1084,9 +1091,15 @@ class BROCCOLI_LIB
 		float		 h_A_Matrix[144], h_h_Vector[12];
 		float		 *h_A_Matrix_Out, *h_h_Vector_Out;
 		double		 h_A_Matrix_double[144], h_h_Vector_double[12];
-		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12], h_Registration_Parameters_EPI_T1_Affine[12], h_Registration_Parameters_EPI_T1_Translation[12], h_Registration_Parameters_EPI_T1_Rigid[12], h_Registration_Parameters_Motion_Correction[12], h_Registration_Parameters_T1_MNI[12], h_Registration_Parameters_EPI_MNI[12], *h_Registration_Parameters_T1_MNI_Out, h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out, *h_Registration_Parameters_EPI_MNI_Out;
+
+		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12];
+		float		 h_StartParameters_EPI[12], h_StartParameters_EPI_T1[12];
+		float		 h_Registration_Parameters_EPI_T1_Affine[12], h_Registration_Parameters_EPI_T1_Translation[12], h_Registration_Parameters_EPI_T1_Rigid[12], h_Registration_Parameters_EPI_MNI[12], h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out, *h_Registration_Parameters_EPI_MNI_Out;
+		float		 h_Registration_Parameters_Motion_Correction[12];
+		float		 h_Registration_Parameters_T1_MNI[12], *h_Registration_Parameters_T1_MNI_Out; 
 		double       h_Registration_Parameters_double[12];
 		float		 h_Rotations[3], h_Rotations_Temp[3];
+
 		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
 
 		float		*h_t11, *h_t12, *h_t13, *h_t22, *h_t23, *h_t33;

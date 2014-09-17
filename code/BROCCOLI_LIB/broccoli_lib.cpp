@@ -5316,7 +5316,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem& d_Original_Volume, int ORIGINAL_DATA
 	clReleaseMemObject(d_Volume_Texture);
 }
 
-// Runs linear registration over several scales, COARSEST_SCALE should be 8, 4, 2 or 1
+// Runs linear registration over several scales, COARSEST_SCALE should be 16, 8, 4, 2 or 1
 void BROCCOLI_LIB::AlignTwoVolumesLinearSeveralScales(float *h_Registration_Parameters_Align_Two_Volumes_Several_Scales,
                                                           float* h_Rotations,
                                                           cl_mem d_Original_Aligned_Volume,
@@ -5774,6 +5774,193 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSizeWrapper()
 	clReleaseMemObject(d_Interpolated_T1_Volume);
 	clReleaseMemObject(d_MNI_T1_Volume);
 	clReleaseMemObject(d_T1_Volume_Texture);
+}
+
+void BROCCOLI_LIB::CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D)
+{
+    float *h_Temp_Volume = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+
+    // Copy the volume to host
+	clEnqueueReadBuffer(commandQueue, d_Volume, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Temp_Volume, 0, NULL, NULL);
+
+    float totalMass = 0.0f;
+    float mass = 0.0f;
+
+    rx = 0.0f;
+    ry = 0.0f;
+    rz = 0.0f;
+
+    for (int z = 0; z < DATA_D; z++)
+    {
+        for (int y = 0; y < DATA_H; y++)
+        {
+            for (int x = 0; x < DATA_W; x++)
+            {
+                mass = h_Temp_Volume[x + y * DATA_W + z * DATA_W * DATA_H];
+                rx += mass * (float)x;
+                ry += mass * (float)y;
+                rz += mass * (float)z;
+                totalMass += mass;
+            }
+        }
+    }
+
+    rx /= totalMass;
+    ry /= totalMass;
+    rz /= totalMass;
+
+    free(h_Temp_Volume);
+}
+
+
+
+// Alters a volume such that the center of mass is in the middle of the volume
+void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume,
+                                    int DATA_W,
+                                    int DATA_H,
+                                    int DATA_D)
+
+{
+    float xCenter, yCenter, zCenter;
+    CalculateCenterOfMass(xCenter, yCenter, zCenter, d_Volume, DATA_W, DATA_H, DATA_D);
+
+    float xTrueCenter = (float)(DATA_W)/2.0f;
+    float yTrueCenter = (float)(DATA_H)/2.0f;
+    float zTrueCenter = (float)(DATA_D)/2.0f;
+    
+    // Calculate difference, round to integers to avoid interpolation
+    float xMassCenterDifference = round(xTrueCenter - xCenter);
+    float yMassCenterDifference = round(yTrueCenter - yCenter);
+    float zMassCenterDifference = round(zTrueCenter - zCenter);
+    
+    float h_Parameters[12];
+    h_Parameters[0] = -xMassCenterDifference;
+    h_Parameters[1] = -yMassCenterDifference;
+    h_Parameters[2] = -zMassCenterDifference;
+    h_Parameters[3] = 0.0f;
+    h_Parameters[4] = 0.0f;
+    h_Parameters[5] = 0.0f;
+    h_Parameters[6] = 0.0f;
+    h_Parameters[7] = 0.0f;
+    h_Parameters[8] = 0.0f;
+    h_Parameters[9] = 0.0f;
+    h_Parameters[10] = 0.0f;
+    h_Parameters[11] = 0.0f;
+
+    // Apply transformation
+    TransformVolumesLinear(d_Volume, h_Parameters, DATA_W, DATA_H, DATA_D, 1, LINEAR);
+}
+
+// Alters a volume such that the center of mass is in the middle of the volume, returns translation parameters
+void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume, 
+ 									float *h_Parameters, 
+                                    int DATA_W,
+                                    int DATA_H,
+                                    int DATA_D)
+
+{
+    float xCenter, yCenter, zCenter;
+    CalculateCenterOfMass(xCenter, yCenter, zCenter, d_Volume, DATA_W, DATA_H, DATA_D);
+
+    float xTrueCenter = (float)(DATA_W)/2.0f;
+    float yTrueCenter = (float)(DATA_H)/2.0f;
+    float zTrueCenter = (float)(DATA_D)/2.0f;
+    
+    // Calculate difference, round to integers to avoid interpolation
+    float xMassCenterDifference = round(xTrueCenter - xCenter);
+    float yMassCenterDifference = round(yTrueCenter - yCenter);
+    float zMassCenterDifference = round(zTrueCenter - zCenter);
+    
+    h_Parameters[0] = -xMassCenterDifference;
+    h_Parameters[1] = -yMassCenterDifference;
+    h_Parameters[2] = -zMassCenterDifference;
+    h_Parameters[3] = 0.0f;
+    h_Parameters[4] = 0.0f;
+    h_Parameters[5] = 0.0f;
+    h_Parameters[6] = 0.0f;
+    h_Parameters[7] = 0.0f;
+    h_Parameters[8] = 0.0f;
+    h_Parameters[9] = 0.0f;
+    h_Parameters[10] = 0.0f;
+    h_Parameters[11] = 0.0f;
+
+    // Apply transformation
+    TransformVolumesLinear(d_Volume, h_Parameters, DATA_W, DATA_H, DATA_D, 1, LINEAR);
+}
+
+// Alters volume1 such that its center of mass matches volume2
+void BROCCOLI_LIB::MatchVolumeMasses(cl_mem d_Volume_1,
+									 cl_mem d_Volume_2,	
+                                	 int DATA_W,
+                                     int DATA_H,
+                                     int DATA_D)
+
+{
+    float xCenter1, yCenter1, zCenter1;
+    float xCenter2, yCenter2, zCenter2;
+
+    CalculateCenterOfMass(xCenter1, yCenter1, zCenter1, d_Volume_1, DATA_W, DATA_H, DATA_D);
+    CalculateCenterOfMass(xCenter2, yCenter2, zCenter2, d_Volume_2, DATA_W, DATA_H, DATA_D);
+
+    // Calculate difference, round to integers to avoid interpolation
+    float xMassCenterDifference = round(xCenter2 - xCenter1);
+    float yMassCenterDifference = round(yCenter2 - yCenter1);
+    float zMassCenterDifference = round(zCenter2 - zCenter1);
+    
+    float h_Parameters[12];
+
+    h_Parameters[0] = -xMassCenterDifference;
+    h_Parameters[1] = -yMassCenterDifference;
+    h_Parameters[2] = -zMassCenterDifference;
+    h_Parameters[3] = 0.0f;
+    h_Parameters[4] = 0.0f;
+    h_Parameters[5] = 0.0f;
+    h_Parameters[6] = 0.0f;
+    h_Parameters[7] = 0.0f;
+    h_Parameters[8] = 0.0f;
+    h_Parameters[9] = 0.0f;
+    h_Parameters[10] = 0.0f;
+    h_Parameters[11] = 0.0f;
+
+    // Apply transformation
+    TransformVolumesLinear(d_Volume_1, h_Parameters, DATA_W, DATA_H, DATA_D, 1, LINEAR);
+}
+
+// Alters volume1 such that its center of mass matches volume2, saves parameters
+void BROCCOLI_LIB::MatchVolumeMasses(cl_mem d_Volume_1,
+									 cl_mem d_Volume_2,	
+									 float* h_Parameters,
+                                	 int DATA_W,
+                                     int DATA_H,
+                                     int DATA_D)
+
+{
+    float xCenter1, yCenter1, zCenter1;
+    float xCenter2, yCenter2, zCenter2;
+
+    CalculateCenterOfMass(xCenter1, yCenter1, zCenter1, d_Volume_1, DATA_W, DATA_H, DATA_D);
+    CalculateCenterOfMass(xCenter2, yCenter2, zCenter2, d_Volume_2, DATA_W, DATA_H, DATA_D);
+
+    // Calculate difference, round to integers to avoid interpolation
+    float xMassCenterDifference = round(xCenter2 - xCenter1);
+    float yMassCenterDifference = round(yCenter2 - yCenter1);
+    float zMassCenterDifference = round(zCenter2 - zCenter1);
+    
+    h_Parameters[0] = -xMassCenterDifference;
+    h_Parameters[1] = -yMassCenterDifference;
+    h_Parameters[2] = -zMassCenterDifference;
+    h_Parameters[3] = 0.0f;
+    h_Parameters[4] = 0.0f;
+    h_Parameters[5] = 0.0f;
+    h_Parameters[6] = 0.0f;
+    h_Parameters[7] = 0.0f;
+    h_Parameters[8] = 0.0f;
+    h_Parameters[9] = 0.0f;
+    h_Parameters[10] = 0.0f;
+    h_Parameters[11] = 0.0f;
+
+    // Apply transformation
+    TransformVolumesLinear(d_Volume_1, h_Parameters, DATA_W, DATA_H, DATA_D, 1, LINEAR);
 }
 
 void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes,
@@ -6749,6 +6936,9 @@ void BROCCOLI_LIB::AddVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, 
 // Not fully optimized, T1 is of MNI size
 void BROCCOLI_LIB::PerformRegistrationEPIT1()
 {
+	// Make sure that we start from the center, save the translation parameters
+	CenterVolumeMass(d_EPI_Volume, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
 	// Reset total registration parameters
 	for (int p = 0; p < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; p++)
 	{
@@ -6760,7 +6950,12 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1()
 
 	// Interpolate EPI volume to T1 resolution and make sure it has the same size,
 	// the registration is performed to the skullstripped T1 volume, which has MNI size
-	ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE);
+	//ChangeEPIVolumeResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE);
+
+	ChangeVolumesResolutionAndSize(d_T1_EPI_Volume, d_EPI_Volume, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, 0, INTERPOLATION_MODE, 0);
+
+	// Make sure that the volumes overlap from start, save the translation parameters
+	MatchVolumeMasses(d_T1_EPI_Volume, d_Skullstripped_T1_Volume, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 	cl_mem d_T1_EPI_Tensor_Magnitude = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Skullstripped_T1_Tensor_Magnitude = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
@@ -6899,6 +7094,79 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1_()
 
 
 
+void BROCCOLI_LIB::ChangeVolumeResolutionAndSize(cl_mem d_New_Volume,
+                                          cl_mem d_Volume,
+                                          int DATA_W,
+                                          int DATA_H,
+                                          int DATA_D,
+                                          int NEW_DATA_W,
+                                          int NEW_DATA_H,
+                                          int NEW_DATA_D,
+                                          float VOXEL_SIZE_X,
+                                          float VOXEL_SIZE_Y,
+                                          float VOXEL_SIZE_Z,
+                                          float NEW_VOXEL_SIZE_X,
+                                          float NEW_VOXEL_SIZE_Y,
+                                          float NEW_VOXEL_SIZE_Z,
+                                          int INTERPOLATION_MODE)
+{
+    // Make sure that the volume is centered
+    //CenterVolumeMass(d_Volume, DATA_W, DATA_H, DATA_D);
+
+	// Calculate volume size for the same voxel size
+	int DATA_W_INTERPOLATED = (int)round((float)DATA_W * VOXEL_SIZE_X / NEW_VOXEL_SIZE_X);
+	int DATA_H_INTERPOLATED = (int)round((float)DATA_H * VOXEL_SIZE_Y / NEW_VOXEL_SIZE_Y);
+	int DATA_D_INTERPOLATED = (int)round((float)DATA_D * VOXEL_SIZE_Z / NEW_VOXEL_SIZE_Z);
+
+    float VOXEL_DIFFERENCE_X = NEW_VOXEL_SIZE_X / VOXEL_SIZE_X;
+    float VOXEL_DIFFERENCE_Y = NEW_VOXEL_SIZE_Y / VOXEL_SIZE_Y;
+    float VOXEL_DIFFERENCE_Z = NEW_VOXEL_SIZE_Z / VOXEL_SIZE_Z;
+
+	int x_diff = DATA_W - NEW_DATA_W;
+	int y_diff = DATA_H - NEW_DATA_H;
+	int z_diff = DATA_D - NEW_DATA_D;
+
+	SetGlobalAndLocalWorkSizesCopyVolumeToNew(mymax(NEW_DATA_W,DATA_W),mymax(NEW_DATA_H,DATA_H),mymax(NEW_DATA_D,DATA_D));
+
+	int volume = 0;
+
+	clSetKernelArg(CopyVolumeToNewKernel, 0, sizeof(cl_mem), &d_New_Volume);
+	clSetKernelArg(CopyVolumeToNewKernel, 1, sizeof(cl_mem), &d_Volume);
+	clSetKernelArg(CopyVolumeToNewKernel, 2, sizeof(int), &NEW_DATA_W);
+	clSetKernelArg(CopyVolumeToNewKernel, 3, sizeof(int), &NEW_DATA_H);
+	clSetKernelArg(CopyVolumeToNewKernel, 4, sizeof(int), &NEW_DATA_D);
+	clSetKernelArg(CopyVolumeToNewKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(CopyVolumeToNewKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(CopyVolumeToNewKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(CopyVolumeToNewKernel, 8, sizeof(int), &x_diff);
+	clSetKernelArg(CopyVolumeToNewKernel, 9, sizeof(int), &y_diff);
+	clSetKernelArg(CopyVolumeToNewKernel, 10, sizeof(int), &z_diff);
+	clSetKernelArg(CopyVolumeToNewKernel, 11, sizeof(int), &MM_T1_Z_CUT);
+	clSetKernelArg(CopyVolumeToNewKernel, 12, sizeof(float), &NEW_VOXEL_SIZE_Z);
+	clSetKernelArg(CopyVolumeToNewKernel, 13, sizeof(int), &volume);
+
+	runKernelErrorCopyVolumeToNew = clEnqueueNDRangeKernel(commandQueue, CopyVolumeToNewKernel, 3, NULL, globalWorkSizeCopyVolumeToNew, localWorkSizeCopyVolumeToNew, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	CenterVolumeMass(d_New_Volume, NEW_DATA_W, NEW_DATA_H, NEW_DATA_D);
+
+    float h_Parameters[12];
+
+    h_Parameters[0] = 0.0f;
+    h_Parameters[1] = 0.0f;
+    h_Parameters[2] = 0.0f;
+    h_Parameters[3] = VOXEL_DIFFERENCE_X - 1.0f;
+    h_Parameters[4] = 0.0f;
+    h_Parameters[5] = 0.0f;
+    h_Parameters[6] = 0.0f;
+    h_Parameters[7] = VOXEL_DIFFERENCE_Y - 1.0f;
+    h_Parameters[8] = 0.0f;
+    h_Parameters[9] = 0.0f;
+    h_Parameters[10] = 0.0f;
+    h_Parameters[11] = VOXEL_DIFFERENCE_Z - 1.0f;
+
+	TransformVolumesLinear(d_New_Volume, h_Parameters, NEW_DATA_W, NEW_DATA_H, NEW_DATA_D, 1, LINEAR);
+}
 
 
 void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
@@ -6912,8 +7180,14 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
     clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
     clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
 
+	// Put input volume in the center of the volume
+	CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+
     // Change resolution and size of input volume
     ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
+
+	// Make sure that the two volumes overlap from start
+	MatchVolumeMasses(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 	// Copy the interpolated volume to host
 	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
@@ -7074,14 +7348,27 @@ void BROCCOLI_LIB::PerformRegistrationT1MNI()
 // Performs registration between one high resolution skullstripped T1 volume and a high resolution skullstripped MNI volume (brain template)
 void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstrip()
 {
+	// Make sure that we start from the center
+	CenterVolumeMass(d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+	CenterVolumeMass(d_Skullstripped_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+
 	// Interpolate T1 volume to MNI resolution and make sure it has the same size
-	ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
-	ChangeT1VolumeResolutionAndSize(d_Skullstripped_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
+	//ChangeT1VolumeResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
+	//ChangeT1VolumeResolutionAndSize(d_Skullstripped_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, INTERPOLATION_MODE, SKULL_STRIPPED);
+
+	ChangeVolumesResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, 0, INTERPOLATION_MODE, 0);
+
+	ChangeVolumesResolutionAndSize(d_Skullstripped_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, 0, INTERPOLATION_MODE, 0);
 
 	if (WRITE_INTERPOLATED_T1)
 	{
 		clEnqueueReadBuffer(commandQueue, d_MNI_T1_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
 	}
+
+	// Make sure that the volumes overlap from start
+	MatchVolumeMasses(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	MatchVolumeMasses(d_Skullstripped_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
 
 	// Do Linear registration between T1 and MNI with several scales (without skull)
 	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_T1_MNI, h_Rotations, d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
@@ -8253,11 +8540,19 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 	// Allocate temporary memory
 	cl_mem d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
+	// First apply initial translation before changing resolution and size 
+	TransformVolumesLinear(d_Beta_Volumes, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Contrast_Volumes, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+	TransformVolumesLinear(d_Statistical_Maps, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+
 	// Loop over regressors
 	for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 	{
 		// Change resolution and size of volume
 		ChangeVolumesResolutionAndSize(d_Data, d_Beta_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
+
+		// Now apply the same translation as applied before the EPI-T1 registration
+		TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
 
 		// Apply transformation
 		TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
@@ -8273,6 +8568,9 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 		// Change resolution and size of volume
 		ChangeVolumesResolutionAndSize(d_Data, d_Contrast_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
 
+		// Now apply the same translation as applied before the EPI-T1 registration
+		TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
 		// Apply transformation
 		TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
 		TransformVolumesNonLinear(d_Data, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
@@ -8286,6 +8584,9 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI()
 	{
 		// Change resolution and size of volume
 		ChangeVolumesResolutionAndSize(d_Data, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
+
+		// Now apply the same translation as applied before the EPI-T1 registration
+		TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
 
 		// Apply transformation
 		TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
@@ -12573,6 +12874,27 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 	CleanupPermutationTestFirstLevel();
 }
 
+/*
+Eigen::MatrixXd pinv( Eigen::MatrixXd pinvmat) const
+{
+    eigen_assert(m_isInitialized && "SVD is not initialized.");
+    double  pinvtoler=1.e-6; // choose your tolerance wisely!
+    SingularValuesType singularValues_inv=m_singularValues;
+    for ( long i=0; i<m_workMatrix.cols(); ++i) 
+    {
+        if ( m_singularValues(i) > pinvtoler )
+        {
+            singularValues_inv(i)=1.0/m_singularValues(i);
+		}
+	    else 
+		{
+			singularValues_inv(i)=0;
+		}
+    }
+    return (m_matrixV*singularValues_inv.asDiagonal()*m_matrixU.transpose());
+} 
+*/
+
 //  Applies a permutation test for second level analysis
 void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 {
@@ -12609,7 +12931,24 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 
 	// Partition design matrix into two sets of regressors, effects of interest and nuisance effects
 
-	/*
+/*
+
+	int r = C.Nrows();
+	int p = C.Ncols();
+
+	Eigen::MatrixXd tmp = Matrix<double, NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_GLM_REGRESSORS>::Identity();
+	tmp = tmp - C.transpose() * pinv(C.transpose());
+	
+	Eigen::MatrixXd U,V;
+    Eigen::MatrixXd D;
+    SVD(tmp, D, U, V);
+    Matrix c2=U.Columns(1,p-r);
+    c2=c2.t();
+    Matrix C = inputContrast & c2;
+
+(IdentityMatrix(p)-inputContrast.t()*pinv(inputContrast.t()));
+
+	
 	// First calculate the design matrix X that corresponds to the effects of interest
 	Eigen::MatrixXd M = Xorig;
 	Eigen::MatrixXd xtx = M.transpose() * M;
