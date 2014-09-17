@@ -338,7 +338,7 @@ int main(int argc, char **argv)
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
         printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
-        printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+        //printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
 		/*
         printf(" -starttransx               Transformation in x direction to be applied before registration, in voxels (default 0) \n");
         printf(" -starttransy               Transformation in y direction to be applied before registration, in voxels (default 0) \n");
@@ -489,6 +489,7 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
+		/*
         else if (strcmp(input,"-lowestscale") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -511,6 +512,7 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
+		*/
         else if (strcmp(input,"-sigma") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -894,13 +896,26 @@ int main(int argc, char **argv)
     MNI_VOXEL_SIZE_Y = inputMNI->dy;
     MNI_VOXEL_SIZE_Z = inputMNI->dz;
     
-    if ( (MNI_VOXEL_SIZE_X == 2.0f) && (COARSEST_SCALE == 8) )
-    {
-        printf("\n\nWARNING: It is not recommended to use 8 as a lowest scale for a 2 mm reference volume.\n\n");   
-    }
-	else if (MNI_VOXEL_SIZE_X < 1.5f)
+	// The filter size is 7, so select a lowest scale that gives at least 10 valid samples (3 data points are lost on each side in each dimension, i.e. 6 total)
+	if ( (MNI_DATA_W/16 >= 16) && (MNI_DATA_H/16 >= 16) && (MNI_DATA_D/16 >= 16) )
+	{
+		COARSEST_SCALE = 16;
+	}
+	else if ( (MNI_DATA_W/8 >= 16) && (MNI_DATA_H/8 >= 16) && (MNI_DATA_D/8 >= 16) )
 	{
 		COARSEST_SCALE = 8;
+	}
+	else if ( (MNI_DATA_W/4 >= 16) && (MNI_DATA_H/4 >= 16) && (MNI_DATA_D/4 >= 16) )
+	{
+		COARSEST_SCALE = 4;
+	}
+	else if ( (MNI_DATA_W/2 >= 16) && (MNI_DATA_H/2 >= 16) && (MNI_DATA_D/2 >= 16) )
+	{
+		COARSEST_SCALE = 2;
+	}
+	else
+	{
+		COARSEST_SCALE = 1;
 	}
     
 	// Check  if mask has same dimensions as reference volume
@@ -948,7 +963,11 @@ int main(int argc, char **argv)
         printf("Volume 2 size: %i x %i x %i \n",  MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
         printf("Volume 2 voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);    
     }
-            
+   	if (VERBOS)
+ 	{
+		printf("Selected lowest scale %i for the registration \n",COARSEST_SCALE);
+	}
+        
     // ------------------------------------------------
     
     // Allocate memory on the host
