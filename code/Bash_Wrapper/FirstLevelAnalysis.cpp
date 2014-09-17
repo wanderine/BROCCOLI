@@ -455,8 +455,8 @@ int main(int argc, char **argv)
         printf("Registration options:\n\n");
         printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
-        printf(" -lowestscalet1             The lowest scale for the linear and non-linear registration of the T1 volume to MNI, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
-        printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+        //printf(" -lowestscalet1             The lowest scale for the linear and non-linear registration of the T1 volume to MNI, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
+        //printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
         printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");
         printf(" -sigma                    Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
@@ -627,6 +627,7 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
+		/*
         else if (strcmp(input,"-lowestscalet1") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -671,6 +672,7 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
+		*/
  		else if (strcmp(input,"-zcutt1") == 0)
         {
 			if ( (i+1) >= argc  )
