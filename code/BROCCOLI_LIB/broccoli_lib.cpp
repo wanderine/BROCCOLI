@@ -1230,7 +1230,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	{
 		SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows_16KB_256threads",&createKernelErrorSeparableConvolutionRows);
 		SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns_16KB_256threads",&createKernelErrorSeparableConvolutionColumns);
-		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods_16KB_256threadsD",&createKernelErrorSeparableConvolutionRods);
+		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods_16KB_256threads",&createKernelErrorSeparableConvolutionRods);
 	}
 	// Separable convolution kernels using global memory only (backup)
 	else
