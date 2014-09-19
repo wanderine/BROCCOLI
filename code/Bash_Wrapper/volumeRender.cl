@@ -63,6 +63,11 @@ d_render(__global uint *d_output,
     uint x = get_global_id(0);
     uint y = get_global_id(1);
 
+	if ((x >= imageW) || (y >= imageH)) 
+	{
+		return;
+	}
+    
     float u = (x / (float) imageW)*2.0f-1.0f;
     float v = (y / (float) imageH)*2.0f-1.0f;
 
@@ -122,11 +127,8 @@ d_render(__global uint *d_output,
     }
     temp *= brightness;
 
-    if ((x < imageW) && (y < imageH)) 
-	{
-        // write output color
-        uint i =(y * imageW) + x;
-        d_output[i] = rgbaFloatToInt(temp);
-    }
+    // write output color
+    uint i = (y * imageW) + x;
+    d_output[i] = rgbaFloatToInt(temp);
 }
 
