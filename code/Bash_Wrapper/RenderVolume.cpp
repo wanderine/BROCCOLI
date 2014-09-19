@@ -649,6 +649,13 @@ void initPixelBuffer()
 	gridSize[0] = width;
 	gridSize[1] = height;
 
+	int xBlocks = (size_t)ceil((float)width / (float)LOCAL_SIZE_X);
+	int yBlocks = (size_t)ceil((float)height / (float)LOCAL_SIZE_Y);
+
+	// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+	gridSize[0] = xBlocks * LOCAL_SIZE_X;
+	gridSize[1] = yBlocks * LOCAL_SIZE_Y;
+
     ciErrNum |= clSetKernelArg(ckKernel, 0, sizeof(cl_mem), (void *) &pbo_cl);
     ciErrNum |= clSetKernelArg(ckKernel, 1, sizeof(unsigned int), &width);
     ciErrNum |= clSetKernelArg(ckKernel, 2, sizeof(unsigned int), &height);
