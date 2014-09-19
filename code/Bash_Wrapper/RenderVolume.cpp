@@ -66,7 +66,7 @@ float invViewMatrix[12];
 float density = 0.05f;
 float brightness = 1.0f;
 float transferOffset = 0.0f;
-float transferScale = 1.0f;
+float transferScale = 2.0f;
 bool linearFiltering = true;
 
 GLuint pbo = 0;                 // OpenGL pixel buffer object
@@ -406,18 +406,12 @@ void createCLContext(int PLATFORM, int DEVICE)
 {
 	cl_int error;
 
-	//Get the NVIDIA platform
-    //ciErrNum = oclGetPlatformID(&cpPlatform);
-	//clGetPlatformIDs(1,	cl_platform_id *platforms, NULL);
-
 	cl_uint platformIdCount = 0;
 	clGetPlatformIDs (0, NULL, &platformIdCount);
 	std::vector<cl_platform_id> platformIds (platformIdCount);
 	clGetPlatformIDs (platformIdCount, platformIds.data(), NULL);
 
-	cpPlatform = platformIds[0];
-
-    //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+	cpPlatform = platformIds[PLATFORM];
 
     // Get the number of GPU devices available to the platform
     ciErrNum = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &uiDevCount);
@@ -433,20 +427,11 @@ void createCLContext(int PLATFORM, int DEVICE)
 	char* value;
 	size_t valueSize;
 
-	clGetDeviceInfo(cdDevices[0], CL_DEVICE_NAME, 0, NULL, &valueSize);
+	clGetDeviceInfo(cdDevices[DEVICE], CL_DEVICE_NAME, 0, NULL, &valueSize);
 	value = (char*) malloc(valueSize);
-	clGetDeviceInfo(cdDevices[0], CL_DEVICE_NAME, valueSize, value, NULL);    
-	printf("Devide name 0 is %s \n",value);
+	clGetDeviceInfo(cdDevices[DEVICE], CL_DEVICE_NAME, valueSize, value, NULL);    
+	printf("Devide name is %s \n",value);
 	free(value);
-
-	clGetDeviceInfo(cdDevices[1], CL_DEVICE_NAME, 0, NULL, &valueSize);
-	value = (char*) malloc(valueSize);
-	clGetDeviceInfo(cdDevices[1], CL_DEVICE_NAME, valueSize, value, NULL);    
-	printf("Devide name 1 is %s \n",value);
-	free(value);
-
-
-    //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 
 	// Check if the requested device (or any of the devices if none requested) supports context sharing with OpenGL
     if(g_glInterop)
@@ -525,10 +510,11 @@ void initCLVolume(float *h_Volume, int DATA_W, int DATA_H, int DATA_D)
 		cl_image_format volume_format;
         volume_format.image_channel_order = CL_RGBA;
         volume_format.image_channel_data_type = CL_UNORM_INT8;
-        unsigned char* h_tempVolume = (unsigned char*)malloc(DATA_W * DATA_H * DATA_D * 4);
+        unsigned char* h_tempVolume = (unsigned char*)malloc(DATA_W * DATA_H * DATA_D * sizeof(unsigned char) * 4);
         for(int i = 0; i <(int)(DATA_W * DATA_H * DATA_D); i++)
         {
-            h_tempVolume[4 * i] = (unsigned char)h_Volume[i];
+            h_tempVolume[4 * i] = (unsigned char)(h_Volume[i] / 10.0f);
+			//h_tempVolume[4 * i] = h_Volume[i]/10.0f;
 			//h_tempVolume[4 * i + 0] = 10;
 			//h_tempVolume[4 * i + 1] = 10;
 			//h_tempVolume[4 * i + 2] = 10;
@@ -540,21 +526,6 @@ void initCLVolume(float *h_Volume, int DATA_W, int DATA_H, int DATA_D)
                                         (DATA_W * 4), (DATA_W * DATA_H * 4),
 										//0, 0,
                                         h_tempVolume, &error);
-
-		/*
-		d_volumeArray = clCreateImage3D(cxGPUContext, CL_MEM_READ_ONLY, &volume_format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
-
-		cl_mem d_Input_Volume = clCreateBuffer(cxGPUContext, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(unsigned char) * 4, NULL, NULL);
-
-		clEnqueueWriteBuffer(cqCommandQueue, d_Input_Volume, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(unsigned char) * 4, h_tempVolume , 0, NULL, NULL);
-
-		size_t origin[3] = {0, 0, 0};
-		size_t region[3] = {DATA_W, DATA_H, DATA_D};
-		clEnqueueCopyBufferToImage(cqCommandQueue, d_Input_Volume, d_volumeArray, 0, origin, region, 0, NULL, NULL);
-
-		clFinish(cqCommandQueue);
-		clReleaseMemObject(d_Input_Volume);
-		*/
 
 		printf("Create image 3D error is %i \n",error);
 		//oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
@@ -659,17 +630,24 @@ void initPixelBuffer()
 	glBufferDataARB(GL_PIXEL_UNPACK_BUFFER_ARB, width * height * sizeof(GLubyte) * 4, 0, GL_STREAM_DRAW_ARB);
 	glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
-	if( g_glInterop ) {
+	if( g_glInterop ) 
+	{
 		// create OpenCL buffer from GL PBO
 		pbo_cl = clCreateFromGLBuffer(cxGPUContext,CL_MEM_WRITE_ONLY, pbo, &ciErrNum);
 		//oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-	} else {
+		printf("Create from GL buffer error %i\n",ciErrNum);		
+	} 
+	else 
+	{
 		pbo_cl = clCreateBuffer(cxGPUContext, CL_MEM_WRITE_ONLY, width * height * sizeof(GLubyte) * 4, NULL, &ciErrNum);
 	}
 
     // calculate new grid size
-	gridSize[0] = floor(LOCAL_SIZE_X/width);
-	gridSize[1] = floor(LOCAL_SIZE_Y/height);
+	//gridSize[0] = floor(width/LOCAL_SIZE_X);
+	//gridSize[1] = floor(height/LOCAL_SIZE_Y);
+
+	gridSize[0] = width;
+	gridSize[1] = height;
 
     ciErrNum |= clSetKernelArg(ckKernel, 0, sizeof(cl_mem), (void *) &pbo_cl);
     ciErrNum |= clSetKernelArg(ckKernel, 1, sizeof(unsigned int), &width);
@@ -905,13 +883,6 @@ int main(int argc, char **argv)
         printf("\n\n");
         
         return EXIT_SUCCESS;
-    }
-    else if (argc > 2)
-    {
-        printf("\nOnly one argument allowed!\n\n");
-        printf("Usage:\n\n");
-        printf("RenderVolume volume.nii [options]\n\n");
-		return EXIT_FAILURE;
     }
     // Try to open files
     else if (argc > 1)

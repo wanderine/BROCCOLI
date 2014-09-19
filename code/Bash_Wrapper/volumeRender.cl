@@ -9,8 +9,8 @@
  *
  */
 
-#define maxSteps 500
-#define tstep 0.01f
+#define maxSteps 5000
+#define tstep 0.001f
 
 // intersect ray with a box
 // http://www.siggraph.org/education/materials/HyperGraph/raytrace/rtinter3.htm
@@ -127,7 +127,6 @@ d_render(__global uint *d_output,
         // write output color
         uint i =(y * imageW) + x;
         d_output[i] = rgbaFloatToInt(temp);
-		//d_output[i] = 0;
     }
 }
 
