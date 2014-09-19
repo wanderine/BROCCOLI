@@ -49,11 +49,6 @@
 #include <cstdlib>
 
 
-// public
-float round( float d )
-{
-    return floor( d + 0.5f );
-}
 
 void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume)
 {
@@ -4080,10 +4075,10 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	d_Original_Volume = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//d_Original_Volume = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//d_Original_Volume = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+	d_Original_Volume = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
 
 	// Allocate global memory on the device
 	d_Aligned_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorAlignedVolume);
@@ -4429,10 +4424,10 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearSetup(int DATA_W, int DATA_H, int DAT
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	d_Original_Volume = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//d_Original_Volume = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//d_Original_Volume = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+	d_Original_Volume = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
 
 	// Allocate global memory on the device
 	d_Aligned_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorAlignedVolume);
@@ -5195,10 +5190,10 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, ORIGINAL_DATA_W, ORIGINAL_DATA_H, ORIGINAL_DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, ORIGINAL_DATA_W, ORIGINAL_DATA_H, ORIGINAL_DATA_D, 0, 0, NULL, NULL);
 
 	// Copy the volume to an image to interpolate from
 	size_t origin[3] = {0, 0, 0};
@@ -5263,10 +5258,10 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem& d_Original_Volume, int ORIGINAL_DATA
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, ORIGINAL_DATA_W, ORIGINAL_DATA_H, ORIGINAL_DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, ORIGINAL_DATA_W, ORIGINAL_DATA_H, ORIGINAL_DATA_D, 0, 0, NULL, NULL);
 
 	// Copy the volume to an image to interpolate from
 	size_t origin[3] = {0, 0, 0};
@@ -5689,10 +5684,10 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSizeWrapper()
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_T1_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_T1_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_T1_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, T1_DATA_W, T1_DATA_H, T1_DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_T1_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, T1_DATA_W, T1_DATA_H, T1_DATA_D, 0, 0, NULL, NULL);
 
 	// Copy the T1 volume to an image to interpolate from
 	size_t origin[3] = {0, 0, 0};
@@ -6006,10 +6001,10 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes,
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
 
 	float VOXEL_DIFFERENCE_X = (float)(DATA_W-1)/(float)(DATA_W_INTERPOLATED-1);
 	float VOXEL_DIFFERENCE_Y = (float)(DATA_H-1)/(float)(DATA_H_INTERPOLATED-1);
@@ -6140,10 +6135,10 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_me
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_T1_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_T1_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_T1_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, T1_DATA_W, T1_DATA_H, T1_DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_T1_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, T1_DATA_W, T1_DATA_H, T1_DATA_D, 0, 0, NULL, NULL);
 
 	// Copy the T1 volume to an image to interpolate from
 	size_t origin[3] = {0, 0, 0};
@@ -6403,10 +6398,10 @@ void BROCCOLI_LIB::ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_m
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_EPI_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_EPI_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_EPI_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_EPI_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 0, 0, NULL, NULL);
 
 	// Copy the T1 volume to an image to interpolate from
 	size_t origin[3] = {0, 0, 0};
@@ -7418,10 +7413,10 @@ void BROCCOLI_LIB::TransformVolumesLinear(cl_mem d_Volumes,
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
 
 	SetGlobalAndLocalWorkSizesInterpolateVolume(DATA_W, DATA_H, DATA_D);
 
@@ -7506,10 +7501,10 @@ void BROCCOLI_LIB::TransformVolumesNonLinear(cl_mem d_Volumes,
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
 
-	cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
+	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
 	// Deprecated
-	//cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+	cl_mem d_Volume_Texture = clCreateImage3D(context, CL_MEM_READ_ONLY, &format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
 
 	SetGlobalAndLocalWorkSizesInterpolateVolume(DATA_W, DATA_H, DATA_D);
 
