@@ -11,7 +11,8 @@ OPENCL_PACKAGE=$INTEL
 # Set compilation mode to use
 RELEASE=0
 DEBUG=1
-COMPILATION=$RELEASE
+#COMPILATION=$RELEASE
+COMPILATION=$DEBUG
 
 # Fist run make for Nifti library
 #cd nifticlib-2.0.0

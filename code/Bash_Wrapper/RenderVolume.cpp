@@ -1,4 +1,4 @@
-/*
+	/*
  * BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
  * Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
  *
@@ -18,15 +18,9 @@
 
 // OpenGL Graphics Includes
 #include <GL/glew.h>
-#if defined(__APPLE__) || defined(__MACOSX)
-    #include <OpenGL/OpenGL.h>
-    #include <GLUT/glut.h>
-#else
+    #include <GL/gl.h>
     #include <GL/freeglut.h>
-    #ifdef UNIX
        #include <GL/glx.h>
-    #endif
-#endif
 
 // Includes
 #include <iostream>
@@ -146,13 +140,16 @@ void render()
 
     // Transfer ownership of buffer from GL to CL
 
-	if( g_glInterop ) {
+	if( g_glInterop ) 
+	{
 		// Acquire PBO for OpenCL writing
 		glFlush();
 		ciErrNum |= clEnqueueAcquireGLObjects(cqCommandQueue, 1, &pbo_cl, 0, 0, 0);
+		//printf("Enqueue acquired GL objects error is %i \n",ciErrNum);
 	}
 
 	ciErrNum |= clEnqueueWriteBuffer(cqCommandQueue,d_invViewMatrix,CL_FALSE, 0,12*sizeof(float), invViewMatrix, 0, 0, 0);	
+	//printf("Write buffer error is %i \n",ciErrNum);
 
     // execute OpenCL kernel, writing results to PBO
     size_t localSize[] = {LOCAL_SIZE_X,LOCAL_SIZE_Y};
@@ -162,14 +159,20 @@ void render()
     ciErrNum |= clSetKernelArg(ckKernel, 5, sizeof(float), &transferOffset);
     ciErrNum |= clSetKernelArg(ckKernel, 6, sizeof(float), &transferScale);
     ciErrNum |= clEnqueueNDRangeKernel(cqCommandQueue, ckKernel, 2, NULL, gridSize, localSize, 0, 0, 0);
+	//printf("Enqueue ND range kernel error is %i \n",ciErrNum);
     ////oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+		clFinish( cqCommandQueue );
 
-	if( g_glInterop ) {
+	if( g_glInterop ) 
+	{
 		// Transfer ownership of buffer back from CL to GL    
 		ciErrNum |= clEnqueueReleaseGLObjects(cqCommandQueue, 1, &pbo_cl, 0, 0, 0);
+		//printf("Release GL object error is %i \n",ciErrNum);
 		////oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 		clFinish( cqCommandQueue );
-	} else {
+	} 
+	else 
+	{
 		// Explicit Copy 
 		// map the PBO to copy data from the CL buffer via host
 		glBindBufferARB(GL_PIXEL_UNPACK_BUFFER_ARB, pbo);    
@@ -211,6 +214,8 @@ void DisplayGL()
 
      // process 
     render();
+
+	//printf("Framecount is %i \n",iFrameTrigger);
 
     // get processing time from timer 0, if it's update time
     if (iFrameCount >= iFrameTrigger)
@@ -286,30 +291,35 @@ void KeyboardGL(unsigned char key, int /*x*/, int /*y*/)
     {
         case '-':
             density -= 0.01f;
+			printf("Density--\n");
             break;
         case '+':
             density += 0.01f;
+			printf("Density++\n");
             break;
-
         case ']':
             brightness += 0.1f;
+			printf("Brightness++\n");
             break;
         case '[':
             brightness -= 0.1f;
+			printf("Brightness--\n");
             break;
-
         case ';':
             transferOffset += 0.01f;
+			printf("TransferOffset++\n");
             break;
         case '\'':
             transferOffset -= 0.01f;
+			printf("TransferOffset--\n");
             break;
-
         case '.':
             transferScale += 0.01f;
+			printf("TransferScale++\n");
             break;
         case ',':
             transferScale -= 0.01f;
+			printf("TransferScale--\n");
             break;
         case '\033': // escape quits
         case '\015': // Enter quits    
@@ -351,16 +361,19 @@ void motion(int x, int y)
     dx = (float)(x - ox);
     dy = (float)(y - oy);
 
-    if (buttonState == 3) {
+    if (buttonState == 3) 	
+	{
         // left+middle = zoom
         viewTranslation[2] += dy / 100.0f;
     } 
-    else if (buttonState & 2) {
+    else if (buttonState & 2) 
+	{
         // middle = translate
         viewTranslation[0] += dx / 100.0f;
         viewTranslation[1] -= dy / 100.0f;
     }
-    else if (buttonState & 1) {
+    else if (buttonState & 1) 
+	{
         // left = rotate
         viewRotation[0] += dy / 5.0f;
         viewRotation[1] += dx / 5.0f;
@@ -391,73 +404,93 @@ void Reshape(int x, int y)
 //*****************************************************************************
 void createCLContext(int PLATFORM, int DEVICE) 
 {
-  	// Get number of platforms
+	cl_int error;
+
+	//Get the NVIDIA platform
+    //ciErrNum = oclGetPlatformID(&cpPlatform);
+	//clGetPlatformIDs(1,	cl_platform_id *platforms, NULL);
+
 	cl_uint platformIdCount = 0;
 	clGetPlatformIDs (0, NULL, &platformIdCount);
+	std::vector<cl_platform_id> platformIds (platformIdCount);
+	clGetPlatformIDs (platformIdCount, platformIds.data(), NULL);
 
-	// Get platform IDs
-	std::vector<cl_platform_id> platformIds(platformIdCount);
-	clGetPlatformIDs(platformIdCount, platformIds.data(), NULL);
+	cpPlatform = platformIds[0];
+
+    //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+
+    // Get the number of GPU devices available to the platform
+    ciErrNum = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, 0, NULL, &uiDevCount);
+	printf("Number of GPU devices is %i \n",uiDevCount);
+    //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 
     // Create the device list
-	uiDeviceUsed = DEVICE;
-	uiDevCount = 1;
+    unsigned int uiEndDev = uiDevCount - 1;
     cdDevices = new cl_device_id [uiDevCount];
-    ciErrNum = clGetDeviceIDs(platformIds[PLATFORM], CL_DEVICE_TYPE_GPU, uiDevCount, cdDevices, NULL);
+    ciErrNum = clGetDeviceIDs(cpPlatform, CL_DEVICE_TYPE_GPU, uiDevCount, cdDevices, NULL);
+
+	// Get device name
+	char* value;
+	size_t valueSize;
+
+	clGetDeviceInfo(cdDevices[0], CL_DEVICE_NAME, 0, NULL, &valueSize);
+	value = (char*) malloc(valueSize);
+	clGetDeviceInfo(cdDevices[0], CL_DEVICE_NAME, valueSize, value, NULL);    
+	printf("Devide name 0 is %s \n",value);
+	free(value);
+
+	clGetDeviceInfo(cdDevices[1], CL_DEVICE_NAME, 0, NULL, &valueSize);
+	value = (char*) malloc(valueSize);
+	clGetDeviceInfo(cdDevices[1], CL_DEVICE_NAME, valueSize, value, NULL);    
+	printf("Devide name 1 is %s \n",value);
+	free(value);
+
+
     //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 
 	// Check if the requested device (or any of the devices if none requested) supports context sharing with OpenGL
     if(g_glInterop)
     {
         bool bSharingSupported = false;
-
-        size_t extensionSize;
-        ciErrNum = clGetDeviceInfo(cdDevices[DEVICE], CL_DEVICE_EXTENSIONS, 0, NULL, &extensionSize );
-            //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-
-        if (extensionSize > 0) 
+        for (unsigned int i = uiDeviceUsed; (!bSharingSupported && (i <= uiEndDev)); ++i) 
         {
-            char* extensions = (char*)malloc(extensionSize);
-            ciErrNum = clGetDeviceInfo(cdDevices[DEVICE], CL_DEVICE_EXTENSIONS, extensionSize, extensions, &extensionSize);
+            size_t extensionSize;
+            ciErrNum = clGetDeviceInfo(cdDevices[i], CL_DEVICE_EXTENSIONS, 0, NULL, &extensionSize );
             //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
-            std::string stdDevString(extensions);
-            free(extensions);
-
-            size_t szOldPos = 0;
-            size_t szSpacePos = stdDevString.find(' ', szOldPos); // extensions string is space delimited
-            while (szSpacePos != stdDevString.npos)
+            if(extensionSize > 0) 
             {
-                if( strcmp(GL_SHARING_EXTENSION, stdDevString.substr(szOldPos, szSpacePos - szOldPos).c_str()) == 0 ) 
+                char* extensions = (char*)malloc(extensionSize);
+                ciErrNum = clGetDeviceInfo(cdDevices[i], CL_DEVICE_EXTENSIONS, extensionSize, extensions, &extensionSize);
+				printf("Get device info error is %i \n",ciErrNum);
+                //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+                std::string stdDevString(extensions);
+                free(extensions);
+
+                size_t szOldPos = 0;
+                size_t szSpacePos = stdDevString.find(' ', szOldPos); // extensions string is space delimited
+                while (szSpacePos != stdDevString.npos)
                 {
-                    // Device supports context sharing with OpenGL
-                    bSharingSupported = true;
+                    if( strcmp(GL_SHARING_EXTENSION, stdDevString.substr(szOldPos, szSpacePos - szOldPos).c_str()) == 0 ) 
+                    {
+                        // Device supports context sharing with OpenGL
+                        uiDeviceUsed = i;
+                        bSharingSupported = true;
+						printf("Sharing supported!\n");
+                        break;
+                    }
+                    do 
+                    {
+                        szOldPos = szSpacePos + 1;
+                        szSpacePos = stdDevString.find(' ', szOldPos);
+                    } 
+                    while (szSpacePos == szOldPos);
                 }
-                do 
-                {
-                    szOldPos = szSpacePos + 1;
-                    szSpacePos = stdDevString.find(' ', szOldPos);
-                } 
-                while (szSpacePos == szOldPos);
             }
-        }
-       
-        // Log CL-GL interop support and quit if not available (sample needs it)
-        //shrlog("%s...\n", bSharingSupported ? "Using CL-GL Interop" : "No device found that supports CL/GL context sharing");  
-        //oclCheckErrorEX(bSharingSupported, true, pCleanup);
+        }    
 
-        // Define OS-specific context properties and create the OpenCL context
-        #if defined (__APPLE__)
-            CGLContextObj kCGLContext = CGLGetCurrentContext();
-            CGLShareGroupObj kCGLShareGroup = CGLGetShareGroup(kCGLContext);
-            cl_context_properties props[] = 
-            {
-                CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE, (cl_context_properties)kCGLShareGroup, 
-                0 
-            };
-            cxGPUContext = clCreateContext(props, 0,0, NULL, NULL, &ciErrNum);
-        #else
-            #ifdef UNIX
-                cl_context_properties props[] = 
+ // Define OS-specific context properties and create the OpenCL context
+        
+        cl_context_properties props[] = 
                 {
                     CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(), 
                     CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(), 
@@ -465,14 +498,15 @@ void createCLContext(int PLATFORM, int DEVICE)
                     0
                 };
                 cxGPUContext = clCreateContext(props, 1, &cdDevices[uiDeviceUsed], NULL, NULL, &ciErrNum);
-            #endif
-        #endif
-    }
-    else 
+				printf("Create context error is %i\n",ciErrNum);
+
+	}
+	else 
     {
 		// No GL interop
         cl_context_properties props[] = {CL_CONTEXT_PLATFORM, (cl_context_properties)PLATFORM, 0};
-        cxGPUContext = clCreateContext(props, 1, &cdDevices[uiDeviceUsed], NULL, NULL, &ciErrNum);
+        cxGPUContext = clCreateContext(props, 1, &cdDevices[uiDeviceUsed], NULL, NULL, &error);
+		printf("Error 7 is %i \n",error);
 		g_glInterop = false;
     }
     //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
@@ -482,21 +516,47 @@ void initCLVolume(float *h_Volume, int DATA_W, int DATA_H, int DATA_D)
 {
     ciErrNum = CL_SUCCESS;
 
-	if (g_bImageSupport) 
+	printf("b image support is %i \n",g_bImageSupport);
+
+	if (g_bImageSupport)
+	//if (true)  
     {
 		// create 3D array and copy data to device
 		cl_image_format volume_format;
         volume_format.image_channel_order = CL_RGBA;
-        volume_format.image_channel_data_type = CL_FLOAT;
-        float* h_tempVolume = (float*)malloc(DATA_W * DATA_H * DATA_D * 4 * sizeof(float));
+        volume_format.image_channel_data_type = CL_UNORM_INT8;
+        unsigned char* h_tempVolume = (unsigned char*)malloc(DATA_W * DATA_H * DATA_D * 4);
         for(int i = 0; i <(int)(DATA_W * DATA_H * DATA_D); i++)
         {
-            h_tempVolume[4 * i] = h_Volume[i];
+            h_tempVolume[4 * i] = (unsigned char)h_Volume[i];
+			//h_tempVolume[4 * i + 0] = 10;
+			//h_tempVolume[4 * i + 1] = 10;
+			//h_tempVolume[4 * i + 2] = 10;
+			//h_tempVolume[4 * i + 3] = 10;
         }
+		int error;
         d_volumeArray = clCreateImage3D(cxGPUContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &volume_format, 
                                         DATA_W, DATA_H, DATA_D,
                                         (DATA_W * 4), (DATA_W * DATA_H * 4),
-                                        h_tempVolume, &ciErrNum);
+										//0, 0,
+                                        h_tempVolume, &error);
+
+		/*
+		d_volumeArray = clCreateImage3D(cxGPUContext, CL_MEM_READ_ONLY, &volume_format, DATA_W, DATA_H, DATA_D, 0, 0, NULL, NULL);
+
+		cl_mem d_Input_Volume = clCreateBuffer(cxGPUContext, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(unsigned char) * 4, NULL, NULL);
+
+		clEnqueueWriteBuffer(cqCommandQueue, d_Input_Volume, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(unsigned char) * 4, h_tempVolume , 0, NULL, NULL);
+
+		size_t origin[3] = {0, 0, 0};
+		size_t region[3] = {DATA_W, DATA_H, DATA_D};
+		clEnqueueCopyBufferToImage(cqCommandQueue, d_Input_Volume, d_volumeArray, 0, origin, region, 0, NULL, NULL);
+
+		clFinish(cqCommandQueue);
+		clReleaseMemObject(d_Input_Volume);
+		*/
+
+		printf("Create image 3D error is %i \n",error);
 		//oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
         free (h_tempVolume);
 
@@ -519,14 +579,18 @@ void initCLVolume(float *h_Volume, int DATA_W, int DATA_H, int DATA_D)
 		d_transferFuncArray = clCreateImage2D(cxGPUContext, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, &transferFunc_format,
 											  9, 1, sizeof(float) * 9 * 4,
 											  transferFunc, &ciErrNum);                                          
+		printf("Error 8 is %i \n",ciErrNum);
 		//oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 
         // Create samplers for transfer function, linear interpolation and nearest interpolation 
         transferFuncSampler = clCreateSampler(cxGPUContext, true, CL_ADDRESS_CLAMP_TO_EDGE, CL_FILTER_LINEAR, &ciErrNum);
+		printf("Error 9 is %i \n",ciErrNum);
         //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
         volumeSamplerLinear = clCreateSampler(cxGPUContext, true, CL_ADDRESS_REPEAT, CL_FILTER_LINEAR, &ciErrNum);
+		printf("Error 10 is %i \n",ciErrNum);
         //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
         volumeSamplerNearest = clCreateSampler(cxGPUContext, true, CL_ADDRESS_REPEAT, CL_FILTER_NEAREST, &ciErrNum);
+		printf("Error 11 is %i \n",ciErrNum);
         //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 
         // set image and sampler args
@@ -535,11 +599,13 @@ void initCLVolume(float *h_Volume, int DATA_W, int DATA_H, int DATA_D)
         ciErrNum |= clSetKernelArg(ckKernel, 10, sizeof(cl_sampler), linearFiltering ? &volumeSamplerLinear : &volumeSamplerNearest);
         ciErrNum |= clSetKernelArg(ckKernel, 11, sizeof(cl_sampler), &transferFuncSampler);
 		//oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+		printf("Error 12 is %i \n",ciErrNum);
 	}
 
     // init invViewMatrix
     d_invViewMatrix = clCreateBuffer(cxGPUContext, CL_MEM_READ_ONLY, 12 * sizeof(float), 0, &ciErrNum);
     ciErrNum |= clSetKernelArg(ckKernel, 7, sizeof(cl_mem), (void *) &d_invViewMatrix);
+	printf("Error 13 is %i \n",ciErrNum);
     //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 }
 
@@ -608,6 +674,8 @@ void initPixelBuffer()
     ciErrNum |= clSetKernelArg(ckKernel, 0, sizeof(cl_mem), (void *) &pbo_cl);
     ciErrNum |= clSetKernelArg(ckKernel, 1, sizeof(unsigned int), &width);
     ciErrNum |= clSetKernelArg(ckKernel, 2, sizeof(unsigned int), &height);
+	printf("Error first kernel args is %i\n",ciErrNum);
+
     //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 }
 
@@ -642,6 +710,8 @@ void TestNoGL()
     ciErrNum |= clSetKernelArg(ckKernel, 5, sizeof(float), &transferOffset);
     ciErrNum |= clSetKernelArg(ckKernel, 6, sizeof(float), &transferScale);
     
+				printf("Error more kernel args is %i\n",ciErrNum);
+
     // Warmup
     int iCycles = 20;
     size_t localSize[] = {LOCAL_SIZE_X,LOCAL_SIZE_Y};
@@ -994,9 +1064,15 @@ int main(int argc, char **argv)
     //createCLContext(argc, (const char**)argv);
 	createCLContext(OPENCL_PLATFORM, OPENCL_DEVICE);
 
+	cl_int error;
+	
+
     // create a command-queue
     cqCommandQueue = clCreateCommandQueue(cxGPUContext, cdDevices[uiDeviceUsed], 0, &ciErrNum);
     //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
+
+	//clGetDeviceInfo(cdDevices[uiDeviceUsed], CL_DEVICE_IMAGE_SUPPORT, sizeof(g_bImageSupport), &g_bImageSupport, NULL);
+	g_bImageSupport = true;
 
 	// Read the kernel code from file
 	std::fstream kernelFile("volumeRender.cl",std::ios::in);
@@ -1006,15 +1082,19 @@ int main(int argc, char **argv)
 	std::string src = oss.str();
 	const char *srcstr = src.c_str();
 
+
 	// Create program and build the code for the selected device
-	cpProgram = clCreateProgramWithSource(cxGPUContext, 1, (const char**)&srcstr, NULL, &ciErrNum);
+	cpProgram = clCreateProgramWithSource(cxGPUContext, 1, (const char**)&srcstr, NULL, &error);
+	printf("Create program with source error is %i \n",error);
     
     // build the program
     std::string buildOpts = "-cl-fast-relaxed-math";
     buildOpts += g_bImageSupport ? " -DIMAGE_SUPPORT" : "";
     ciErrNum = clBuildProgram(cpProgram, 0, NULL, buildOpts.c_str(), NULL, NULL);
+	printf("Build program error is %i \n",error);
     if (ciErrNum != CL_SUCCESS)
     {
+		printf("Building failed!\n");
         // write out standard error, Build Log and PTX, then cleanup and return error
         //shrlogEx(LOGBOTH | ERRORMSG, ciErrNum, STDERROR);
         //oclLogBuildInfo(cpProgram, oclGetFirstDev(cxGPUContext));
@@ -1023,7 +1103,8 @@ int main(int argc, char **argv)
     }
 
     // create the kernel
-    ckKernel = clCreateKernel(cpProgram, "d_render", &ciErrNum);
+    ckKernel = clCreateKernel(cpProgram, "d_render", &error);
+	printf("Create kernel error is %i \n",error);
     //oclCheckErrorEX(ciErrNum, CL_SUCCESS, pCleanup);
 
     // Init OpenCL
@@ -1038,12 +1119,12 @@ int main(int argc, char **argv)
     initPixelBuffer();
     glutMainLoop();
 
+    // Normally unused return path
+    Cleanup(EXIT_SUCCESS);
+
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
     FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-
-    // Normally unused return path
-    Cleanup(EXIT_SUCCESS);
        
     return EXIT_SUCCESS;
 }
