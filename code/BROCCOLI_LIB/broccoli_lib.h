@@ -129,6 +129,7 @@ class BROCCOLI_LIB
 		// Statistics
 		void SetTemporalDerivatives(int TD);
 		void SetRegressMotion(int R);
+		void SetRegressGlobalMean(int R);
 		void SetRegressConfounds(int R);
 		void SetPermuteFirstLevel(bool);
 		void SetConfoundRegressors(float* X_GLM);
@@ -525,6 +526,8 @@ class BROCCOLI_LIB
 		void CenterVolumeMass(cl_mem d_Volume, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
 		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
 		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
+
+		void CalculateGlobalMeans(cl_mem d_Volumes);		
 
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryInt(cl_mem memory, int value, int N);
@@ -1028,6 +1031,7 @@ class BROCCOLI_LIB
 		int USE_TEMPORAL_DERIVATIVES;
 		bool RAW_REGRESSORS;
 		int REGRESS_MOTION;
+		int REGRESS_GLOBALMEAN;
 		int REGRESS_CONFOUNDS;
 		bool PERMUTE_FIRST_LEVEL;
 		float CLUSTER_DEFINING_THRESHOLD;
@@ -1133,6 +1137,7 @@ class BROCCOLI_LIB
 		float       *h_Contrasts, *h_Contrasts_In;
 		float		*h_X_GLM_Out, *h_X_GLM_In, *h_X_GLM_Confounds, *h_xtxxt_GLM_In, *h_ctxtxc_GLM_In;
 		float		*h_X_GLM, *h_X_GLM_With_Temporal_Derivatives, *h_X_GLM_Convolved, *h_xtxxt_GLM, *h_xtxxt_GLM_Out, *h_ctxtxc_GLM;
+		float 		*h_Global_Mean;
 		float		*h_Censored_Timepoints, *h_Censored_Volumes;
 		float       *h_Beta_Volumes_MNI, *h_Beta_Volumes_EPI, *h_Beta_Volumes_T1;
 		float       *h_Beta_Volumes_No_Whitening_MNI, *h_Beta_Volumes_No_Whitening_EPI, *h_Beta_Volumes_No_Whitening_T1;

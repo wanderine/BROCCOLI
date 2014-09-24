@@ -223,7 +223,8 @@ void BROCCOLI_LIB::SetStartValues()
 	NUMBER_OF_DETRENDING_REGRESSORS = 4;
 	NUMBER_OF_MOTION_REGRESSORS = 6;
 
-	REGRESS_MOTION = 1;
+	REGRESS_MOTION = 0;
+	REGRESS_GLOBALMEAN = 0;
 	REGRESS_CONFOUNDS = 0;
 	PERMUTE_FIRST_LEVEL = false;
 
@@ -2290,6 +2291,11 @@ void BROCCOLI_LIB::SetConfoundRegressors(float* regressors)
 void BROCCOLI_LIB::SetRegressMotion(int R)
 {
 	REGRESS_MOTION = R;
+}
+
+void BROCCOLI_LIB::SetRegressGlobalMean(int R)
+{
+	REGRESS_GLOBALMEAN = R;
 }
 
 void BROCCOLI_LIB::SetNumberOfConfoundRegressors(int N)
@@ -5771,6 +5777,44 @@ void BROCCOLI_LIB::ChangeT1VolumeResolutionAndSizeWrapper()
 	clReleaseMemObject(d_T1_Volume_Texture);
 }
 
+void BROCCOLI_LIB::CalculateGlobalMeans(cl_mem d_Volumes)
+{
+	// Allocate temporary memory for data
+    float *h_Temp_Volume = (float*)malloc(EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float));
+
+	// Allocate temporary memory for mask
+    float *h_Temp_Mask = (float*)malloc(EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float));
+
+    // Copy the mask volume to host
+	clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Temp_Mask, 0, NULL, NULL);
+
+	// Loop over timepoints
+    for (int t = 0; t < EPI_DATA_T; t++)
+    {
+		int	brainVoxels = 0;
+
+	    // Copy the current volume to host
+		clEnqueueReadBuffer(commandQueue, d_Volumes, CL_TRUE, t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Temp_Volume, 0, NULL, NULL);
+
+	    float sum = 0.0f;
+	    for (int i = 0; i < (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D); i++)
+	    {
+			// Only use brain voxels
+			if (h_Temp_Mask[i] == 1.0f)
+			{
+		    	sum += h_Temp_Volume[i];
+				brainVoxels++;
+			}
+	    }
+    
+    	h_Global_Mean[t] = sum / (float)(brainVoxels);
+	}
+
+    free(h_Temp_Volume);
+	free(h_Temp_Mask);
+}
+
+
 void BROCCOLI_LIB::CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D)
 {
     float *h_Temp_Volume = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
@@ -7583,9 +7627,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	memoryDeallocations = 0;
 	allocatedMemory = 0;
 
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// T1-MNI registration
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
@@ -7639,9 +7683,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	//clReleaseMemObject(d_Skullstripped_T1_Volume);
 	//clReleaseMemObject(d_MNI_Brain_Mask);
 
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// fMRI-T1 registration
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
@@ -7715,9 +7759,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// Copy data to device
 	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
 
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Slice timing correction
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	//d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 	//PerformSliceTimingCorrection();
@@ -7727,9 +7771,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);
 	}
 
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Motion correction
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
@@ -7762,9 +7806,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_Motion_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
 	}
 
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Segment EPI data
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
@@ -7790,9 +7834,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	memoryDeallocations++;
 	allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
 
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Smoothing
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
@@ -7822,16 +7866,16 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	}
 
 
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// GLM
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
 		printf("Performing statistical analysis\n");
 	}
 
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -7875,6 +7919,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
 	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
 
+	if (REGRESS_GLOBALMEAN)
+	{
+		h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
+		CalculateGlobalMeans(d_Smoothed_fMRI_Volumes);
+	}
 
 	SetupTTestFirstLevel(EPI_DATA_T);
 
@@ -7915,9 +7964,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 	}
 
-	//------------------------------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Transform results to T1 space and copy to host
-	//------------------------------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if (WRITE_ACTIVITY_T1)
 	{
@@ -7973,32 +8022,14 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	memoryDeallocations += 2;
 	allocatedMemory -= (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float) + T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float));
 
-	//------------------------------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Transform results to MNI space and copy to host
-	//------------------------------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
 		printf("Transforming results to MNI\n");
 	}
-
-	// Allocate memory on device
-	//d_Beta_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, &createBufferErrorBetaVolumesMNI);
-	//d_Contrast_Volumes_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorContrastVolumesMNI);
-	//d_Statistical_Maps_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, &createBufferErrorStatisticalMapsMNI);
-	//d_Residual_Variances_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorResidualVariancesMNI);
-
-	//memoryAllocations += 4;
-
-	//if (WRITE_AR_ESTIMATES_MNI)
-	//{
-	//	d_AR1_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
-	//	d_AR2_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
-	//	d_AR3_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
-	//	d_AR4_Estimates_MNI = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, &createBufferErrorAREstimatesMNI);
-	//}
-
-	//clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
 
 	SetMemory(d_MNI_Brain_Mask, 1.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
 
@@ -8006,20 +8037,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	// Apply transformations to MNI space and copy to host
 	TransformFirstLevelResultsToMNI();
-
-	// Copy to host
-	//clEnqueueReadBuffer(commandQueue, d_Beta_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_MNI, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Statistical_Maps_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances_MNI, 0, NULL, NULL);
-
-	//if (WRITE_AR_ESTIMATES_MNI)
-	//{
-	//	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR1_Estimates_MNI, 0, NULL, NULL);
-	//	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR2_Estimates_MNI, 0, NULL, NULL);
-	//	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR3_Estimates_MNI, 0, NULL, NULL);
-	//	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates_MNI, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_AR4_Estimates_MNI, 0, NULL, NULL);
-	//}
 
 
 	if (WRITE_UNWHITENED_RESULTS)
@@ -8041,25 +8058,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	}
 
 
-	//clReleaseMemObject(d_Beta_Volumes_MNI);
-	//clReleaseMemObject(d_Contrast_Volumes_MNI);
-	//clReleaseMemObject(d_Statistical_Maps_MNI);
-	//clReleaseMemObject(d_Residual_Variances_MNI);
-
-	//memoryDeallocations += 4;
-
-	//if (WRITE_AR_ESTIMATES_MNI)
-	//{
-	//	clReleaseMemObject(d_AR1_Estimates_MNI);
-	//	clReleaseMemObject(d_AR2_Estimates_MNI);
-	//	clReleaseMemObject(d_AR3_Estimates_MNI);
-	//	clReleaseMemObject(d_AR4_Estimates_MNI);
-	//}
-
-
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Run permutation test
-	//------------------------
+	//---------------------------------------------------------------------------------------------------------------------------------------
 
 	if (PERMUTE_FIRST_LEVEL)
 	{
@@ -8108,6 +8109,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	free(h_ctxtxc_GLM);
 	free(h_X_GLM_With_Temporal_Derivatives);
 	free(h_X_GLM_Convolved);
+
+	if (REGRESS_GLOBALMEAN)
+	{
+		free(h_Global_Mean);
+	}
 
 	clReleaseMemObject(d_Whitened_fMRI_Volumes);
 
@@ -8391,7 +8397,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisBayesianWrapper()
 		printf("Performing statistical analysis\n");
 	}
 
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -10860,6 +10866,8 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	}
 	CalculatePermutationPValues(d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
+
+
 	// Copy results to  host
 	//clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
@@ -10867,6 +10875,33 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
 
 	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
+
+	float maxP = 0.0f;
+	bool significant = false;
+	// Check if any p-value is larger than 0.95
+	for (int z = 0; z < MNI_DATA_D; z++)
+	{
+		for (int y = 0; y < MNI_DATA_H; y++)
+		{
+			for (int x = 0; x < MNI_DATA_W; x++)
+			{
+				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > 0.95f)
+				{
+					significant = true;
+				}
+				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > maxP) 
+				{
+					maxP = h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H];
+				}
+			}
+		}
+	}
+	if (significant)
+		printf("Significant group difference detected!\n");
+
+
+	printf("Max p value is %f \n",maxP);	
+
 
 	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
 
@@ -13061,11 +13096,11 @@ void BROCCOLI_LIB::CalculatePermutationPValues(cl_mem d_Mask, int DATA_W, int DA
 			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 2, sizeof(cl_mem), &d_Cluster_Sizes);
 			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 3, sizeof(cl_mem), &d_Mask);
 			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 4, sizeof(cl_mem), &c_Permutation_Distribution);
-			//clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 5, sizeof(int),    &contrast);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 5, sizeof(int),    &DATA_W);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 6, sizeof(int),    &DATA_H);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 7, sizeof(int),    &DATA_D);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 8, sizeof(int),    &NUMBER_OF_PERMUTATIONS);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 5, sizeof(int),    &contrast);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 6, sizeof(int),    &DATA_W);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 7, sizeof(int),    &DATA_H);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 8, sizeof(int),    &DATA_D);
+			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 9, sizeof(int),    &NUMBER_OF_PERMUTATIONS);
 			runKernelErrorCalculatePermutationPValuesClusterLevelInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesClusterLevelInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
 		}
 	}
@@ -13452,7 +13487,7 @@ void BROCCOLI_LIB::DemeanRegressor(Eigen::VectorXd& Regressor, int N)
 Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 {
 	// Calculate total number of regressors
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 	// Create detrending regressors
 	Eigen::VectorXd Ones(N,1);
@@ -13541,12 +13576,17 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) = h_Motion_Parameters[i + 5 * N];
 		}
 
+		if (REGRESS_GLOBALMEAN)
+		{
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) = (double)h_Global_Mean[i];
+		}
+
 		if (REGRESS_CONFOUNDS)
 		{
 			// Confounding regressors
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
 			{
-				X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) = (double)h_X_GLM_Confounds[i + r * N];
+				X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) = (double)h_X_GLM_Confounds[i + r * N];
 			}
 		}
 	}
@@ -13597,11 +13637,16 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5);
 		}
 
+		if (REGRESS_GLOBALMEAN)
+		{
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION);
+		}
+
 		if (REGRESS_CONFOUNDS)
 		{
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
 			{
-				h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r);
+				h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r);
 			}
 		}
 
@@ -13628,12 +13673,17 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5,i);
 		}
 
+		if (REGRESS_GLOBALMEAN)
+		{
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION,i);
+		}
+
 		if (REGRESS_CONFOUNDS)
 		{
 			// Confounding regressors
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
 			{
-				h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + r,i);
+				h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r,i);
 			}
 		}
 	}

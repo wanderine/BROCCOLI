@@ -395,6 +395,7 @@ int main(int argc, char **argv)
 
 	bool			RAW_REGRESSORS = false;
     int             REGRESS_MOTION = 0;
+    int             REGRESS_GLOBALMEAN = 0;
 	int				REGRESS_CONFOUNDS = 0;
     float           EPI_SMOOTHING_AMOUNT = 6.0f;
     float           AR_SMOOTHING_AMOUNT = 6.0f;
@@ -459,7 +460,7 @@ int main(int argc, char **argv)
         //printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
         printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");
-        printf(" -sigma                    Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
+        printf(" -sigma                    Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n\n\n\n");        
         
         printf("Preprocessing options:\n\n");
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
@@ -468,6 +469,7 @@ int main(int argc, char **argv)
         printf("Statistical options:\n\n");
         printf(" -rawregressors             Use raw regressors (FSL format, one value per TR) (default no) \n");
         printf(" -regressmotion             Include motion parameters in design matrix (default no) \n");
+        printf(" -regressglobalmean         Include global mean in design matrix (default no) \n");
         printf(" -temporalderivatives       Use temporal derivatives for the activity regressors (default no) \n");
         printf(" -permute                   Apply a permutation test to get p-values (default no) \n");
         printf(" -permutations              Number of permutations to use for permutation test (default 1,000) \n");
@@ -787,6 +789,11 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-regressmotion") == 0)
         {
             REGRESS_MOTION = 1;
+            i += 1;
+        }
+        else if (strcmp(input,"-regressglobalmean") == 0)
+        {
+            REGRESS_GLOBALMEAN = 1;
             i += 1;
         }
         else if (strcmp(input,"-temporalderivatives") == 0)
@@ -1296,7 +1303,7 @@ int main(int argc, char **argv)
     
 	if (!BAYESIAN)
 	{
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION; //NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION + REGRESS_GLOBALMEAN; //NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 	}
 	else
 	{
@@ -2101,6 +2108,7 @@ int main(int argc, char **argv)
 
         BROCCOLI.SetRawRegressors(RAW_REGRESSORS);
         BROCCOLI.SetRegressMotion(REGRESS_MOTION);
+        BROCCOLI.SetRegressGlobalMean(REGRESS_GLOBALMEAN);
         BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
         BROCCOLI.SetRegressConfounds(REGRESS_CONFOUNDS);
         BROCCOLI.SetBetaSpace(BETA_SPACE);
