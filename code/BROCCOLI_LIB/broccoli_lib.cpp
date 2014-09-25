@@ -8920,11 +8920,35 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 		for (int z = 0; z < EPI_DATA_D; z++)
 		{
 			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
-		}
+		}		
 	}
 	else if (SLICE_ORDER == DOWN_INTERLEAVED)
 	{
+		middle_slice = 0;
 
+		float h_Times[EPI_DATA_D];
+		float timePerSlice = TR/(float)EPI_DATA_D;
+
+		int zz = 0;
+		for (int z = EPI_DATA_D-1; z >= 0; z--)
+		{
+			// Odd slice
+			if (zz % 2)
+			{
+				h_Times[z] = ceil((float)zz/2.0f) * timePerSlice + TR/2.0f;		
+			}
+			// Even slice
+			else
+			{
+				h_Times[z] = (float)zz/2.0f * timePerSlice;		
+			}
+			zz++;
+		}
+		
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
+		}		
 	}
 
 
@@ -9013,14 +9037,13 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 	}
 	else if (SLICE_ORDER == DOWN_INTERLEAVED)
 	{
-		middle_slice = (float)EPI_DATA_D - 1.0f;
+		middle_slice = 0;
 
 		float h_Times[EPI_DATA_D];
 		float timePerSlice = TR/(float)EPI_DATA_D;
-		
-		/*
+
 		int zz = 0;
-		for (int z = EPI_DATA_D - 1; z >= 0; z--)
+		for (int z = EPI_DATA_D-1; z >= 0; z--)
 		{
 			// Odd slice
 			if (zz % 2)
@@ -9034,41 +9057,11 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 			}
 			zz++;
 		}
-		*/
-	
-		for (int z = 0; z < EPI_DATA_D; z++)
-		{
-			// Odd slice
-			if (z % 2)
-			{
-				h_Times[z] = ceil((float)z/2.0f) * timePerSlice + TR/2.0f;		
-			}
-			// Even slice
-			else
-			{
-				h_Times[z] = (float)z/2.0f * timePerSlice;		
-			}
-		}
 		
 		for (int z = 0; z < EPI_DATA_D; z++)
 		{
-			h_Slice_Differences[z] = (h_Times[z] - h_Times[(int)middle_slice])/TR;
+			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
 		}		
-
-		/*		
-		for (int z = 0; z < EPI_DATA_D; z++)
-		{
-			if (z % 2)
-			{
-				h_Slice_Differences[z] = 1.0f - (h_Times[z] - h_Times[(int)middle_slice])/TR;	
-			}
-			else
-			{
-				h_Slice_Differences[z] = (h_Times[z] - h_Times[(int)middle_slice])/TR;
-			}
-		}
-		*/	
-
 	}
 
 	// Copy slice differences to device
