@@ -79,10 +79,10 @@
 #define FTEST 1
 #define GROUP_MEAN 2
 
-#define DOWN 0
-#define UP 1
-#define DOWN_INTERLEAVED 2
-#define UP_INTERLEAVED 3
+#define UP 0
+#define DOWN 1
+#define UP_INTERLEAVED 2
+#define DOWN_INTERLEAVED 3
 
 #define TRANSLATION 0
 #define RIGID 1

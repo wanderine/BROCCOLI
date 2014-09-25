@@ -2645,6 +2645,11 @@ void BROCCOLI_LIB::SetEPITR(float value)
 	TR = value;
 }
 
+void BROCCOLI_LIB::SetEPISliceOrder(int value)
+{
+	SLICE_ORDER = value;
+}
+
 void BROCCOLI_LIB::SetT1VoxelSizeX(float value)
 {
 	T1_VOXEL_SIZE_X = value;
@@ -8870,26 +8875,52 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 	h_Slice_Differences = (float*)malloc(EPI_DATA_D * sizeof(float));
 
 	// Calculate middle slice
-	float middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+	float middle_slice;
 
 	// Calculate slice differences
 	if (SLICE_ORDER == UP)
 	{
-		for (int z = 0; z < EPI_DATA_D; z++)
-		{
-			h_Slice_Differences[z] = ((float)z - middle_slice)/((float)EPI_DATA_D);
-		}
-	}
-	else if (SLICE_ORDER == DOWN)
-	{
+		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+
 		for (int z = 0; z < EPI_DATA_D; z++)
 		{
 			h_Slice_Differences[z] = (middle_slice - (float)z)/((float)EPI_DATA_D);
 		}
 	}
+	else if (SLICE_ORDER == DOWN)
+	{
+		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			h_Slice_Differences[z] = ((float)z - middle_slice)/(float)(EPI_DATA_D);
+		}
+	}
 	else if (SLICE_ORDER == UP_INTERLEAVED)
 	{
+		middle_slice = (float)EPI_DATA_D - 1.0f;
 
+		float h_Times[EPI_DATA_D];
+		float timePerSlice = TR/(float)EPI_DATA_D;
+
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			// Odd slice
+			if (z % 2)
+			{
+				h_Times[z] = ceil((float)z/2.0f) * timePerSlice + TR/2.0f;		
+			}
+			// Even slice
+			else
+			{
+				h_Times[z] = (float)z/2.0f * timePerSlice;		
+			}
+		}
+		
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
+		}
 	}
 	else if (SLICE_ORDER == DOWN_INTERLEAVED)
 	{
@@ -8933,11 +8964,111 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 	h_Slice_Differences = (float*)malloc(EPI_DATA_D * sizeof(float));
 
 	// Calculate middle slice
-	float middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+	float middle_slice;
 
-	for (int z = 0; z < EPI_DATA_D; z++)
+	// Calculate slice differences
+	if (SLICE_ORDER == UP)
 	{
-		h_Slice_Differences[z] = ((float)z - middle_slice)/((float)EPI_DATA_D);
+		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			h_Slice_Differences[z] = (middle_slice - (float)z)/((float)EPI_DATA_D);
+		}
+	}
+	else if (SLICE_ORDER == DOWN)
+	{
+		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			h_Slice_Differences[z] = ((float)z - middle_slice)/(float)(EPI_DATA_D);
+		}
+	}
+	else if (SLICE_ORDER == UP_INTERLEAVED)
+	{
+		middle_slice = (float)EPI_DATA_D - 1.0f;
+
+		float h_Times[EPI_DATA_D];
+		float timePerSlice = TR/(float)EPI_DATA_D;
+
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			// Odd slice
+			if (z % 2)
+			{
+				h_Times[z] = ceil((float)z/2.0f) * timePerSlice + TR/2.0f;		
+			}
+			// Even slice
+			else
+			{
+				h_Times[z] = (float)z/2.0f * timePerSlice;		
+			}
+		}
+		
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
+		}		
+	}
+	else if (SLICE_ORDER == DOWN_INTERLEAVED)
+	{
+		middle_slice = (float)EPI_DATA_D - 1.0f;
+
+		float h_Times[EPI_DATA_D];
+		float timePerSlice = TR/(float)EPI_DATA_D;
+		
+		/*
+		int zz = 0;
+		for (int z = EPI_DATA_D - 1; z >= 0; z--)
+		{
+			// Odd slice
+			if (zz % 2)
+			{
+				h_Times[z] = ceil((float)zz/2.0f) * timePerSlice + TR/2.0f;		
+			}
+			// Even slice
+			else
+			{
+				h_Times[z] = (float)zz/2.0f * timePerSlice;		
+			}
+			zz++;
+		}
+		*/
+	
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			// Odd slice
+			if (z % 2)
+			{
+				h_Times[z] = ceil((float)z/2.0f) * timePerSlice + TR/2.0f;		
+			}
+			// Even slice
+			else
+			{
+				h_Times[z] = (float)z/2.0f * timePerSlice;		
+			}
+		}
+		
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			h_Slice_Differences[z] = (h_Times[z] - h_Times[(int)middle_slice])/TR;
+		}		
+
+		/*		
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			if (z % 2)
+			{
+				h_Slice_Differences[z] = 1.0f - (h_Times[z] - h_Times[(int)middle_slice])/TR;	
+			}
+			else
+			{
+				h_Slice_Differences[z] = (h_Times[z] - h_Times[(int)middle_slice])/TR;
+			}
+		}
+		*/	
+
 	}
 
 	// Copy slice differences to device
@@ -8953,7 +9084,6 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 
 	runKernelErrorSliceTimingCorrection = clEnqueueNDRangeKernel(commandQueue, SliceTimingCorrectionKernel, 3, NULL, globalWorkSizeInterpolateVolume, localWorkSizeInterpolateVolume, 0, NULL, NULL);
 	clFinish(commandQueue);
-
 
 	// Copy all corrected volumes to host
 	clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);

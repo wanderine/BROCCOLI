@@ -188,6 +188,7 @@ class BROCCOLI_LIB
 		void SetEPIVoxelSizeY(float value);
 		void SetEPIVoxelSizeZ(float value);
 		void SetEPITR(float value);
+		void SetEPISliceOrder(int value);
 
 		void SetEPIWidth(int w);
 		void SetEPIHeight(int h);
