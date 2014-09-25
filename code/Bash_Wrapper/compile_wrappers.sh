@@ -6,12 +6,14 @@ BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 AMD=0
 INTEL=1
 NVIDIA=2
-OPENCL_PACKAGE=$INTEL
+#OPENCL_PACKAGE=$INTEL
+OPENCL_PACKAGE=$NVIDIA
 
 # Set compilation mode to use
 RELEASE=0
 DEBUG=1
 COMPILATION=$RELEASE
+#COMPILATION=$DEBUG
 
 # Fist run make for Nifti library
 #cd nifticlib-2.0.0
@@ -30,9 +32,10 @@ elif [ "$OPENCL_PACKAGE" -eq "$INTEL" ]; then
     OPENCL_LIBRARY_DIRECTORY=/opt/intel/opencl/lib64
 # Need to install Nvidia CUDA SDK first
 elif [ "$OPENCL_PACKAGE" -eq "$NVIDIA" ]; then
-    OPENCL_HEADER_DIRECTORY1=/usr/local/cuda-5.0/include/CL
+    OPENCL_HEADER_DIRECTORY1=/usr/local/cuda-6.5/include/CL
     OPENCL_HEADER_DIRECTORY2=
-    OPENCL_LIBRARY_DIRECTORY=/usr/lib64
+    #OPENCL_LIBRARY_DIRECTORY=/usr/lib64
+	OPENCL_LIBRARY_DIRECTORY=/usr/local/cuda-6.5/lib64
 else
     echo "Unknown OpenCL package!"
 fi
@@ -60,6 +63,8 @@ g++ TransformVolume.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTOR
 g++ RandomiseGroupLevel.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lOpenCL -lBROCCOLI_LIB -lniftiio -lznz -lz ${FLAGS} -o RandomiseGroupLevel
 
 g++ FirstLevelAnalysis.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lOpenCL -lBROCCOLI_LIB -lniftiio -lznz -lz ${FLAGS} -o FirstLevelAnalysis
+
+g++ SliceTimingCorrection.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lOpenCL -lBROCCOLI_LIB -lniftiio -lznz -lz ${FLAGS} -o SliceTimingCorrection
 
 # No support for compressed files
 #g++ RegisterTwoVolumes.cpp ${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib/nifti1_io.c ${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib/znzlib.c -lOpenCL -lBROCCOLI_LIB -I${OPENCL_HEADER_DIRECTORY} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -o RegisterTwoVolumes
