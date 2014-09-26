@@ -391,6 +391,7 @@ int main(int argc, char **argv)
 	int				MM_EPI_Z_CUT = 0;
     float           SIGMA = 5.0f;
     
+	int				SLICE_ORDER = 4;
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
 
 	bool			RAW_REGRESSORS = false;
@@ -463,6 +464,9 @@ int main(int argc, char **argv)
         printf(" -sigma                    Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n\n\n\n");        
         
         printf("Preprocessing options:\n\n");
+        printf(" -slicepattern              The sampling pattern used during scanning\n");
+		printf("                            0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), 2 = interleaved 1-N, 3 = interleaved N-1 \n");
+		printf("                            (no slice timing correction is performed if no pattern is provided) \n");        
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
         printf(" -smoothing                 Amount of smoothing to apply to the fMRI data (default 6.0 mm) \n\n");
         
@@ -735,6 +739,33 @@ int main(int argc, char **argv)
         }      
         
         // Preprocessing options
+        else if (strcmp(input,"-slicepattern") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -slicepattern !\n");
+                return EXIT_FAILURE;
+			}
+
+            SLICE_ORDER = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Slice pattern must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (SLICE_ORDER < 0)
+            {
+                printf("Slice pattern must be a positive number!\n");
+                return EXIT_FAILURE;
+            }
+            else if ( (SLICE_ORDER != 0) && (SLICE_ORDER != 1) && (SLICE_ORDER != 2) && (SLICE_ORDER != 3) )
+            {
+                printf("Slice pattern must be 0, 1, 2 or 3!\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
         else if (strcmp(input,"-iterationsmc") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -2034,9 +2065,13 @@ int main(int argc, char **argv)
         BROCCOLI.SetEPIHeight(EPI_DATA_H);
         BROCCOLI.SetEPIDepth(EPI_DATA_D);
         BROCCOLI.SetEPITimepoints(EPI_DATA_T);     
+        BROCCOLI.SetEPITR(TR);  
+        BROCCOLI.SetEPISliceOrder(SLICE_ORDER); 
+
         BROCCOLI.SetT1Width(T1_DATA_W);
         BROCCOLI.SetT1Height(T1_DATA_H);
         BROCCOLI.SetT1Depth(T1_DATA_D);
+
         BROCCOLI.SetMNIWidth(MNI_DATA_W);
         BROCCOLI.SetMNIHeight(MNI_DATA_H);
         BROCCOLI.SetMNIDepth(MNI_DATA_D);
@@ -2268,6 +2303,11 @@ int main(int argc, char **argv)
     // Write aligned data
     //----------------------------
     
+	if (PRINT)
+	{
+		printf("Writing results to file\n");
+	}
+
     // Create new nifti image
     nifti_image *outputNiftiT1 = nifti_copy_nim_info(inputMNI);
     nifti_set_filenames(outputNiftiT1, inputT1->fname, 0, 1);

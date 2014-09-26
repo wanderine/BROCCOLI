@@ -83,6 +83,7 @@
 #define DOWN 1
 #define UP_INTERLEAVED 2
 #define DOWN_INTERLEAVED 3
+#define UNDEFINED 4
 
 #define TRANSLATION 0
 #define RIGID 1

@@ -194,19 +194,19 @@ void BROCCOLI_LIB::SetStartValues()
 
 	BETA_SPACE = EPI;
 
-	SLICE_ORDER = DOWN;
+	SLICE_ORDER = UNDEFINED;
 
 	FILE_TYPE = RAW;
 	DATA_TYPE = FLOAT;
 
 	EPI_DATA_W = 64;
 	EPI_DATA_H = 64;
-	EPI_DATA_D = 22;
-	EPI_DATA_T = 79;
+	EPI_DATA_D = 30;
+	EPI_DATA_T = 100;
 
-	EPI_VOXEL_SIZE_X = 3.75f;
-	EPI_VOXEL_SIZE_Y = 3.75f;
-	EPI_VOXEL_SIZE_Z = 3.75f;
+	EPI_VOXEL_SIZE_X = 3.00f;
+	EPI_VOXEL_SIZE_Y = 3.00f;
+	EPI_VOXEL_SIZE_Z = 3.00f;
 	TR = 2.0f;
 	
 	NUMBER_OF_PERMUTATIONS = 1000;
@@ -7768,13 +7768,29 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// Slice timing correction
 	//---------------------------------------------------------------------------------------------------------------------------------------
 
-	//d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
-	//PerformSliceTimingCorrection();
-
-	if (WRITE_SLICETIMING_CORRECTED)
+	if (SLICE_ORDER != UNDEFINED)
 	{
-		clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing slice timing correction\n");
+		}
+
+		d_Slice_Timing_Corrected_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+		PerformSliceTimingCorrection();
+
+		if (WRITE_SLICETIMING_CORRECTED)
+		{
+			clEnqueueReadBuffer(commandQueue, d_Slice_Timing_Corrected_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Slice_Timing_Corrected_fMRI_Volumes, 0, NULL, NULL);
+		}
 	}
+	else
+	{
+		if (WRAPPER == BASH)
+		{
+			printf("Warning: Not performing slice timing correction as the slice order is undefined.\n");
+		}
+	}
+
 
 	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Motion correction
@@ -7792,10 +7808,15 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	PrintMemoryStatus("Before motion correction");
 
-	PerformMotionCorrection(d_fMRI_Volumes);
-
-	//PerformMotionCorrection(d_Slice_Timing_Corrected_fMRI_Volumes);
-	//clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
+	if (SLICE_ORDER != UNDEFINED)
+	{
+		PerformMotionCorrection(d_Slice_Timing_Corrected_fMRI_Volumes);
+		clReleaseMemObject(d_Slice_Timing_Corrected_fMRI_Volumes);
+	}	
+	else
+	{
+		PerformMotionCorrection(d_fMRI_Volumes);
+	}
 
 	// Copy motion parameters
 	for (int t = 0; t < EPI_DATA_T; t++)
@@ -8033,7 +8054,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	if ((WRAPPER == BASH) && PRINT)
 	{
-		printf("Transforming results to MNI\n");
+		printf("Performing transformation to MNI\n");
 	}
 
 	SetMemory(d_MNI_Brain_Mask, 1.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
@@ -8865,6 +8886,7 @@ void BROCCOLI_LIB::PerformSecondLevelAnalysisWrapper()
 
 
 // Performs slice timing correction of an fMRI dataset
+// Update to use less memory, loop over slices 
 void BROCCOLI_LIB::PerformSliceTimingCorrection()
 {
 	SetGlobalAndLocalWorkSizesInterpolateVolume(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
@@ -8874,7 +8896,6 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 
 	h_Slice_Differences = (float*)malloc(EPI_DATA_D * sizeof(float));
 
-	// Calculate middle slice
 	float middle_slice;
 
 	// Calculate slice differences
@@ -8924,7 +8945,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 	}
 	else if (SLICE_ORDER == DOWN_INTERLEAVED)
 	{
-		middle_slice = 0;
+		middle_slice = 0.0f;
 
 		float h_Times[EPI_DATA_D];
 		float timePerSlice = TR/(float)EPI_DATA_D;
@@ -8950,8 +8971,6 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
 		}		
 	}
-
-
 
 	// Copy slice differences to device
 	clEnqueueWriteBuffer(commandQueue, c_Slice_Differences, CL_TRUE, 0, EPI_DATA_D * sizeof(float), h_Slice_Differences, 0, NULL, NULL);
@@ -8987,7 +9006,6 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 
 	h_Slice_Differences = (float*)malloc(EPI_DATA_D * sizeof(float));
 
-	// Calculate middle slice
 	float middle_slice;
 
 	// Calculate slice differences
@@ -9037,7 +9055,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 	}
 	else if (SLICE_ORDER == DOWN_INTERLEAVED)
 	{
-		middle_slice = 0;
+		middle_slice = 0.0f;
 
 		float h_Times[EPI_DATA_D];
 		float timePerSlice = TR/(float)EPI_DATA_D;
@@ -9145,6 +9163,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 
 
 // Performs motion correction of an fMRI dataset
+// Update to use less memory
 void BROCCOLI_LIB::PerformMotionCorrection(cl_mem d_Volumes)
 {
 	// Setup all parameters and allocate memory on device
