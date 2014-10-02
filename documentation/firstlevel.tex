@@ -75,6 +75,12 @@ The following preprocessing options are available
 
 \begin{itemize}
 
+\item -slicepattern
+\newline \newline Set the sampling pattern used during scanning; \newline
+                  0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), \newline
+                  2 = interleaved 1-N, 3 = interleaved N-1 \newline \newline
+                  No slice timing correction will be performed if no pattern is provided. 
+
 \item -iterationsmc 
 \newline \newline Set the number of iterations used for the \newline motion correction (the default is 5).
 
@@ -96,10 +102,14 @@ The following statistical options are available
 \item -regressmotion 
 \newline \newline Add the 6 estimated motion parameters (3 for translation and 3 for rotation) to the design matrix, to further suppress the effect of head motion. The contrast vectors are automatically extended with zeros for these additional regressors. 
 
+\newpage 
+
+\item -regressglobalmean 
+\newline \newline Include a regressor for the global mean in the design matrix. The contrast vectors are automatically extended with one zero for this additional regressor. 
+ 
 \item -temporalderivatives 
 \newline \newline Add one additional regressor for each original regressor; the temporal derivative of each regressor. This makes it possible to adjust for a small time difference between the original regressor and the time series in each voxel. The contrast vectors are automatically extended with zeros for these additional regressors.
 
-\newpage
 \item -permute
 \newline \newline Run a permutation test after the conventional first level analysis. In each permutation, a random reshuffling of the fMRI volumes is performed to create a new set of null data. The statistical analysis is performed in each permutation, to empirically estimate the null distribution. 
 
@@ -161,6 +171,8 @@ The following output options are available
 \item -saveepialignedt1          
 \newline \newline Save EPI volume aligned to the T1 volume (default no). 
 
+\newpage
+
 \item -saveepialignedmni         
 \newline \newline Save EPI volume aligned to the MNI volume (default no). 
 
@@ -180,10 +192,10 @@ The following output options are available
 \newline \newline Save smoothed fMRI volumes (default no). 
 
 \item -saveactivityepi           
-\newline \newline Save activity maps in EPI space (in addition to MNI space, default no). 
+\newline \newline Save activity maps in EPI space \newline (in addition to MNI space, default no). 
 
 \item -saveactivityt1            
-\newline \newline Save activity maps in T1 space (in addition to MNI space, default no). 
+\newline \newline Save activity maps in T1 space \newline (in addition to MNI space, default no). 
 
 \item -saveresiduals             
 \newline \newline Save residuals after GLM analysis (default no). 
@@ -207,7 +219,7 @@ The following output options are available
 \newline \newline Save the estimated AR coefficients, in MNI space (default no). 
 
 \item -saveallpreprocessed       
-\newline \newline Save all preprocessed fMRI data (slice timing corrected, motion corrected, smoothed) (default no). 
+\newline \newline Save all preprocessed fMRI data  \newline (slice timing corrected, motion corrected, smoothed) (default no). 
 
 \item -saveunwhitenedresults     
 \newline \newline Save all statistical results without voxel-wise whitening (default no). 
