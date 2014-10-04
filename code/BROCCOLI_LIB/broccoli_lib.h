@@ -425,6 +425,9 @@ class BROCCOLI_LIB
 		// High level functions
 		//------------------------------------------------
 
+		void SetupGLMFirstLevel(int REGRESSORS);
+		void CleanupGLMFirstLevel(); 
+		
 		void PerformRegistrationEPIT1();
 		void PerformRegistrationEPIT1_();
 		void PerformRegistrationT1MNI();

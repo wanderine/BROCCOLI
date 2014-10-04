@@ -21,8 +21,10 @@ if [ "$OPENCL_PACKAGE" -eq "$AMD" ] ; then
     OPENCL_HEADER_DIRECTORY2=/opt/AMDAPP/include/CL 
 # Need to install Intel OpenCL SDK first
 elif [ "$OPENCL_PACKAGE" -eq "$INTEL" ] ; then
-    OPENCL_HEADER_DIRECTORY1=/opt/intel/opencl-sdk/include 
-    OPENCL_HEADER_DIRECTORY2=/opt/intel/opencl-sdk/include/CL
+    # OPENCL_HEADER_DIRECTORY1=/opt/intel/opencl-sdk/include 
+    # OPENCL_HEADER_DIRECTORY2=/opt/intel/opencl-sdk/include/CL
+    OPENCL_HEADER_DIRECTORY1=/opt/intel/intel-opencl-1.2-4.6.0.92/opencl-sdk/include
+    OPENCL_HEADER_DIRECTORY2=/opt/intel/intel-opencl-1.2-4.6.0.92/opencl-sdk/include/CL
 # Need to install Nvidia CUDA SDK first
 elif [ "$OPENCL_PACKAGE" -eq "$NVIDIA" ] ; then
     OPENCL_HEADER_DIRECTORY1=/usr/include/CL 
