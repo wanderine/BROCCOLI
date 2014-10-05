@@ -427,7 +427,7 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
 	runKernelErrorCalculateGLMResiduals = 0;
 	runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel = 0;
-	runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel = 0;
+	runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel = 0;
 	runKernelErrorCalculateStatisticalMapsGLMTTest = 0;
 	runKernelErrorCalculateStatisticalMapsGLMFTest = 0;
 	runKernelErrorCalculateStatisticalMapsGLMBayesian = 0;
