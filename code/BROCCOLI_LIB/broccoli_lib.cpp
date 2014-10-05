@@ -310,6 +310,7 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorCalculateTensorNorms = 0;
 	createKernelErrorCalculateAMatricesAndHVectors = 0;
 	createKernelErrorCalculateDisplacementUpdate = 0;
+	createKernelErrorAddLinearAndNonLinearDisplacement = 0;
 	createKernelErrorCalculateMagnitudes = 0;
 	createKernelErrorCalculateColumnSums = 0;
 	createKernelErrorCalculateRowSums = 0;
