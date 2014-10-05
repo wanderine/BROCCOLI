@@ -1,4 +1,4 @@
-%  	 BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many core CPUs and GPUS
+%  	 BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
 %    Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
 %
 %    This program is free software: you can redistribute it and/or modify
@@ -24,8 +24,6 @@
 % https://forums.geforce.com/default/topic/503962/tdr-fix-here-for-nvidia-driver-crashing-randomly-in-firefox/
 %---------------------------------------------------------------------------------------------------------------------
 
-
-
 clear all
 clc
 close all
@@ -39,7 +37,7 @@ if ispc
     mex MotionCorrection.cpp -lOpenCL -lBROCCOLI_LIB -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include -IC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/include/CL -LC:/Program' Files'/NVIDIA' GPU Computing Toolkit'/CUDA/v5.0/lib/x64 -LC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/x64/Release/ -IC:/users/wande/Documents/Visual' Studio 2010'/Projects/BROCCOLI_LIB/BROCCOLI_LIB -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\niftilib  -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\nifticlib-2.0.0\znzlib -IC:\Users\wande\Documents\Visual' Studio 2010'\Projects\BROCCOLI_LIB\Eigen
     
     opencl_platform = 0;
-    opencl_device = 1;
+    opencl_device = 0;
 elseif isunix
     addpath('/home/andek/Research_projects/nifti_matlab')
     basepath = '/data/andek/BROCCOLI_test_data/';
@@ -50,9 +48,8 @@ elseif isunix
     opencl_device = 0;
 end
 
-
 %study = 'Oulu';
-%study = 'ICBM';
+%study = 'ICBM';    
 study = 'Cambridge';
 %study = 'Beijing';
 %study = 'OpenfMRI';
@@ -90,6 +87,10 @@ for s = 1:1
         EPI_nii = load_nii([basepath study '/' subject '/func/rest.nii.gz']);               
     end
     
+    voxel_size_x = EPI_nii.hdr.dime.pixdim(2);
+    voxel_size_y = EPI_nii.hdr.dime.pixdim(3);
+    voxel_size_z = EPI_nii.hdr.dime.pixdim(4);
+
     fMRI_volumes = double(EPI_nii.img);        
     [sy sx sz st] = size(fMRI_volumes)
     
@@ -114,7 +115,7 @@ for s = 1:1
     factor = 0.1; % standard deviation for random translations and rotations    
     
     [xi, yi, zi] = meshgrid(-(sx-1)/2:(sx-1)/2,-(sy-1)/2:(sy-1)/2, -(sz-1)/2:(sz-1)/2);
-        
+            
     % Loop over timepoints
     for t = 2:st
         
@@ -126,6 +127,10 @@ for s = 1:1
         x_translation = factor*randn; % voxels
         y_translation = factor*randn; % voxels
         z_translation = factor*randn; % voxels
+        
+        %x_translation = x_translations(t);
+        %y_translation = y_translations(t);
+        %z_translation = z_translations(t);
         
         x_translations(t) = x_translation;
         y_translations(t) = y_translation;
@@ -139,6 +144,10 @@ for s = 1:1
         x_rotations(t) = x_rotation;
         y_rotations(t) = y_rotation;
         z_rotations(t) = z_rotation;
+        
+        %x_rotation = x_rotations(t);
+        %y_rotation = y_rotations(t);
+        %z_rotation = z_rotations(t);
         
         % Create rotation matrices around the three axes
         
@@ -335,7 +344,7 @@ for s = 1:1
         
         % Plot true and estimated translations in the x-direction
         figure
-        plot(x_translations,'g')
+        plot(x_translations*voxel_size_x,'g')
         hold on
         plot(motion_parameters_cpu(:,1),'r')
         hold on
@@ -345,7 +354,7 @@ for s = 1:1
     
         % Plot true and estimated translations in the y-direction
         figure
-        plot(y_translations,'g')
+        plot(y_translations*voxel_size_y,'g')
         hold on
         plot(motion_parameters_cpu(:,2),'r')
         hold on
@@ -355,7 +364,7 @@ for s = 1:1
     
         % Plot true and estimated translations in the z-direction
         figure
-        plot(z_translations,'g')
+        plot(z_translations*voxel_size_z,'g')
         hold on
         plot(motion_parameters_cpu(:,3),'r')
         hold on
@@ -405,9 +414,9 @@ for s = 1:1
     y_rotations_opencl = squeeze(motion_parameters_opencl(:,5));
     z_rotations_opencl = squeeze(motion_parameters_opencl(:,6));
     
-    mean_translation_error_x = mean(abs(x_translations(:) - x_translations_opencl(:)))
-    mean_translation_error_y = mean(abs(y_translations(:) - y_translations_opencl(:)))
-    mean_translation_error_z = mean(abs(z_translations(:) - z_translations_opencl(:)))
+    mean_translation_error_x = mean(abs(x_translations(:)*voxel_size_x - x_translations_opencl(:)))
+    mean_translation_error_y = mean(abs(y_translations(:)*voxel_size_y - y_translations_opencl(:)))
+    mean_translation_error_z = mean(abs(z_translations(:)*voxel_size_z - z_translations_opencl(:)))
       
     mean_rotation_error_x = mean(abs(x_rotations(:) - x_rotations_opencl(:)))
     mean_rotation_error_y = mean(abs(y_rotations(:) - y_rotations_opencl(:)))
@@ -422,14 +431,19 @@ end
 %fMRI_volumes = double(EPI_nii.img);        
 %[sy sx sz st] = size(fMRI_volumes)
     
-for t = 2:st
-    
-    figure(1)    
-    imagesc([motion_corrected_volumes_opencl(:,:,30,t)  generated_fMRI_volumes(:,:,30,t-1) ]/25); colormap gray; colorbar
-    %image([motion_corrected_volumes_opencl(:,:,30,t) - motion_corrected_volumes_opencl(:,:,30,t-1) ]/10); colormap gray; colorbar
-    %image([generated_fMRI_volumes(:,:,30,t) - generated_fMRI_volumes(:,:,30,t-1) ]); colormap gray; colorbar
-    %image([fMRI_volumes(:,:,30,t) - fMRI_volumes(:,:,30,t-1) ]); colormap gray; colorbar
-    pause(0.15)
-    
-end
-    
+% for t = 2:st
+%     
+%     figure(1)    
+%     imagesc([motion_corrected_volumes_opencl(:,:,30,t)  generated_fMRI_volumes(:,:,30,t-1) ]/25); colormap gray; colorbar
+%     %image([motion_corrected_volumes_opencl(:,:,30,t) - motion_corrected_volumes_opencl(:,:,30,t-1) ]/10); colormap gray; colorbar
+%     %image([generated_fMRI_volumes(:,:,30,t) - generated_fMRI_volumes(:,:,30,t-1) ]); colormap gray; colorbar
+%     %image([fMRI_volumes(:,:,30,t) - fMRI_volumes(:,:,30,t-1) ]); colormap gray; colorbar
+%     pause(0.15)
+%     
+% end
+
+filename='motion_parameters_CPU';
+motion_parameters_CPU=motion_parameters_opencl;
+save(filename,'motion_parameters_CPU');
+
+
