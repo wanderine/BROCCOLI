@@ -10641,12 +10641,13 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 	clFinish(commandQueue);
 
 	// Set permutation vector to not permute anything
-	unsigned short int temp[NUMBER_OF_SUBJECTS];
+	unsigned short int* temp = (unsigned short int*)malloc(NUMBER_OF_SUBJECTS * sizeof(unsigned short int));
 	for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
 	{
 		temp[i] = (unsigned short int)i;
 	}
 	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), temp , 0, NULL, NULL);
+	free(temp);
 
 	// Run the actual permutation test
 	ApplyPermutationTestSecondLevel();
