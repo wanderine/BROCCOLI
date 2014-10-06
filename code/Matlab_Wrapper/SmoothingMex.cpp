@@ -1,5 +1,5 @@
 /*
- * BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many core CPUs and GPUS
+ * BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
  * Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
@@ -156,7 +156,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         {
             if (createKernelErrors[i] != 0)
             {
-                mexPrintf("Create kernel error %i is %d \n",i,createKernelErrors[i]);
+                mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
         }
         
@@ -168,9 +168,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetEPIHeight(DATA_H);
         BROCCOLI.SetEPIDepth(DATA_D);
         BROCCOLI.SetEPITimepoints(DATA_T);
+        
         BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
         BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
         BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);
+        
         BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
         BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Filter_Response);
         BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
@@ -189,13 +191,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             }
         }
         
+        // Print create kernel errors
+        int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
+        for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
+        {
+            if (createKernelErrors[i] != 0)
+            {
+                mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
+            }
+        }
+        
         // Print run kernel errors
         int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
             if (runKernelErrors[i] != 0)
             {
-                mexPrintf("Run kernel error %i is %d \n",i,runKernelErrors[i]);
+                mexPrintf("Run kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(runKernelErrors[i]));
             }
         } 
     }
