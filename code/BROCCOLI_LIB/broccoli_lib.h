@@ -382,7 +382,6 @@ class BROCCOLI_LIB
 		double GetProcessingTimeInterpolation();
 
 		// Wrappers
-		void ChangeT1VolumeResolutionAndSizeWrapper();
 		void PerformRegistrationTwoVolumesWrapper();
 		void TransformVolumesNonLinearWrapper();
 		void PerformSliceTimingCorrectionWrapper();
@@ -427,13 +426,11 @@ class BROCCOLI_LIB
 
 		void PerformRegistrationEPIT1();
 		void PerformRegistrationEPIT1_();
-		void PerformRegistrationT1MNI();
 		void PerformRegistrationT1MNINoSkullstrip();
 		void SegmentEPIData();
 		void SegmentEPIData(cl_mem Volume);
 		void PerformSliceTimingCorrection();
 		void PerformMotionCorrection(cl_mem Volumes);
-		void PerformFirstLevelAnalysis();
 
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);
 		void CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem Volumes, int iterations);
@@ -502,8 +499,6 @@ class BROCCOLI_LIB
 		void AlignTwoVolumesNonLinearSeveralScales(cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int OVERWRITE, int INTERPOLATION_MODE, int SAVE_DISPLACEMENT_FIELD);
 		void AlignTwoVolumesNonLinearCleanup();
 
-		void ChangeT1VolumeResolutionAndSize(cl_mem d_MNI_T1_Volume, cl_mem d_T1_Volume, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, int MNI_DATA_W, int MNI_DATA_H, int MNI_DATA_D, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, float MNI_VOXEL_SIZE_X, float MNI_VOXEL_SIZE_Y, float MNI_VOXEL_SIZE_Z, int INTERPOLATION_MODE, int MNI_WITH_SKULL);
-		void ChangeEPIVolumeResolutionAndSize(cl_mem d_T1_EPI_Volume, cl_mem d_EPI_Volume, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int T1_DATA_W, int T1_DATA_H, int T1_DATA_D, float EPI_VOXEL_SIZE_X, float EPI_VOXEL_SIZE_Y, float EPI_VOXEL_SIZE_Z, float T1_VOXEL_SIZE_X, float T1_VOXEL_SIZE_Y, float T1_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
 		void ChangeVolumeSize(cl_mem d_New_Volume, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);
 		void ChangeVolumeSize(cl_mem& d_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);
 		void ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int MM_Z_CUT, int INTERPOLATION_MODE, int offset);
@@ -521,7 +516,9 @@ class BROCCOLI_LIB
 		// Help functions
 		//------------------------------------------------
 
-		void ChangeVolumeResolutionAndSize(cl_mem d_New_Volume, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int NEW_DATA_W, int NEW_DATA_H, int NEW_DATA_D, float VOXEL_SIZE_X, float VOXEL_SIZE_Y, float VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z, int INTERPOLATION_MODE);
+		void SetupGLMFirstLevel(int N);
+		void CleanupGLMFirstLevel();
+
 		void CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
 		void CenterVolumeMass(cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
 		void CenterVolumeMass(cl_mem d_Volume, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
@@ -533,7 +530,6 @@ class BROCCOLI_LIB
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryInt(cl_mem memory, int value, int N);
 		void SetMemoryFloat2(cl_mem memory, float value, int N);
-		void CalculateTopBrainSlice(int& slice, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int z_cut);
 		void MultiplyVolume(cl_mem d_Volume_1, float value, int DATA_W, int DATA_H, int DATA_D);
 		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
 		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D, int VOLUMES);
@@ -601,8 +597,6 @@ class BROCCOLI_LIB
 		void SetGlobalAndLocalWorkSizesThresholdVolume(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesCalculateMagnitudes(int DATA_W, int DATA_H, int DATA_D);
 		void SetGlobalAndLocalWorkSizesClusterize(int DATA_W, int DATA_H, int DATA_D);
-
-
 
 		//------------------------------------------------
 		// OpenCL help functions

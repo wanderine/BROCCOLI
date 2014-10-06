@@ -7523,6 +7523,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 }
 
 
+/*
 void BROCCOLI_LIB::SetupGLMFirstLevel(int REGRESSORS)
 {
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -7595,6 +7596,7 @@ void BROCCOLI_LIB::CleanupGLMFirstLevel()
 		free(h_Global_Mean);
 	}
 }
+*/
 
 /*
 void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper_()
