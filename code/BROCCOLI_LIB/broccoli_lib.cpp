@@ -40,7 +40,7 @@
 #include <cfloat>
 
 #include <limits.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 #include <opencl.h>
 
@@ -49,6 +49,35 @@
 #include <cstdlib>
 
 
+int mymax(int a, int b)
+{
+	if (a > b)
+		return a;
+	else
+		return b;
+}
+
+int mymin(int a, int b)
+{
+	if (a < b)
+		return a;
+	else
+		return b;
+}
+
+
+float mymax(float a, float b)
+{
+	if (a > b)
+		return a;
+	else
+		return b;
+}
+
+float myround(float a)
+{
+	return floor(a + 0.5f);
+}
 
 void debugVolumeInfo(const char* name, int W, int H, int D, int T, float* volume)
 {
@@ -852,9 +881,12 @@ bool BROCCOLI_LIB::SaveProgramBinary(cl_program program, cl_device_id device, st
 
 std::string BROCCOLI_LIB::Getexepath()
 {
+  /*
   char result[ PATH_MAX ];
   ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
   return std::string( result, (count > 0) ? count : 0 );
+  */
+  return std::string("test");
 }
 
 
@@ -5356,9 +5388,9 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearSeveralScales(float *h_Registration_Para
 	h_Rotations[2] = 0.0f;
 
 	// Calculate volume size for coarsest scale
-	CURRENT_DATA_W = (int)round((float)DATA_W/((float)COARSEST_SCALE));
-	CURRENT_DATA_H = (int)round((float)DATA_H/((float)COARSEST_SCALE));
-	CURRENT_DATA_D = (int)round((float)DATA_D/((float)COARSEST_SCALE));
+	CURRENT_DATA_W = (int)myround((float)DATA_W/((float)COARSEST_SCALE));
+	CURRENT_DATA_H = (int)myround((float)DATA_H/((float)COARSEST_SCALE));
+	CURRENT_DATA_D = (int)myround((float)DATA_D/((float)COARSEST_SCALE));
 
 	// Setup all parameters and allocate memory on host
 	AlignTwoVolumesLinearSetup(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);
@@ -5399,9 +5431,9 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearSeveralScales(float *h_Registration_Para
 			AlignTwoVolumesLinearCleanup();
 
 			// Prepare for the next scale  (the previous scale was current scale, so the next scale is times 2)
-			CURRENT_DATA_W = (int)round((float)DATA_W/((float)current_scale/2.0f));
-			CURRENT_DATA_H = (int)round((float)DATA_H/((float)current_scale/2.0f));
-			CURRENT_DATA_D = (int)round((float)DATA_D/((float)current_scale/2.0f));
+			CURRENT_DATA_W = (int)myround((float)DATA_W/((float)current_scale/2.0f));
+			CURRENT_DATA_H = (int)myround((float)DATA_H/((float)current_scale/2.0f));
+			CURRENT_DATA_D = (int)myround((float)DATA_D/((float)current_scale/2.0f));
 
 			// Setup all parameters and allocate memory on host
 			AlignTwoVolumesLinearSetup(CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D);
@@ -5467,9 +5499,9 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearSeveralScales(cl_mem d_Original_Align
 		                                                     int KEEP)
 {
 	// Calculate volume size for coarsest scale
-	CURRENT_DATA_W = (int)round((float)DATA_W/((float)COARSEST_SCALE));
-	CURRENT_DATA_H = (int)round((float)DATA_H/((float)COARSEST_SCALE));
-	CURRENT_DATA_D = (int)round((float)DATA_D/((float)COARSEST_SCALE));
+	CURRENT_DATA_W = (int)myround((float)DATA_W/((float)COARSEST_SCALE));
+	CURRENT_DATA_H = (int)myround((float)DATA_H/((float)COARSEST_SCALE));
+	CURRENT_DATA_D = (int)myround((float)DATA_D/((float)COARSEST_SCALE));
 
 	int PREVIOUS_DATA_W = CURRENT_DATA_W;
 	int PREVIOUS_DATA_H = CURRENT_DATA_H;
@@ -5522,9 +5554,9 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearSeveralScales(cl_mem d_Original_Align
 			AlignTwoVolumesNonLinearCleanup();
 
 			// Prepare for the next scale (the previous scale was current scale, so the next scale is times 2)
-			CURRENT_DATA_W = (int)round((float)DATA_W/((float)current_scale/2.0f));
-			CURRENT_DATA_H = (int)round((float)DATA_H/((float)current_scale/2.0f));
-			CURRENT_DATA_D = (int)round((float)DATA_D/((float)current_scale/2.0f));
+			CURRENT_DATA_W = (int)myround((float)DATA_W/((float)current_scale/2.0f));
+			CURRENT_DATA_H = (int)myround((float)DATA_H/((float)current_scale/2.0f));
+			CURRENT_DATA_D = (int)myround((float)DATA_D/((float)current_scale/2.0f));
 
 			float scale_factor = 2.0f;
 
@@ -5646,30 +5678,7 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearCleanup()
 	clReleaseMemObject(c_Registration_Parameters);
 }
 
-int mymax(int a, int b)
-{
-	if (a > b)
-		return a;
-	else
-		return b;
-}
 
-int mymin(int a, int b)
-{
-	if (a < b)
-		return a;
-	else
-		return b;
-}
-
-
-float mymax(float a, float b)
-{
-	if (a > b)
-		return a;
-	else
-		return b;
-}
 
 
 
@@ -5763,10 +5772,10 @@ void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume,
     float yTrueCenter = (float)(DATA_H)/2.0f;
     float zTrueCenter = (float)(DATA_D)/2.0f;
     
-    // Calculate difference, round to integers to avoid interpolation
-    float xMassCenterDifference = round(xTrueCenter - xCenter);
-    float yMassCenterDifference = round(yTrueCenter - yCenter);
-    float zMassCenterDifference = round(zTrueCenter - zCenter);
+    // Calculate difference, myround to integers to avoid interpolation
+    float xMassCenterDifference = myround(xTrueCenter - xCenter);
+    float yMassCenterDifference = myround(yTrueCenter - yCenter);
+    float zMassCenterDifference = myround(zTrueCenter - zCenter);
     
     float h_Parameters[12];
     h_Parameters[0] = -xMassCenterDifference;
@@ -5801,10 +5810,10 @@ void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume,
     float yTrueCenter = (float)(DATA_H)/2.0f;
     float zTrueCenter = (float)(DATA_D)/2.0f;
     
-    // Calculate difference, round to integers to avoid interpolation
-    float xMassCenterDifference = round(xTrueCenter - xCenter);
-    float yMassCenterDifference = round(yTrueCenter - yCenter);
-    float zMassCenterDifference = round(zTrueCenter - zCenter);
+    // Calculate difference, myround to integers to avoid interpolation
+    float xMassCenterDifference = myround(xTrueCenter - xCenter);
+    float yMassCenterDifference = myround(yTrueCenter - yCenter);
+    float zMassCenterDifference = myround(zTrueCenter - zCenter);
     
     h_Parameters[0] = -xMassCenterDifference;
     h_Parameters[1] = -yMassCenterDifference;
@@ -5837,10 +5846,10 @@ void BROCCOLI_LIB::MatchVolumeMasses(cl_mem d_Volume_1,
     CalculateCenterOfMass(xCenter1, yCenter1, zCenter1, d_Volume_1, DATA_W, DATA_H, DATA_D);
     CalculateCenterOfMass(xCenter2, yCenter2, zCenter2, d_Volume_2, DATA_W, DATA_H, DATA_D);
 
-    // Calculate difference, round to integers to avoid interpolation
-    float xMassCenterDifference = round(xCenter2 - xCenter1);
-    float yMassCenterDifference = round(yCenter2 - yCenter1);
-    float zMassCenterDifference = round(zCenter2 - zCenter1);
+    // Calculate difference, myround to integers to avoid interpolation
+    float xMassCenterDifference = myround(xCenter2 - xCenter1);
+    float yMassCenterDifference = myround(yCenter2 - yCenter1);
+    float zMassCenterDifference = myround(zCenter2 - zCenter1);
     
     float h_Parameters[12];
 
@@ -5876,10 +5885,10 @@ void BROCCOLI_LIB::MatchVolumeMasses(cl_mem d_Volume_1,
     CalculateCenterOfMass(xCenter1, yCenter1, zCenter1, d_Volume_1, DATA_W, DATA_H, DATA_D);
     CalculateCenterOfMass(xCenter2, yCenter2, zCenter2, d_Volume_2, DATA_W, DATA_H, DATA_D);
 
-    // Calculate difference, round to integers to avoid interpolation
-    float xMassCenterDifference = round(xCenter2 - xCenter1);
-    float yMassCenterDifference = round(yCenter2 - yCenter1);
-    float zMassCenterDifference = round(zCenter2 - zCenter1);
+    // Calculate difference, myround to integers to avoid interpolation
+    float xMassCenterDifference = myround(xCenter2 - xCenter1);
+    float yMassCenterDifference = myround(yCenter2 - yCenter1);
+    float zMassCenterDifference = myround(zCenter2 - zCenter1);
     
     h_Parameters[0] = -xMassCenterDifference;
     h_Parameters[1] = -yMassCenterDifference;
@@ -5918,9 +5927,9 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes,
 		                                          int offset)
 {
 	// Calculate volume size for the same voxel size
-	int DATA_W_INTERPOLATED = (int)round((float)DATA_W * VOXEL_SIZE_X / NEW_VOXEL_SIZE_X);
-	int DATA_H_INTERPOLATED = (int)round((float)DATA_H * VOXEL_SIZE_Y / NEW_VOXEL_SIZE_Y);
-	int DATA_D_INTERPOLATED = (int)round((float)DATA_D * VOXEL_SIZE_Z / NEW_VOXEL_SIZE_Z);
+	int DATA_W_INTERPOLATED = (int)myround((float)DATA_W * VOXEL_SIZE_X / NEW_VOXEL_SIZE_X);
+	int DATA_H_INTERPOLATED = (int)myround((float)DATA_H * VOXEL_SIZE_Y / NEW_VOXEL_SIZE_Y);
+	int DATA_D_INTERPOLATED = (int)myround((float)DATA_D * VOXEL_SIZE_Z / NEW_VOXEL_SIZE_Z);
 
 	// Allocate memory for interpolated volume
 	cl_mem d_Interpolated_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W_INTERPOLATED * DATA_H_INTERPOLATED * DATA_D_INTERPOLATED * sizeof(float), NULL, NULL);
@@ -8587,7 +8596,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 	// Calculate slice differences
 	if (SLICE_ORDER == UP)
 	{
-		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+		middle_slice = myround((float)EPI_DATA_D / 2.0f) - 1.0f;
 
 		for (int z = 0; z < EPI_DATA_D; z++)
 		{
@@ -8596,7 +8605,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 	}
 	else if (SLICE_ORDER == DOWN)
 	{
-		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+		middle_slice = myround((float)EPI_DATA_D / 2.0f) - 1.0f;
 
 		for (int z = 0; z < EPI_DATA_D; z++)
 		{
@@ -8607,7 +8616,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 	{
 		middle_slice = (float)EPI_DATA_D - 1.0f;
 
-		float h_Times[EPI_DATA_D];
+		float* h_Times = (float*)malloc(EPI_DATA_D * sizeof(float));
 		float timePerSlice = TR/(float)EPI_DATA_D;
 
 		for (int z = 0; z < EPI_DATA_D; z++)
@@ -8628,12 +8637,13 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 		{
 			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
 		}		
+		free(h_Times);
 	}
 	else if (SLICE_ORDER == DOWN_INTERLEAVED)
 	{
 		middle_slice = 0.0f;
 
-		float h_Times[EPI_DATA_D];
+		float* h_Times = (float*)malloc(EPI_DATA_D * sizeof(float));
 		float timePerSlice = TR/(float)EPI_DATA_D;
 
 		int zz = 0;
@@ -8656,6 +8666,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrection()
 		{
 			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
 		}		
+		free(h_Times);
 	}
 
 	// Copy slice differences to device
@@ -8697,7 +8708,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 	// Calculate slice differences
 	if (SLICE_ORDER == UP)
 	{
-		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+		middle_slice = myround((float)EPI_DATA_D / 2.0f) - 1.0f;
 
 		for (int z = 0; z < EPI_DATA_D; z++)
 		{
@@ -8706,7 +8717,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 	}
 	else if (SLICE_ORDER == DOWN)
 	{
-		middle_slice = round((float)EPI_DATA_D / 2.0f) - 1.0f;
+		middle_slice = myround((float)EPI_DATA_D / 2.0f) - 1.0f;
 
 		for (int z = 0; z < EPI_DATA_D; z++)
 		{
@@ -8716,8 +8727,8 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 	else if (SLICE_ORDER == UP_INTERLEAVED)
 	{
 		middle_slice = (float)EPI_DATA_D - 1.0f;
-
-		float h_Times[EPI_DATA_D];
+		
+		float* h_Times = (float*)malloc(EPI_DATA_D * sizeof(float));
 		float timePerSlice = TR/(float)EPI_DATA_D;
 
 		for (int z = 0; z < EPI_DATA_D; z++)
@@ -8738,12 +8749,13 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 		{
 			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
 		}		
+		free(h_Times);
 	}
 	else if (SLICE_ORDER == DOWN_INTERLEAVED)
 	{
 		middle_slice = 0.0f;
 
-		float h_Times[EPI_DATA_D];
+		float* h_Times = (float*)malloc(EPI_DATA_D * sizeof(float));
 		float timePerSlice = TR/(float)EPI_DATA_D;
 
 		int zz = 0;
@@ -8766,6 +8778,7 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 		{
 			h_Slice_Differences[z] = (h_Times[(int)middle_slice] - h_Times[z])/TR;
 		}		
+		free(h_Times);
 	}
 
 	// Copy slice differences to device
@@ -12975,7 +12988,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(cl_mem d_fMRI_Volumes)
 		std::sort (max_values.begin(), max_values.begin() + NUMBER_OF_PERMUTATIONS);
 
 		// Find the threshold for the specified significance level
-		SIGNIFICANCE_THRESHOLD = max_values[round((1.0f - SIGNIFICANCE_LEVEL) * (float)NUMBER_OF_PERMUTATIONS)];
+		SIGNIFICANCE_THRESHOLD = max_values[myround((1.0f - SIGNIFICANCE_LEVEL) * (float)NUMBER_OF_PERMUTATIONS)];
 
 		if (WRAPPER == BASH)
 		{
