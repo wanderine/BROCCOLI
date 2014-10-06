@@ -4076,6 +4076,7 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D
 	format.image_channel_data_type = CL_FLOAT;
 	format.image_channel_order = CL_INTENSITY;
 
+	/*
 	cl_image_desc imageDesc;
 	imageDesc.image_type = CL_MEM_OBJECT_IMAGE3D;
 	imageDesc.image_width = DATA_W;
@@ -4086,6 +4087,7 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D
 	imageDesc.num_mip_levels = 0;
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
+	*/
 
 	//d_Original_Volume = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
@@ -4425,6 +4427,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearSetup(int DATA_W, int DATA_H, int DAT
 	format.image_channel_data_type = CL_FLOAT;
 	format.image_channel_order = CL_INTENSITY;
 
+	/*
 	cl_image_desc imageDesc;
 	imageDesc.image_type = CL_MEM_OBJECT_IMAGE3D;
 	imageDesc.image_width = DATA_W;
@@ -4435,6 +4438,7 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearSetup(int DATA_W, int DATA_H, int DAT
 	imageDesc.num_mip_levels = 0;
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
+	*/
 
 	//d_Original_Volume = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
@@ -5191,6 +5195,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 	format.image_channel_data_type = CL_FLOAT;
 	format.image_channel_order = CL_INTENSITY;
 
+	/*
 	cl_image_desc imageDesc;
 	imageDesc.image_type = CL_MEM_OBJECT_IMAGE3D;
 	imageDesc.image_width = ORIGINAL_DATA_W;
@@ -5201,6 +5206,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem d_Changed_Volume, cl_mem d_Original_V
 	imageDesc.num_mip_levels = 0;
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
+	*/
 
 	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
@@ -5259,6 +5265,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem& d_Original_Volume, int ORIGINAL_DATA
 	format.image_channel_data_type = CL_FLOAT;
 	format.image_channel_order = CL_INTENSITY;
 
+	/*
 	cl_image_desc imageDesc;
 	imageDesc.image_type = CL_MEM_OBJECT_IMAGE3D;
 	imageDesc.image_width = ORIGINAL_DATA_W;
@@ -5269,6 +5276,7 @@ void BROCCOLI_LIB::ChangeVolumeSize(cl_mem& d_Original_Volume, int ORIGINAL_DATA
 	imageDesc.num_mip_levels = 0;
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
+	*/
 
 	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
@@ -5922,6 +5930,7 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes,
 	format.image_channel_data_type = CL_FLOAT;
 	format.image_channel_order = CL_INTENSITY;
 
+	/*
 	cl_image_desc imageDesc;
 	imageDesc.image_type = CL_MEM_OBJECT_IMAGE3D;
 	imageDesc.image_width = DATA_W;
@@ -5932,6 +5941,7 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes,
 	imageDesc.num_mip_levels = 0;
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
+	*/
 
 	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
@@ -6792,6 +6802,7 @@ void BROCCOLI_LIB::TransformVolumesLinear(cl_mem d_Volumes,
 	format.image_channel_data_type = CL_FLOAT;
 	format.image_channel_order = CL_INTENSITY;
 	
+	/*
 	cl_image_desc imageDesc;
 	imageDesc.image_type = CL_MEM_OBJECT_IMAGE3D;
 	imageDesc.image_width = DATA_W;
@@ -6802,6 +6813,7 @@ void BROCCOLI_LIB::TransformVolumesLinear(cl_mem d_Volumes,
 	imageDesc.num_mip_levels = 0;
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
+	*/
 
 	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
@@ -6880,6 +6892,7 @@ void BROCCOLI_LIB::TransformVolumesNonLinear(cl_mem d_Volumes,
 	format.image_channel_data_type = CL_FLOAT;
 	format.image_channel_order = CL_INTENSITY;
 	
+	/*
 	cl_image_desc imageDesc;
 	imageDesc.image_type = CL_MEM_OBJECT_IMAGE3D;
 	imageDesc.image_width = DATA_W;
@@ -6890,6 +6903,7 @@ void BROCCOLI_LIB::TransformVolumesNonLinear(cl_mem d_Volumes,
 	imageDesc.num_mip_levels = 0;
 	imageDesc.num_samples = 0;
 	imageDesc.buffer = NULL;
+	*/
 
 	//cl_mem d_Volume_Texture = clCreateImage(context, CL_MEM_READ_ONLY, &format, &imageDesc, NULL, NULL);
 
