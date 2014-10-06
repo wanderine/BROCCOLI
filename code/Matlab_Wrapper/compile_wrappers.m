@@ -67,7 +67,7 @@ if ispc
     end
 
     try
-        disp('Compiling RandomiseGroupLevelMex.cpp')
+        %disp('Compiling RandomiseGroupLevelMex.cpp')
         cmd = sprintf('mex GLMTTest_SecondLevel_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
         eval(cmd)
     catch
