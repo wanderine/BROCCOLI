@@ -421,7 +421,7 @@ int main(int argc, char **argv)
 	int				MM_EPI_Z_CUT = 0;
     float           SIGMA = 5.0f;
     
-	int				SLICE_ORDER = 4;
+	int				SLICE_ORDER = UNDEFINED;
 	bool			DEFINED_SLICE_PATTERN = false;
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
 
@@ -495,9 +495,9 @@ int main(int argc, char **argv)
         printf(" -sigma                    Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n\n\n\n");        
         
         printf("Preprocessing options:\n\n");
-        printf(" -slicepattern              The sampling pattern used during scanning\n");
+        printf(" -slicepattern              The sampling pattern used during scanning (overrides pattern provided in NIFTI file)\n");
 		printf("                            0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), 2 = interleaved 1-N, 3 = interleaved N-1 \n");
-		printf("                            (no slice timing correction is performed if no pattern is provided) \n");        
+		printf("                            (no slice timing correction is performed if pattern in NIFTI file is unknown and no pattern is provided) \n");        
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
         printf(" -smoothing                 Amount of smoothing to apply to the fMRI data (default 6.0 mm) \n\n");
         
@@ -1357,19 +1357,19 @@ int main(int argc, char **argv)
 	{
 		if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_INC)
 		{
-			SLICE_ORDER = 0;
+			SLICE_ORDER = UP;
 		}
 		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_DEC)
 		{
-			SLICE_ORDER = 1;
+			SLICE_ORDER = DOWN;
 		}
 		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC)
 		{
-			SLICE_ORDER = 2;
+			SLICE_ORDER = UP_INTERLEAVED;
 		}		
 		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC)
 		{
-			SLICE_ORDER = 3;
+			SLICE_ORDER = DOWN_INTERLEAVED;
 		}
 	}
 
