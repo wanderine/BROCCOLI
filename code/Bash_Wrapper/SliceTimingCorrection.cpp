@@ -236,7 +236,9 @@ int main(int argc, char ** argv)
     int             DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
 	float			TR;
-	int				SLICE_ORDER = 0;    
+	int				SLICE_ORDER = UNDEFINED;
+	bool			DEFINED_SLICE_PATTERN = false;
+
 
     //-----------------------
     // Output parameters
@@ -258,7 +260,9 @@ int main(int argc, char ** argv)
         printf("Options:\n\n");
         printf(" -platform        The OpenCL platform to use (default 0) \n");
         printf(" -device          The OpenCL device to use for the specificed platform (default 0) \n");
-        printf(" -slicepattern    The sampling pattern used during scanning, 0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), 2 = alternating 1-N, 3 = alternating N-1 (default 0) \n");        
+        printf(" -slicepattern    The sampling pattern used during scanning (overrides pattern in NIFTI file) \n");
+        printf("                  0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), 2 = alternating 1-N, 3 = alternating N-1 \n");        
+        printf("                  (no slice timing correction is performed if pattern in NIFTI file is unknown and no pattern is provided) \n");        
         printf(" -output          Set output filename (default input_stc.nii) \n");
         printf(" -quiet           Don't print anything to the terminal (default false) \n");
         printf(" -verbose         Print extra stuff (default false) \n");
@@ -354,6 +358,7 @@ int main(int argc, char ** argv)
                 return EXIT_FAILURE;
             }
             i += 2;
+			DEFINED_SLICE_PATTERN = true;
         }
         else if (strcmp(input,"-debug") == 0)
         {
@@ -408,20 +413,73 @@ int main(int argc, char ** argv)
 		printf("It took %f seconds to read the nifti file\n",(float)(endTime - startTime));
 	}
 
-    // Get data dimensions from input data
+    // Get data dimensions
     DATA_W = inputData->nx;
     DATA_H = inputData->ny;
     DATA_D = inputData->nz;
     DATA_T = inputData->nt;
 
-    // Get voxel sizes from input data
+    // Get voxel sizes
     EPI_VOXEL_SIZE_X = inputData->dx;
     EPI_VOXEL_SIZE_Y = inputData->dy;
     EPI_VOXEL_SIZE_Z = inputData->dz;
     
-    // Get repetition time from input data
+    // Get repetition time
     TR = inputData->dt;                           
 
+	// Get fMRI slice order
+	int SLICE_ORDER_NIFTI = (int)inputData->slice_code;
+
+	std::string SLICE_ORDER_STRING;
+	if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_INC)
+	{
+		SLICE_ORDER_STRING = std::string("Seqential increasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_DEC)
+	{
+		SLICE_ORDER_STRING = std::string("Seqential decreasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating increasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating decreasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC2)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating increasing 2, not yet supported");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC2)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating decreasing 2, not yet supported");
+	}
+	else
+	{
+		SLICE_ORDER_STRING = std::string("Unknown, need to specify with option -slicepattern");
+	}
+
+	// No slice pattern given by user, so use the one from the nifti file (if not unknown)
+	if ( !DEFINED_SLICE_PATTERN && (SLICE_ORDER_NIFTI != NIFTI_SLICE_UNKNOWN) )
+	{
+		if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_INC)
+		{
+			SLICE_ORDER = UP;
+		}
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_DEC)
+		{
+			SLICE_ORDER = DOWN;
+		}
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC)
+		{
+			SLICE_ORDER = UP_INTERLEAVED;
+		}		
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC)
+		{
+			SLICE_ORDER = DOWN_INTERLEAVED;
+		}
+	}
 	
 
     // Calculate size, in bytes
@@ -435,7 +493,14 @@ int main(int argc, char ** argv)
         printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
         printf("Voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);    
         printf("TR: %f s \n", TR);
+		printf("Slice order: %s \n",SLICE_ORDER_STRING.c_str());
     } 
+
+	if (SLICE_ORDER == UNDEFINED)
+	{
+        printf("Slice order unknown in NIFTI file and no slice pattern provided, aborting!\n");
+        return EXIT_FAILURE;
+	}
     
     // ------------------------------------------------
     
