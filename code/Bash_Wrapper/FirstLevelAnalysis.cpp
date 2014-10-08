@@ -422,6 +422,7 @@ int main(int argc, char **argv)
     float           SIGMA = 5.0f;
     
 	int				SLICE_ORDER = 4;
+	bool			DEFINED_SLICE_PATTERN = false;
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
 
 	bool			RAW_REGRESSORS = false;
@@ -795,6 +796,7 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             i += 2;
+			DEFINED_SLICE_PATTERN = true;
         }
         else if (strcmp(input,"-iterationsmc") == 0)
         {
@@ -1303,32 +1305,90 @@ int main(int argc, char **argv)
 		printf("It took %f seconds to read the nifti file(s)\n",(float)(endTime - startTime));
 	}
 
-    // Get data dimensions from input data
+    // Get fMRI data dimensions
     EPI_DATA_W = inputfMRI->nx;
     EPI_DATA_H = inputfMRI->ny;
     EPI_DATA_D = inputfMRI->nz;    
     EPI_DATA_T = inputfMRI->nt;    
 
-    T1_DATA_W = inputT1->nx;
-    T1_DATA_H = inputT1->ny;
-    T1_DATA_D = inputT1->nz;    
-    
-    MNI_DATA_W = inputMNI->nx;
-    MNI_DATA_H = inputMNI->ny;
-    MNI_DATA_D = inputMNI->nz;    
-
-    // Get repetition time from input data
-    TR = inputfMRI->dt;
-    
-    // Get voxel sizes from input data
+    // Get fMRI voxel sizes
     EPI_VOXEL_SIZE_X = inputfMRI->dx;
     EPI_VOXEL_SIZE_Y = inputfMRI->dy;
     EPI_VOXEL_SIZE_Z = inputfMRI->dz;
 
+    // Get fMRI repetition time
+    TR = inputfMRI->dt;
+
+	// Get fMRI slice order
+	int SLICE_ORDER_NIFTI = (int)inputfMRI->slice_code;
+
+	std::string SLICE_ORDER_STRING;
+	if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_INC)
+	{
+		SLICE_ORDER_STRING = std::string("Seqential increasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_DEC)
+	{
+		SLICE_ORDER_STRING = std::string("Seqential decreasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating increasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating decreasing");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC2)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating increasing 2, not yet supported");
+	}
+	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC2)
+	{
+		SLICE_ORDER_STRING = std::string("Alternating decreasing 2, not yet supported");
+	}
+	else
+	{
+		SLICE_ORDER_STRING = std::string("Unknown, need to specify with option -slicepattern");
+	}
+
+	// No slice pattern given by user, so use the one from the nifti file (if not unknown)
+	if ( !DEFINED_SLICE_PATTERN && (SLICE_ORDER_NIFTI != NIFTI_SLICE_UNKNOWN) )
+	{
+		if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_INC)
+		{
+			SLICE_ORDER = 0;
+		}
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_DEC)
+		{
+			SLICE_ORDER = 1;
+		}
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC)
+		{
+			SLICE_ORDER = 2;
+		}		
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC)
+		{
+			SLICE_ORDER = 3;
+		}
+	}
+
+	// Get T1 data dimensions
+    T1_DATA_W = inputT1->nx;
+    T1_DATA_H = inputT1->ny;
+    T1_DATA_D = inputT1->nz;    
+
+	// Get T1 voxel sizes
     T1_VOXEL_SIZE_X = inputT1->dx;
     T1_VOXEL_SIZE_Y = inputT1->dy;
     T1_VOXEL_SIZE_Z = inputT1->dz;
-                             
+    
+	// Get brain template data dimensions
+    MNI_DATA_W = inputMNI->nx;
+    MNI_DATA_H = inputMNI->ny;
+    MNI_DATA_D = inputMNI->nz;    
+    
+	// Get brain template voxel sizes                             
     MNI_VOXEL_SIZE_X = inputMNI->dx;
     MNI_VOXEL_SIZE_Y = inputMNI->dy;
     MNI_VOXEL_SIZE_Z = inputMNI->dz;
@@ -1429,6 +1489,7 @@ int main(int argc, char **argv)
 	    printf("fMRI data size: %i x %i x %i x %i \n", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 		printf("fMRI voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
 		printf("fMRI TR: %f s \n", TR);		
+		printf("fMRI slice order: %s \n",SLICE_ORDER_STRING.c_str());
     	printf("T1 data size: %i x %i x %i \n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
 		printf("T1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);
 	    printf("MNI data size: %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
