@@ -76,10 +76,12 @@ The following preprocessing options are available
 \begin{itemize}
 
 \item -slicepattern
-\newline \newline Set the sampling pattern used during scanning; \newline
+\newline \newline Set the sampling pattern used during scanning \newline
+ 				  (overrides pattern provided in NIFTI file) \newline
                   0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), \newline
                   2 = interleaved 1-N, 3 = interleaved N-1 \newline \newline
-                  No slice timing correction will be performed if no pattern is provided. 
+                  No slice timing correction is performed if pattern in \newline
+                  NIFTI file is unknown and no pattern is provided. 
 
 \item -iterationsmc 
 \newline \newline Set the number of iterations used for the \newline motion correction (the default is 5).
