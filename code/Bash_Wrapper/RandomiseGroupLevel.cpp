@@ -136,6 +136,31 @@ void AllocateMemoryInt(unsigned short int *& pointer, int size, void** pointers,
     }
 }
 
+float mymax(float* data, int N)
+{
+	float max = -100000.0f;
+	for (int i = 0; i < N; i++)
+	{
+		if (data[i] > max)
+			max = data[i];
+	}
+
+	return max;
+}
+
+
+float mymin(float* data, int N)
+{
+	float min = 100000.0f;
+	for (int i = 0; i < N; i++)
+	{
+		if (data[i] < min)
+			min = data[i];
+	}
+
+	return min;
+}
+
 bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool addFilename, bool checkFilename)
 {       
 	if (data == NULL)
@@ -189,6 +214,11 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
     outputNifti->datatype = DT_FLOAT;
     outputNifti->nbyper = 4;    
     
+	// Change cal_min and cal_max, to get the scaling right in AFNI and FSL
+    int N = inputNifti->nx * inputNifti->ny * inputNifti->nz * inputNifti->nt;
+	outputNifti->cal_min = mymin(data,N);
+	outputNifti->cal_max = mymax(data,N);
+
     // Change filename and write
     bool written = false;
     if (addFilename)
