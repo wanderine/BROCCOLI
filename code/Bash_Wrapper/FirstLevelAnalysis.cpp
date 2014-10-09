@@ -377,6 +377,9 @@ int main(int argc, char **argv)
     float           *h_AR1_Estimates_T1, *h_AR2_Estimates_T1, *h_AR3_Estimates_T1, *h_AR4_Estimates_T1;
     float           *h_AR1_Estimates_MNI, *h_AR2_Estimates_MNI, *h_AR3_Estimates_MNI, *h_AR4_Estimates_MNI;
         
+	float			*h_Residuals_EPI;
+	float			*h_Residuals_MNI;
+
     int             EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
     int             T1_DATA_H, T1_DATA_W, T1_DATA_D;
     int             MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
@@ -425,12 +428,15 @@ int main(int argc, char **argv)
 	bool			DEFINED_SLICE_PATTERN = false;
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
 
+	bool			FOUND_REGRESSORS = false;
+
 	bool			RAW_REGRESSORS = false;
     int             REGRESS_MOTION = 0;
     int             REGRESS_GLOBALMEAN = 0;
 	int				REGRESS_CONFOUNDS = 0;
     float           EPI_SMOOTHING_AMOUNT = 6.0f;
     float           AR_SMOOTHING_AMOUNT = 6.0f;
+	bool			REGRESS_ONLY = false;
     
     int             USE_TEMPORAL_DERIVATIVES = 0;
     bool            PERMUTE = false;
@@ -478,8 +484,11 @@ int main(int argc, char **argv)
     if (argc == 1)
     {   
 		printf("\nThe function performs first level analysis of one fMRI dataset. The processing includes registration between T1 and MNI, registration between fMRI and T1, slice timing correction, motion correction, smoothing and statistical analysis. \n\n");     
-        printf("Usage:\n\n");
+        printf("Usage, preprocessing + GLM:\n\n");
         printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii regressors.txt contrasts.txt [options]\n\n");
+
+        printf("Usage, preprocessing + regress nuisance variables (no GLM):\n\n");
+        printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii -regressonly [options]\n\n");
         
         printf("OpenCL options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
@@ -502,6 +511,8 @@ int main(int argc, char **argv)
         printf(" -smoothing                 Amount of smoothing to apply to the fMRI data (default 6.0 mm) \n\n");
         
         printf("Statistical options:\n\n");
+        printf(" -regressonly               Only perform preprocessing and regress nuisance variables, no GLM is performed (default no). \n");
+		printf("                            Regressor and contrast file not needed. \n");
         printf(" -rawregressors             Use raw regressors (FSL format, one value per TR) (default no) \n");
         printf(" -regressmotion             Include motion parameters in design matrix (default no) \n");
         printf(" -regressglobalmean         Include global mean in design matrix (default no) \n");
@@ -544,6 +555,9 @@ int main(int argc, char **argv)
         
         return EXIT_SUCCESS;
     }
+
+
+	/*
     else if (argc < 6)
     {
         printf("\nNeed fMRI data, T1 volume, MNI volume, regressors and contrasts!\n\n");
@@ -551,23 +565,48 @@ int main(int argc, char **argv)
         printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii regressors.txt contrasts.txt [options]\n\n");
 		return EXIT_FAILURE;
     }
-    // Try to open all files
-    else if (argc > 1)
+	*/    
+
+	// Check if 4'th argument is -regressonly
+	char *temp = argv[4];
+    if (strcmp(temp,"-regressonly") == 0)
     {
-        for (int i = 1; i <= 5; i++)
+        REGRESS_ONLY = true;
+    }
+
+	int i;
+	// Try to open all files
+	if (REGRESS_ONLY)
+	{
+        for (int j = 1; j <= 3; j++)
         {
-            fp = fopen(argv[i],"r");
+            fp = fopen(argv[j],"r");
             if (fp == NULL)
             {
-                printf("Could not open file %s !\n",argv[i]);
+                printf("Could not open file %s !\n",argv[j]);
                 return EXIT_FAILURE;
             }
             fclose(fp);
         }
+		i = 5;
+	}
+    else
+    {
+        for (int j = 1; j <= 5; j++)
+        {
+            fp = fopen(argv[j],"r");
+            if (fp == NULL)
+            {
+                printf("Could not open file %s !\n",argv[j]);
+                return EXIT_FAILURE;
+            }
+            fclose(fp);
+        }
+		i = 6;
     }
     
     // Loop over additional inputs
-    int i = 6;
+    
     while (i < argc)
     {
         char *input = argv[i];
@@ -835,15 +874,16 @@ int main(int argc, char **argv)
 		        printf("Smoothing must be a float! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-  			else if ( EPI_SMOOTHING_AMOUNT < 0.0f )
+  			else if ( EPI_SMOOTHING_AMOUNT <= 0.0f )
             {
-                printf("Smoothing must be >= 0.0 !\n");
+                printf("Smoothing must be > 0.0 !\n");
                 return EXIT_FAILURE;
             }
             i += 2;
         }
         
         // Statistical options
+
         else if (strcmp(input,"-rawregressors") == 0)
         {
             RAW_REGRESSORS = true;
@@ -1132,105 +1172,119 @@ int main(int argc, char **argv)
     //------------------------------------------
 
     // Read number of regressors from design matrix file
-    
+  
 	std::ifstream design;
-    design.open(argv[4]);
-    
-    if (!design.good())
-    {
-        design.close();
-        printf("Unable to open design file %s. Aborting! \n",argv[4]);
-        return EXIT_FAILURE;
-    }
-    
-    // Get number of regressors
     std::string tempString;
     int tempNumber;
-    design >> tempString; // NumRegressors as string
     std::string NR("NumRegressors");
-    if (tempString.compare(NR) != 0)
-    {
-        design.close();
-        printf("First element of the design file %s should be the string 'NumRegressors', but it is %s. Aborting! \n",argv[4],tempString.c_str());
-        return EXIT_FAILURE;
-    }
-    design >> NUMBER_OF_GLM_REGRESSORS;
+
+	if (!REGRESS_ONLY)
+	{
+	    design.open(argv[4]);
     
-    if (NUMBER_OF_GLM_REGRESSORS <= 0)
-    {
-        design.close();
-        printf("Number of regressors must be > 0 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
-        return EXIT_FAILURE;
-    }
-    else if (NUMBER_OF_GLM_REGRESSORS > 25)
-    {
-        design.close();
-        printf("Number of regressors must be <= 25 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
-        return EXIT_FAILURE;
-    }
-    else if ( BAYESIAN && (NUMBER_OF_GLM_REGRESSORS != 2) )
-    {
-        design.close();
-        printf("Number of regressors must currently be exactly 2 for Bayesian fMRI analysis! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
-        return EXIT_FAILURE;
-    }
-    design.close();
+	    if (!design.good())
+	    {
+	        design.close();
+	        printf("Unable to open design file %s. Aborting! \n",argv[4]);
+	        return EXIT_FAILURE;
+	    }
     
+	    // Get number of regressors
+	    design >> tempString; // NumRegressors as string
+	    if (tempString.compare(NR) != 0)
+	    {
+	        design.close();
+	        printf("First element of the design file %s should be the string 'NumRegressors', but it is %s. Aborting! \n",argv[4],tempString.c_str());
+	        return EXIT_FAILURE;
+	    }
+	    design >> NUMBER_OF_GLM_REGRESSORS;
+    
+	    if (NUMBER_OF_GLM_REGRESSORS <= 0)
+	    {
+	        design.close();
+	        printf("Number of regressors must be > 0 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+	        return EXIT_FAILURE;
+	    }
+	    else if (NUMBER_OF_GLM_REGRESSORS > 25)
+	    {
+	        design.close();
+	        printf("Number of regressors must be <= 25 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+	        return EXIT_FAILURE;
+	    }
+	    else if ( BAYESIAN && (NUMBER_OF_GLM_REGRESSORS != 2) )
+	    {
+	        design.close();
+	        printf("Number of regressors must currently be exactly 2 for Bayesian fMRI analysis! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+	        return EXIT_FAILURE;
+	    }
+	    design.close();
+	}
+	else
+	{
+		NUMBER_OF_GLM_REGRESSORS = 0;
+	}
+  
     // Read contrasts
    	std::ifstream contrasts;    
 
-	if (!BAYESIAN)
+	if (!REGRESS_ONLY)
 	{
-	    contrasts.open(argv[5]);
+		if (!BAYESIAN)
+		{
+		    contrasts.open(argv[5]);
     
-	    if (!contrasts.good())
-	    {
-	        contrasts.close();
-	        printf("Unable to open contrasts file %s. Aborting! \n",argv[5]);
-	        return EXIT_FAILURE;
-	    }
+		    if (!contrasts.good())
+		    {
+		        contrasts.close();
+		        printf("Unable to open contrasts file %s. Aborting! \n",argv[5]);
+		        return EXIT_FAILURE;
+		    }
     
-	    contrasts >> tempString; // NumRegressors as string
-	    if (tempString.compare(NR) != 0)
-	    {
-	        contrasts.close();
-	        printf("First element of the contrasts file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
-	        return EXIT_FAILURE;
-	    }
-	    contrasts >> tempNumber;
+		    contrasts >> tempString; // NumRegressors as string
+		    if (tempString.compare(NR) != 0)
+		    {
+		        contrasts.close();
+		        printf("First element of the contrasts file should be the string 'NumRegressors', but it is %s. Aborting! \n",tempString.c_str());
+		        return EXIT_FAILURE;
+		    }
+		    contrasts >> tempNumber;
     
-	    // Check for consistency
-	    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
-    	{
-	        contrasts.close();
-	        printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
-	        return EXIT_FAILURE;
-	    }
+		    // Check for consistency
+		    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
+    		{
+		        contrasts.close();
+		        printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+		        return EXIT_FAILURE;
+		    }
     
-	    contrasts >> tempString; // NumContrasts as string
-	    std::string NC("NumContrasts");
-	    if (tempString.compare(NC) != 0)
-	    {
-	        contrasts.close();
-	        printf("Third element of the contrasts file should be the string 'NumContrasts', but it is %s. Aborting! \n",tempString.c_str());
-	        return EXIT_FAILURE;
-	    }
-	    contrasts >> NUMBER_OF_CONTRASTS;
-		
-	    if (NUMBER_OF_CONTRASTS <= 0)
-	    {
-	        contrasts.close();
-    	    printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
-	        return EXIT_FAILURE;
-	    }
-	    contrasts.close();
-	}
-	else if (BAYESIAN)
+		    contrasts >> tempString; // NumContrasts as string
+		    std::string NC("NumContrasts");
+		    if (tempString.compare(NC) != 0)
+		    {
+		        contrasts.close();
+		        printf("Third element of the contrasts file should be the string 'NumContrasts', but it is %s. Aborting! \n",tempString.c_str());
+		        return EXIT_FAILURE;
+		    }
+		    contrasts >> NUMBER_OF_CONTRASTS;
+			
+		    if (NUMBER_OF_CONTRASTS <= 0)
+		    {
+		        contrasts.close();
+    		    printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+		        return EXIT_FAILURE;
+		    }
+		    contrasts.close();
+		}
+		else if (BAYESIAN)
+		{
+			NUMBER_OF_CONTRASTS = 6;
+    	    printf("Warning: Your contrasts are not used for the Bayesian fMRI analysis. Since only 2 regressors are currently supported, all the 6 possible contrasts are always calculated\n");
+		}
+    }
+	else
 	{
-		NUMBER_OF_CONTRASTS = 6;
-        printf("Warning: Your contrasts are not used for the Bayesian fMRI analysis. Since only 2 regressors are currently supported, all the 6 possible contrasts are always calculated\n");
+		NUMBER_OF_CONTRASTS = 0;
 	}
-    
     
 	//------------------------------------------
 
@@ -1494,13 +1548,19 @@ int main(int argc, char **argv)
 		printf("T1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);
 	    printf("MNI data size: %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		printf("MNI voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);
-	    printf("Number of original GLM regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
+		if (!REGRESS_ONLY)
+		{
+		    printf("Number of original GLM regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
+		}
 		if (REGRESS_CONFOUNDS)
 		{
 	    	printf("Number of confound regressors: %i \n",  NUMBER_OF_CONFOUND_REGRESSORS);
 		}
-	    printf("Number of total GLM regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	    printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
+  	    printf("Number of total GLM regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		if (!REGRESS_ONLY)
+		{
+		    printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
+		}
     } 
    	if (VERBOS)
  	{
@@ -1589,61 +1649,72 @@ int main(int argc, char **argv)
 		AllocateMemory(h_Smoothed_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SMOOTHED_fMRI_VOLUMES");
 	}
 
-    AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
-	AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
-	AllocateMemory(h_Statistical_Maps_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
+	if (!REGRESS_ONLY)
+	{
+	    AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
+		AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
+		AllocateMemory(h_Statistical_Maps_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
     
-	if (WRITE_UNWHITENED_RESULTS)
-	{
-	    AllocateMemory(h_Beta_Volumes_No_Whitening_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
-		AllocateMemory(h_Contrast_Volumes_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
-		AllocateMemory(h_Statistical_Maps_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
+		if (WRITE_UNWHITENED_RESULTS)
+		{
+		    AllocateMemory(h_Beta_Volumes_No_Whitening_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
+			AllocateMemory(h_Contrast_Volumes_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
+			AllocateMemory(h_Statistical_Maps_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
+		}
+
+	    if (WRITE_ACTIVITY_EPI)
+	    {
+	        AllocateMemory(h_Beta_Volumes_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
+	        AllocateMemory(h_Contrast_Volumes_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
+	        AllocateMemory(h_Statistical_Maps_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
+
+			if (WRITE_UNWHITENED_RESULTS)
+			{
+	        	AllocateMemory(h_Beta_Volumes_No_Whitening_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
+		        AllocateMemory(h_Contrast_Volumes_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
+		        AllocateMemory(h_Statistical_Maps_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
+			}
+
+			if (PERMUTE)
+			{
+				AllocateMemory(h_P_Values_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_EPI");
+			}
+	    }        
+
+	    if (WRITE_ACTIVITY_T1)
+    	{
+	        AllocateMemory(h_Beta_Volumes_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
+	        AllocateMemory(h_Contrast_Volumes_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
+	        AllocateMemory(h_Statistical_Maps_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
+
+			if (WRITE_UNWHITENED_RESULTS)
+			{
+	        	AllocateMemory(h_Beta_Volumes_No_Whitening_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
+		        AllocateMemory(h_Contrast_Volumes_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
+		        AllocateMemory(h_Statistical_Maps_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
+			}
+
+			if (PERMUTE)
+			{
+				AllocateMemory(h_P_Values_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_T1");
+			}
+	    }        
+
+		if (PERMUTE)
+		{
+			AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_MATRIX");
+			AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_DISTRIBUTION");             
+			AllocateMemory(h_P_Values_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_MNI");
+		}
 	}
-
-    if (WRITE_ACTIVITY_EPI)
-    {
-        AllocateMemory(h_Beta_Volumes_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
-        AllocateMemory(h_Contrast_Volumes_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
-        AllocateMemory(h_Statistical_Maps_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
-
-		if (WRITE_UNWHITENED_RESULTS)
-		{
-        	AllocateMemory(h_Beta_Volumes_No_Whitening_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
-	        AllocateMemory(h_Contrast_Volumes_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
-	        AllocateMemory(h_Statistical_Maps_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
-		}
-
-		if (PERMUTE)
-		{
-			AllocateMemory(h_P_Values_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_EPI");
-		}
-    }        
-
-    if (WRITE_ACTIVITY_T1)
-    {
-        AllocateMemory(h_Beta_Volumes_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
-        AllocateMemory(h_Contrast_Volumes_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
-        AllocateMemory(h_Statistical_Maps_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
-
-		if (WRITE_UNWHITENED_RESULTS)
-		{
-        	AllocateMemory(h_Beta_Volumes_No_Whitening_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
-	        AllocateMemory(h_Contrast_Volumes_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
-	        AllocateMemory(h_Statistical_Maps_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
-		}
-
-		if (PERMUTE)
-		{
-			AllocateMemory(h_P_Values_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_T1");
-		}
-    }        
-
-
-	if (PERMUTE)
+	else
 	{
-		AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_MATRIX");
-		AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_DISTRIBUTION");             
-		AllocateMemory(h_P_Values_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_MNI");
+		AllocateMemory(h_Residuals_MNI, RESIDUALS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "RESIDUALS_MNI");             
+
+	    if (WRITE_ACTIVITY_EPI)
+	    {
+			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "RESIDUALS_EPI");             
+		}
 	}
     
     AllocateMemory(h_X_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DESIGN_MATRIX");
@@ -1684,254 +1755,263 @@ int main(int argc, char **argv)
 	}
     
     // ------------------------------------------------
-	// Read events for each regressor
-    
-	startTime = GetWallTime();
+	// Read events for each regressor    	
 
-    // Each line of the design file is a filename
-    
-    // Open design file again
-    design.open(argv[4]);
-    // Read first two values again
-    design >> tempString; // NumRegressors as string
-    design >> NUMBER_OF_GLM_REGRESSORS;
-
-	if (!RAW_REGRESSORS)
-	{    
-	    // Loop over the number of regressors provided in the design file
-	    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-    	{
-			// Reset highres regressor
-		    for (int t = 0; t < EPI_DATA_T * HIGHRES_FACTOR; t++)
-	    	{
-				h_Highres_Regressor[t] = 0.0f;
-			}
-
-	        // Each regressor is a filename, so try to open the file
-	        std::ifstream regressor;
-	        std::string filename;
-	        design >> filename;
-	        regressor.open(filename.c_str());
-	        if (!regressor.good())
-	        {
-	            regressor.close();
-	            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
-	            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-	            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-	            return EXIT_FAILURE;
-	        }
-        
-	        // Read number of events for current regressor
-	        regressor >> tempString; // NumEvents as string
-	        std::string NE("NumEvents");
-	        if (tempString.compare(NE) != 0)
-	        {
-    	        design.close();
-	            printf("First element of each regressor file should be the string 'NumEvents', but it is %s for the regressor file %s. Aborting! \n",tempString.c_str(),filename.c_str());
-	            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-	            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-	            return EXIT_FAILURE;
-    	    }
-	        regressor >> NUMBER_OF_EVENTS;
-
-			if (DEBUG)
-			{
-				printf("Number of events for regressor %i is %i \n",r,NUMBER_OF_EVENTS);
-			}
-    	    
-    	    // Loop over events
-    	    for (int e = 0; e < NUMBER_OF_EVENTS; e++)
-    	    {
-    	        float onset;
-    	        float duration;
-    	        float value;
-    	        
-    	        // Read onset, duration and value for current event
-				if (! (regressor >> onset) )
-				{
-					regressor.close();
-    	            design.close();
-    	            printf("Unable to read the onset for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
-    	            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    	            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    	            return EXIT_FAILURE;
-				}
-
-    	        if (! (regressor >> duration) )
-				{
-					regressor.close();
-    	            design.close();
-    	            printf("Unable to read the duration for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
-    	            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    	            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    	            return EXIT_FAILURE;
-				}
-
-				if (! (regressor >> value) )
-				{
-					regressor.close();
-    	            design.close();
-    	            printf("Unable to read the value for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
-    	            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    	            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    	            return EXIT_FAILURE;
-				}
-    	    
-				if (DEBUG)
-				{
-					printf("Event %i: Onset is %f, duration is %f and value is %f \n",e,onset,duration,value);
-				}
-    	        
-    	        int start = (int)round(onset * (float)HIGHRES_FACTOR / TR);
-    	        int activityLength = (int)round(duration * (float)HIGHRES_FACTOR / TR);
-    	        
-				if (DEBUG)
-				{
-					printf("Event %i: Start is %i, activity length is %i \n",e,start,activityLength);
-				}
-
-    	        // Put values into highres GLM
-    	        for (int i = 0; i < activityLength; i++)
-    	        {
-    	            if ((start + i) < (EPI_DATA_T * HIGHRES_FACTOR) )
-    	            {
-    	                h_Highres_Regressor[start + i] = value;
-    	            }
-    	            else
-    	            {
-						regressor.close();
-    	                design.close();
-    	                printf("The activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! Check the regressor file .\n",e,filename.c_str());	
-    	                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    	                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    	                return EXIT_FAILURE;
-    	            }
-    	        }            
-    	    }
-
-			regressor.close();
-
-    	    // Lowpass filter highres regressor
-			LowpassFilterRegressor(h_LowpassFiltered_Regressor,h_Highres_Regressor,EPI_DATA_T,HIGHRES_FACTOR,TR);
-        
-    	    // Downsample highres GLM and put values into regular GLM
-    	    for (int t = 0; t < EPI_DATA_T; t++)
-    	    {
-    	        h_X_GLM[t + r * EPI_DATA_T] = h_LowpassFiltered_Regressor[t*HIGHRES_FACTOR];
-    	    }
-    	}
-	}
-	else if (RAW_REGRESSORS)
+	if (!REGRESS_ONLY)
 	{
-		// Loop over the number of regressors provided in the design file
-	    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-    	{
-	        // Each regressor is a filename, so try to open the file
-	        std::ifstream regressor;
-	        std::string filename;
-	        design >> filename;
-	        regressor.open(filename.c_str());
-	        if (!regressor.good())
-	        {
-	            regressor.close();
-	            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
-	            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-	            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-	            return EXIT_FAILURE;
-	        }
+		startTime = GetWallTime();
 
-			float value;
-			int readValues = 0;
-		    for (int t = 0; t < EPI_DATA_T; t++)
-	    	{
-				if (! (regressor >> value) )
-				{
-					regressor.close();
-    	            design.close();
-    	            printf("Unable to read the value for TR %i in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
-    	            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    	            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    	            return EXIT_FAILURE;
-				}
-				h_X_GLM[t + r * EPI_DATA_T] = value;
-				readValues++;
-			}
-
-			// Check if number of values is the same as the number of TRs
-			if (readValues != EPI_DATA_T)
-			{
-				regressor.close();
-    	        design.close();
-    	        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %i), aborting! Check the regressor file. \n",filename.c_str(),readValues,EPI_DATA_T);
-    	        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    	        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    	        return EXIT_FAILURE;
-			}
-
-			regressor.close();
-		}
-	}
-    design.close();
+	    // Each line of the design file is a filename
     
-	if (!BAYESIAN)
-	{
-	    // Open contrast file again
-	    contrasts.open(argv[5]);
-
+	    // Open design file again
+	    design.open(argv[4]);
 	    // Read first two values again
-		contrasts >> tempString; // NumRegressors as string
-	    contrasts >> tempNumber;
-	    contrasts >> tempString; // NumContrasts as string
-	    contrasts >> tempNumber;
-   
-		// Read all contrast values
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-			{
-				if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
-				{
-				    contrasts.close();
-	                printf("Unable to read all the contrast values, aborting! Check the contrasts file. \n");
-	                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-	                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-	                return EXIT_FAILURE;
+	    design >> tempString; // NumRegressors as string
+	    design >> NUMBER_OF_GLM_REGRESSORS;
+
+		if (!RAW_REGRESSORS)
+		{    
+		    // Loop over the number of regressors provided in the design file
+		    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+	    	{
+				// Reset highres regressor
+			    for (int t = 0; t < EPI_DATA_T * HIGHRES_FACTOR; t++)
+		    	{
+					h_Highres_Regressor[t] = 0.0f;
 				}
+
+		        // Each regressor is a filename, so try to open the file
+		        std::ifstream regressor;
+		        std::string filename;
+		        design >> filename;
+		        regressor.open(filename.c_str());
+		        if (!regressor.good())
+		        {
+		            regressor.close();
+		            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
+		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		            return EXIT_FAILURE;
+		        }
+        
+		        // Read number of events for current regressor
+		        regressor >> tempString; // NumEvents as string
+		        std::string NE("NumEvents");
+		        if (tempString.compare(NE) != 0)
+		        {
+    		        design.close();
+		            printf("First element of each regressor file should be the string 'NumEvents', but it is %s for the regressor file %s. Aborting! \n",tempString.c_str(),filename.c_str());
+		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		            return EXIT_FAILURE;
+    		    }
+		        regressor >> NUMBER_OF_EVENTS;
+
+				if (DEBUG)
+				{
+					printf("Number of events for regressor %i is %i \n",r,NUMBER_OF_EVENTS);
+				}
+    	    
+    		    // Loop over events
+    		    for (int e = 0; e < NUMBER_OF_EVENTS; e++)
+    		    {
+    		        float onset;
+    		        float duration;
+    		        float value;
+    	        
+    		        // Read onset, duration and value for current event
+					if (! (regressor >> onset) )
+					{
+						regressor.close();
+    		            design.close();
+    		            printf("Unable to read the onset for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    		            return EXIT_FAILURE;
+					}
+
+    		        if (! (regressor >> duration) )
+					{
+						regressor.close();
+    		            design.close();
+    		            printf("Unable to read the duration for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    		            return EXIT_FAILURE;
+					}
+
+					if (! (regressor >> value) )
+					{
+						regressor.close();
+    		            design.close();
+    		            printf("Unable to read the value for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    		            return EXIT_FAILURE;
+					}
+    	    
+					if (DEBUG)
+					{
+						printf("Event %i: Onset is %f, duration is %f and value is %f \n",e,onset,duration,value);
+					}
+    	        
+    		        int start = (int)round(onset * (float)HIGHRES_FACTOR / TR);
+    		        int activityLength = (int)round(duration * (float)HIGHRES_FACTOR / TR);
+    	        
+					if (DEBUG)
+					{
+						printf("Event %i: Start is %i, activity length is %i \n",e,start,activityLength);
+					}
+
+    		        // Put values into highres GLM
+    		        for (int i = 0; i < activityLength; i++)
+    		        {
+    		            if ((start + i) < (EPI_DATA_T * HIGHRES_FACTOR) )
+    		            {
+    		                h_Highres_Regressor[start + i] = value;
+    		            }
+    		            else
+    		            {
+							regressor.close();
+    		                design.close();
+    		                printf("The activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! Check the regressor file .\n",e,filename.c_str());	
+    		                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    		                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    		                return EXIT_FAILURE;
+    		            }
+    		        }            
+    		    }
+
+				regressor.close();
+
+    		    // Lowpass filter highres regressor
+				LowpassFilterRegressor(h_LowpassFiltered_Regressor,h_Highres_Regressor,EPI_DATA_T,HIGHRES_FACTOR,TR);
+        
+    		    // Downsample highres GLM and put values into regular GLM
+    		    for (int t = 0; t < EPI_DATA_T; t++)
+    		    {
+    		        h_X_GLM[t + r * EPI_DATA_T] = h_LowpassFiltered_Regressor[t*HIGHRES_FACTOR];
+    		    }
+    		}
+		}
+		else if (RAW_REGRESSORS)
+		{
+			// Loop over the number of regressors provided in the design file
+		    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+    		{
+		        // Each regressor is a filename, so try to open the file
+		        std::ifstream regressor;
+		        std::string filename;
+		        design >> filename;
+		        regressor.open(filename.c_str());
+		        if (!regressor.good())
+		        {
+		            regressor.close();
+		            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
+		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		            return EXIT_FAILURE;
+		        }
+
+				float value;
+				int readValues = 0;
+			    for (int t = 0; t < EPI_DATA_T; t++)
+		    	{
+					if (! (regressor >> value) )
+					{
+						regressor.close();
+    		            design.close();
+    		            printf("Unable to read the value for TR %i in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
+    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    		            return EXIT_FAILURE;
+					}
+					h_X_GLM[t + r * EPI_DATA_T] = value;
+					readValues++;
+				}
+	
+				// Check if number of values is the same as the number of TRs
+				if (readValues != EPI_DATA_T)
+				{
+					regressor.close();
+    		        design.close();
+    		        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %i), aborting! Check the regressor file. \n",filename.c_str(),readValues,EPI_DATA_T);
+    		        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    		        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    		        return EXIT_FAILURE;
+				}
+	
+				regressor.close();
 			}
 		}
-		contrasts.close();
+    	design.close();
 	}
 
-	endTime = GetWallTime();
+	if (!REGRESS_ONLY)
+	{
+    	if (!BAYESIAN)
+		{
+		    // Open contrast file again
+		    contrasts.open(argv[5]);
 
-	if (VERBOS)
- 	{
-		printf("It took %f seconds to read regressors and contrasts\n",(float)(endTime - startTime));
+		    // Read first two values again
+			contrasts >> tempString; // NumRegressors as string
+		    contrasts >> tempNumber;
+		    contrasts >> tempString; // NumContrasts as string
+		    contrasts >> tempNumber;
+   
+			// Read all contrast values
+			for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+			{
+				for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+				{
+					if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
+					{
+					    contrasts.close();
+		                printf("Unable to read all the contrast values, aborting! Check the contrasts file. \n");
+		                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+		                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		                return EXIT_FAILURE;
+					}
+				}
+			}
+			contrasts.close();
+		}
+
+		endTime = GetWallTime();
+
+		if (VERBOS)
+	 	{
+			printf("It took %f seconds to read regressors and contrasts\n",(float)(endTime - startTime));
+		}
 	}
     
-	// Write original design matrix to file
-	if (WRITE_ORIGINAL_DESIGNMATRIX)
+	if (!REGRESS_ONLY)
 	{
-		std::ofstream designmatrix;
-	    designmatrix.open("original_designmatrix.txt");  
+		// Write original design matrix to file
+		if (WRITE_ORIGINAL_DESIGNMATRIX)
+		{
+			std::ofstream designmatrix;
+		    designmatrix.open("original_designmatrix.txt");  
 
-	    if ( designmatrix.good() )
-	    {
-    	    for (int t = 0; t < EPI_DATA_T; t++)
-	        {
-	    	    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		    if ( designmatrix.good() )
+		    {
+    		    for (int t = 0; t < EPI_DATA_T; t++)
 		        {
-            		designmatrix << std::setprecision(6) << std::fixed << (double)h_X_GLM[t + r * EPI_DATA_T] << "  ";
+		    	    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			        {
+    	        		designmatrix << std::setprecision(6) << std::fixed << (double)h_X_GLM[t + r * EPI_DATA_T] << "  ";
+					}
+					designmatrix << std::endl;
 				}
-				designmatrix << std::endl;
-			}
-		    designmatrix.close();
-        } 	
-	    else
-	    {
-			designmatrix.close();
-	        printf("Could not open the file for writing the original design matrix!\n");
-	    }
+			    designmatrix.close();
+    	    } 	
+		    else
+		    {
+				designmatrix.close();
+		        printf("Could not open the file for writing the original design matrix!\n");
+		    }
+		}
 	}
 
     // ------------------------------------------------
@@ -2299,7 +2379,10 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputContrastVolumesNoWhiteningMNI(h_Contrast_Volumes_No_Whitening_MNI);
         BROCCOLI.SetOutputStatisticalMapsNoWhiteningMNI(h_Statistical_Maps_No_Whitening_MNI);
 
-        //BROCCOLI.SetOutputResiduals(h_Residuals);
+		BROCCOLI.SetRegressOnly(REGRESS_ONLY);
+        BROCCOLI.SetOutputResidualsMNI(h_Residuals_MNI);
+        BROCCOLI.SetOutputResidualsEPI(h_Residuals_EPI);
+
         //BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
         BROCCOLI.SetOutputAREstimatesEPI(h_AR1_Estimates_EPI, h_AR2_Estimates_EPI, h_AR3_Estimates_EPI, h_AR4_Estimates_EPI);
         BROCCOLI.SetOutputAREstimatesMNI(h_AR1_Estimates_MNI, h_AR2_Estimates_MNI, h_AR3_Estimates_MNI, h_AR4_Estimates_MNI);
@@ -2467,7 +2550,7 @@ int main(int argc, char **argv)
     
     // Create new nifti image
     nifti_image *outputNiftifMRISingleVolume = nifti_copy_nim_info(inputfMRI);
-    outputNiftifMRISingleVolume->nt = 1;
+    outputNiftifMRISingleVolume->nt = 1;	
     outputNiftifMRISingleVolume->dim[4] = 1;
     outputNiftifMRISingleVolume->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
     allNiftiImages[numberOfNiftiImages] = outputNiftifMRISingleVolume;
@@ -2481,6 +2564,12 @@ int main(int argc, char **argv)
     //------------------------------------------
     // Write statistical results, MNI space
     //------------------------------------------
+
+   	// Create new nifti image
+    nifti_image *outputNiftiStatisticsMNI = nifti_copy_nim_info(inputMNI);
+    nifti_set_filenames(outputNiftiStatisticsMNI, inputfMRI->fname, 0, 1);
+    allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsMNI;
+	numberOfNiftiImages++;
     
     std::string beta = "_beta";
     std::string cope = "_cope";
@@ -2492,139 +2581,150 @@ int main(int argc, char **argv)
     std::string PPM = "_PPM";
     std::string mni = "_MNI";
     std::string epi = "_EPI";
-    std::string t1 = "_T1";
-    
-    // Create new nifti image
-    nifti_image *outputNiftiStatisticsMNI = nifti_copy_nim_info(inputMNI);
-    nifti_set_filenames(outputNiftiStatisticsMNI, inputfMRI->fname, 0, 1);
-    allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsMNI;
-	numberOfNiftiImages++;
-    
-    if (!BAYESIAN)
-    {
-	    // Write each beta weight as a separate file
-        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-        {
-            std::string temp = beta;
-            std::stringstream ss;
-            ss << "_regressor";
-            ss << i + 1;
-            temp.append(ss.str());
-            temp.append(mni);
-            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        }
-	    // Write each contrast volume as a separate file
-        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-        {
-            std::string temp = cope;
-            std::stringstream ss;
-            ss << "_contrast";
-            ss << i + 1;
-            temp.append(ss.str());
-            temp.append(mni);
-            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        }  
-        // Write each t-map as a separate file
-        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-        {
-            std::string temp = tscores;
-            std::stringstream ss;
-            ss << "_contrast";
-            ss << i + 1;
-            temp.append(ss.str());
-            temp.append(mni);
-            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        }
+    std::string t1 = "_T1";    
 
-		// No whitening
-
-		if (WRITE_UNWHITENED_RESULTS)
-		{
-			// Write each beta weight as a separate file
+	if (!REGRESS_ONLY)
+	{
+	    if (!BAYESIAN)
+	    {
+		    // Write each beta weight as a separate file
 	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 	        {
-	            std::string temp = betaNoWhitening;
+	            std::string temp = beta;
 	            std::stringstream ss;
 	            ss << "_regressor";
 	            ss << i + 1;
 	            temp.append(ss.str());
 	            temp.append(mni);
-	            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	        }
 		    // Write each contrast volume as a separate file
 	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
 	        {
-	            std::string temp = copeNoWhitening;
+	            std::string temp = cope;
 	            std::stringstream ss;
 	            ss << "_contrast";
 	            ss << i + 1;
 	            temp.append(ss.str());
 	            temp.append(mni);
-	            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	        }  
-    	    // Write each t-map as a separate file
+	        // Write each t-map as a separate file
 	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
 	        {
-	            std::string temp = tscoresNoWhitening;
+	            std::string temp = tscores;
 	            std::stringstream ss;
 	            ss << "_contrast";
 	            ss << i + 1;
 	            temp.append(ss.str());
 	            temp.append(mni);
-	            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	        }
-		}
-        if (PERMUTE)
-        {
-            // Write each p-map as a separate file
-            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-            {
-                std::string temp = pvalues;
-		        std::stringstream ss;
-                ss << "_contrast";
-                ss << i + 1;
-                temp.append(ss.str());
-                temp.append(mni);
-                WriteNifti(outputNiftiStatisticsMNI,&h_P_Values_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-        }
-    }
-    else if (BAYESIAN)
-    {
-	    // Write each beta weight as a separate file
-        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-        {
-            std::string temp = beta;
-            std::stringstream ss;
-            ss << "_regressor";
-            ss << i + 1;
-            temp.append(ss.str());
-            temp.append(mni);
-            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        }
-        // Write each PPM as a separate file
-        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-        {
-            std::string temp = PPM;
-            std::stringstream ss;
-            ss << "_contrast";
-            ss << i + 1;
-            temp.append(ss.str());
-            temp.append(mni);
-            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        }
-    }
 
-    if (WRITE_AR_ESTIMATES_MNI && !BAYESIAN)
-    {
-        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        WriteNifti(outputNiftiStatisticsMNI,h_AR2_Estimates_MNI,"_ar2_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        WriteNifti(outputNiftiStatisticsMNI,h_AR3_Estimates_MNI,"_ar3_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        WriteNifti(outputNiftiStatisticsMNI,h_AR4_Estimates_MNI,"_ar4_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    }
-	else if (WRITE_AR_ESTIMATES_MNI && BAYESIAN)
-	{
-        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			// No whitening
+
+			if (WRITE_UNWHITENED_RESULTS)
+			{
+				// Write each beta weight as a separate file
+		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+		        {
+		            std::string temp = betaNoWhitening;
+		            std::stringstream ss;
+		            ss << "_regressor";
+		            ss << i + 1;
+		            temp.append(ss.str());
+		            temp.append(mni);
+		            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		        }
+			    // Write each contrast volume as a separate file
+		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		        {
+		            std::string temp = copeNoWhitening;
+		            std::stringstream ss;
+		            ss << "_contrast";
+		            ss << i + 1;
+		            temp.append(ss.str());
+		            temp.append(mni);
+		            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		        }  
+	    	    // Write each t-map as a separate file
+		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		        {
+		            std::string temp = tscoresNoWhitening;
+		            std::stringstream ss;
+		            ss << "_contrast";
+		            ss << i + 1;
+		            temp.append(ss.str());
+		            temp.append(mni);
+		            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		        }
+			}
+	        if (PERMUTE)
+	        {
+	            // Write each p-map as a separate file
+	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	            {
+	                std::string temp = pvalues;
+			        std::stringstream ss;
+	                ss << "_contrast";
+	                ss << i + 1;
+	                temp.append(ss.str());
+	                temp.append(mni);
+	                WriteNifti(outputNiftiStatisticsMNI,&h_P_Values_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	            }
+	        }
+	    }
+	    else if (BAYESIAN)
+	    {
+		    // Write each beta weight as a separate file
+	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	        {
+	            std::string temp = beta;
+	            std::stringstream ss;
+	            ss << "_regressor";
+	            ss << i + 1;
+	            temp.append(ss.str());
+	            temp.append(mni);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        }
+	        // Write each PPM as a separate file
+	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	        {
+	            std::string temp = PPM;
+	            std::stringstream ss;
+	            ss << "_contrast";
+	            ss << i + 1;
+	            temp.append(ss.str());
+	            temp.append(mni);
+	            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        }
+	    }
+
+	    if (WRITE_AR_ESTIMATES_MNI && !BAYESIAN)
+	    {
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR2_Estimates_MNI,"_ar2_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR3_Estimates_MNI,"_ar3_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR4_Estimates_MNI,"_ar4_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    }
+		else if (WRITE_AR_ESTIMATES_MNI && BAYESIAN)
+		{
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+	}
+	else
+	{		
+		outputNiftiStatisticsMNI->nt = EPI_DATA_T;
+		outputNiftiStatisticsMNI->ndim = 4;
+		outputNiftiStatisticsMNI->dim[0] = 4;
+	    outputNiftiStatisticsMNI->dim[4] = EPI_DATA_T;
+	    outputNiftiStatisticsMNI->pixdim[6] = inputfMRI->pixdim[6];
+	    outputNiftiStatisticsMNI->pixdim[7] = inputfMRI->pixdim[7];
+	    outputNiftiStatisticsMNI->pixdim[8] = inputfMRI->pixdim[8];
+	    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * EPI_DATA_T;
+		outputNiftiStatisticsMNI->dt = TR;		
+	    
+		WriteNifti(outputNiftiStatisticsMNI,h_Residuals_MNI,"_residuals_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 
     //------------------------------------------
@@ -2639,136 +2739,149 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsEPI;
     numberOfNiftiImages++;
     
-    if (WRITE_ACTIVITY_EPI)
-    {
-        if (!BAYESIAN)
-        {
-            // Write each beta weight as a separate file
-            for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-            {
-                std::string temp = beta;
-                std::stringstream ss;
-                ss << "_regressor";
-				ss << i + 1;
-                temp.append(ss.str());
-                temp.append(epi);
-                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-            // Write each contrast volume as a separate file
-            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-            {
-                std::string temp = cope;
-                std::stringstream ss;
-                ss << "_contrast";
-                ss << i + 1;
-                temp.append(ss.str());
-                temp.append(epi);
-                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-            // Write each t-map as a separate file
-            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-            {
-                std::string temp = tscores;
-                std::stringstream ss;
-                ss << "_contrast";
-                ss << i + 1;
-                temp.append(ss.str());
-                temp.append(epi);
-                WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-
-			// No whitening
-
-			if (WRITE_UNWHITENED_RESULTS)
-			{
-				// Write each beta weight as a separate file
+	if (!REGRESS_ONLY)
+	{
+	    if (WRITE_ACTIVITY_EPI)
+	    {
+    	    if (!BAYESIAN)
+    	    {
+    	        // Write each beta weight as a separate file
     	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-	            {
-	                std::string temp = betaNoWhitening;
-	                std::stringstream ss;
-	                ss << "_regressor";
+    	        {
+    	            std::string temp = beta;
+    	            std::stringstream ss;
+    	            ss << "_regressor";
 					ss << i + 1;
-	                temp.append(ss.str());
-	                temp.append(epi);
-	                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	            }
-	            // Write each contrast volume as a separate file
-	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-	            {
-	                std::string temp = copeNoWhitening;
-	                std::stringstream ss;
-	                ss << "_contrast";
-	                ss << i + 1;
-	                temp.append(ss.str());
-	                temp.append(epi);
-	                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	            }
-	            // Write each t-map as a separate file
-	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-	            {
-	                std::string temp = tscoresNoWhitening;
-	                std::stringstream ss;
-	                ss << "_contrast";
-	                ss << i + 1;
-	                temp.append(ss.str());
-	                temp.append(epi);
-	                WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	            }
-			}
+    	            temp.append(ss.str());
+    	            temp.append(epi);
+    	            WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	        // Write each contrast volume as a separate file
+    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        {
+    	            std::string temp = cope;
+    	            std::stringstream ss;
+    	            ss << "_contrast";
+    	            ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(epi);
+    	            WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	        // Write each t-map as a separate file
+    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        {
+    	            std::string temp = tscores;
+    	            std::stringstream ss;
+    	            ss << "_contrast";
+    	            ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(epi);
+    	            WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
 
-            if (PERMUTE)
-            {
-                // Write each p-map as a separate file
-                for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-                {
-                    std::string temp = pvalues;
-                    std::stringstream ss;
-	                ss << "_contrast";
-                    ss << i + 1;
-                    temp.append(ss.str());
-                    temp.append(epi);
-                    WriteNifti(outputNiftiStatisticsEPI,&h_P_Values_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-                }
-            }
-        }
-        else if (BAYESIAN)
-        {
-            // Write each beta weight as a separate file
-            for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-            {
-                std::string temp = beta;
-                std::stringstream ss;
-                ss << "_regressor";
-				ss << i + 1;
-                temp.append(ss.str());
-                temp.append(epi);
-                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-            // Write each PPM as a separate file
-            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-            {
-                std::string temp = PPM;
-                std::stringstream ss;
-                ss << "_contrast";
-                ss << i + 1;
-                temp.append(ss.str());
-                temp.append(epi);
-                WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-        }
-    }
+				// No whitening
+	
+				if (WRITE_UNWHITENED_RESULTS)
+				{
+					// Write each beta weight as a separate file
+    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+		            {
+		                std::string temp = betaNoWhitening;
+		                std::stringstream ss;
+		                ss << "_regressor";
+						ss << i + 1;
+		                temp.append(ss.str());
+		                temp.append(epi);
+		                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            }
+		            // Write each contrast volume as a separate file
+		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		            {
+		                std::string temp = copeNoWhitening;
+		                std::stringstream ss;
+		                ss << "_contrast";
+		                ss << i + 1;
+		                temp.append(ss.str());
+		                temp.append(epi);
+		                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            }
+		            // Write each t-map as a separate file
+		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		            {
+		                std::string temp = tscoresNoWhitening;
+		                std::stringstream ss;
+		                ss << "_contrast";
+		                ss << i + 1;
+		                temp.append(ss.str());
+		                temp.append(epi);
+		                WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            }
+				}
+	
+    	        if (PERMUTE)
+    	        {
+    	            // Write each p-map as a separate file
+    	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	            {
+    	                std::string temp = pvalues;
+    	                std::stringstream ss;
+		                ss << "_contrast";
+    	                ss << i + 1;
+    	                temp.append(ss.str());
+    	                temp.append(epi);
+    	                WriteNifti(outputNiftiStatisticsEPI,&h_P_Values_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	            }
+    	        }
+    	    }
+    	    else if (BAYESIAN)
+    	    {
+    	        // Write each beta weight as a separate file
+    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+    	        {
+    	            std::string temp = beta;
+    	            std::stringstream ss;
+    	            ss << "_regressor";
+					ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(epi);
+    	            WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	        // Write each PPM as a separate file
+    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        {
+    	            std::string temp = PPM;
+    	            std::stringstream ss;
+    	            ss << "_contrast";
+    	            ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(epi);
+    	            WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	    }
+    	}
     
-    if (WRITE_AR_ESTIMATES_EPI && !BAYESIAN)
-    {
-        WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        WriteNifti(outputNiftiStatisticsEPI,h_AR2_Estimates_EPI,"_ar2_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        WriteNifti(outputNiftiStatisticsEPI,h_AR3_Estimates_EPI,"_ar3_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        WriteNifti(outputNiftiStatisticsEPI,h_AR4_Estimates_EPI,"_ar4_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);	
-    }    
-    else if (WRITE_AR_ESTIMATES_EPI && BAYESIAN)
-    {
-        WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    }    
+    	if (WRITE_AR_ESTIMATES_EPI && !BAYESIAN)
+    	{
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR2_Estimates_EPI,"_ar2_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR3_Estimates_EPI,"_ar3_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR4_Estimates_EPI,"_ar4_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);	
+    	}    
+    	else if (WRITE_AR_ESTIMATES_EPI && BAYESIAN)
+    	{
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	}    
+	}
+	else
+	{
+		if (WRITE_ACTIVITY_EPI)
+	    {
+	    	outputNiftiStatisticsEPI->nt = EPI_DATA_T;
+	    	outputNiftiStatisticsEPI->dim[4] = EPI_DATA_T;
+	    	outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T;
+			WriteNifti(outputNiftiStatisticsEPI,h_Residuals_EPI,"_residuals",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+	}
 
 
     //------------------------------------------
@@ -2783,130 +2896,133 @@ int main(int argc, char **argv)
     outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D;
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsT1;
     numberOfNiftiImages++;
-    
-    if (WRITE_ACTIVITY_T1)
-    {
-        if (!BAYESIAN)
-        {
-            // Write each beta weight as a separate file
-            for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-            {
-                std::string temp = beta;
-                std::stringstream ss;
-                ss << "_regressor";
-				ss << i + 1;
-                temp.append(ss.str());
-                temp.append(t1);
-                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-            // Write each contrast volume as a separate file
-            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-            {
-                std::string temp = cope;
-                std::stringstream ss;
-                ss << "_contrast";
-                ss << i + 1;
-                temp.append(ss.str());
-                temp.append(t1);
-                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-            // Write each t-map as a separate file
-            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-            {
-                std::string temp = tscores;
-                std::stringstream ss;
-                ss << "_contrast";
-                ss << i + 1;
-                temp.append(ss.str());
-                temp.append(t1);
-                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
 
-			// No whitening
-
-			if (WRITE_UNWHITENED_RESULTS)
-			{
-				// Write each beta weight as a separate file
+	if (!REGRESS_ONLY)
+	{  
+	    if (WRITE_ACTIVITY_T1)
+	    {
+    	    if (!BAYESIAN)
+    	    {
+    	        // Write each beta weight as a separate file
     	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-	            {
-	                std::string temp = betaNoWhitening;
-	                std::stringstream ss;
-	                ss << "_regressor";
+    	        {
+    	            std::string temp = beta;
+    	            std::stringstream ss;
+    	            ss << "_regressor";
 					ss << i + 1;
-	                temp.append(ss.str());
-	                temp.append(t1);
-	                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	            }
-	            // Write each contrast volume as a separate file
-	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-	            {
-	                std::string temp = copeNoWhitening;
-	                std::stringstream ss;
-	                ss << "_contrast";
-	                ss << i + 1;
-	                temp.append(ss.str());
-	                temp.append(t1);
-	                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	            }
-	            // Write each t-map as a separate file
-	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-	            {
-	                std::string temp = tscoresNoWhitening;
-	                std::stringstream ss;
-	                ss << "_contrast";
-	                ss << i + 1;
-	                temp.append(ss.str());
-	                temp.append(t1);
-	                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	            }
-			}
+    	            temp.append(ss.str());
+    	            temp.append(t1);
+    	            WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	        // Write each contrast volume as a separate file
+    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        {
+    	            std::string temp = cope;
+    	            std::stringstream ss;
+    	            ss << "_contrast";
+    	            ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(t1);
+    	            WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	        // Write each t-map as a separate file
+    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        {
+    	            std::string temp = tscores;
+    	            std::stringstream ss;
+    	            ss << "_contrast";
+    	            ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(t1);
+    	            WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
 
-            if (PERMUTE)
-            {
-                // Write each p-map as a separate file
-                for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-                {
-                    std::string temp = pvalues;
-                    std::stringstream ss;
-	                ss << "_contrast";
-                    ss << i + 1;
-                    temp.append(ss.str());
-                    temp.append(t1);
-                    WriteNifti(outputNiftiStatisticsT1,&h_P_Values_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-                }
-            }
-        }
-        else if (BAYESIAN)
-        {
-            // Write each beta weight as a separate file
-            for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-            {
-                std::string temp = beta;
-                std::stringstream ss;
-                ss << "_regressor";
-				ss << i + 1;
-                temp.append(ss.str());
-                temp.append(t1);
-                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-            // Write each PPM as a separate file
-            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-            {
-                std::string temp = PPM;
-                std::stringstream ss;
-                ss << "_contrast";
-                ss << i + 1;
-                temp.append(ss.str());
-                temp.append(t1);
-                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-            }
-        }
-    }
+				// No whitening
+	
+				if (WRITE_UNWHITENED_RESULTS)
+				{
+					// Write each beta weight as a separate file
+    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+		            {
+		                std::string temp = betaNoWhitening;
+		                std::stringstream ss;
+		                ss << "_regressor";
+						ss << i + 1;
+		                temp.append(ss.str());
+		                temp.append(t1);
+		                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            }
+		            // Write each contrast volume as a separate file
+		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		            {
+		                std::string temp = copeNoWhitening;
+		                std::stringstream ss;
+		                ss << "_contrast";
+		                ss << i + 1;
+		                temp.append(ss.str());
+		                temp.append(t1);
+		                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            }
+		            // Write each t-map as a separate file
+		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		            {
+		                std::string temp = tscoresNoWhitening;
+		                std::stringstream ss;
+		                ss << "_contrast";
+		                ss << i + 1;
+		                temp.append(ss.str());
+		                temp.append(t1);
+		                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            }
+				}
+	
+    	        if (PERMUTE)
+    	        {
+    	            // Write each p-map as a separate file
+    	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	            {
+    	                std::string temp = pvalues;
+    	                std::stringstream ss;
+		                ss << "_contrast";
+    	                ss << i + 1;
+    	                temp.append(ss.str());
+    	                temp.append(t1);
+    	                WriteNifti(outputNiftiStatisticsT1,&h_P_Values_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	            }
+    	        }
+    	    }
+    	    else if (BAYESIAN)
+    	    {
+    	        // Write each beta weight as a separate file
+    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+    	        {
+    	            std::string temp = beta;
+    	            std::stringstream ss;
+    	            ss << "_regressor";
+					ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(t1);
+    	            WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	        // Write each PPM as a separate file
+    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        {
+    	            std::string temp = PPM;
+    	            std::stringstream ss;
+    	            ss << "_contrast";
+    	            ss << i + 1;
+    	            temp.append(ss.str());
+    	            temp.append(t1);
+    	            WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	        }
+    	    }
+    	}
+	}
    
     endTime = GetWallTime();
     
 	if (VERBOS)
- 	{
+	{
 		printf("It took %f seconds to write the nifti files\n",(float)(endTime - startTime));
 	}  
     

@@ -128,6 +128,7 @@ class BROCCOLI_LIB
 
 		// Statistics
 		void SetTemporalDerivatives(int TD);
+		void SetRegressOnly(int R);
 		void SetRegressMotion(int R);
 		void SetRegressGlobalMean(int R);
 		void SetRegressConfounds(int R);
@@ -242,7 +243,8 @@ class BROCCOLI_LIB
 		void SetOutputStatisticalMapsNoWhiteningEPI(float* output);
 		void SetOutputStatisticalMapsNoWhiteningT1(float* output);
 		void SetOutputStatisticalMapsNoWhiteningMNI(float* output);
-		void SetOutputResiduals(float* output);
+		void SetOutputResidualsEPI(float* output);
+		void SetOutputResidualsMNI(float* output);
 		void SetOutputResidualVariances(float* output);
 		void SetOutputPValuesEPI(float* output);
 		void SetOutputPValuesT1(float* output);
@@ -386,6 +388,7 @@ class BROCCOLI_LIB
 		void TransformVolumesNonLinearWrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
+		void PerformRegression(cl_mem, cl_mem, int, int, int, int);
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
 		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
 		void PerformSmoothingWrapper();
@@ -507,6 +510,7 @@ class BROCCOLI_LIB
 		void TransformVolumesLinear(cl_mem d_Volumes, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformVolumesNonLinear(cl_mem d_Volumes, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformFirstLevelResultsToMNI();
+		void TransformResidualsToMNI();
 		void TransformFirstLevelResultsToT1();
 		void TransformBayesianFirstLevelResultsToMNI();
 		void TransformPValuesToMNI();
@@ -1025,6 +1029,7 @@ class BROCCOLI_LIB
 		int INFERENCE_MODE;
 		int USE_TEMPORAL_DERIVATIVES;
 		bool RAW_REGRESSORS;
+		bool REGRESS_ONLY;
 		int REGRESS_MOTION;
 		int REGRESS_GLOBALMEAN;
 		int REGRESS_CONFOUNDS;
@@ -1142,7 +1147,8 @@ class BROCCOLI_LIB
 		float		*h_Statistical_Maps_No_Whitening_MNI, *h_Statistical_Maps_No_Whitening_EPI, *h_Statistical_Maps_No_Whitening_T1;
 		float		*h_P_Values_MNI, *h_P_Values_EPI, *h_P_Values_T1;
 		float		*h_First_Level_Results;
-		float       *h_Residuals;
+		float       *h_Residuals_EPI;
+		float       *h_Residuals_MNI;
 		float       *h_Residual_Variances;
 		float		*h_AR1_Estimates_EPI, *h_AR2_Estimates_EPI, *h_AR3_Estimates_EPI, *h_AR4_Estimates_EPI;
 		float		*h_AR1_Estimates_T1, *h_AR2_Estimates_T1, *h_AR3_Estimates_T1, *h_AR4_Estimates_T1;
