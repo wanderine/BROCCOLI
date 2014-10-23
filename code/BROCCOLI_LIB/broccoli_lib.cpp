@@ -6697,8 +6697,7 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 
 		clReleaseMemObject(d_MNI_Brain_Mask);
 	}
-
-	if (DO_SKULLSTRIP_ORIGINAL)
+	else if (DO_SKULLSTRIP_ORIGINAL)
 	{
 		// Copy brain mask from host
 		cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
