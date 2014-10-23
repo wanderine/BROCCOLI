@@ -328,6 +328,7 @@ int main(int argc, char **argv)
    	bool			CHANGE_OUTPUT_NAME = false;    
 	float			SIGMA = 5.0f;
 	bool			MASK = false;
+	bool			MASK_ORIGINAL = false;
 	const char* 	MASK_NAME;
 
 	float			STARTTRANSX = 0.0f;
@@ -389,6 +390,9 @@ int main(int argc, char **argv)
         printf(" -sigma                     Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
         printf(" -mask                      Mask to apply after linear and non-linear registration, to for example do a skullstrip (default none) \n");        
+        printf(" -maskoriginal              Mask to apply after linear registration, to for example do a skullstrip. Returns the volume skullstripped and unregistered (but interpolated to the reference volume size) (default none) \n");        
+
+
 		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
 		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume, before alignment (default false) \n");        
 		printf(" -output                    Set output filename (default input_volume_aligned_linear.nii and input_volume_aligned_nonlinear.nii) \n");
@@ -788,7 +792,7 @@ int main(int argc, char **argv)
 
             i += 2;
         }
-		else if (strcmp(input,"-mask") == 0)
+	else if (strcmp(input,"-mask") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
@@ -800,6 +804,19 @@ int main(int argc, char **argv)
             MASK_NAME = argv[i+1];
             i += 2;
         }
+	else if (strcmp(input,"-maskoriginal") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read name after -maskoriginal !\n");
+                return EXIT_FAILURE;
+			}
+
+			MASK_ORIGINAL = true;
+            MASK_NAME = argv[i+1];
+            i += 2;
+        }
+
         else if (strcmp(input,"-savefield") == 0)
         {
             WRITE_DISPLACEMENT_FIELD = true;
@@ -887,7 +904,7 @@ int main(int argc, char **argv)
     //}
 
 	nifti_image *inputMask;
-	if (MASK)
+	if (MASK || MASK_ORIGINAL)
 	{
 	    inputMask = nifti_image_read(MASK_NAME,1);
     
@@ -950,7 +967,7 @@ int main(int argc, char **argv)
 	}
     
 	// Check  if mask has same dimensions as reference volume
-	if (MASK)
+	if (MASK || MASK_ORIGINAL)
 	{
 		int TEMP_DATA_W = inputMask->nx;
 		int TEMP_DATA_H = inputMask->ny;
@@ -1012,7 +1029,7 @@ int main(int argc, char **argv)
    	AllocateMemory(h_Aligned_T1_Volume_NonLinear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "NONLINEARLY_ALIGNED_INPUT_VOLUME");    
    	AllocateMemory(h_Registration_Parameters, IMAGE_REGISTRATION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "REGISTRATION_PARAMETERS");    
         
-	if (MASK)
+	if (MASK || MASK_ORIGINAL)
 	{
 		AllocateMemory(h_MNI_Brain_Mask, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_BRAIN_MASK");    
 		AllocateMemory(h_Skullstripped_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SKULLSTRIPPED_VOLUME");    
@@ -1161,7 +1178,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     
-	if (MASK)
+	if (MASK || MASK_ORIGINAL)
 	{
 	    if ( inputMask->datatype == DT_SIGNED_SHORT )
 	    {
@@ -1350,6 +1367,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
         
 		BROCCOLI.SetDoSkullstrip(MASK);
+		BROCCOLI.SetDoSkullstripOriginal(MASK_ORIGINAL);
 
 		BROCCOLI.SetSaveInterpolatedT1(WRITE_INTERPOLATED);
 		BROCCOLI.SetSaveAlignedT1MNILinear(true);
@@ -1487,7 +1505,7 @@ int main(int argc, char **argv)
    		WriteNifti(outputNifti,h_Aligned_T1_Volume_NonLinear,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 
-	if (MASK)
+	if (MASK || MASK_ORIGINAL)
 	{
    		WriteNifti(outputNifti,h_Skullstripped_T1_Volume,"_skullstripped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}

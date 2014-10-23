@@ -183,6 +183,7 @@ class BROCCOLI_LIB
 		void SetEsigma(float);
 		void SetDsigma(float);
 		void SetDoSkullstrip(bool);
+		void SetDoSkullstripOriginal(bool);
 
 		// EPI data
 		void SetEPIVoxelSizeX(float value);
@@ -949,6 +950,7 @@ class BROCCOLI_LIB
 		bool WRITE_ALIGNED_T1_MNI_LINEAR;
 		bool WRITE_ALIGNED_T1_MNI_NONLINEAR;
 		bool DO_SKULLSTRIP;
+		bool DO_SKULLSTRIP_ORIGINAL;
 
 		bool WRITE_ALIGNED_EPI_T1;
 		bool WRITE_ALIGNED_EPI_MNI;

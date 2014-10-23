@@ -167,6 +167,11 @@ void BROCCOLI_LIB::SetDoSkullstrip(bool doskullstrip)
 	DO_SKULLSTRIP = doskullstrip;
 }
 
+void BROCCOLI_LIB::SetDoSkullstripOriginal(bool doskullstriporiginal)
+{
+	DO_SKULLSTRIP_ORIGINAL = doskullstriporiginal;
+}
+
 void BROCCOLI_LIB::SetWrapper(int wrapper)
 {
 	WRAPPER = wrapper;
@@ -6082,6 +6087,7 @@ void BROCCOLI_LIB::InvertAffineRegistrationParameters(float* h_Inverse_Parameter
 	// (0  0   0   1 )
 
 	Eigen::MatrixXd Affine_Matrix(4,4);
+	Eigen::MatrixXd Inverse_Matrix(4,4);
 
 	// Put values into an Eigen matrix, and convert to double
 	// Add ones in the diagonal, to get a transformation matrix
@@ -6110,29 +6116,29 @@ void BROCCOLI_LIB::InvertAffineRegistrationParameters(float* h_Inverse_Parameter
 	Affine_Matrix(3,3) = 1.0;
 
 	// Calculate inverse
-	Affine_Matrix.inverse();
+	Inverse_Matrix = Affine_Matrix.inverse();
 
 	// Subtract ones in the diagonal
 
 	// Put back translation parameters into array
-	h_Inverse_Parameters[0] = (float)Affine_Matrix(0,3);
-	h_Inverse_Parameters[1] = (float)Affine_Matrix(1,3);
-	h_Inverse_Parameters[2] = (float)Affine_Matrix(2,3);
+	h_Inverse_Parameters[0] = (float)Inverse_Matrix(0,3);
+	h_Inverse_Parameters[1] = (float)Inverse_Matrix(1,3);
+	h_Inverse_Parameters[2] = (float)Inverse_Matrix(2,3);
 
 	// First row
-	h_Inverse_Parameters[3] = (float)(Affine_Matrix(0,0) - 1.0);
-	h_Inverse_Parameters[4] = (float)Affine_Matrix(0,1);
-	h_Inverse_Parameters[5] = (float)Affine_Matrix(0,2);
+	h_Inverse_Parameters[3] = (float)(Inverse_Matrix(0,0) - 1.0);
+	h_Inverse_Parameters[4] = (float)Inverse_Matrix(0,1);
+	h_Inverse_Parameters[5] = (float)Inverse_Matrix(0,2);
 
 	// Second row
-	h_Inverse_Parameters[6] = (float)Affine_Matrix(1,0);
-	h_Inverse_Parameters[7] = (float)(Affine_Matrix(1,1) - 1.0);
-	h_Inverse_Parameters[8] = (float)Affine_Matrix(1,2);
+	h_Inverse_Parameters[6] = (float)Inverse_Matrix(1,0);
+	h_Inverse_Parameters[7] = (float)(Inverse_Matrix(1,1) - 1.0);
+	h_Inverse_Parameters[8] = (float)Inverse_Matrix(1,2);
 
 	// Third row
-	h_Inverse_Parameters[9] = (float)Affine_Matrix(2,0);
-	h_Inverse_Parameters[10] = (float)Affine_Matrix(2,1);
-	h_Inverse_Parameters[11] = (float)(Affine_Matrix(2,2) - 1.0);
+	h_Inverse_Parameters[9] = (float)Inverse_Matrix(2,0);
+	h_Inverse_Parameters[10] = (float)Inverse_Matrix(2,1);
+	h_Inverse_Parameters[11] = (float)(Inverse_Matrix(2,2) - 1.0);
 }
 
 
@@ -6684,6 +6690,30 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 		clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask, 0, NULL, NULL);
 
 		// Multiply the non-linearly aligned volume with the brain mask
+		MultiplyVolumes(d_Input_Volume_Reference_Size, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+		// Copy the skullstripped volume to host
+		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
+
+		clReleaseMemObject(d_MNI_Brain_Mask);
+	}
+
+	if (DO_SKULLSTRIP_ORIGINAL)
+	{
+		// Copy brain mask from host
+		cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+		clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask, 0, NULL, NULL);
+
+		// Copy back the interpolated volume from host
+		clEnqueueWriteBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume , 0, NULL, NULL);
+
+		// Calculate inverse affine transform between T1 and MNI
+		InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI_Out);
+
+		// Now apply the inverse transformation between MNI and T1, to transform the MNI brain mask to original T1 space
+		TransformVolumesLinear(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, NEAREST);
+
+		// Multiply the interpolated volume with the inverse transformed brain mask
 		MultiplyVolumes(d_Input_Volume_Reference_Size, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 		// Copy the skullstripped volume to host
