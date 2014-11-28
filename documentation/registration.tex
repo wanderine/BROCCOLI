@@ -49,7 +49,7 @@ The following registration options are available
 
 By default, the function saves the results as input\_volume\_aligned\_linear.nii (the result after linear registration) and input\_volume\_aligned\_nonlinear.nii (the result after non-linear registration). 
 
-\newpage 
+%\newpage 
 
 \section{Output options}
 
@@ -75,7 +75,10 @@ The following additional options are available
 \begin{itemize}
 
 \item -mask                      
-\newline \newline Mask to apply after linear and non-linear registration, to for example do a skullstrip (default none). 
+\newline \newline Mask to apply after linear and non-linear registration, to the aligned volume. The option can for example be used to do a skullstrip (default none). 
+
+\item -maskoriginal                      
+\newline \newline Mask to apply after linear and non-linear registration. The option can for example be used to do a skullstrip. Returns the volume skullstripped and unregistered (but interpolated to the reference volume size) (default none). 
 
 \item -quiet 
 \newline \newline Don't print anything to the terminal (default false). 
