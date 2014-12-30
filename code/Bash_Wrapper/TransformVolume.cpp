@@ -189,6 +189,8 @@ int main(int argc, char **argv)
 
 	const char*		outputFilename;
 
+	bool			VERBOS = false;
+
     // Size parameters
     int             INPUT_DATA_H, INPUT_DATA_W, INPUT_DATA_D;
     int             REFERENCE_DATA_H, REFERENCE_DATA_W, REFERENCE_DATA_D;
@@ -380,6 +382,13 @@ int main(int argc, char **argv)
         }                
     }
         
+	// Check if BROCCOLI_DIR variable is set
+	if (getenv("BROCCOLI_DIR") == NULL)
+	{
+        printf("The environment variable BROCCOLI_DIR is not set!\n");
+        return EXIT_FAILURE;
+	}
+
     // Read data
     nifti_image *inputVolume = nifti_image_read(argv[1],1);    
     if (inputVolume == NULL)
@@ -617,7 +626,7 @@ int main(int argc, char **argv)
             
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2,VERBOS); // 2 = Bash wrapper
     
     // Something went wrong...
     if ( !BROCCOLI.GetOpenCLInitiated() )

@@ -112,22 +112,23 @@ void debugVolumeInfo(const char* name, int W, int H, int D, float* volume)
 
 BROCCOLI_LIB::BROCCOLI_LIB()
 {	
-	OPENCL_INITIATED = 0;
+	OPENCL_INITIATED = false;
 	SetStartValues();
 }
 
 BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device)
 {
 	SetStartValues();
-	OPENCL_INITIATED = 0;
+	OPENCL_INITIATED = false;
 	SUCCESSFUL_INITIALIZATION = OpenCLInitiate(platform,device);
 }
 
-BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper)
+BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper, bool verbos)
 {
 	SetStartValues();
 	WRAPPER = wrapper;
-	OPENCL_INITIATED = 0;
+	VERBOS = verbos;
+	OPENCL_INITIATED = false;
 	SUCCESSFUL_INITIALIZATION = OpenCLInitiate(platform,device);
 }
 
@@ -885,14 +886,17 @@ bool BROCCOLI_LIB::SaveProgramBinary(cl_program program, cl_device_id device, st
 	return true;
 }
 
-std::string BROCCOLI_LIB::Getexepath()
+
+std::string BROCCOLI_LIB::GetBROCCOLIDirectory()
 {
-  /*
-  char result[ PATH_MAX ];
-  ssize_t count = readlink( "/proc/self/exe", result, PATH_MAX );
-  return std::string( result, (count > 0) ? count : 0 );
-  */
-  return std::string("test");
+    if (getenv("BROCCOLI_DIR") != NULL)
+	{
+		return std::string(getenv("BROCCOLI_DIR"));
+	}	
+	else
+  	{
+		return "ERROR"; 
+ 	}
 }
 
 
@@ -1049,16 +1053,27 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	}
 
 	// Support for running BROCCOLI from any directory
-	//std::string kernelFileName = Getexepath();
-	//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
-	//kernelFileName.append(binaryFilename);
 
-	std::string kernelFileName;
-	kernelFileName.append(binaryFilename);
+	// Check if BROCCOLI_DIR environment variable is set
+	if (WRAPPER == BASH)
+	{
+		if (GetBROCCOLIDirectory().compare("ERROR") == 0)
+		{
+			INITIALIZATION_ERROR = "BROCCOLI_DIR environment variable is not set!";
+			OPENCL_ERROR = "";
+			return false;		    
+		}
+	}
+
+	std::string binaryPathAndFileName;
+	if (WRAPPER == BASH)
+	{
+		binaryPathAndFilename.append(GetBROCCOLIDirectory());
+	}
+	binaryPathAndFilename.append(binaryFilename);
 
 	// First try to compile from binary file for the selected device
-	error = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryFilename);
-	//error = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], kernelFileName);
+	error = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryPathAndFilename);
 
 	// Build program for selected device
 	if (VENDOR == NVIDIA)
@@ -1071,10 +1086,24 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	}
 
 	// Otherwise compile from source code
+	std::string OpenCLSourcename = "broccoli_lib_kernel.cpp";
+	std::string OpenCLSourcenameShort = "broccoli_lib_kernel_short.cpp";
+
+	std::string OpenCLPathAndSourcename;
+	std::string OpenCLPathAndSourcenameShort;
+
+	if (WRAPPER == BASH)
+	{
+	    OpenCLPathAndSourcename.append(GetBROCCOLIDirectory());
+	    OpenCLPathAndSourcenameShort.append(GetBROCCOLIDirectory());
+	}
+	OpenCLPathAndSourcename.append(OpenCLSourcename);
+	OpenCLPathAndSourcenameShort.append(OpenCLSourcenameShort);
+
 	if (error != SUCCESS)
 	{
 		// Check if kernel file exists
-		std::ifstream file("broccoli_lib_kernel.cpp");
+		std::ifstream file(OpenCLPathAndSourcename.c_str());
 		if ( !file.good() )
 		{
 			INITIALIZATION_ERROR = "Unable to open broccoli_lib_kernel.cpp.";
@@ -1082,14 +1111,8 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			return false;
 		}
 
-		// Support for running BROCCOLI from any directory
-		//std::string kernelFileName = Getexepath();
-		//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
-		//kernelFileName.append("broccoli_lib_kernel.cpp");
-		//std::fstream kernelFile(kernelFileName.c_str(),std::ios::in);
-
 		// Read the kernel code from file
-		std::fstream kernelFile("broccoli_lib_kernel.cpp",std::ios::in);
+		std::fstream kernelFile(OpenCLPathAndSourcename.c_str(),std::ios::in);
 
 		std::ostringstream oss;
 		oss << kernelFile.rdbuf();
@@ -1117,7 +1140,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		// If successful build, save to binary file
 		if (buildProgramError == SUCCESS)
 		{
-			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename);
+			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
 		}
 	}
 
@@ -1130,7 +1153,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		}
 
 		// Check if kernel file exists
-		std::ifstream file("broccoli_lib_kernel_short.cpp");
+		std::ifstream file(OpenCLPathAndSourcenameShort.c_str());
 		if ( !file.good() )
 		{
 			INITIALIZATION_ERROR = "Unable to open broccoli_lib_kernel_short.cpp.";
@@ -1138,14 +1161,8 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			return false;
 		}
 
-		// Support for running BROCCOLI from any directory
-		//std::string kernelFileName = Getexepath();
-		//kernelFileName.erase(kernelFileName.end()-16, kernelFileName.end());
-		//kernelFileName.append("broccoli_lib_kernel.cpp");
-		//std::fstream kernelFile(kernelFileName.c_str(),std::ios::in);
-
 		// Read the kernel code from file
-		std::fstream kernelFile("broccoli_lib_kernel_short.cpp",std::ios::in);
+		std::fstream kernelFile(OpenCLPathAndSourcenameShort.c_str(),std::ios::in);
 
 		std::ostringstream oss;
 		oss << kernelFile.rdbuf();
@@ -1173,7 +1190,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		// If successful build, save to binary file
 		if (buildProgramError == SUCCESS)
 		{
-			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryFilename);
+			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
 		}
 	}
 
@@ -1447,7 +1464,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[74] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
 	OpenCLKernels[75] = CalculatePermutationPValuesClusterLevelInferenceKernel;
 
-	OPENCL_INITIATED = 1;
+	OPENCL_INITIATED = true;
 
 	// Set all create kernel errors into an array
 	GetOpenCLCreateKernelErrors();
@@ -1484,7 +1501,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 // Cleans up all the OpenCL variables when the BROCCOLI instance is destroyed
 void BROCCOLI_LIB::OpenCLCleanup()
 {
-	if (OPENCL_INITIATED == 1)
+	if (OPENCL_INITIATED)
 	{
 		// Release all kernels
 		for (int k = 0; k < NUMBER_OF_OPENCL_KERNELS; k++)

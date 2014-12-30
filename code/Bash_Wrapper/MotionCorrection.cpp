@@ -402,6 +402,13 @@ int main(int argc, char ** argv)
         }                
     }
     
+	// Check if BROCCOLI_DIR variable is set
+	if (getenv("BROCCOLI_DIR") == NULL)
+	{
+        printf("The environment variable BROCCOLI_DIR is not set!\n");
+        return EXIT_FAILURE;
+	}
+
     double startTime = GetWallTime();
 
     // Read data
@@ -524,37 +531,33 @@ int main(int argc, char ** argv)
 
     // Read quadrature filters, three real valued and three imaginary valued
 
-	/*
-	std::string path = Getexepath();
-	path.erase(path.end()-16, path.end()); // 16 is the number of characters in 'MotionCorrection'
-	std::string filter1RealName = path;
-	std::string filter1ImagName = path;
-	std::string filter2RealName = path;
-	std::string filter2ImagName = path;
-	std::string filter3RealName = path;
-	std::string filter3ImagName = path;
-	*/
+	std::string filter1RealLinearPathAndName;
+	std::string filter1ImagLinearPathAndName;
+	std::string filter2RealLinearPathAndName;
+	std::string filter2ImagLinearPathAndName;
+	std::string filter3RealLinearPathAndName;
+	std::string filter3ImagLinearPathAndName;
 
-	std::string filter1RealName;
-	std::string filter1ImagName;
-	std::string filter2RealName;
-	std::string filter2ImagName;
-	std::string filter3RealName;
-	std::string filter3ImagName;
+	filter1RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
+	filter1ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
+	filter2RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
+	filter2ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
+	filter3RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
+	filter3ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
 
-	filter1RealName.append("filter1_real_linear_registration.bin");
-	filter1ImagName.append("filter1_imag_linear_registration.bin");
-	filter2RealName.append("filter2_real_linear_registration.bin");
-	filter2ImagName.append("filter2_imag_linear_registration.bin");
-	filter3RealName.append("filter3_real_linear_registration.bin");
-	filter3ImagName.append("filter3_imag_linear_registration.bin");
+	filter1RealLinearPathAndName.append("filter1_real_linear_registration.bin");
+	filter1ImagLinearPathAndName.append("filter1_imag_linear_registration.bin");
+	filter2RealLinearPathAndName.append("filter2_real_linear_registration.bin");
+	filter2ImagLinearPathAndName.append("filter2_imag_linear_registration.bin");
+	filter3RealLinearPathAndName.append("filter3_real_linear_registration.bin");
+	filter3ImagLinearPathAndName.append("filter3_imag_linear_registration.bin");
 
-	ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1RealName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-	ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1ImagName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-	ReadBinaryFile(h_Quadrature_Filter_2_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2RealName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-	ReadBinaryFile(h_Quadrature_Filter_2_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2ImagName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-	ReadBinaryFile(h_Quadrature_Filter_3_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3RealName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-	ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3ImagName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);     
+	ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1ImagLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_2_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2ImagLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
+	ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3ImagLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);     
     
 	endTime = GetWallTime();
 
@@ -568,7 +571,7 @@ int main(int argc, char ** argv)
 	startTime = GetWallTime();
 
 	// Initialize BROCCOLI
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2,VERBOS); // 2 = Bash wrapper
 
 	endTime = GetWallTime();
 

@@ -643,6 +643,13 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
 	}
 
+	// Check if BROCCOLI_DIR variable is set
+	if (getenv("BROCCOLI_DIR") == NULL)
+	{
+        printf("The environment variable BROCCOLI_DIR is not set!\n");
+        return EXIT_FAILURE;
+	}
+
 	//CLUSTER_DEFINING_THRESHOLD = 2.3f;
 
 	double startTime = GetWallTime();
@@ -1245,7 +1252,7 @@ int main(int argc, char **argv)
 	startTime = GetWallTime();
 
 	// Initialize BROCCOLI
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2); // 2 = Bash wrapper
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2,VERBOS); // 2 = Bash wrapper
 
 	endTime = GetWallTime();
 

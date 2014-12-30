@@ -112,7 +112,7 @@ class BROCCOLI_LIB
 		// Constructors & destructor
 		BROCCOLI_LIB();
 		BROCCOLI_LIB(cl_uint platform, cl_uint device);
-		BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper);
+		BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper, bool verbos);
 		~BROCCOLI_LIB();
 
 		// Set functions for GUI / Wrappers
@@ -413,7 +413,7 @@ class BROCCOLI_LIB
 
 	private:
 
-		std::string Getexepath();
+		std::string GetBROCCOLIDirectory();
 
 		void CreateCombinedDisplacementField(float* h_Registration_Parameters, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D);
 
@@ -626,12 +626,14 @@ class BROCCOLI_LIB
 		size_t maxThreadsPerBlock;
 		size_t maxThreadsPerDimension[3];
 
+		std::string binaryPathAndFilename;
 		std::string binaryFilename;
 		std::string device_info;
 		std::string build_info;
 
 		cl_uint OPENCL_PLATFORM;
-		int VENDOR, OPENCL_INITIATED;
+		int VENDOR;
+		bool OPENCL_INITIATED;
 		bool SUCCESSFUL_INITIALIZATION;
 
 		const char* OPENCL_ERROR;
