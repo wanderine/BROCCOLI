@@ -912,7 +912,7 @@ int main(int argc, char **argv)
     int CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
 	int PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
 	int SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
-    int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * sizeof(float);
+    int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
     int STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
             
     // ------------------------------------------------
@@ -1254,6 +1254,22 @@ int main(int argc, char **argv)
 	// Initialize BROCCOLI
     BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2,VERBOS); // 2 = Bash wrapper
 
+	// Always print build info to file
+    fp = fopen("buildinfo.txt","w");
+    if (fp == NULL)
+    {     
+        printf("Could not open buildinfo.txt! \n");
+    }
+    if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
+    {
+        int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
+        if (error == EOF)
+        {
+            printf("Could not write to buildinfo.txt! \n");
+        }
+    }
+    fclose(fp);
+
 	endTime = GetWallTime();
 
 	if (VERBOS)
@@ -1275,23 +1291,7 @@ int main(int argc, char **argv)
             {
                 printf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }                
-               
-		// Print build info to file
-	    fp = fopen("buildinfo.txt","w");
-	    if (fp == NULL)
-	    {     
-	        printf("Could not open buildinfo.txt! \n");
-	    }
-	    if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
-	    {
-	        int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
-	        if (error == EOF)
-	        {
-	            printf("Could not write to buildinfo.txt! \n");
-	        }
-	    }
-	    fclose(fp);
+        }                               		
 
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
@@ -1388,22 +1388,30 @@ int main(int argc, char **argv)
 	// Print the permutation values to a text file
 	if (WRITE_PERMUTATION_VALUES)
 	{
-		std::ofstream permutationValues;
-	    permutationValues.open(PERMUTATION_VALUES_FILE);      
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			std::ofstream permutationValues;
+			std::string permValues(PERMUTATION_VALUES_FILE);
+			char tmp[100];
+			sprintf(tmp, "%d", c+1);
+			permValues.insert(permValues.find("."),std::string(tmp));
 
-	    if ( permutationValues.good() )
-	    {
-    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-	        {
-            	permutationValues << std::setprecision(6) << std::fixed << (double)h_Permutation_Distribution[p] << " " << std::endl;
-			}
-		    permutationValues.close();
-        } 	
-	    else
-	    {
-			permutationValues.close();
-	        printf("Could not open %s for writing permutation values!\n",PERMUTATION_VALUES_FILE);
-	    }
+		    permutationValues.open(permValues.c_str());      
+
+		    if ( permutationValues.good() )
+		    {
+    		    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+		        {
+    	        	permutationValues << std::setprecision(6) << std::fixed << (double)h_Permutation_Distribution[p + c * NUMBER_OF_PERMUTATIONS] << " " << std::endl;
+				}
+			    permutationValues.close();
+    	    } 	
+		    else
+		    {
+				permutationValues.close();
+		        printf("Could not open %s for writing permutation values!\n",permValues.c_str());
+		    }
+		}
 	}
 
 	// Print the permutation vectors or sign flips to a text file

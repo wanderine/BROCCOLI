@@ -56,13 +56,13 @@ do_permutations_in_Matlab = 1;
 % Statistical settings
 %--------------------------------------------------------------------------------------
 
-number_of_regressors = 6;
-number_of_permutations = 2;
+number_of_regressors = 9;
+number_of_permutations = 6;
 inference_mode = 0; % 0 = voxel, 1 = cluster extent, 2 = cluster mass
 cluster_defining_threshold = 3;
 
 mytimes = zeros(25,1);
-for number_of_regressors = 6:6
+for number_of_regressors = 9:9
    
     %--------------------------------------------------------------------------------------
     % Load MNI templates
@@ -84,22 +84,25 @@ for number_of_regressors = 6:6
    
     first_level_results = zeros(MNI_sy,MNI_sx,MNI_sz,number_of_subjects);
    
-    subjects{1} = 'sub00440';
-    subjects{2} = 'sub01018';
-    subjects{3} = 'sub01244';
-    subjects{4} = 'sub02403';
-    subjects{5} = 'sub04050';
-    subjects{6} = 'sub04191';
-    subjects{7} = 'sub05267';
-    subjects{8} = 'sub06880';
-    subjects{9} = 'sub06899';
-    subjects{10} = 'sub07144';
-   
-    for subject = 1:10
-        beta_volume = load_nii([basepath study '/4mm/Event1/' subjects{subject} '.feat/reg_standard/stats/cope1.nii.gz']);
-        beta_volume = double(beta_volume.img);
-        first_level_results(:,:,:,subject) = beta_volume;
-    end
+%     subjects{1} = 'sub00440';
+%     subjects{2} = 'sub01018';
+%     subjects{3} = 'sub01244';
+%     subjects{4} = 'sub02403';
+%     subjects{5} = 'sub04050';
+%     subjects{6} = 'sub04191';
+%     subjects{7} = 'sub05267';
+%     subjects{8} = 'sub06880';
+%     subjects{9} = 'sub06899';
+%     subjects{10} = 'sub07144';
+%    
+%     for subject = 1:10
+%         beta_volume = load_nii([basepath study '/4mm/Event1/' subjects{subject} '.feat/reg_standard/stats/cope1.nii.gz']);
+%         beta_volume = double(beta_volume.img);
+%         first_level_results(:,:,:,subject) = beta_volume;
+%     end
+
+    beta_volumes = load_nii('volumes.nii.gz');
+    first_level_results = double(beta_volumes.img);
    
    
    
@@ -143,7 +146,9 @@ for number_of_regressors = 6:6
 %--------------------------------------------------------------------------------------
 
 %contrasts = [1 zeros(1,number_of_regressors-1)];
-contrasts = [1 -1 2 -2 3 0];
+%contrasts = [1 -1 2 -2 3 0];
+%contrasts = [1 -1 0];
+contrasts = [1.0 -1.0 0.0 0.0 2.0 3.0 -5.0 0.0 0.0];
 
 for i = 1:size(contrasts,1)
     contrast = contrasts(i,:)';
@@ -164,6 +169,10 @@ permutation_matrix = zeros(number_of_permutations,number_of_subjects);
 
 permutation_matrix(1,:) = [1 2 3 4 5 6 7 8 9 10];
 permutation_matrix(2,:) = [5 4 8 9 1 6 3 2 7 10];
+permutation_matrix(3,:) = [1 6 8 9 5 4 10 3 2 7];
+permutation_matrix(4,:) = [6 8 7 4 9 5 3 1 2 10];
+permutation_matrix(5,:) = [5 7 1 3 9 2 4 10 6 8];
+permutation_matrix(6,:) = [5 1 6 2 8 10 7 3 9 4];
 
 
 
@@ -205,10 +214,11 @@ if do_permutations_in_Matlab == 1
     outputContrast = [outputContrast nuisanceContrast];
     outputModel = [outputModel W2];
    
-    contrast = outputContrast';
-    X_GLM = outputModel;
-    xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
-    ctxtxc_GLM = contrast'*inv(X_GLM'*X_GLM)*contrast;
+    contrast = contrast';
+    %contrast = outputContrast';
+    %X_GLM = outputModel;
+    %xtxxt_GLM = inv(X_GLM'*X_GLM)*X_GLM';
+    %ctxtxc_GLM = contrast'*inv(X_GLM'*X_GLM)*contrast;
    
     tic
     % Loop over permutations
@@ -223,9 +233,11 @@ if do_permutations_in_Matlab == 1
                     if MNI_brain_mask(y,x,z) == 1
                        
                         % Calculate beta values, using permuted model
-                        data = squeeze(first_level_results(y,x,z,:));
+                        data = single(squeeze(first_level_results(y,x,z,:)));
                        
-                        outputData = (diag(ones(size(W2,1),1))-W2*pinv(W2))*data;
+                        temp = single((diag(ones(size(W2,1),1))-W2*pinv(W2)));
+                        outputData = single(temp*data);
+                        %outputData = data;
                        
                         permuted_xtxxt_GLM = zeros(size(xtxxt_GLM));
                         permutation = permutation_matrix(perm,:);
@@ -233,7 +245,7 @@ if do_permutations_in_Matlab == 1
                             permuted_xtxxt_GLM(reg,:) = xtxxt_GLM(reg,permutation);
                         end
                        
-                        beta = permuted_xtxxt_GLM * outputData;
+                        beta = single(permuted_xtxxt_GLM) * outputData;
                         betas_cpu(y,x,z,:) = beta;
                        
                         % Calculate t-values and residuals, using permuted model
@@ -242,15 +254,15 @@ if do_permutations_in_Matlab == 1
                         for reg = 1:number_of_regressors
                             permuted_X_GLM(:,reg) = X_GLM(permutation,reg);
                         end
-                        residuals = outputData - permuted_X_GLM*beta;
+                        residuals = single(outputData - single(permuted_X_GLM)*single(beta));
                         residuals_cpu(y,x,z,:) = residuals;
                         %residual_variances_cpu(y,x,z) = sum((residuals-mean(residuals)).^2)/(st - 1);
-                        residual_variances_cpu(y,x,z) = sum((residuals).^2)/(st - number_of_regressors);
+                        residual_variances_cpu(y,x,z) = single(sum((residuals).^2)/(st - number_of_regressors));
                        
                         %t-tests
                         for i = 1:size(contrasts,1)
                             %contrast = contrasts(i,:)';
-                            statistical_maps_cpu(y,x,z,i) = contrast'*beta / sqrt( residual_variances_cpu(y,x,z) * ctxtxc_GLM(i));
+                            statistical_maps_cpu(y,x,z,i) = single(contrast)'*single(beta) / sqrt( single(residual_variances_cpu(y,x,z)) * single(ctxtxc_GLM(i)));
                         end
                        
                     end
@@ -270,7 +282,11 @@ if do_permutations_in_Matlab == 1
             for i = 1:N
                 cluster_extents(i) = sum(labels(:) == i);
             end
-            null_distribution_cpu(perm) = max(cluster_extents);
+            if (not(isempty(cluster_extents)))
+                null_distribution_cpu(perm) = max(cluster_extents);
+            else
+                null_distribution_cpu(perm) = 0;
+            end
             % Cluster mass
         elseif (inference_mode == 2)
             a = statistical_maps_cpu(:,:,:,1);

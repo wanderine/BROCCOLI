@@ -1,5 +1,5 @@
 /*
-    BROCCOLI: An Open Source Multi-Platform Software for Parallel Analysis of fMRI Data on Many-Core CPUs and GPUs
+    BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
     Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
 
     This program is free software: you can redistribute it and/or modify
@@ -5928,12 +5928,13 @@ __kernel void CalculateStatisticalMapsGLMTTest(__global float* Statistical_Maps,
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
 		}
 		//vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
-		vareps += (eps - meaneps) * (eps - meaneps);
+		//vareps += (eps - meaneps) * (eps - meaneps);
+		vareps += eps*eps;
 	}
 	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
 	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
 	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
-	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+	vareps /= ((float)NUMBER_OF_VOLUMES - NUMBER_OF_REGRESSORS);
 	Residual_Variances[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = vareps;
 	
 	// Loop over contrasts and calculate t-values
@@ -11009,6 +11010,43 @@ __kernel void CalculateStatisticalMapsMeanSecondLevelPermutation(__global float*
 	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = beta[0] * rsqrt(vareps * c_ctxtxc_GLM[0]);
 }
 
+__kernel void TransformData(__global float* Transformed_Volumes,
+							__global float* Volumes,
+		                    __global const float* Mask,
+   	   	   				    __constant float* c_X,
+		                    __private int DATA_W,
+		                    __private int DATA_H,
+		                    __private int DATA_D,
+		                    __private int NUMBER_OF_VOLUMES)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+		return;
+
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		Transformed_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+
+		for (int vv = 0; vv < NUMBER_OF_VOLUMES; vv++)
+		{
+			Transformed_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] += c_X[vv + v * NUMBER_OF_VOLUMES] * Volumes[Calculate4DIndex(x,y,z,vv,DATA_W,DATA_H,DATA_D)];
+		}
+	}
+
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = Transformed_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+	}
+}
+
 
 __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global float* Statistical_Maps,
 		                                       	   	   				 __global const float* Volumes,
@@ -11023,7 +11061,7 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 		                                       	   	   				 __private int DATA_D,
 		                                       	   	   				 __private int NUMBER_OF_VOLUMES,
 		                                       	   	   				 __private int NUMBER_OF_REGRESSORS,
-		                                       	   	   				 __private int NUMBER_OF_CONTRASTS)
+																	 __private int contrast)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -11068,6 +11106,7 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 	beta[23] = 0.0f;
 	beta[24] = 0.0f;
 
+	// Transform data vector
 
 	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
 	// Loop over volumes
@@ -11110,17 +11149,12 @@ __kernel void CalculateStatisticalMapsGLMTTestSecondLevelPermutation(__global fl
 
 		vareps += eps * eps;
 	}
-	vareps = vareps / ((float)NUMBER_OF_VOLUMES - 1.0f);
+	vareps = vareps / ((float)NUMBER_OF_VOLUMES - NUMBER_OF_REGRESSORS);
 
-
-	// Loop over contrasts and calculate t-values
-
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		float contrast_value = 0.0f;
-		contrast_value = CalculateContrastValue(beta, c_Contrasts, c, NUMBER_OF_REGRESSORS);
-		Statistical_Maps[Calculate4DIndex(x,y,z,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[c]);
-	}
+	// Calculate t-values
+	float contrast_value = 0.0f;
+	contrast_value = CalculateContrastValue(beta, c_Contrasts, contrast, NUMBER_OF_REGRESSORS);
+	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = contrast_value * rsqrt(vareps * c_ctxtxc_GLM[contrast]);
 }
 
 
@@ -11236,7 +11270,7 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
 							   	   	   	   	   	  	  	  	 __global const float* Test_Values,
 							   	   	   	   	   	  	  	  	 __global const float* Mask,
 							   	   	   	   	   	  	  	  	 __constant float* c_Max_Values,
-							   	   	   	   	   	  	  	  	 __private int Contrast,
+							   	   	   	   	   	  	  	  	 __private int contrast,
 							   	   	   	   	   	  	  	  	 __private int DATA_W,
 							   	   	   	   	   	  	  	  	 __private int DATA_H,
 							   	   	   	   	   	  	  	  	 __private int DATA_D,
@@ -11251,7 +11285,7 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
 
     if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 1.0f )
 	{
-    	float Test_Value = Test_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)];
+    	float Test_Value = Test_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)];
 
     	float sum = 0.0f;
     	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
@@ -11262,14 +11296,63 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
     			sum += 1.0f;
     		}
     	}
-    	P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = sum / (float)NUMBER_OF_PERMUTATIONS;
+    	P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = sum / (float)NUMBER_OF_PERMUTATIONS;
 	}
     else
     {
-    	P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
+    	P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
     }
 }
 
+__kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P_Values,
+															   __global const float* Test_Values,
+															   __global const unsigned int* Cluster_Indices,
+															   __global const unsigned int* Cluster_Sizes,
+							   	   	   	   	   	  	  	  	   __global const float* Mask,
+							   	   	   	   	   	  	  	  	   __constant float* c_Max_Values,
+							   	   	   	   	   	  	  	  	   __private float threshold,
+							   	   	   	   	   	  	  	  	   __private int contrast,
+							   	   	   	   	   	  	  	  	   __private int DATA_W,
+							   	   	   	   	   	  	  	  	   __private int DATA_H,
+							   	   	   	   	   	  	  	  	   __private int DATA_D,
+							   	   	   	   	   	  	  	  	   __private int NUMBER_OF_PERMUTATIONS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 1.0f )
+	{
+    	// Check if the current voxel belongs to a cluster
+    	if ( Test_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] > threshold )
+    	{
+    		// Get cluster extent or cluster mass of current cluster
+    		float Test_Value = (float)Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)]];
+
+    		float sum = 0.0f;
+    		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+    		{
+    			if (Test_Value > c_Max_Values[p])
+    			{
+    				sum += 1.0f;
+    			}
+    		}
+    		P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = sum / (float)NUMBER_OF_PERMUTATIONS;
+    	}
+    	// Voxel is not part of a cluster, so p-value should be 0
+    	else
+    	{
+    		P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
+    	}
+	}
+    else
+    {
+    	P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
+    }
+}
 
 // Estimates voxel specific AR(4) models
 __kernel void EstimateAR4Models(__global float* AR1_Estimates, 
@@ -11523,6 +11606,7 @@ __kernel void SetStartClusterIndicesKernel(__global unsigned int* Cluster_Indice
 										   __global const float* Data,
 										   __global const float* Mask,
 										   __private float threshold,
+ 									       __private int contrast,
 										   __private int DATA_W,
 										   __private int DATA_H,
 										   __private int DATA_D)
@@ -11535,7 +11619,7 @@ __kernel void SetStartClusterIndicesKernel(__global unsigned int* Cluster_Indice
 		return;
 
 	// Threshold data
-	if ( (Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f) && (Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold) )
+	if ( (Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f) && (Data[Calculate4DIndex(x,y,z,contrast,DATA_W,DATA_H,DATA_D)] > threshold) )
 	{
 		// Set an unique index
 		Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = (unsigned int)Calculate3DIndex(x,y,z,DATA_W,DATA_H);
@@ -11574,6 +11658,7 @@ __kernel void ClusterizeScan(__global unsigned int* Cluster_Indices,
 						  	  __global const float* Data,
 						  	  __global const float* Mask,
 						  	  __private float threshold,
+ 							  __private int contrast,
 						  	  __private int DATA_W,
 						  	  __private int DATA_H,
 						  	  __private int DATA_D)
@@ -11589,7 +11674,7 @@ __kernel void ClusterizeScan(__global unsigned int* Cluster_Indices,
 		return;
 
 	// Threshold data
-	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
+	if ( Data[Calculate4DIndex(x,y,z,contrast,DATA_W,DATA_H,DATA_D)] > threshold )
 	{
 		unsigned int label1, label2, temp;
 
@@ -11851,6 +11936,7 @@ __kernel void ClusterizeRelabel(__global unsigned int* Cluster_Indices,
 						  	  	__global const float* Data,
 						  	  	__global const float* Mask,
 						  	  	__private float threshold,
+								__private int contrast,
 						  	  	__private int DATA_W,
 						  	  	__private int DATA_H,
 						  	  	__private int DATA_D)
@@ -11863,7 +11949,7 @@ __kernel void ClusterizeRelabel(__global unsigned int* Cluster_Indices,
 		return;
 
 	// Threshold data
-	if ( (Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f) && (Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold) )
+	if ( (Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] == 1.0f) && (Data[Calculate4DIndex(x,y,z,contrast,DATA_W,DATA_H,DATA_D)] > threshold) )
 	{
 		// Relabel voxels
 		unsigned int label = Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
@@ -11881,7 +11967,8 @@ __kernel void CalculateClusterSizes(__global unsigned int* Cluster_Indices,
 						  	  	    volatile __global unsigned int* Cluster_Sizes,
 						  	  	    __global const float* Data,
 						  	  	    __global const float* Mask,
-						  	  	    __private float threshold,
+						  	  	    __private float threshold,	
+									__private int contrast,
 						  	  	    __private int DATA_W,
 						  	  	    __private int DATA_H,
 						  	  	    __private int DATA_D)
@@ -11897,10 +11984,11 @@ __kernel void CalculateClusterSizes(__global unsigned int* Cluster_Indices,
 		return;
 
 	// Threshold data
-	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
+	if ( Data[Calculate4DIndex(x,y,z,contrast,DATA_W,DATA_H,DATA_D)] > threshold )
 	{
+		unsigned int one = 1;
 		// Increment counter for the current cluster index
-		atomic_inc(&Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]]);
+		atomic_add(&Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]],one);		
 	}
 }
 
@@ -11909,6 +11997,7 @@ __kernel void CalculateClusterMasses(__global unsigned int* Cluster_Indices,
 						  	  	     __global const float* Data,
 						  	  	     __global const float* Mask,
 						  	  	     __private float threshold,
+									 __private int contrast,
 						  	  	     __private int DATA_W,
 						  	  	     __private int DATA_H,
 						  	  	     __private int DATA_D)
@@ -11924,10 +12013,10 @@ __kernel void CalculateClusterMasses(__global unsigned int* Cluster_Indices,
 		return;
 
 	// Threshold data
-	if ( Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] > threshold )
+	if ( Data[Calculate4DIndex(x,y,z,contrast,DATA_W,DATA_H,DATA_D)] > threshold )
 	{
 		// Increment mass for the current cluster index, done in an ugly way since atomic floats are not supported
-		atomic_add( &Cluster_Masses[Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]], (unsigned int)(Data[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] * 10000.0f) );
+		atomic_add( &Cluster_Masses[Cluster_Indices[Calculate3DIndex(x,y,z,DATA_W,DATA_H)]], (unsigned int)(Data[Calculate4DIndex(x,y,z,contrast,DATA_W,DATA_H,DATA_D)] * 10000.0f) );
 	}
 }
 
@@ -11984,53 +12073,7 @@ __kernel void CalculateTFCEValues(__global float* TFCE_Values,
 }
 
 
-__kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P_Values,
-															   __global const unsigned int* Cluster_Indices,
-															   __global const unsigned int* Cluster_Sizes,
-							   	   	   	   	   	  	  	  	   __global const float* Mask,
-							   	   	   	   	   	  	  	  	   __constant float* c_Max_Values,
-							   	   	   	   	   	  	  	  	   __private int Contrast,
-							   	   	   	   	   	  	  	  	   __private int DATA_W,
-							   	   	   	   	   	  	  	  	   __private int DATA_H,
-							   	   	   	   	   	  	  	  	   __private int DATA_D,
-							   	   	   	   	   	  	  	  	   __private int NUMBER_OF_PERMUTATIONS)
-{
-	int x = get_global_id(0);
-	int y = get_global_id(1);
-	int z = get_global_id(2);
 
-    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
-        return;
-
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 1.0f )
-	{
-    	// Check if the current voxel belongs to a cluster
-    	if ( Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 0.0f )
-    	{
-    		// Get cluster extent or cluster mass of current cluster
-    		float Test_Value = (float)Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)]];
-
-    		float sum = 0.0f;
-    		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-    		{
-    			if (Test_Value > c_Max_Values[p])
-    			{
-    				sum += 1.0f;
-    			}
-    		}
-    		P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = sum / (float)NUMBER_OF_PERMUTATIONS;
-    	}
-    	// Voxel is not part of a cluster, so p-value should be 0
-    	else
-    	{
-    		P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
-    	}
-	}
-    else
-    {
-    	P_Values[Calculate4DIndex(x, y, z, Contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
-    }
-}
 
 __kernel void ThresholdVolume(__global float* Thresholded_Volume, 
 	                          __global const float* Volume, 

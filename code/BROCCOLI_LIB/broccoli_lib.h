@@ -419,7 +419,7 @@ class BROCCOLI_LIB
 
 		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
 		void Clusterize(int* Cluster_Indices, int& MAX_CLUSTER_SIZE, float& MAX_CLUSTER_MASS, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D, int GET_VOXEL_LABELS, int GET_CLUSTER_MASS);
-		void ClusterizeOpenCL(cl_mem Cluster_Indices, cl_mem Cluster_Sizes, float& MAX_CLUSTER, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
+		void ClusterizeOpenCL(cl_mem Cluster_Indices, cl_mem Cluster_Sizes, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_CONTRASTS);
 		void ClusterizeOpenCLTFCE(float& MAX_VALUE, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, float maxThreshold);
 		void ClusterizeOpenCLPermutation(float& MAX_CLUSTER, int DATA_W, int DATA_H, int DATA_D);
 		void ClusterizeOpenCLTFCEPermutation(float& MAX_VALUE, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, float maxThreshold, float delta);
@@ -470,7 +470,7 @@ class BROCCOLI_LIB
 		void CleanupPermutationTestSecondLevel();
 		void GeneratePermutationMatrixSecondLevel();
 		void GenerateSignMatrixSecondLevel();
-		void CalculateStatisticalMapsSecondLevelPermutation(int permutation);
+		void CalculateStatisticalMapsSecondLevelPermutation(int permutation, int contrast);
 		void CalculateStatisticalMapsMeanSecondLevelPermutation();
 		void CalculateStatisticalMapsGLMTTestSecondLevelPermutation();
 		void CalculateStatisticalMapsGLMFTestSecondLevelPermutation();
@@ -672,6 +672,7 @@ class BROCCOLI_LIB
 		cl_kernel CalculateClusterMassesKernel;
 		cl_kernel CalculateLargestClusterKernel;
 		cl_kernel CalculateTFCEValuesKernel;
+		cl_kernel TransformDataKernel;
 
 		// Convolution kernels
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel;
@@ -723,7 +724,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateClusterMasses;
 		cl_int createKernelErrorCalculateLargestCluster;
 		cl_int createKernelErrorCalculateTFCEValues;
-
+		cl_int createKernelErrorTransformData;
 
 		// Convolution kernels
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods;
@@ -806,7 +807,7 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateClusterMasses;
 		cl_int runKernelErrorCalculateLargestCluster;
 		cl_int runKernelErrorCalculateTFCEValues;
-
+		cl_int runKernelErrorTransformData;
 
 		// Convolution kernels
 		cl_int runKernelErrorSeparableConvolutionRows, runKernelErrorSeparableConvolutionColumns, runKernelErrorSeparableConvolutionRods;
@@ -1240,11 +1241,12 @@ class BROCCOLI_LIB
 
 		// Statistical analysis
 		cl_mem		d_First_Level_Results;
+		cl_mem		d_Transformed_Volumes;
 		cl_mem		d_Beta_Volumes, d_Beta_Volumes_T1, d_Beta_Volumes_MNI;
 		cl_mem		d_Contrast_Volumes, d_Contrast_Volumes_T1, d_Contrast_Volumes_MNI;
 		cl_mem		d_Statistical_Maps, d_Statistical_Maps_T1, d_Statistical_Maps_MNI;
 		cl_mem		c_Censor;
-		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrasts, c_ctxtxc_GLM;
+		cl_mem		c_xtxxt_GLM, c_X_GLM, c_Contrasts, c_ctxtxc_GLM, c_Transformation_Matrix;
 		cl_mem		d_Residuals;
 		cl_mem		d_Residual_Variances, d_Residual_Variances_T1, d_Residual_Variances_MNI;
 		cl_mem		c_Censored_Timepoints, c_Censored_Volumes;
