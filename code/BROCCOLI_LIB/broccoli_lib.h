@@ -635,7 +635,7 @@ class BROCCOLI_LIB
 		cl_program programWhitening;
 		cl_program programBayesian;
 
-		cl_program OpenCLPrograms[7];
+		cl_program OpenCLPrograms[10];
 
 		cl_ulong localMemorySize;
 		size_t maxThreadsPerBlock;
