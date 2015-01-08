@@ -1382,20 +1382,39 @@ int main(int argc, char **argv)
 	}
 
     // Print build info to file (always)
-	fp = fopen("buildinfo.txt","w");
-	if (fp == NULL)
-	{     
-	    printf("Could not open buildinfo.txt! \n");
-	}
-	if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
+	std::vector<std::string> buildInfo = BROCCOLI.GetOpenCLBuildInfo();
+	std::vector<std::string> kernelFileNames = BROCCOLI.GetKernelFileNames();
+
+	for (int k = 0; k < BROCCOLI.GetNumberOfKernelFiles(); k++)
 	{
-	    int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
-	    if (error == EOF)
-	    {
-	        printf("Could not write to buildinfo.txt! \n");
-	    }
+		std::string temp = "buildInfo";
+		std::string name = kernelFileNames[k];
+		// Remove "kernel" and ".cpp" from kernel filename
+		name = name.substr(0,name.size()-4);
+		name = name.substr(6,name.size());
+		temp.append(name);
+		temp.append(".txt");
+		fp = fopen(temp.c_str(),"w");
+		if (fp == NULL)
+		{     
+		    printf("Could not open %s for writing ! \n",temp.c_str());
+		}
+		else
+		{	
+			if (buildInfo.size() > k)
+			{
+				if (buildInfo[k].c_str() != NULL)
+				{
+				    int error = fputs(buildInfo[k].c_str(),fp);
+				    if (error == EOF)
+				    {
+				        printf("Could not write to %s ! \n",temp.c_str());
+				    }
+				}
+				fclose(fp);
+			}
+		}
 	}
-	fclose(fp);
 
     // Something went wrong...
     if ( !BROCCOLI.GetOpenCLInitiated() )
@@ -1413,7 +1432,7 @@ int main(int argc, char **argv)
             }
         } 
        
-        printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
+        printf("OpenCL initialization failed, aborting! \nSee buildInfo* for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
         return EXIT_FAILURE;

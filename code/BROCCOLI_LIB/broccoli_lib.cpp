@@ -490,6 +490,16 @@ void BROCCOLI_LIB::SetStartValues()
 	createProgramError = 0;
 	buildProgramError = 0;
 	getProgramBuildInfoError = 0;
+
+	NUMBER_OF_KERNEL_FILES = 7;
+
+	kernelFileNames.push_back("kernelConvolution.cpp");
+	kernelFileNames.push_back("kernelRegistration.cpp");
+	kernelFileNames.push_back("kernelClusterize.cpp");		
+	kernelFileNames.push_back("kernelMisc.cpp");
+	kernelFileNames.push_back("kernelStatistics.cpp");
+	kernelFileNames.push_back("kernelWhitening.cpp");
+	kernelFileNames.push_back("kernelBayesian.cpp");
 }
 
 
@@ -522,56 +532,56 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 	// Loop over platforms
 	for (uint i = 0; i < platformIdCount; i++) 
     {
-		device_info.append("---------------------------------------------");
-		device_info.append("\n");
-		device_info.append("Platform number: ");
+		deviceInfo.append("---------------------------------------------");
+		deviceInfo.append("\n");
+		deviceInfo.append("Platform number: ");
 		temp_stream.str("");
 		temp_stream.clear();
 		temp_stream << i;
-		device_info.append(temp_stream.str());
-		device_info.append("\n");
-		device_info.append("---------------------------------------------");
-		device_info.append("\n");
+		deviceInfo.append(temp_stream.str());
+		deviceInfo.append("\n");
+		deviceInfo.append("---------------------------------------------");
+		deviceInfo.append("\n");
 
 	    // Get platform vendor
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, 0, NULL, &valueSize);
 		value = (char*) malloc(valueSize);
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_VENDOR, valueSize, value, NULL);            
-		device_info.append("Platform vendor: ");
-		device_info.append(value);
-		device_info.append("\n");
+		deviceInfo.append("Platform vendor: ");
+		deviceInfo.append(value);
+		deviceInfo.append("\n");
 		free(value);		
 
 		// Get platform name
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_NAME, 0, NULL, &valueSize);
 		value = (char*) malloc(valueSize);
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_NAME, valueSize, value, NULL);            
-		device_info.append("Platform name: ");
-		device_info.append(value);
-		device_info.append("\n");
+		deviceInfo.append("Platform name: ");
+		deviceInfo.append(value);
+		deviceInfo.append("\n");
 		free(value);		
 
 		// Get platform extensions
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_EXTENSIONS, 0, NULL, &valueSize);
 		value = (char*) malloc(valueSize);
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_EXTENSIONS, valueSize, value, NULL);            
-		device_info.append("Platform extentions: ");
-		device_info.append(value);
-		device_info.append("\n");
+		deviceInfo.append("Platform extentions: ");
+		deviceInfo.append(value);
+		deviceInfo.append("\n");
 		free(value);		
 
 		// Get platform profile
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_PROFILE, 0, NULL, &valueSize);
 		value = (char*) malloc(valueSize);
 		clGetPlatformInfo(platformIds[i], CL_PLATFORM_PROFILE, valueSize, value, NULL);            
-		device_info.append("Platform profile: ");
-		device_info.append(value);
-		device_info.append("\n");
+		deviceInfo.append("Platform profile: ");
+		deviceInfo.append(value);
+		deviceInfo.append("\n");
 		free(value);
 
-		device_info.append("---------------------------------------------");
-		device_info.append("\n");
-		device_info.append("\n");
+		deviceInfo.append("---------------------------------------------");
+		deviceInfo.append("\n");
+		deviceInfo.append("\n");
 
 		// Get devices for each platform
 		cl_uint deviceIdCount = 0;
@@ -582,137 +592,137 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 		// Get information for for each device and save as a long string
 		for (uint j = 0; j < deviceIdCount; j++) 
 		{
-			device_info.append("---------------------------------------------");
-			device_info.append("\n");
-			device_info.append("Device number: ");
+			deviceInfo.append("---------------------------------------------");
+			deviceInfo.append("\n");
+			deviceInfo.append("Device number: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << j;
-			device_info.append(temp_stream.str());
-			device_info.append("\n");
-			device_info.append("---------------------------------------------");
-			device_info.append("\n");
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");
+			deviceInfo.append("---------------------------------------------");
+			deviceInfo.append("\n");
 
 	        // Get vendor name
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, 0, NULL, &valueSize);
 			value = (char*) malloc(valueSize);
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VENDOR, valueSize, value, NULL);            
-			device_info.append("Device vendor: ");
-			device_info.append(value);
-			device_info.append("\n");
+			deviceInfo.append("Device vendor: ");
+			deviceInfo.append(value);
+			deviceInfo.append("\n");
 			free(value);	
         	
 			// Get device name
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, 0, NULL, &valueSize);
 			value = (char*) malloc(valueSize);
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_NAME, valueSize, value, NULL);            
-			device_info.append("Device name: ");
-			device_info.append(value);
-			device_info.append("\n");
+			deviceInfo.append("Device name: ");
+			deviceInfo.append(value);
+			deviceInfo.append("\n");
 			free(value);
 
 			// Get hardware device version
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, 0, NULL, &valueSize);
 			value = (char*) malloc(valueSize);
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_VERSION, valueSize, value, NULL);
-			device_info.append("Hardware version: ");
-			device_info.append(value);
-			device_info.append("\n");
+			deviceInfo.append("Hardware version: ");
+			deviceInfo.append(value);
+			deviceInfo.append("\n");
 			free(value);
 
 			// Get software driver version
 			clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, 0, NULL, &valueSize);
 			value = (char*) malloc(valueSize);
 			clGetDeviceInfo(deviceIds[j], CL_DRIVER_VERSION, valueSize, value, NULL);
-			device_info.append("Software version: ");
-			device_info.append(value);
-			device_info.append("\n");
+			deviceInfo.append("Software version: ");
+			deviceInfo.append(value);
+			deviceInfo.append("\n");
 			free(value);
 
 			// Get C version supported by compiler for device
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, 0, NULL, &valueSize);
 			value = (char*) malloc(valueSize);
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_OPENCL_C_VERSION, valueSize, value, NULL);
-			device_info.append("OpenCL C version: ");
-			device_info.append(value);
-			device_info.append("\n");
+			deviceInfo.append("OpenCL C version: ");
+			deviceInfo.append(value);
+			deviceInfo.append("\n");
 			free(value);
             
 			// Get device extensions
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_EXTENSIONS, 0, NULL, &valueSize);
 			value = (char*) malloc(valueSize);
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_EXTENSIONS, valueSize, value, NULL);            
-			device_info.append("Device extensions: ");
-			device_info.append(value);
-			device_info.append("\n");
+			deviceInfo.append("Device extensions: ");
+			deviceInfo.append(value);
+			deviceInfo.append("\n");
 			free(value);
 
 			// Get global memory size
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-			device_info.append("Global memory size in MB: ");
+			deviceInfo.append("Global memory size in MB: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << memorySize/ (1024*1024);            
-			device_info.append(temp_stream.str());
-			device_info.append("\n");
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");
             
 			// Get global memory cache size
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_CACHE_SIZE, sizeof(memorySize), &memorySize, NULL);            
-			device_info.append("Global memory cache size in KB: ");
+			deviceInfo.append("Global memory cache size in KB: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << memorySize/ (1024);            
-			device_info.append(temp_stream.str());
-			device_info.append("\n");            			
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");            			
 
 			// Get local (shared) memory size
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_LOCAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
-			device_info.append("Local memory size in KB: ");
+			deviceInfo.append("Local memory size in KB: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << memorySize/1024;            
-			device_info.append(temp_stream.str());
-			device_info.append("\n");
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");
 	            
 			// Get constant memory size
 		    clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE, sizeof(memorySize), &memorySize, NULL);            
-			device_info.append("Constant memory size in KB: ");
+			deviceInfo.append("Constant memory size in KB: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << memorySize/1024;            
-			device_info.append(temp_stream.str());
-			device_info.append("\n");                       
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");                       
             
 			// Get parallel compute units
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_COMPUTE_UNITS, sizeof(maxComputeUnits), &maxComputeUnits, NULL);            
-			device_info.append("Parallel compute units: ");
+			deviceInfo.append("Parallel compute units: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << maxComputeUnits;            
-			device_info.append(temp_stream.str());
-			device_info.append("\n");
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");
             
 			// Get clock frequency
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_CLOCK_FREQUENCY, sizeof(clockFrequency), &clockFrequency, NULL);            
-			device_info.append("Clock frequency in MHz: ");
+			deviceInfo.append("Clock frequency in MHz: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << clockFrequency;            
-			device_info.append(temp_stream.str());
-			device_info.append("\n");                                  
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");                                  
 
 			// Get maximum number of threads per block
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_GROUP_SIZE, sizeof(valueSize), &valueSize, NULL);            
-			device_info.append("Max number of threads per block: ");
+			deviceInfo.append("Max number of threads per block: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << valueSize;            
-			device_info.append(temp_stream.str());
-			device_info.append("\n");                                  
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");                                  
         
 			// Get maximum block dimensions
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_WORK_ITEM_SIZES, sizeof(valueSizes), valueSizes, NULL);            
-			device_info.append("Max number of threads in each dimension: ");
+			deviceInfo.append("Max number of threads in each dimension: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << valueSizes[0];
@@ -720,115 +730,185 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 			temp_stream << valueSizes[1];
 			temp_stream << " ";
 			temp_stream << valueSizes[2];
-			device_info.append(temp_stream.str());
-			device_info.append("\n");                                  
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");                                  
 
-			device_info.append("\n");
+			deviceInfo.append("\n");
 		}
 	}
 }
 
 // Creates an OpenCL program from a binary file
-cl_int BROCCOLI_LIB::CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, std::string filename)
+cl_int BROCCOLI_LIB::CreateProgramFromBinary(cl_context context, cl_device_id device, std::string filename)
 {
-	// Get device name and remove spaces, add to filename
-	char* value;
-	size_t valueSize;
-	std::string device_name;
-	clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &valueSize);
-	value = (char*) malloc(valueSize);
-	clGetDeviceInfo(device, CL_DEVICE_NAME, valueSize, value, NULL);            
-	filename.append("_");
-	device_name = value;
-	device_name.erase(std::remove (device_name.begin(), device_name.end(), ' '), device_name.end());
-	filename.append(device_name);			
-	filename.append(".bin");
-	free(value);
-
-	FILE* fp = fopen(filename.c_str(), "rb");
-	if (fp == NULL)
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
 	{
-		program = NULL;
-		return -1;
+		std::string thisFilename = filename;
+
+		// Get device name and remove spaces, add to filename
+		char* value;
+		size_t valueSize;
+		std::string device_name;
+		clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &valueSize);
+		value = (char*) malloc(valueSize);
+		clGetDeviceInfo(device, CL_DEVICE_NAME, valueSize, value, NULL);            
+		thisFilename.append("_");
+		device_name = value;
+		device_name.erase(std::remove (device_name.begin(), device_name.end(), ' '), device_name.end());
+		thisFilename.append(device_name);			
+
+		// Remove ".cpp" and "kernel" from kernel name and add kernel name
+		std::string name = kernelFileNames[k];
+		name = name.substr(0,name.size()-4);
+		name = name.substr(6,name.size());
+		thisFilename.append("_");
+		thisFilename.append(name);	
+		thisFilename.append(".bin");
+
+		free(value);
+
+		FILE* fp = fopen(thisFilename.c_str(), "rb");
+		if (fp == NULL)
+		{
+			program = NULL;
+			return -1;
+		}
+
+		// Determine the size of the binary
+		size_t binarySize;
+		fseek(fp, 0, SEEK_END);
+		binarySize = ftell(fp);
+		rewind(fp);
+
+		// Load binary from disk
+		unsigned char* programBinary = new unsigned char[binarySize];
+		fread(programBinary, 1, binarySize, fp);
+		fclose(fp);
+
+		cl_int binaryStatus;
+
+		OpenCLPrograms[k] = clCreateProgramWithBinary(context, 1, &device, &binarySize, (const unsigned char**)&programBinary, &binaryStatus, &error);
+		delete [] programBinary;
+
+		if (binaryStatus != SUCCESS)
+		{
+			program = NULL;
+			return binaryStatus;
+		}	
+
+		if (error != SUCCESS)
+		{
+			program = NULL;
+			return error;
+		}
 	}
 
-	// Determine the size of the binary
-	size_t binarySize;
-	fseek(fp, 0, SEEK_END);
-	binarySize = ftell(fp);
-	rewind(fp);
-
-	// Load binary from disk
-	unsigned char* programBinary = new unsigned char[binarySize];
-	fread(programBinary, 1, binarySize, fp);
-	fclose(fp);
-
-	cl_int binaryStatus;
-
-	program = clCreateProgramWithBinary(context, 1, &device, &binarySize, (const unsigned char**)&programBinary, &binaryStatus, &error);
-	delete [] programBinary;
-
-	if (binaryStatus != SUCCESS)
-	{
-		program = NULL;
-		return binaryStatus;
-	}	
-
-	if (error != SUCCESS)
-	{
-		program = NULL;
-		return error;
-	}
-	else
-	{
-		return error;
-	}	
+	return error;
 }
 
 // Saves a compiled program to a binary file
-bool BROCCOLI_LIB::SaveProgramBinary(cl_program program, cl_device_id device, std::string filename)
+bool BROCCOLI_LIB::SaveProgramBinary(cl_device_id device, std::string filename)
 {
-	// Get number of devices for program
-	cl_uint numDevices = 0;
-	error = clGetProgramInfo(program, CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &numDevices, NULL);
-	if (error != SUCCESS)
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
 	{
-		return false;
-	}
+		std::string thisFilename = filename;		
 
-	// Get device IDs
-	cl_device_id* devices = new cl_device_id[numDevices];
-	error = clGetProgramInfo(program, CL_PROGRAM_DEVICES, sizeof(cl_device_id) * numDevices, devices, NULL);
-	if (error != SUCCESS)
-	{
-		// Cleanup
-		delete [] devices;
-		return false;
-	}
+		// Get number of devices for program
+		cl_uint numDevices = 0;
+		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &numDevices, NULL);
+		if (error != SUCCESS)
+		{
+			return false;
+		}
 
-	// Get size of each program binary
-	size_t* programBinarySizes = new size_t[numDevices];
-	error = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t) * numDevices, programBinarySizes, NULL);
-	if (error != SUCCESS)
-	{
-		// Cleanup
-		delete [] devices;
-		delete [] programBinarySizes;
-		return false;
-	}
+		// Get device IDs
+		cl_device_id* devices = new cl_device_id[numDevices];
+		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_DEVICES, sizeof(cl_device_id) * numDevices, devices, NULL);
+		if (error != SUCCESS)
+		{
+			// Cleanup
+			delete [] devices;
+			return false;
+		}
 
-	// Allocate temporary memory
-	unsigned char** programBinaries = new unsigned char*[numDevices];
+		// Get size of each program binary
+		size_t* programBinarySizes = new size_t[numDevices];
+		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_BINARY_SIZES, sizeof(size_t) * numDevices, programBinarySizes, NULL);
+		if (error != SUCCESS)
+		{
+			// Cleanup
+			delete [] devices;
+			delete [] programBinarySizes;
+			return false;
+		}
+
+		// Allocate temporary memory
+		unsigned char** programBinaries = new unsigned char*[numDevices];
 	
-	for (cl_uint i = 0; i < numDevices; i++)
-	{
-		programBinaries[i] = new unsigned char[programBinarySizes[i]];
-	}
+		for (cl_uint i = 0; i < numDevices; i++)
+		{
+			programBinaries[i] = new unsigned char[programBinarySizes[i]];
+		}
 
-	// Get all program binaries
-	error = clGetProgramInfo(program, CL_PROGRAM_BINARIES, sizeof(unsigned char*) * numDevices, programBinaries, NULL);
-	if (error != SUCCESS)
-	{
+		// Get all program binaries
+		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_BINARIES, sizeof(unsigned char*) * numDevices, programBinaries, NULL);
+		if (error != SUCCESS)
+		{
+			// Cleanup
+			delete [] devices;
+			delete [] programBinarySizes;
+			for (cl_uint i = 0; i < numDevices; i++)
+			{
+				delete [] programBinaries[i];
+			}
+			delete [] programBinaries;
+			return false;
+		}
+
+		// Loop over devices
+		for (cl_uint i = 0; i < numDevices; i++)
+		{
+			// Only save the binary for the requested device
+			if (devices[i] == device)
+			{
+				// Get device name and remove spaces, add to filename
+				char* value;
+				size_t valueSize;
+				std::string device_name;
+				clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &valueSize);
+				value = (char*) malloc(valueSize);
+				clGetDeviceInfo(device, CL_DEVICE_NAME, valueSize, value, NULL);            
+				thisFilename.append("_");
+				device_name = value;
+				// Remove spaces and add device name
+				device_name.erase(std::remove (device_name.begin(), device_name.end(), ' '), device_name.end());
+				thisFilename.append(device_name);
+
+				// Remove ".cpp" and "kernel" from kernel name and add kernel name
+				std::string name = kernelFileNames[k];
+				name = name.substr(0,name.size()-4);
+				name = name.substr(6,name.size());
+				thisFilename.append("_");
+				thisFilename.append(name);	
+				thisFilename.append(".bin");
+				free(value);
+
+				// Write binary to file
+				FILE* fp = fopen(thisFilename.c_str(), "wb");
+				if (fp != NULL)
+				{
+					programBinarySize = programBinarySizes[i];
+					writtenElements = fwrite(programBinaries[i], 1, programBinarySizes[i], fp);
+					fclose(fp);
+					break;				
+				}
+				else
+				{
+					return false;
+				}
+			}
+		}
+
 		// Cleanup
 		delete [] devices;
 		delete [] programBinarySizes;
@@ -837,54 +917,8 @@ bool BROCCOLI_LIB::SaveProgramBinary(cl_program program, cl_device_id device, st
 			delete [] programBinaries[i];
 		}
 		delete [] programBinaries;
-		return false;
-	}
+	}	
 
-	// Loop over devices
-	for (cl_uint i = 0; i < numDevices; i++)
-	{
-		// Only save the binary for the requested device
-		if (devices[i] == device)
-		{
-			// Get device name and remove spaces, add to filename
-			char* value;
-			size_t valueSize;
-			std::string device_name;
-			clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &valueSize);
-			value = (char*) malloc(valueSize);
-			clGetDeviceInfo(device, CL_DEVICE_NAME, valueSize, value, NULL);            
-			filename.append("_");
-			device_name = value;
-			// Remove spaces
-			device_name.erase(std::remove (device_name.begin(), device_name.end(), ' '), device_name.end());
-			filename.append(device_name);			
-			filename.append(".bin");
-			free(value);
-
-			// Write binary to file
-			FILE* fp = fopen(filename.c_str(), "wb");
-			if (fp != NULL)
-			{
-				programBinarySize = programBinarySizes[i];
-				writtenElements = fwrite(programBinaries[i], 1, programBinarySizes[i], fp);
-				fclose(fp);
-				break;				
-			}
-			else
-			{
-				return false;
-			}
-		}
-	}
-
-	// Cleanup
-	delete [] devices;
-	delete [] programBinarySizes;
-	for (cl_uint i = 0; i < numDevices; i++)
-	{
-		delete [] programBinaries[i];
-	}
-	delete [] programBinaries;
 	return true;
 }
 
@@ -1075,16 +1109,25 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	binaryPathAndFilename.append(binaryFilename);
 
 	// First try to compile from binary file for the selected device
-	error = CreateProgramFromBinary(program, context, deviceIds[OPENCL_DEVICE], binaryPathAndFilename);
+	error = CreateProgramFromBinary(context, deviceIds[OPENCL_DEVICE], binaryPathAndFilename);
 
-	// Build program for selected device
-	if (VENDOR == NVIDIA)
+	if (error == CL_SUCCESS)
 	{
-		error = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
-	}
-	else
-	{
-		error = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+		for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+		{
+			if ( (WRAPPER == BASH) && VERBOS )
+			{
+				printf("Building program from binary for %s \n",kernelFileNames[k].c_str());
+			}
+
+			// Build program for the selected device
+			error = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+
+			if ( (WRAPPER == BASH) && (error != SUCCESS) )
+			{
+				printf("Binary build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(error));
+			}
+		}
 	}
 
 	// Otherwise compile from source code
@@ -1102,77 +1145,119 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLPathAndSourcename.append(OpenCLSourcename);
 	OpenCLPathAndSourcenameShort.append(OpenCLSourcenameShort);
 
+
 	if (error != SUCCESS)
 	{
-		// Check if kernel file exists
-		std::ifstream file(OpenCLPathAndSourcename.c_str());
-		if ( !file.good() )
-		{
-			INITIALIZATION_ERROR = "Unable to open broccoli_lib_kernel.cpp.";
-			OPENCL_ERROR = "";
-			return false;
+		std::string OpenCLPath;
+		if (WRAPPER == BASH)
+		{	
+			OpenCLPath.append(GetBROCCOLIDirectory());
 		}
 
-		// Read the kernel code from file
-		std::fstream kernelFile(OpenCLPathAndSourcename.c_str(),std::ios::in);
+		std::vector<std::string> kernelPathAndFileNames;
 
-		std::ostringstream oss;
-		oss << kernelFile.rdbuf();
-		std::string src = oss.str();
-		const char *srcstr = src.c_str();
+		for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+		{
+			std::string temp = OpenCLPath;
+			temp.append(kernelFileNames[k]);
+			kernelPathAndFileNames.push_back(temp);
+		}
 
-		// Create program and build the code for the selected device
-		program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &error);
+		for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+		{
+			// Check if kernel file exists
+			std::ifstream file(kernelPathAndFileNames[k].c_str());
+			if ( !file.good() )
+			{
+				std::string temp = "Unable to open ";
+				temp.append(kernelFileNames[k]);
+				INITIALIZATION_ERROR = temp.c_str();
+				OPENCL_ERROR = "";
+				return false;
+			}
 
+			// Read the kernel code from file
+			std::fstream kernelFile(kernelPathAndFileNames[k].c_str(),std::ios::in);
+
+			std::ostringstream oss;
+			oss << kernelFile.rdbuf();
+			std::string src = oss.str();
+			const char *srcstr = src.c_str();
+
+			if ( (WRAPPER == BASH) && (VERBOS) )
+			{
+				printf("Creating program for %s \n",kernelFileNames[k].c_str());
+			}
+
+			// Create program 
+			OpenCLPrograms[k] = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &error);
+
+			if ( (WRAPPER == BASH) && (error != SUCCESS) )
+			{
+				printf("Create error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(error));
+			}
+
+			if ( (WRAPPER == BASH) && (VERBOS) )
+			{
+				printf("Building program from source for %s \n",kernelFileNames[k].c_str());
+			}
+
+			// Build program for the selected device
+			buildProgramError = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+
+			if ( (WRAPPER == BASH) && (buildProgramError != SUCCESS) )
+			{
+				printf("Source build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(buildProgramError));
+			}
+
+			// Always get build info
+
+			// Get size of build info
+	
+			valueSize = 0;
+			error = clGetProgramBuildInfo(OpenCLPrograms[k], deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
+
+			if (error != SUCCESS)
+			{
+				INITIALIZATION_ERROR = "Unable to get size of build info.";
+				OPENCL_ERROR = GetOpenCLErrorMessage(error);
+				return false;
+			}
+
+			value = (char*)malloc(valueSize);
+			error = clGetProgramBuildInfo(OpenCLPrograms[k], deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
+
+			if (error != SUCCESS)
+			{
+				INITIALIZATION_ERROR = "Unable to get build info.";
+				OPENCL_ERROR = GetOpenCLErrorMessage(error);
+				free(value);
+				return false;
+			}
+
+			buildInfo.push_back(value);
+			free(value);
+		}
+
+
+		/*
 		if (error != SUCCESS)
 		{
 			INITIALIZATION_ERROR = "Unable to create program with source.";
 			OPENCL_ERROR = GetOpenCLErrorMessage(error);			
 		}
-
-		if (VENDOR == NVIDIA)
-		{
-			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
-		}
-		else
-		{
-			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
-		}
+		*/
 
 		// If successful build, save to binary file
 		if (buildProgramError == SUCCESS)
 		{
-			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
+			SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
 		}
+		
 	}
 
-	// Always get build info
 
-	// Get size of build info
-	valueSize = 0;
-	error = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
-
-	if (error != SUCCESS)
-	{
-		INITIALIZATION_ERROR = "Unable to get size of build info.";
-		OPENCL_ERROR = GetOpenCLErrorMessage(error);
-		return false;
-	}
-
-	value = (char*)malloc(valueSize);
-	error = clGetProgramBuildInfo(program, deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
-
-	if (error != SUCCESS)
-	{
-		INITIALIZATION_ERROR = "Unable to get build info.";
-		OPENCL_ERROR = GetOpenCLErrorMessage(error);
-		free(value);
-		return false;
-	}
-
-	build_info.append(value);
-	free(value);
-
+	/*
 	// Otherwise compile from source code, short version
 	if (buildProgramError != SUCCESS)
 	{
@@ -1219,10 +1304,10 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		// If successful build, save to binary file
 		if (buildProgramError == SUCCESS)
 		{
-			SaveProgramBinary(program,deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
+			SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
 		}
 	}
-
+	*/
 
 	
 
@@ -1256,17 +1341,17 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	// Non-separable convolution kernel using 32 KB of shared memory and 512 threads per thread block (32 * 16)
 	if ( (localMemorySize >= 32) && (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 16)  )
 	{
-		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_512threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(OpenCLPrograms[0],"Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_512threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
 	}
 	// Non-separable convolution kernel using 24 KB of shared memory and 1024 threads per thread block (32 * 32)
 	else if ( (localMemorySize >= 24) && (maxThreadsPerBlock >= 1024) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 32)  )
 	{
-		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_24KB_1024threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(OpenCLPrograms[0],"Nonseparable3DConvolutionComplexThreeQuadratureFilters_24KB_1024threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
 	}
 	// Non-separable convolution kernel using 32 KB of shared memory and 256 threads per thread block (16 * 16)
 	else if ( (localMemorySize >= 32) && (maxThreadsPerBlock >= 256) && (maxThreadsPerDimension[0] >= 16) && (maxThreadsPerDimension[1] >= 16)  )
 	{
-		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_256threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(OpenCLPrograms[0],"Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_256threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
 	}
 	// Non-separable convolution kernel using global memory only (backup)
 	else
@@ -1277,16 +1362,16 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	// Separable convolution kernels using 16 KB of shared memory and 512 threads per thread block (32 * 8 * 2 and 32 * 2 * 8)
 	if ( (localMemorySize >= 16) && (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 8) && (maxThreadsPerDimension[2] >= 8)  )
 	{
-		SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows_16KB_512threads",&createKernelErrorSeparableConvolutionRows);
-		SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns_16KB_512threads",&createKernelErrorSeparableConvolutionColumns);
-		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods_16KB_512threads",&createKernelErrorSeparableConvolutionRods);
+		SeparableConvolutionRowsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionRows_16KB_512threads",&createKernelErrorSeparableConvolutionRows);
+		SeparableConvolutionColumnsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionColumns_16KB_512threads",&createKernelErrorSeparableConvolutionColumns);
+		SeparableConvolutionRodsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionRods_16KB_512threads",&createKernelErrorSeparableConvolutionRods);
 	}
 	// Separable convolution kernels using 16 KB of shared memory and 256 threads per thread block (32 * 8 * 1 and 32 * 1 * 8)
 	else if ( (localMemorySize >= 16) && (maxThreadsPerBlock >= 256) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 8) && (maxThreadsPerDimension[2] >= 8)  )
 	{
-		SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRows_16KB_256threads",&createKernelErrorSeparableConvolutionRows);
-		SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumns_16KB_256threads",&createKernelErrorSeparableConvolutionColumns);
-		SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRods_16KB_256threads",&createKernelErrorSeparableConvolutionRods);
+		SeparableConvolutionRowsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionRows_16KB_256threads",&createKernelErrorSeparableConvolutionRows);
+		SeparableConvolutionColumnsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionColumns_16KB_256threads",&createKernelErrorSeparableConvolutionColumns);
+		SeparableConvolutionRodsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionRods_16KB_256threads",&createKernelErrorSeparableConvolutionRods);
 	}
 	// Separable convolution kernels using global memory only (backup)
 	else
@@ -1301,22 +1386,22 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[2] = SeparableConvolutionColumnsKernel;
 	OpenCLKernels[3] = SeparableConvolutionRodsKernel;
 
-	SliceTimingCorrectionKernel = clCreateKernel(program,"SliceTimingCorrection",&createKernelErrorSliceTimingCorrection);
+	SliceTimingCorrectionKernel = clCreateKernel(OpenCLPrograms[3],"SliceTimingCorrection",&createKernelErrorSliceTimingCorrection);
 
 	OpenCLKernels[4] = SliceTimingCorrectionKernel;
 
-	// Kernels for Linear registration
-	CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(program,"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
-	CalculatePhaseGradientsXKernel = clCreateKernel(program,"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
-	CalculatePhaseGradientsYKernel = clCreateKernel(program,"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
-	CalculatePhaseGradientsZKernel = clCreateKernel(program,"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
-	CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
-	CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
-	CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(program,"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
-	CalculateAMatrix1DValuesKernel = clCreateKernel(program,"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
-	CalculateHVector1DValuesKernel = clCreateKernel(program,"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
-	CalculateAMatrixKernel = clCreateKernel(program,"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
-	CalculateHVectorKernel = clCreateKernel(program,"CalculateHVector",&createKernelErrorCalculateHVector);
+	// Kernels for linear registration
+	CalculatePhaseDifferencesAndCertaintiesKernel = clCreateKernel(OpenCLPrograms[1],"CalculatePhaseDifferencesAndCertainties",&createKernelErrorCalculatePhaseDifferencesAndCertainties);
+	CalculatePhaseGradientsXKernel = clCreateKernel(OpenCLPrograms[1],"CalculatePhaseGradientsX",&createKernelErrorCalculatePhaseGradientsX);
+	CalculatePhaseGradientsYKernel = clCreateKernel(OpenCLPrograms[1],"CalculatePhaseGradientsY",&createKernelErrorCalculatePhaseGradientsY);
+	CalculatePhaseGradientsZKernel = clCreateKernel(OpenCLPrograms[1],"CalculatePhaseGradientsZ",&createKernelErrorCalculatePhaseGradientsZ);
+	CalculateAMatrixAndHVector2DValuesXKernel = clCreateKernel(OpenCLPrograms[1],"CalculateAMatrixAndHVector2DValuesX",&createKernelErrorCalculateAMatrixAndHVector2DValuesX);
+	CalculateAMatrixAndHVector2DValuesYKernel = clCreateKernel(OpenCLPrograms[1],"CalculateAMatrixAndHVector2DValuesY",&createKernelErrorCalculateAMatrixAndHVector2DValuesY);
+	CalculateAMatrixAndHVector2DValuesZKernel = clCreateKernel(OpenCLPrograms[1],"CalculateAMatrixAndHVector2DValuesZ",&createKernelErrorCalculateAMatrixAndHVector2DValuesZ);
+	CalculateAMatrix1DValuesKernel = clCreateKernel(OpenCLPrograms[1],"CalculateAMatrix1DValues",&createKernelErrorCalculateAMatrix1DValues);
+	CalculateHVector1DValuesKernel = clCreateKernel(OpenCLPrograms[1],"CalculateHVector1DValues",&createKernelErrorCalculateHVector1DValues);
+	CalculateAMatrixKernel = clCreateKernel(OpenCLPrograms[1],"CalculateAMatrix",&createKernelErrorCalculateAMatrix);
+	CalculateHVectorKernel = clCreateKernel(OpenCLPrograms[1],"CalculateHVector",&createKernelErrorCalculateHVector);
 
 	OpenCLKernels[5] = CalculatePhaseDifferencesAndCertaintiesKernel;
 	OpenCLKernels[6] = CalculatePhaseGradientsXKernel;
@@ -1330,12 +1415,12 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[14] = CalculateAMatrixKernel;
 	OpenCLKernels[15] = CalculateHVectorKernel;
 
-	// Kernels for non-Linear registration
-	CalculateTensorComponentsKernel = clCreateKernel(program, "CalculateTensorComponents", &createKernelErrorCalculateTensorComponents);
-	CalculateTensorNormsKernel = clCreateKernel(program, "CalculateTensorNorms", &createKernelErrorCalculateTensorNorms);
-	CalculateAMatricesAndHVectorsKernel = clCreateKernel(program, "CalculateAMatricesAndHVectors", &createKernelErrorCalculateAMatricesAndHVectors);
-	CalculateDisplacementUpdateKernel = clCreateKernel(program, "CalculateDisplacementUpdate", &createKernelErrorCalculateDisplacementUpdate);
-	AddLinearAndNonLinearDisplacementKernel = clCreateKernel(program, "AddLinearAndNonLinearDisplacement", &createKernelErrorAddLinearAndNonLinearDisplacement);
+	// Kernels for non-linear registration
+	CalculateTensorComponentsKernel = clCreateKernel(OpenCLPrograms[1], "CalculateTensorComponents", &createKernelErrorCalculateTensorComponents);
+	CalculateTensorNormsKernel = clCreateKernel(OpenCLPrograms[1], "CalculateTensorNorms", &createKernelErrorCalculateTensorNorms);
+	CalculateAMatricesAndHVectorsKernel = clCreateKernel(OpenCLPrograms[1], "CalculateAMatricesAndHVectors", &createKernelErrorCalculateAMatricesAndHVectors);
+	CalculateDisplacementUpdateKernel = clCreateKernel(OpenCLPrograms[1], "CalculateDisplacementUpdate", &createKernelErrorCalculateDisplacementUpdate);
+	AddLinearAndNonLinearDisplacementKernel = clCreateKernel(OpenCLPrograms[1], "AddLinearAndNonLinearDisplacement", &createKernelErrorAddLinearAndNonLinearDisplacement);
 
 	OpenCLKernels[16] = CalculateTensorComponentsKernel;
 	OpenCLKernels[17] = CalculateTensorNormsKernel;
@@ -1343,13 +1428,24 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[19] = CalculateDisplacementUpdateKernel;
 	OpenCLKernels[20] = AddLinearAndNonLinearDisplacementKernel;
 
-	CalculateMagnitudesKernel = clCreateKernel(program,"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);
-	CalculateColumnSumsKernel = clCreateKernel(program,"CalculateColumnSums",&createKernelErrorCalculateColumnSums);
-	CalculateRowSumsKernel = clCreateKernel(program,"CalculateRowSums",&createKernelErrorCalculateRowSums);
-	CalculateColumnMaxsKernel = clCreateKernel(program,"CalculateColumnMaxs",&createKernelErrorCalculateColumnMaxs);
-	CalculateRowMaxsKernel = clCreateKernel(program,"CalculateRowMaxs",&createKernelErrorCalculateRowMaxs);
-	CalculateMaxAtomicKernel = clCreateKernel(program,"CalculateMaxAtomic",&createKernelErrorCalculateMaxAtomic);
-	ThresholdVolumeKernel = clCreateKernel(program,"ThresholdVolume",&createKernelErrorThresholdVolume);
+	// Help kernels
+	CalculateMagnitudesKernel = clCreateKernel(OpenCLPrograms[3],"CalculateMagnitudes",&createKernelErrorCalculateMagnitudes);
+	CalculateColumnSumsKernel = clCreateKernel(OpenCLPrograms[3],"CalculateColumnSums",&createKernelErrorCalculateColumnSums);
+	CalculateRowSumsKernel = clCreateKernel(OpenCLPrograms[3],"CalculateRowSums",&createKernelErrorCalculateRowSums);
+	CalculateColumnMaxsKernel = clCreateKernel(OpenCLPrograms[3],"CalculateColumnMaxs",&createKernelErrorCalculateColumnMaxs);
+	CalculateRowMaxsKernel = clCreateKernel(OpenCLPrograms[3],"CalculateRowMaxs",&createKernelErrorCalculateRowMaxs);
+	CalculateMaxAtomicKernel = clCreateKernel(OpenCLPrograms[3],"CalculateMaxAtomic",&createKernelErrorCalculateMaxAtomic);
+	ThresholdVolumeKernel = clCreateKernel(OpenCLPrograms[3],"ThresholdVolume",&createKernelErrorThresholdVolume);
+	MemsetKernel = clCreateKernel(OpenCLPrograms[3],"Memset",&createKernelErrorMemset);
+	MemsetIntKernel = clCreateKernel(OpenCLPrograms[3],"MemsetInt",&createKernelErrorMemsetInt);
+	MemsetFloat2Kernel = clCreateKernel(OpenCLPrograms[3],"MemsetFloat2",&createKernelErrorMemsetFloat2);
+	MultiplyVolumeKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolume",&createKernelErrorMultiplyVolume);
+	MultiplyVolumesKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
+	MultiplyVolumesOverwriteKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
+	AddVolumeKernel = clCreateKernel(OpenCLPrograms[3],"AddVolume",&createKernelErrorAddVolume);
+	AddVolumesKernel = clCreateKernel(OpenCLPrograms[3],"AddVolumes",&createKernelErrorAddVolumes);
+	AddVolumesOverwriteKernel = clCreateKernel(OpenCLPrograms[3],"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
+	RemoveMeanKernel = clCreateKernel(OpenCLPrograms[3],"RemoveMean",&createKernelErrorRemoveMean);
 
 	OpenCLKernels[21] = CalculateMagnitudesKernel;
 	OpenCLKernels[22] = CalculateColumnSumsKernel;
@@ -1358,68 +1454,59 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[25] = CalculateRowMaxsKernel;
 	OpenCLKernels[26] = CalculateMaxAtomicKernel;
 	OpenCLKernels[27] = ThresholdVolumeKernel;
+	OpenCLKernels[28] = MemsetKernel;
+	OpenCLKernels[29] = MemsetIntKernel;
+	OpenCLKernels[30] = MemsetFloat2Kernel;
+	OpenCLKernels[31] = MultiplyVolumeKernel;
+	OpenCLKernels[32] = MultiplyVolumesKernel;
+	OpenCLKernels[33] = MultiplyVolumesOverwriteKernel;
+	OpenCLKernels[34] = AddVolumeKernel;
+	OpenCLKernels[35] = AddVolumesKernel;
+	OpenCLKernels[36] = AddVolumesOverwriteKernel;
+	OpenCLKernels[37] = RemoveMeanKernel;
 
 	// Interpolation kernels
-	InterpolateVolumeNearestLinearKernel = clCreateKernel(program,"InterpolateVolumeNearestLinear",&createKernelErrorInterpolateVolumeNearestLinear);
-	InterpolateVolumeLinearLinearKernel = clCreateKernel(program,"InterpolateVolumeLinearLinear",&createKernelErrorInterpolateVolumeLinearLinear);
-	InterpolateVolumeCubicLinearKernel = clCreateKernel(program,"InterpolateVolumeCubicLinear",&createKernelErrorInterpolateVolumeCubicLinear);
-	InterpolateVolumeNearestNonLinearKernel = clCreateKernel(program,"InterpolateVolumeNearestNonLinear",&createKernelErrorInterpolateVolumeNearestNonLinear);
-	InterpolateVolumeLinearNonLinearKernel = clCreateKernel(program,"InterpolateVolumeLinearNonLinear",&createKernelErrorInterpolateVolumeLinearNonLinear);
-	InterpolateVolumeCubicNonLinearKernel = clCreateKernel(program,"InterpolateVolumeCubicNonLinear",&createKernelErrorInterpolateVolumeCubicNonLinear);
+	InterpolateVolumeNearestLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeNearestLinear",&createKernelErrorInterpolateVolumeNearestLinear);
+	InterpolateVolumeLinearLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeLinearLinear",&createKernelErrorInterpolateVolumeLinearLinear);
+	InterpolateVolumeCubicLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeCubicLinear",&createKernelErrorInterpolateVolumeCubicLinear);
+	InterpolateVolumeNearestNonLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeNearestNonLinear",&createKernelErrorInterpolateVolumeNearestNonLinear);
+	InterpolateVolumeLinearNonLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeLinearNonLinear",&createKernelErrorInterpolateVolumeLinearNonLinear);
+	InterpolateVolumeCubicNonLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeCubicNonLinear",&createKernelErrorInterpolateVolumeCubicNonLinear);
 
-	OpenCLKernels[28] = InterpolateVolumeNearestLinearKernel;
-	OpenCLKernels[29] = InterpolateVolumeLinearLinearKernel;
-	OpenCLKernels[30] = InterpolateVolumeCubicLinearKernel;
-	OpenCLKernels[31] = InterpolateVolumeNearestNonLinearKernel;
-	OpenCLKernels[32] = InterpolateVolumeLinearNonLinearKernel;
-	OpenCLKernels[33] = InterpolateVolumeCubicNonLinearKernel;
+	OpenCLKernels[38] = InterpolateVolumeNearestLinearKernel;
+	OpenCLKernels[39] = InterpolateVolumeLinearLinearKernel;
+	OpenCLKernels[40] = InterpolateVolumeCubicLinearKernel;
+	OpenCLKernels[41] = InterpolateVolumeNearestNonLinearKernel;
+	OpenCLKernels[42] = InterpolateVolumeLinearNonLinearKernel;
+	OpenCLKernels[43] = InterpolateVolumeCubicNonLinearKernel;
 
-	RescaleVolumeLinearKernel = clCreateKernel(program,"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
-	RescaleVolumeCubicKernel = clCreateKernel(program,"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
-	RescaleVolumeNearestKernel = clCreateKernel(program,"RescaleVolumeNearest",&createKernelErrorRescaleVolumeNearest);
+	RescaleVolumeLinearKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
+	RescaleVolumeCubicKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
+	RescaleVolumeNearestKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeNearest",&createKernelErrorRescaleVolumeNearest);
 
-	OpenCLKernels[34] = RescaleVolumeLinearKernel;
-	OpenCLKernels[35] = RescaleVolumeCubicKernel;
-	OpenCLKernels[36] = RescaleVolumeNearestKernel;
+	OpenCLKernels[44] = RescaleVolumeLinearKernel;
+	OpenCLKernels[45] = RescaleVolumeCubicKernel;
+	OpenCLKernels[46] = RescaleVolumeNearestKernel;
 
-	CopyT1VolumeToMNIKernel = clCreateKernel(program,"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
-	CopyEPIVolumeToT1Kernel = clCreateKernel(program,"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
-	CopyVolumeToNewKernel = clCreateKernel(program,"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
+	CopyT1VolumeToMNIKernel = clCreateKernel(OpenCLPrograms[1],"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
+	CopyEPIVolumeToT1Kernel = clCreateKernel(OpenCLPrograms[1],"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
+	CopyVolumeToNewKernel = clCreateKernel(OpenCLPrograms[1],"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
 
-	OpenCLKernels[37] = CopyT1VolumeToMNIKernel;
-	OpenCLKernels[38] = CopyEPIVolumeToT1Kernel;
-	OpenCLKernels[39] = CopyVolumeToNewKernel;
+	OpenCLKernels[47] = CopyT1VolumeToMNIKernel;
+	OpenCLKernels[48] = CopyEPIVolumeToT1Kernel;
+	OpenCLKernels[49] = CopyVolumeToNewKernel;
 
-	// Help kernels
-	MemsetKernel = clCreateKernel(program,"Memset",&createKernelErrorMemset);
-	MemsetIntKernel = clCreateKernel(program,"MemsetInt",&createKernelErrorMemsetInt);
-	MemsetFloat2Kernel = clCreateKernel(program,"MemsetFloat2",&createKernelErrorMemsetFloat2);
-	MultiplyVolumeKernel = clCreateKernel(program,"MultiplyVolume",&createKernelErrorMultiplyVolume);
-	MultiplyVolumesKernel = clCreateKernel(program,"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
-	MultiplyVolumesOverwriteKernel = clCreateKernel(program,"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
-	AddVolumeKernel = clCreateKernel(program,"AddVolume",&createKernelErrorAddVolume);
-	AddVolumesKernel = clCreateKernel(program,"AddVolumes",&createKernelErrorAddVolumes);
-	AddVolumesOverwriteKernel = clCreateKernel(program,"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
-	RemoveMeanKernel = clCreateKernel(program,"RemoveMean",&createKernelErrorRemoveMean);
-	SetStartClusterIndicesKernel = clCreateKernel(program,"SetStartClusterIndicesKernel",&createKernelErrorSetStartClusterIndices);
-	ClusterizeScanKernel = clCreateKernel(program,"ClusterizeScan",&createKernelErrorClusterizeScan);
-	ClusterizeRelabelKernel = clCreateKernel(program,"ClusterizeRelabel",&createKernelErrorClusterizeRelabel);
-	CalculateClusterSizesKernel = clCreateKernel(program,"CalculateClusterSizes",&createKernelErrorCalculateClusterSizes);
-	CalculateClusterMassesKernel = clCreateKernel(program,"CalculateClusterMasses",&createKernelErrorCalculateClusterMasses);
-	CalculateLargestClusterKernel = clCreateKernel(program,"CalculateLargestCluster",&createKernelErrorCalculateLargestCluster);
-	CalculateTFCEValuesKernel = clCreateKernel(program,"CalculateTFCEValues",&createKernelErrorCalculateTFCEValues);
-	TransformDataKernel = clCreateKernel(program,"TransformData",&createKernelErrorTransformData);
+	// Clusterize kernels	
+	SetStartClusterIndicesKernel = clCreateKernel(OpenCLPrograms[2],"SetStartClusterIndicesKernel",&createKernelErrorSetStartClusterIndices);
+	ClusterizeScanKernel = clCreateKernel(OpenCLPrograms[2],"ClusterizeScan",&createKernelErrorClusterizeScan);
+	ClusterizeRelabelKernel = clCreateKernel(OpenCLPrograms[2],"ClusterizeRelabel",&createKernelErrorClusterizeRelabel);
+	CalculateClusterSizesKernel = clCreateKernel(OpenCLPrograms[2],"CalculateClusterSizes",&createKernelErrorCalculateClusterSizes);
+	CalculateClusterMassesKernel = clCreateKernel(OpenCLPrograms[2],"CalculateClusterMasses",&createKernelErrorCalculateClusterMasses);
+	CalculateLargestClusterKernel = clCreateKernel(OpenCLPrograms[2],"CalculateLargestCluster",&createKernelErrorCalculateLargestCluster);
+	CalculateTFCEValuesKernel = clCreateKernel(OpenCLPrograms[2],"CalculateTFCEValues",&createKernelErrorCalculateTFCEValues);
+	CalculatePermutationPValuesVoxelLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesVoxelLevelInference",&createKernelErrorCalculatePermutationPValuesVoxelLevelInference);
+	CalculatePermutationPValuesClusterLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesClusterLevelInference",&createKernelErrorCalculatePermutationPValuesClusterLevelInference);
 
-	OpenCLKernels[40] = MemsetKernel;
-	OpenCLKernels[41] = MemsetIntKernel;
-	OpenCLKernels[42] = MemsetFloat2Kernel;
-	OpenCLKernels[43] = MultiplyVolumeKernel;
-	OpenCLKernels[44] = MultiplyVolumesKernel;
-	OpenCLKernels[45] = MultiplyVolumesOverwriteKernel;
-	OpenCLKernels[46] = AddVolumeKernel;
-	OpenCLKernels[47] = AddVolumesKernel;
-	OpenCLKernels[48] = AddVolumesOverwriteKernel;
-	OpenCLKernels[49] = RemoveMeanKernel;
 	OpenCLKernels[50] = SetStartClusterIndicesKernel;
 	OpenCLKernels[51] = ClusterizeScanKernel;
 	OpenCLKernels[52] = ClusterizeRelabelKernel;
@@ -1427,48 +1514,53 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[54] = CalculateClusterMassesKernel;
 	OpenCLKernels[55] = CalculateLargestClusterKernel;
 	OpenCLKernels[56] = CalculateTFCEValuesKernel;
-	OpenCLKernels[57] = TransformDataKernel;
+	OpenCLKernels[57] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
+	OpenCLKernels[58] = CalculatePermutationPValuesClusterLevelInferenceKernel;
 
 	// Statistical kernels
-	CalculateBetaWeightsGLMKernel = clCreateKernel(program,"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
-	CalculateBetaWeightsGLMFirstLevelKernel = clCreateKernel(program,"CalculateBetaWeightsGLMFirstLevel",&createKernelErrorCalculateBetaWeightsGLMFirstLevel);
-	CalculateGLMResidualsKernel = clCreateKernel(program,"CalculateGLMResiduals",&createKernelErrorCalculateGLMResiduals);
-	CalculateStatisticalMapsGLMTTestFirstLevelKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel);
-	CalculateStatisticalMapsGLMFTestFirstLevelKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel);
-	CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
-	CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
-	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
-	CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation);
-	CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation);
-	CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMTTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation);
-	CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsGLMFTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation);
-	CalculateStatisticalMapsMeanSecondLevelPermutationKernel = clCreateKernel(program,"CalculateStatisticalMapsMeanSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation);
-	EstimateAR4ModelsKernel = clCreateKernel(program,"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
-	ApplyWhiteningAR4Kernel = clCreateKernel(program,"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
-	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(program,"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
-	RemoveLinearFitKernel = clCreateKernel(program,"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
-	CalculatePermutationPValuesVoxelLevelInferenceKernel = clCreateKernel(program,"CalculatePermutationPValuesVoxelLevelInference",&createKernelErrorCalculatePermutationPValuesVoxelLevelInference);
-	CalculatePermutationPValuesClusterLevelInferenceKernel = clCreateKernel(program,"CalculatePermutationPValuesClusterLevelInference",&createKernelErrorCalculatePermutationPValuesClusterLevelInference);
+	CalculateBetaWeightsGLMKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
+	CalculateBetaWeightsGLMFirstLevelKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLMFirstLevel",&createKernelErrorCalculateBetaWeightsGLMFirstLevel);
+	CalculateGLMResidualsKernel = clCreateKernel(OpenCLPrograms[4],"CalculateGLMResiduals",&createKernelErrorCalculateGLMResiduals);
+	CalculateStatisticalMapsGLMTTestFirstLevelKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMTTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel);
+	CalculateStatisticalMapsGLMFTestFirstLevelKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMFTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel);
+	CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
+	CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
+	CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMTTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation);
+	CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMFTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation);
+	CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMTTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation);
+	CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMFTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation);
+	CalculateStatisticalMapsMeanSecondLevelPermutationKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsMeanSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation);
+	TransformDataKernel = clCreateKernel(OpenCLPrograms[4],"TransformData",&createKernelErrorTransformData);
+	RemoveLinearFitKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
 
-	OpenCLKernels[58] = CalculateBetaWeightsGLMKernel;
-	OpenCLKernels[59] = CalculateBetaWeightsGLMFirstLevelKernel;
-	OpenCLKernels[60] = CalculateGLMResidualsKernel;
-	OpenCLKernels[61] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-	OpenCLKernels[62] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-	OpenCLKernels[63] = CalculateStatisticalMapsGLMTTestKernel;
-	OpenCLKernels[64] = CalculateStatisticalMapsGLMFTestKernel;
-	OpenCLKernels[65] = CalculateStatisticalMapsGLMBayesianKernel;
+	OpenCLKernels[59] = CalculateBetaWeightsGLMKernel;
+	OpenCLKernels[60] = CalculateBetaWeightsGLMFirstLevelKernel;
+	OpenCLKernels[61] = CalculateGLMResidualsKernel;
+	OpenCLKernels[62] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+	OpenCLKernels[63] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+	OpenCLKernels[64] = CalculateStatisticalMapsGLMTTestKernel;
+	OpenCLKernels[65] = CalculateStatisticalMapsGLMFTestKernel;
 	OpenCLKernels[66] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
 	OpenCLKernels[67] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
 	OpenCLKernels[68] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
 	OpenCLKernels[69] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
 	OpenCLKernels[70] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
-	OpenCLKernels[71] = EstimateAR4ModelsKernel;
-	OpenCLKernels[72] = ApplyWhiteningAR4Kernel;
-	OpenCLKernels[73] = GeneratePermutedVolumesFirstLevelKernel;
-	OpenCLKernels[74] = RemoveLinearFitKernel;
-	OpenCLKernels[75] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
-	OpenCLKernels[76] = CalculatePermutationPValuesClusterLevelInferenceKernel;
+	OpenCLKernels[71] = TransformDataKernel;
+	OpenCLKernels[72] = RemoveLinearFitKernel;
+
+	// Bayesian kernels
+	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(OpenCLPrograms[6],"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
+
+	OpenCLKernels[73] = CalculateStatisticalMapsGLMBayesianKernel;
+
+	// Whitening kernels	
+	EstimateAR4ModelsKernel = clCreateKernel(OpenCLPrograms[5],"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
+	ApplyWhiteningAR4Kernel = clCreateKernel(OpenCLPrograms[5],"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
+	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(OpenCLPrograms[5],"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
+
+	OpenCLKernels[74] = EstimateAR4ModelsKernel;
+	OpenCLKernels[75] = ApplyWhiteningAR4Kernel;
+	OpenCLKernels[76] = GeneratePermutedVolumesFirstLevelKernel;
 
 	OPENCL_INITIATED = true;
 
@@ -1503,6 +1595,435 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	}
 }
 
+const char* BROCCOLI_LIB::GetOpenCLKernelName(int kernel)
+{
+	switch (kernel)
+	{
+		case 0:
+			return "NonseparableConvolution3DComplexThreeFilters";
+			break;
+		case 1:
+			return "SeparableConvolutionRows";
+			break;
+		case 2:
+			return "SeparableConvolutionColumns";
+			break;
+		case 3:
+			return "SeparableConvolutionRods";
+			break;
+		case 4:
+			return "SliceTimingCorrection";
+			break;
+		case 5:
+			return "CalculatePhaseDifferencesAndCertainties";
+			break;
+		case 6:
+			return "CalculatePhaseGradientsX";
+			break;
+		case 7:
+			return "CalculatePhaseGradientsY";
+			break;
+		case 8:
+			return "CalculatePhaseGradientsZ";
+			break;
+		case 9:
+			return "CalculateAMatrixAndHVector2DValuesX";
+			break;
+		case 10:
+			return "CalculateAMatrixAndHVector2DValuesY";
+			break;
+		case 11:
+			return "CalculateAMatrixAndHVector2DValuesZ";
+			break;
+		case 12:
+			return "CalculateAMatrix1DValues";
+			break;
+		case 13:
+			return "CalculateHVector1DValues";
+			break;
+		case 14:
+			return "CalculateAMatrix";
+			break;
+		case 15:
+			return "CalculateHVector";
+			break;
+		case 16:
+			return "CalculateTensorComponents";
+			break;
+		case 17:
+			return "CalculateTensorNorms";
+			break;
+		case 18:
+			return "CalculateAMatricesAndHVectors";
+			break;
+		case 19:
+			return "CalculateDisplacementUpdate";
+			break;
+		case 20:
+			return "AddLinearAndNonLinearDisplacement";
+			break;
+		case 21:
+			return "CalculateMagnitudes";
+			break;
+		case 22:
+			return "CalculateColumnSums";
+			break;
+		case 23:
+			return "CalculateRowSums";
+			break;
+		case 24:
+			return "CalculateColumnMaxs";
+			break;
+		case 25:
+			return "CalculateRowMaxs";
+			break;
+		case 26:
+			return "CalculateMaxAtomic";
+			break;
+		case 27:
+			return "ThresholdVolume";
+			break;
+		case 28:
+			return "Memset";
+			break;
+		case 29:
+			return "MemsetInt";
+			break;
+		case 30:
+			return "MemsetFloat2";
+			break;
+		case 31:
+			return "MultiplyVolume";
+			break;
+		case 32:
+			return "MultiplyVolumes";
+			break;
+		case 33:
+			return "MultiplyVolumesOverwrite";
+			break;
+		case 34:
+			return "AddVolume";
+			break;
+		case 35:
+			return "AddVolumes";
+			break;
+		case 36:
+			return "AddVolumesOverwrite";
+			break;
+		case 37:
+			return "RemoveMean";
+			break;
+
+		case 38:
+			return "InterpolateVolumeNearestLinear";
+			break;
+		case 39:
+			return "InterpolateVolumeLinearLinear";
+			break;
+		case 40:
+			return "InterpolateVolumeCubicLinear";
+			break;
+		case 41:
+			return "InterpolateVolumeNearestNonLinear";
+			break;
+		case 42:
+			return "InterpolateVolumeLinearNonLinear";
+			break;
+		case 43:
+			return "InterpolateVolumeCubicNonLinear";
+			break;
+		case 44:
+			return "RescaleVolumeLinear";
+			break;
+		case 45:
+			return "RescaleVolumeCubic";
+			break;
+		case 46:
+			return "RescaleVolumeNearest";
+			break;
+		case 47:
+			return "CopyT1VolumeToMNI";
+			break;
+		case 48:
+			return "CopyEPIVolumeToT1";
+			break;
+		case 49:
+			return "CopyVolumeToNew";
+			break;
+		
+		case 50:
+			return "SetStartClusterIndices";
+			break;
+		case 51:
+			return "ClusterizeScan";
+			break;
+		case 52:
+			return "ClusterizeRelabel";
+			break;
+		case 53:
+			return "CalculateClusterSizes";
+			break;
+		case 54:
+			return "CalculateClusterMasses";
+			break;
+		case 55:
+			return "CalculateLargestCluster";
+			break;
+		case 56:
+			return "CalculateTFCEValues";
+			break;
+		case 57:
+			return "CalculatePermutationPValuesVoxelLevelInference";
+			break;
+		case 58:
+			return "CalculatePermutationPValuesClusterLevelInference";
+			break;
+
+		case 59:
+			return "CalculateBetaWeightsGLM";
+			break;
+		case 60:
+			return "CalculateBetaWeightsGLMFirstLevel";
+			break;
+		case 61:
+			return "CalculateGLMResiduals";
+			break;
+		case 62:
+			return "CalculateStatisticalMapsGLMTTestFirstLevel";
+			break;
+		case 63:
+			return "CalculateStatisticalMapsGLMFTestFirstLevel";
+			break;
+		case 64:
+			return "CalculateStatisticalMapsGLMTTest";
+			break;
+		case 65:
+			return "CalculateStatisticalMapsGLMFTest";
+			break;
+		case 66:
+			return "CalculateStatisticalMapsGLMTTestFirstLevelPermutation";
+			break;
+		case 67:
+			return "CalculateStatisticalMapsGLMFTestFirstLevelPermutation";
+			break;
+		case 68:
+			return "CalculateStatisticalMapsGLMTTestSecondLevelPermutation";
+			break;
+		case 69:
+			return "CalculateStatisticalMapsGLMFTestSecondLevelPermutation";
+			break;
+		case 70:
+			return "CalculateStatisticalMapsMeanSecondLevelPermutation";
+			break;
+		case 71:
+			return "TransformData";
+			break;
+		case 72:
+			return "RemoveLinearFit";
+			break;
+
+		case 73:
+			return "CalculateStatisticalMapsGLMBayesian";
+			break;
+
+		case 74:
+			return "EstimateAR4Models";
+			break;
+		case 75:
+			return "ApplyWhiteningAR4";
+			break;
+		case 76:
+			return "GeneratePermutedVolumesFirstLevel";
+			break;
+
+		default:
+			return "Unrecognized BROCCOLI kernel";
+	}
+}
+
+int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
+{
+	OpenCLCreateKernelErrors[0] = createKernelErrorNonseparableConvolution3DComplexThreeFilters;
+	OpenCLCreateKernelErrors[1] = createKernelErrorSeparableConvolutionRows;
+	OpenCLCreateKernelErrors[2] = createKernelErrorSeparableConvolutionColumns;
+	OpenCLCreateKernelErrors[3] = createKernelErrorSeparableConvolutionRods;
+
+	OpenCLCreateKernelErrors[4] = createKernelErrorSliceTimingCorrection;
+
+	OpenCLCreateKernelErrors[5] = createKernelErrorCalculatePhaseDifferencesAndCertainties;
+	OpenCLCreateKernelErrors[6] = createKernelErrorCalculatePhaseGradientsX;
+	OpenCLCreateKernelErrors[7] = createKernelErrorCalculatePhaseGradientsY;
+	OpenCLCreateKernelErrors[8] = createKernelErrorCalculatePhaseGradientsZ;
+	OpenCLCreateKernelErrors[9] = createKernelErrorCalculateAMatrixAndHVector2DValuesX;
+	OpenCLCreateKernelErrors[10] = createKernelErrorCalculateAMatrixAndHVector2DValuesY;
+	OpenCLCreateKernelErrors[11] = createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
+	OpenCLCreateKernelErrors[12] = createKernelErrorCalculateAMatrix1DValues;
+	OpenCLCreateKernelErrors[13] = createKernelErrorCalculateHVector1DValues;
+	OpenCLCreateKernelErrors[14] = createKernelErrorCalculateAMatrix;
+	OpenCLCreateKernelErrors[15] = createKernelErrorCalculateHVector;
+	OpenCLCreateKernelErrors[16] = createKernelErrorCalculateTensorComponents;
+	OpenCLCreateKernelErrors[17] = createKernelErrorCalculateTensorNorms;
+	OpenCLCreateKernelErrors[18] = createKernelErrorCalculateAMatricesAndHVectors;
+	OpenCLCreateKernelErrors[19] = createKernelErrorCalculateDisplacementUpdate;
+	OpenCLCreateKernelErrors[20] = createKernelErrorAddLinearAndNonLinearDisplacement;
+
+	OpenCLCreateKernelErrors[21] = createKernelErrorCalculateMagnitudes;
+	OpenCLCreateKernelErrors[22] = createKernelErrorCalculateColumnSums;
+	OpenCLCreateKernelErrors[23] = createKernelErrorCalculateRowSums;
+	OpenCLCreateKernelErrors[24] = createKernelErrorCalculateColumnMaxs;
+	OpenCLCreateKernelErrors[25] = createKernelErrorCalculateRowMaxs;
+	OpenCLCreateKernelErrors[26] = createKernelErrorCalculateMaxAtomic;
+	OpenCLCreateKernelErrors[27] = createKernelErrorThresholdVolume;
+	OpenCLCreateKernelErrors[28] = createKernelErrorMemset;
+	OpenCLCreateKernelErrors[29] = createKernelErrorMemsetInt;
+	OpenCLCreateKernelErrors[30] = createKernelErrorMemsetFloat2;
+	OpenCLCreateKernelErrors[31] = createKernelErrorMultiplyVolume;
+	OpenCLCreateKernelErrors[32] = createKernelErrorMultiplyVolumes;
+	OpenCLCreateKernelErrors[33] = createKernelErrorMultiplyVolumesOverwrite;
+	OpenCLCreateKernelErrors[34] = createKernelErrorAddVolume;
+	OpenCLCreateKernelErrors[35] = createKernelErrorAddVolumes;
+	OpenCLCreateKernelErrors[36] = createKernelErrorAddVolumesOverwrite;
+	OpenCLCreateKernelErrors[37] = createKernelErrorRemoveMean;
+
+	OpenCLCreateKernelErrors[38] = createKernelErrorInterpolateVolumeNearestLinear;
+	OpenCLCreateKernelErrors[39] = createKernelErrorInterpolateVolumeLinearLinear;
+	OpenCLCreateKernelErrors[40] = createKernelErrorInterpolateVolumeCubicLinear;
+	OpenCLCreateKernelErrors[41] = createKernelErrorInterpolateVolumeNearestNonLinear;
+	OpenCLCreateKernelErrors[42] = createKernelErrorInterpolateVolumeLinearNonLinear;
+	OpenCLCreateKernelErrors[43] = createKernelErrorInterpolateVolumeCubicNonLinear;
+	OpenCLCreateKernelErrors[44] = createKernelErrorRescaleVolumeLinear;
+	OpenCLCreateKernelErrors[45] = createKernelErrorRescaleVolumeCubic;
+	OpenCLCreateKernelErrors[46] = createKernelErrorRescaleVolumeNearest;
+	OpenCLCreateKernelErrors[47] = createKernelErrorCopyT1VolumeToMNI;
+	OpenCLCreateKernelErrors[48] = createKernelErrorCopyEPIVolumeToT1;
+	OpenCLCreateKernelErrors[49] = createKernelErrorCopyVolumeToNew;
+
+	OpenCLCreateKernelErrors[50] = createKernelErrorSetStartClusterIndices;
+	OpenCLCreateKernelErrors[51] = createKernelErrorClusterizeScan;
+	OpenCLCreateKernelErrors[52] = createKernelErrorClusterizeRelabel;
+	OpenCLCreateKernelErrors[53] = createKernelErrorCalculateClusterSizes;
+	OpenCLCreateKernelErrors[54] = createKernelErrorCalculateClusterMasses;
+	OpenCLCreateKernelErrors[55] = createKernelErrorCalculateLargestCluster;
+	OpenCLCreateKernelErrors[56] = createKernelErrorCalculateTFCEValues;
+	OpenCLCreateKernelErrors[57] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLCreateKernelErrors[58] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
+
+	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateBetaWeightsGLM;
+	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateGLMResiduals;
+	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLCreateKernelErrors[71] = createKernelErrorTransformData;
+	OpenCLCreateKernelErrors[72] = createKernelErrorRemoveLinearFit;
+
+	OpenCLCreateKernelErrors[73] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
+
+	OpenCLCreateKernelErrors[74] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[75] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[76] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+
+
+	return OpenCLCreateKernelErrors;
+}
+
+int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
+{
+	OpenCLRunKernelErrors[0] = runKernelErrorNonseparableConvolution3DComplexThreeFilters;
+	OpenCLRunKernelErrors[1] = runKernelErrorSeparableConvolutionRows;
+	OpenCLRunKernelErrors[2] = runKernelErrorSeparableConvolutionColumns;
+	OpenCLRunKernelErrors[3] = runKernelErrorSeparableConvolutionRods;
+
+	OpenCLRunKernelErrors[4] = runKernelErrorSliceTimingCorrection;
+
+	OpenCLRunKernelErrors[5] = runKernelErrorCalculatePhaseDifferencesAndCertainties;
+	OpenCLRunKernelErrors[6] = runKernelErrorCalculatePhaseGradientsX;
+	OpenCLRunKernelErrors[7] = runKernelErrorCalculatePhaseGradientsY;
+	OpenCLRunKernelErrors[8] = runKernelErrorCalculatePhaseGradientsZ;
+	OpenCLRunKernelErrors[9] = runKernelErrorCalculateAMatrixAndHVector2DValuesX;
+	OpenCLRunKernelErrors[10] = runKernelErrorCalculateAMatrixAndHVector2DValuesY;
+	OpenCLRunKernelErrors[11] = runKernelErrorCalculateAMatrixAndHVector2DValuesZ;
+	OpenCLRunKernelErrors[12] = runKernelErrorCalculateAMatrix1DValues;
+	OpenCLRunKernelErrors[13] = runKernelErrorCalculateHVector1DValues;
+	OpenCLRunKernelErrors[14] = runKernelErrorCalculateAMatrix;
+	OpenCLRunKernelErrors[15] = runKernelErrorCalculateHVector;
+	OpenCLRunKernelErrors[16] = runKernelErrorCalculateTensorComponents;
+	OpenCLRunKernelErrors[17] = runKernelErrorCalculateTensorNorms;
+	OpenCLRunKernelErrors[18] = runKernelErrorCalculateAMatricesAndHVectors;
+	OpenCLRunKernelErrors[19] = runKernelErrorCalculateDisplacementUpdate;
+	OpenCLRunKernelErrors[20] = runKernelErrorAddLinearAndNonLinearDisplacement;
+
+	OpenCLRunKernelErrors[21] = runKernelErrorCalculateMagnitudes;
+	OpenCLRunKernelErrors[22] = runKernelErrorCalculateColumnSums;
+	OpenCLRunKernelErrors[23] = runKernelErrorCalculateRowSums;
+	OpenCLRunKernelErrors[24] = runKernelErrorCalculateColumnMaxs;
+	OpenCLRunKernelErrors[25] = runKernelErrorCalculateRowMaxs;
+	OpenCLRunKernelErrors[26] = runKernelErrorCalculateMaxAtomic;
+	OpenCLRunKernelErrors[27] = runKernelErrorThresholdVolume;
+	OpenCLRunKernelErrors[28] = runKernelErrorMemset;
+	OpenCLRunKernelErrors[29] = runKernelErrorMemsetInt;
+	OpenCLRunKernelErrors[30] = runKernelErrorMemsetFloat2;
+	OpenCLRunKernelErrors[31] = runKernelErrorMultiplyVolume;
+	OpenCLRunKernelErrors[32] = runKernelErrorMultiplyVolumes;
+	OpenCLRunKernelErrors[33] = runKernelErrorMultiplyVolumesOverwrite;
+	OpenCLRunKernelErrors[34] = runKernelErrorAddVolume;
+	OpenCLRunKernelErrors[35] = runKernelErrorAddVolumes;
+	OpenCLRunKernelErrors[36] = runKernelErrorAddVolumesOverwrite;
+	OpenCLRunKernelErrors[37] = runKernelErrorRemoveMean;
+
+	OpenCLRunKernelErrors[38] = runKernelErrorInterpolateVolumeNearestLinear;
+	OpenCLRunKernelErrors[39] = runKernelErrorInterpolateVolumeLinearLinear;
+	OpenCLRunKernelErrors[40] = runKernelErrorInterpolateVolumeCubicLinear;
+	OpenCLRunKernelErrors[41] = runKernelErrorInterpolateVolumeNearestNonLinear;
+	OpenCLRunKernelErrors[42] = runKernelErrorInterpolateVolumeLinearNonLinear;
+	OpenCLRunKernelErrors[43] = runKernelErrorInterpolateVolumeCubicNonLinear;
+	OpenCLRunKernelErrors[44] = runKernelErrorRescaleVolumeLinear;
+	OpenCLRunKernelErrors[45] = runKernelErrorRescaleVolumeCubic;
+	OpenCLRunKernelErrors[46] = runKernelErrorRescaleVolumeNearest;
+	OpenCLRunKernelErrors[47] = runKernelErrorCopyT1VolumeToMNI;
+	OpenCLRunKernelErrors[48] = runKernelErrorCopyEPIVolumeToT1;
+	OpenCLRunKernelErrors[49] = runKernelErrorCopyVolumeToNew;
+
+	OpenCLRunKernelErrors[50] = runKernelErrorSetStartClusterIndices;
+	OpenCLRunKernelErrors[51] = runKernelErrorClusterizeScan;
+	OpenCLRunKernelErrors[52] = runKernelErrorClusterizeRelabel;
+	OpenCLRunKernelErrors[53] = runKernelErrorCalculateClusterSizes;
+	OpenCLRunKernelErrors[54] = runKernelErrorCalculateClusterMasses;
+	OpenCLRunKernelErrors[55] = runKernelErrorCalculateLargestCluster;
+	OpenCLRunKernelErrors[56] = runKernelErrorCalculateTFCEValues;
+	OpenCLRunKernelErrors[57] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLRunKernelErrors[58] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
+
+	OpenCLRunKernelErrors[59] = runKernelErrorCalculateBetaWeightsGLM;
+	OpenCLRunKernelErrors[60] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLRunKernelErrors[61] = runKernelErrorCalculateGLMResiduals;
+	OpenCLRunKernelErrors[62] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[63] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLRunKernelErrors[71] = runKernelErrorTransformData;
+	OpenCLRunKernelErrors[72] = runKernelErrorRemoveLinearFit;
+
+	OpenCLRunKernelErrors[73] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
+
+	OpenCLRunKernelErrors[74] = runKernelErrorEstimateAR4Models;
+	OpenCLRunKernelErrors[75] = runKernelErrorApplyWhiteningAR4;
+	OpenCLRunKernelErrors[76] = runKernelErrorGeneratePermutedVolumesFirstLevel;
+
+	return OpenCLRunKernelErrors;
+}
+
 
 // Cleans up all the OpenCL variables when the BROCCOLI instance is destroyed
 void BROCCOLI_LIB::OpenCLCleanup()
@@ -1520,10 +2041,14 @@ void BROCCOLI_LIB::OpenCLCleanup()
 			}
 		}
 
-		// Release program, command queue and context
-		if (program != NULL)
-		{
-			clReleaseProgram(program);
+		// Release programs, command queue and context
+		for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+		{	
+			cl_program temp = OpenCLPrograms[k];
+			if (temp != NULL)
+			{
+				clReleaseProgram(temp);
+			}
 		}
 		if (commandQueue != NULL)
 		{
@@ -3176,12 +3701,22 @@ void BROCCOLI_LIB::SetOutputHVector(float* h)
 
 const char* BROCCOLI_LIB::GetOpenCLDeviceInfoChar()
 {
-	return device_info.c_str();
+	return deviceInfo.c_str();
 }
 
-const char* BROCCOLI_LIB::GetOpenCLBuildInfoChar()
+std::vector<std::string> BROCCOLI_LIB::GetOpenCLBuildInfo()
 {
-	return build_info.c_str();
+	return buildInfo;
+}
+
+std::vector<std::string> BROCCOLI_LIB::GetKernelFileNames()
+{
+	return kernelFileNames;
+}
+
+int BROCCOLI_LIB::GetNumberOfKernelFiles()
+{
+	return NUMBER_OF_KERNEL_FILES;
 }
 
 const char* BROCCOLI_LIB::GetOpenCLErrorMessage(int error)
@@ -3336,255 +3871,10 @@ const char* BROCCOLI_LIB::GetOpenCLErrorMessage(int error)
 	}
 }
 
-const char* BROCCOLI_LIB::GetOpenCLKernelName(int kernel)
-{
-	switch (kernel)
-	{
-		case 0:
-			return "NonseparableConvolution3DComplexThreeFilters";
-			break;
-		case 1:
-			return "SeparableConvolutionRows";
-			break;
-		case 2:
-			return "SeparableConvolutionColumns";
-			break;
-		case 3:
-			return "SeparableConvolutionRods";
-			break;
-		case 4:
-			return "SliceTimingCorrection";
-			break;
-		case 5:
-			return "CalculatePhaseDifferencesAndCertainties";
-			break;
-		case 6:
-			return "CalculatePhaseGradientsX";
-			break;
-		case 7:
-			return "CalculatePhaseGradientsY";
-			break;
-		case 8:
-			return "CalculatePhaseGradientsZ";
-			break;
-		case 9:
-			return "CalculateAMatrixAndHVector2DValuesX";
-			break;
-		case 10:
-			return "CalculateAMatrixAndHVector2DValuesY";
-			break;
-		case 11:
-			return "CalculateAMatrixAndHVector2DValuesZ";
-			break;
-		case 12:
-			return "CalculateAMatrix1DValues";
-			break;
-		case 13:
-			return "CalculateHVector1DValues";
-			break;
-		case 14:
-			return "CalculateAMatrix";
-			break;
-		case 15:
-			return "CalculateHVector";
-			break;
-		case 16:
-			return "CalculateTensorComponents";
-			break;
-		case 17:
-			return "CalculateTensorNorms";
-			break;
-		case 18:
-			return "CalculateAMatricesAndHVectors";
-			break;
-		case 19:
-			return "CalculateDisplacementUpdate";
-			break;
-		case 20:
-			return "AddLinearAndNonLinearDisplacement";
-			break;
-		case 21:
-			return "CalculateMagnitudes";
-			break;
-		case 22:
-			return "CalculateColumnSums";
-			break;
-		case 23:
-			return "CalculateRowSums";
-			break;
-		case 24:
-			return "CalculateColumnMaxs";
-			break;
-		case 25:
-			return "CalculateRowMaxs";
-			break;
-		case 26:
-			return "CalculateMaxAtomic";
-			break;
-		case 27:
-			return "ThresholdVolume";
-			break;
-		case 28:
-			return "InterpolateVolumeNearestLinear";
-			break;
-		case 29:
-			return "InterpolateVolumeLinearLinear";
-			break;
-		case 30:
-			return "InterpolateVolumeCubicLinear";
-			break;
-		case 31:
-			return "InterpolateVolumeNearestNonLinear";
-			break;
-		case 32:
-			return "InterpolateVolumeLinearNonLinear";
-			break;
-		case 33:
-			return "InterpolateVolumeCubicNonLinear";
-			break;
-		case 34:
-			return "RescaleVolumeLinear";
-			break;
-		case 35:
-			return "RescaleVolumeCubic";
-			break;
-		case 36:
-			return "RescaleVolumeNearest";
-			break;
-		case 37:
-			return "CopyT1VolumeToMNI";
-			break;
-		case 38:
-			return "CopyEPIVolumeToT1";
-			break;
-		case 39:
-			return "CopyVolumeToNew";
-			break;
-		case 40:
-			return "Memset";
-			break;
-		case 41:
-			return "MemsetInt";
-			break;
-		case 42:
-			return "MemsetFloat2";
-			break;
-		case 43:
-			return "MultiplyVolume";
-			break;
-		case 44:
-			return "MultiplyVolumes";
-			break;
-		case 45:
-			return "MultiplyVolumesOverwrite";
-			break;
-		case 46:
-			return "AddVolume";
-			break;
-		case 47:
-			return "AddVolumes";
-			break;
-		case 48:
-			return "AddVolumesOverwrite";
-			break;
-		case 49:
-			return "RemoveMean";
-			break;
-		case 50:
-			return "SetStartClusterIndices";
-			break;
-		case 51:
-			return "ClusterizeScan";
-			break;
-		case 52:
-			return "ClusterizeRelabel";
-			break;
-		case 53:
-			return "CalculateClusterSizes";
-			break;
-		case 54:
-			return "CalculateClusterMasses";
-			break;
-		case 55:
-			return "CalculateLargestCluster";
-			break;
-		case 56:
-			return "CalculateTFCEValues";
-			break;
-		case 57:
-			return "TransformData";
-			break;
-		case 58:
-			return "CalculateBetaWeightsGLM";
-			break;
-		case 59:
-			return "CalculateBetaWeightsGLMFirstLevel";
-			break;
-		case 60:
-			return "CalculateGLMResiduals";
-			break;
-		case 61:
-			return "CalculateStatisticalMapsGLMTTestFirstLevel";
-			break;
-		case 62:
-			return "CalculateStatisticalMapsGLMFTestFirstLevel";
-			break;
-		case 63:
-			return "CalculateStatisticalMapsGLMTTest";
-			break;
-		case 64:
-			return "CalculateStatisticalMapsGLMFTest";
-			break;
-		case 65:
-			return "CalculateStatisticalMapsGLMBayesian";
-			break;
-		case 66:
-			return "CalculateStatisticalMapsGLMTTestFirstLevelPermutation";
-			break;
-		case 67:
-			return "CalculateStatisticalMapsGLMFTestFirstLevelPermutation";
-			break;
-		case 68:
-			return "CalculateStatisticalMapsGLMTTestSecondLevelPermutation";
-			break;
-		case 69:
-			return "CalculateStatisticalMapsGLMFTestSecondLevelPermutation";
-			break;
-		case 70:
-			return "CalculateStatisticalMapsMeanSecondLevelPermutation";
-			break;
-		case 71:
-			return "EstimateAR4Models";
-			break;
-		case 72:
-			return "ApplyWhiteningAR4";
-			break;
-		case 73:
-			return "GeneratePermutedVolumesFirstLevel";
-			break;
-		case 74:
-			return "RemoveLinearFit";
-			break;
-		case 75:
-			return "CalculatePermutationPValuesVoxelLevelInference";
-			break;
-		case 76:
-			return "CalculatePermutationPValuesClusterLevelInference";
-			break;
-
-		default:
-			return "Unrecognized BROCCOLI kernel";
-	}
-}
 
 std::string BROCCOLI_LIB::GetOpenCLDeviceInfoString()
 {
-	return device_info;
-}
-
-std::string BROCCOLI_LIB::GetOpenCLBuildInfoString()
-{
-	return build_info;
+	return deviceInfo;
 }
 
 int BROCCOLI_LIB::GetProgramBinarySize()
@@ -3650,171 +3940,7 @@ const char* BROCCOLI_LIB::GetOpenCLError()
 }
 
 
-int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
-{
-	OpenCLCreateKernelErrors[0] = createKernelErrorNonseparableConvolution3DComplexThreeFilters;
-	OpenCLCreateKernelErrors[1] = createKernelErrorSeparableConvolutionRows;
-	OpenCLCreateKernelErrors[2] = createKernelErrorSeparableConvolutionColumns;
-	OpenCLCreateKernelErrors[3] = createKernelErrorSeparableConvolutionRods;
-	OpenCLCreateKernelErrors[4] = createKernelErrorSliceTimingCorrection;
-	OpenCLCreateKernelErrors[5] = createKernelErrorCalculatePhaseDifferencesAndCertainties;
-	OpenCLCreateKernelErrors[6] = createKernelErrorCalculatePhaseGradientsX;
-	OpenCLCreateKernelErrors[7] = createKernelErrorCalculatePhaseGradientsY;
-	OpenCLCreateKernelErrors[8] = createKernelErrorCalculatePhaseGradientsZ;
-	OpenCLCreateKernelErrors[9] = createKernelErrorCalculateAMatrixAndHVector2DValuesX;
-	OpenCLCreateKernelErrors[10] = createKernelErrorCalculateAMatrixAndHVector2DValuesY;
-	OpenCLCreateKernelErrors[11] = createKernelErrorCalculateAMatrixAndHVector2DValuesZ;
-	OpenCLCreateKernelErrors[12] = createKernelErrorCalculateAMatrix1DValues;
-	OpenCLCreateKernelErrors[13] = createKernelErrorCalculateHVector1DValues;
-	OpenCLCreateKernelErrors[14] = createKernelErrorCalculateAMatrix;
-	OpenCLCreateKernelErrors[15] = createKernelErrorCalculateHVector;
-	OpenCLCreateKernelErrors[16] = createKernelErrorCalculateTensorComponents;
-	OpenCLCreateKernelErrors[17] = createKernelErrorCalculateTensorNorms;
-	OpenCLCreateKernelErrors[18] = createKernelErrorCalculateAMatricesAndHVectors;
-	OpenCLCreateKernelErrors[19] = createKernelErrorCalculateDisplacementUpdate;
-	OpenCLCreateKernelErrors[20] = createKernelErrorAddLinearAndNonLinearDisplacement;
-	OpenCLCreateKernelErrors[21] = createKernelErrorCalculateMagnitudes;
-	OpenCLCreateKernelErrors[22] = createKernelErrorCalculateColumnSums;
-	OpenCLCreateKernelErrors[23] = createKernelErrorCalculateRowSums;
-	OpenCLCreateKernelErrors[24] = createKernelErrorCalculateColumnMaxs;
-	OpenCLCreateKernelErrors[25] = createKernelErrorCalculateRowMaxs;
-	OpenCLCreateKernelErrors[26] = createKernelErrorCalculateMaxAtomic;
-	OpenCLCreateKernelErrors[27] = createKernelErrorThresholdVolume;
-	OpenCLCreateKernelErrors[28] = createKernelErrorInterpolateVolumeNearestLinear;
-	OpenCLCreateKernelErrors[29] = createKernelErrorInterpolateVolumeLinearLinear;
-	OpenCLCreateKernelErrors[30] = createKernelErrorInterpolateVolumeCubicLinear;
-	OpenCLCreateKernelErrors[31] = createKernelErrorInterpolateVolumeNearestNonLinear;
-	OpenCLCreateKernelErrors[32] = createKernelErrorInterpolateVolumeLinearNonLinear;
-	OpenCLCreateKernelErrors[33] = createKernelErrorInterpolateVolumeCubicNonLinear;
-	OpenCLCreateKernelErrors[34] = createKernelErrorRescaleVolumeLinear;
-	OpenCLCreateKernelErrors[35] = createKernelErrorRescaleVolumeCubic;
-	OpenCLCreateKernelErrors[36] = createKernelErrorRescaleVolumeNearest;
-	OpenCLCreateKernelErrors[37] = createKernelErrorCopyT1VolumeToMNI;
-	OpenCLCreateKernelErrors[38] = createKernelErrorCopyEPIVolumeToT1;
-	OpenCLCreateKernelErrors[39] = createKernelErrorCopyVolumeToNew;
-	OpenCLCreateKernelErrors[40] = createKernelErrorMemset;
-	OpenCLCreateKernelErrors[41] = createKernelErrorMemsetInt;
-	OpenCLCreateKernelErrors[42] = createKernelErrorMemsetFloat2;
-	OpenCLCreateKernelErrors[43] = createKernelErrorMultiplyVolume;
-	OpenCLCreateKernelErrors[44] = createKernelErrorMultiplyVolumes;
-	OpenCLCreateKernelErrors[45] = createKernelErrorMultiplyVolumesOverwrite;
-	OpenCLCreateKernelErrors[46] = createKernelErrorAddVolume;
-	OpenCLCreateKernelErrors[47] = createKernelErrorAddVolumes;
-	OpenCLCreateKernelErrors[48] = createKernelErrorAddVolumesOverwrite;
-	OpenCLCreateKernelErrors[49] = createKernelErrorRemoveMean;
-	OpenCLCreateKernelErrors[50] = createKernelErrorSetStartClusterIndices;
-	OpenCLCreateKernelErrors[51] = createKernelErrorClusterizeScan;
-	OpenCLCreateKernelErrors[52] = createKernelErrorClusterizeRelabel;
-	OpenCLCreateKernelErrors[53] = createKernelErrorCalculateClusterSizes;
-	OpenCLCreateKernelErrors[54] = createKernelErrorCalculateClusterMasses;
-	OpenCLCreateKernelErrors[55] = createKernelErrorCalculateLargestCluster;
-	OpenCLCreateKernelErrors[56] = createKernelErrorCalculateTFCEValues;
-	OpenCLCreateKernelErrors[57] = createKernelErrorTransformData;
-	OpenCLCreateKernelErrors[58] = createKernelErrorCalculateBetaWeightsGLM;
-	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateGLMResiduals;
-	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
-	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLCreateKernelErrors[71] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[72] = createKernelErrorApplyWhiteningAR4;
-	OpenCLCreateKernelErrors[73] = createKernelErrorGeneratePermutedVolumesFirstLevel;
-	OpenCLCreateKernelErrors[74] = createKernelErrorRemoveLinearFit;
-	OpenCLCreateKernelErrors[75] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLCreateKernelErrors[76] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
-	return OpenCLCreateKernelErrors;
-}
-
-int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
-{
-	OpenCLRunKernelErrors[0] = runKernelErrorNonseparableConvolution3DComplexThreeFilters;
-	OpenCLRunKernelErrors[1] = runKernelErrorSeparableConvolutionRows;
-	OpenCLRunKernelErrors[2] = runKernelErrorSeparableConvolutionColumns;
-	OpenCLRunKernelErrors[3] = runKernelErrorSeparableConvolutionRods;
-	OpenCLRunKernelErrors[4] = runKernelErrorSliceTimingCorrection;
-	OpenCLRunKernelErrors[5] = runKernelErrorCalculatePhaseDifferencesAndCertainties;
-	OpenCLRunKernelErrors[6] = runKernelErrorCalculatePhaseGradientsX;
-	OpenCLRunKernelErrors[7] = runKernelErrorCalculatePhaseGradientsY;
-	OpenCLRunKernelErrors[8] = runKernelErrorCalculatePhaseGradientsZ;
-	OpenCLRunKernelErrors[9] = runKernelErrorCalculateAMatrixAndHVector2DValuesX;
-	OpenCLRunKernelErrors[10] = runKernelErrorCalculateAMatrixAndHVector2DValuesY;
-	OpenCLRunKernelErrors[11] = runKernelErrorCalculateAMatrixAndHVector2DValuesZ;
-	OpenCLRunKernelErrors[12] = runKernelErrorCalculateAMatrix1DValues;
-	OpenCLRunKernelErrors[13] = runKernelErrorCalculateHVector1DValues;
-	OpenCLRunKernelErrors[14] = runKernelErrorCalculateAMatrix;
-	OpenCLRunKernelErrors[15] = runKernelErrorCalculateHVector;
-	OpenCLRunKernelErrors[16] = runKernelErrorCalculateTensorComponents;
-	OpenCLRunKernelErrors[17] = runKernelErrorCalculateTensorNorms;
-	OpenCLRunKernelErrors[18] = runKernelErrorCalculateAMatricesAndHVectors;
-	OpenCLRunKernelErrors[19] = runKernelErrorCalculateDisplacementUpdate;
-	OpenCLRunKernelErrors[20] = runKernelErrorAddLinearAndNonLinearDisplacement;
-	OpenCLRunKernelErrors[21] = runKernelErrorCalculateMagnitudes;
-	OpenCLRunKernelErrors[22] = runKernelErrorCalculateColumnSums;
-	OpenCLRunKernelErrors[23] = runKernelErrorCalculateRowSums;
-	OpenCLRunKernelErrors[24] = runKernelErrorCalculateColumnMaxs;
-	OpenCLRunKernelErrors[25] = runKernelErrorCalculateRowMaxs;
-	OpenCLRunKernelErrors[26] = runKernelErrorCalculateMaxAtomic;
-	OpenCLRunKernelErrors[27] = runKernelErrorThresholdVolume;
-	OpenCLRunKernelErrors[28] = runKernelErrorInterpolateVolumeNearestLinear;
-	OpenCLRunKernelErrors[29] = runKernelErrorInterpolateVolumeLinearLinear;
-	OpenCLRunKernelErrors[30] = runKernelErrorInterpolateVolumeCubicLinear;
-	OpenCLRunKernelErrors[31] = runKernelErrorInterpolateVolumeNearestNonLinear;
-	OpenCLRunKernelErrors[32] = runKernelErrorInterpolateVolumeLinearNonLinear;
-	OpenCLRunKernelErrors[33] = runKernelErrorInterpolateVolumeCubicNonLinear;
-	OpenCLRunKernelErrors[34] = runKernelErrorRescaleVolumeLinear;
-	OpenCLRunKernelErrors[35] = runKernelErrorRescaleVolumeCubic;
-	OpenCLRunKernelErrors[36] = runKernelErrorRescaleVolumeNearest;
-	OpenCLRunKernelErrors[37] = runKernelErrorCopyT1VolumeToMNI;
-	OpenCLRunKernelErrors[38] = runKernelErrorCopyEPIVolumeToT1;
-	OpenCLRunKernelErrors[39] = runKernelErrorCopyVolumeToNew;
-	OpenCLRunKernelErrors[40] = runKernelErrorMemset;
-	OpenCLRunKernelErrors[41] = runKernelErrorMemsetInt;
-	OpenCLRunKernelErrors[42] = runKernelErrorMemsetFloat2;
-	OpenCLRunKernelErrors[43] = runKernelErrorMultiplyVolume;
-	OpenCLRunKernelErrors[44] = runKernelErrorMultiplyVolumes;
-	OpenCLRunKernelErrors[45] = runKernelErrorMultiplyVolumesOverwrite;
-	OpenCLRunKernelErrors[46] = runKernelErrorAddVolume;
-	OpenCLRunKernelErrors[47] = runKernelErrorAddVolumes;
-	OpenCLRunKernelErrors[48] = runKernelErrorAddVolumesOverwrite;
-	OpenCLRunKernelErrors[49] = runKernelErrorRemoveMean;
-	OpenCLRunKernelErrors[50] = runKernelErrorSetStartClusterIndices;
-	OpenCLRunKernelErrors[51] = runKernelErrorClusterizeScan;
-	OpenCLRunKernelErrors[52] = runKernelErrorClusterizeRelabel;
-	OpenCLRunKernelErrors[53] = runKernelErrorCalculateClusterSizes;
-	OpenCLRunKernelErrors[54] = runKernelErrorCalculateClusterMasses;
-	OpenCLRunKernelErrors[55] = runKernelErrorCalculateLargestCluster;
-	OpenCLRunKernelErrors[56] = runKernelErrorCalculateTFCEValues;
-	OpenCLRunKernelErrors[57] = runKernelErrorTransformData;
-	OpenCLRunKernelErrors[58] = runKernelErrorCalculateBetaWeightsGLM;
-	OpenCLRunKernelErrors[59] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLRunKernelErrors[60] = runKernelErrorCalculateGLMResiduals;
-	OpenCLRunKernelErrors[61] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLRunKernelErrors[62] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLRunKernelErrors[63] = runKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
-	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLRunKernelErrors[71] = runKernelErrorEstimateAR4Models;
-	OpenCLRunKernelErrors[72] = runKernelErrorApplyWhiteningAR4;
-	OpenCLRunKernelErrors[73] = runKernelErrorGeneratePermutedVolumesFirstLevel;
-	OpenCLRunKernelErrors[74] = runKernelErrorRemoveLinearFit;
-	OpenCLRunKernelErrors[75] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLRunKernelErrors[76] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
-
-	return OpenCLRunKernelErrors;
-}
 
 int* BROCCOLI_LIB::GetOpenCLCreateBufferErrors()
 {
@@ -10893,15 +11019,6 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 
 	CalculateStatisticalMapsGLMTTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
 
-	if (INFERENCE_MODE != TFCE)
-	{
-		//ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1);
-	}
-	else
-	{
-		//ClusterizeOpenCLTFCE(d_Cluster_Indices, d_Cluster_Sizes, MAX_CLUSTER, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-	}
-
 	CalculatePermutationPValues(d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 	// Copy results to  host
@@ -10978,13 +11095,7 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 
 	CalculateStatisticalMapsGLMTTestSecondLevel(d_First_Level_Results, d_MNI_Brain_Mask);
 
-	if ((INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS))
-	{
-		//ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
-	}
 	CalculatePermutationPValues(d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-
-
 
 	// Copy results to  host
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
@@ -12779,48 +12890,55 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 
 	SetGlobalAndLocalWorkSizesClusterize(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
+	int zero = 0;
+
 	clSetKernelArg(SetStartClusterIndicesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
 	clSetKernelArg(SetStartClusterIndicesKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(SetStartClusterIndicesKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
 	clSetKernelArg(SetStartClusterIndicesKernel, 3, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
-	clSetKernelArg(SetStartClusterIndicesKernel, 4, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(SetStartClusterIndicesKernel, 5, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(SetStartClusterIndicesKernel, 6, sizeof(int),    &EPI_DATA_D);
+	clSetKernelArg(SetStartClusterIndicesKernel, 4, sizeof(int),    &zero);
+	clSetKernelArg(SetStartClusterIndicesKernel, 5, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(SetStartClusterIndicesKernel, 6, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(SetStartClusterIndicesKernel, 7, sizeof(int),    &EPI_DATA_D);
 
 	clSetKernelArg(ClusterizeScanKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
 	clSetKernelArg(ClusterizeScanKernel, 1, sizeof(cl_mem), &d_Updated);
 	clSetKernelArg(ClusterizeScanKernel, 2, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(ClusterizeScanKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
 	clSetKernelArg(ClusterizeScanKernel, 4, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
-	clSetKernelArg(ClusterizeScanKernel, 5, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(ClusterizeScanKernel, 6, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(ClusterizeScanKernel, 7, sizeof(int),    &EPI_DATA_D);
+	clSetKernelArg(ClusterizeScanKernel, 5, sizeof(int),    &zero);
+	clSetKernelArg(ClusterizeScanKernel, 6, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(ClusterizeScanKernel, 7, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(ClusterizeScanKernel, 8, sizeof(int),    &EPI_DATA_D);
 
 	clSetKernelArg(ClusterizeRelabelKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
 	clSetKernelArg(ClusterizeRelabelKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(ClusterizeRelabelKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
 	clSetKernelArg(ClusterizeRelabelKernel, 3, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
-	clSetKernelArg(ClusterizeRelabelKernel, 4, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(ClusterizeRelabelKernel, 5, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(ClusterizeRelabelKernel, 6, sizeof(int),    &EPI_DATA_D);
+	clSetKernelArg(ClusterizeRelabelKernel, 4, sizeof(int),    &zero);
+	clSetKernelArg(ClusterizeRelabelKernel, 5, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(ClusterizeRelabelKernel, 6, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(ClusterizeRelabelKernel, 7, sizeof(int),    &EPI_DATA_D);
 
 	clSetKernelArg(CalculateClusterSizesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
 	clSetKernelArg(CalculateClusterSizesKernel, 1, sizeof(cl_mem), &d_Cluster_Sizes);
 	clSetKernelArg(CalculateClusterSizesKernel, 2, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(CalculateClusterSizesKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
 	clSetKernelArg(CalculateClusterSizesKernel, 4, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
-	clSetKernelArg(CalculateClusterSizesKernel, 5, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(CalculateClusterSizesKernel, 6, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(CalculateClusterSizesKernel, 7, sizeof(int),    &EPI_DATA_D);
+	clSetKernelArg(CalculateClusterSizesKernel, 5, sizeof(int),    &zero);
+	clSetKernelArg(CalculateClusterSizesKernel, 6, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateClusterSizesKernel, 7, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateClusterSizesKernel, 8, sizeof(int),    &EPI_DATA_D);
 
 	clSetKernelArg(CalculateClusterMassesKernel, 0, sizeof(cl_mem), &d_Cluster_Indices);
 	clSetKernelArg(CalculateClusterMassesKernel, 1, sizeof(cl_mem), &d_Cluster_Sizes);
 	clSetKernelArg(CalculateClusterMassesKernel, 2, sizeof(cl_mem), &d_Statistical_Maps);
 	clSetKernelArg(CalculateClusterMassesKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
 	clSetKernelArg(CalculateClusterMassesKernel, 4, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
-	clSetKernelArg(CalculateClusterMassesKernel, 5, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(CalculateClusterMassesKernel, 6, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(CalculateClusterMassesKernel, 7, sizeof(int),    &EPI_DATA_D);
+	clSetKernelArg(CalculateClusterMassesKernel, 5, sizeof(int),    &zero);
+	clSetKernelArg(CalculateClusterMassesKernel, 6, sizeof(int),    &EPI_DATA_W);
+	clSetKernelArg(CalculateClusterMassesKernel, 7, sizeof(int),    &EPI_DATA_H);
+	clSetKernelArg(CalculateClusterMassesKernel, 8, sizeof(int),    &EPI_DATA_D);
 
 	clSetKernelArg(CalculateLargestClusterKernel, 0, sizeof(cl_mem), &d_Cluster_Sizes);
 	clSetKernelArg(CalculateLargestClusterKernel, 1, sizeof(cl_mem), &d_Largest_Cluster);

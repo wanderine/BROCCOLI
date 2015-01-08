@@ -340,13 +340,15 @@ class BROCCOLI_LIB
 
 		// OpenCL
 
+		std::vector<std::string> GetKernelFileNames();
+		int GetNumberOfKernelFiles();
+
 		const char* GetOpenCLDeviceInfoChar();
-		const char* GetOpenCLBuildInfoChar();
 		const char* GetOpenCLErrorMessage(int error);
 		const char* GetOpenCLKernelName(int kernel);
 
 		std::string GetOpenCLDeviceInfoString();
-		std::string GetOpenCLBuildInfoString();
+		std::vector<std::string> GetOpenCLBuildInfo();
 
 		int* GetOpenCLCreateKernelErrors();
 		int* GetOpenCLCreateBufferErrors();
@@ -552,8 +554,8 @@ class BROCCOLI_LIB
 		void ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume, float threshold, int DATA_W, int DATA_H, int DATA_D);
 
 
-		cl_int CreateProgramFromBinary(cl_program& program, cl_context context, cl_device_id device, std::string filename);
-		bool SaveProgramBinary(cl_program program, cl_device_id device, std::string filename);
+		cl_int CreateProgramFromBinary(cl_context context, cl_device_id device, std::string filename);
+		bool SaveProgramBinary(cl_device_id device, std::string filename);
 		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z);
 		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, double sigma);
 		void SolveEquationSystem(float* h_Parameter_Vector, float* h_A_matrix, float* h_h_vector, int N);
@@ -617,10 +619,23 @@ class BROCCOLI_LIB
 		size_t xBlocks, yBlocks, zBlocks;
 		size_t programBinarySize, writtenElements;
 
+		int	NUMBER_OF_KERNEL_FILES;
+		std::vector<std::string> kernelFileNames;
 		cl_context context;
-		cl_command_queue commandQueue;
-		cl_program program;
 		cl_device_id device;
+		cl_command_queue commandQueue;
+
+		cl_program program;
+
+		cl_program programConvolution;
+		cl_program programRegistration;
+		cl_program programClusterize;
+		cl_program programMisc;
+		cl_program programPermutation;
+		cl_program programWhitening;
+		cl_program programBayesian;
+
+		cl_program OpenCLPrograms[7];
 
 		cl_ulong localMemorySize;
 		size_t maxThreadsPerBlock;
@@ -628,8 +643,9 @@ class BROCCOLI_LIB
 
 		std::string binaryPathAndFilename;
 		std::string binaryFilename;
-		std::string device_info;
-		std::string build_info;
+		std::string deviceInfo;
+
+		std::vector<std::string> buildInfo;
 
 		cl_uint OPENCL_PLATFORM;
 		int VENDOR;
