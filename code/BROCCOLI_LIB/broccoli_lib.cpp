@@ -1248,7 +1248,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 	if ( (WRAPPER == BASH) && VERBOS )
 	{
-		printf("The selected OpenCL device has %i KB of local memory, and can run %i threads per thread block, max threads per dimension are %i %i %i\n",localMemorySize,maxThreadsPerBlock,maxThreadsPerDimension[0],maxThreadsPerDimension[1],maxThreadsPerDimension[2]);
+		printf("The selected OpenCL device has %i KB of local memory, and can run %i threads per thread block, max threads per dimension are %i %i %i\n",(int)localMemorySize,(int)maxThreadsPerBlock,(int)maxThreadsPerDimension[0],(int)maxThreadsPerDimension[1],(int)maxThreadsPerDimension[2]);
 	}
 
 	// Create kernels
@@ -7049,12 +7049,12 @@ void BROCCOLI_LIB::PrintMemoryStatus(const char* text)
 {
 	if ((WRAPPER == BASH) && VERBOS)
 	{
-		printf("\n",text);
+		printf("\n");
 		printf("Code location is %s \n",text);
 		//printf("Number of memory allocations is %i  \n",memoryAllocations);
 		//printf("Number of memory deallocations is %i  \n",memoryDeallocations);
 		printf("Totally allocated memory is %i MB  \n",allocatedMemory/1024/1024);
-		printf("\n",text);
+		printf("\n");
 	}
 }
 
@@ -10895,7 +10895,7 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 
 	if (INFERENCE_MODE != TFCE)
 	{
-		ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1);
+		//ClusterizeOpenCL(d_Cluster_Indices, d_Cluster_Sizes, d_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1);
 	}
 	else
 	{
@@ -10905,14 +10905,8 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 	CalculatePermutationPValues(d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 	// Copy results to  host
-	//clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
-
 	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
-
-	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
 
 	// Release memory
 	clReleaseMemObject(d_First_Level_Results);
@@ -10993,10 +10987,7 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 
 
 	// Copy results to  host
-	//clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
-	//clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
 
 	float maxP = 0.0f;
@@ -11022,11 +11013,7 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	if (significant)
 		printf("Significant group difference detected!\n");
 
-
 	printf("Max p value is %f \n",maxP);	
-
-
-	//Clusterize(h_Cluster_Indices, MAX_CLUSTER_SIZE, MAX_CLUSTER_MASS, NUMBER_OF_CLUSTERS, h_Statistical_Maps, CLUSTER_DEFINING_THRESHOLD, h_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, CALCULATE_VOXEL_LABELS, CALCULATE_CLUSTER_MASS);
 
 	// Release memory
 	clReleaseMemObject(d_First_Level_Results);
@@ -12984,14 +12971,17 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 	clSetKernelArg(CalculateTFCEValuesKernel, 6, sizeof(int),    &MNI_DATA_H);
 	clSetKernelArg(CalculateTFCEValuesKernel, 7, sizeof(int),    &MNI_DATA_D);
 
-	clSetKernelArg(TransformDataKernel, 0, sizeof(cl_mem), &d_Transformed_Volumes);
-	clSetKernelArg(TransformDataKernel, 1, sizeof(cl_mem), &d_Volumes);
-	clSetKernelArg(TransformDataKernel, 2, sizeof(cl_mem), &d_Mask);
-	clSetKernelArg(TransformDataKernel, 3, sizeof(cl_mem), &c_Transformation_Matrix);
-	clSetKernelArg(TransformDataKernel, 4, sizeof(int),    &MNI_DATA_W);
-	clSetKernelArg(TransformDataKernel, 5, sizeof(int),    &MNI_DATA_H);
-	clSetKernelArg(TransformDataKernel, 6, sizeof(int),    &MNI_DATA_D);
-	clSetKernelArg(TransformDataKernel, 7, sizeof(int),    &NUMBER_OF_SUBJECTS);
+	if (STATISTICAL_TEST != GROUP_MEAN)
+	{
+		clSetKernelArg(TransformDataKernel, 0, sizeof(cl_mem), &d_Transformed_Volumes);
+		clSetKernelArg(TransformDataKernel, 1, sizeof(cl_mem), &d_Volumes);
+		clSetKernelArg(TransformDataKernel, 2, sizeof(cl_mem), &d_Mask);
+		clSetKernelArg(TransformDataKernel, 3, sizeof(cl_mem), &c_Transformation_Matrix);
+		clSetKernelArg(TransformDataKernel, 4, sizeof(int),    &MNI_DATA_W);
+		clSetKernelArg(TransformDataKernel, 5, sizeof(int),    &MNI_DATA_H);
+		clSetKernelArg(TransformDataKernel, 6, sizeof(int),    &MNI_DATA_D);
+		clSetKernelArg(TransformDataKernel, 7, sizeof(int),    &NUMBER_OF_SUBJECTS);
+	}
 }
 
 void BROCCOLI_LIB::CleanupPermutationTestSecondLevel()

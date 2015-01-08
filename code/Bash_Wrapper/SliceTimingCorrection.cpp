@@ -575,6 +575,22 @@ int main(int argc, char ** argv)
 		printf("It took %f seconds to initiate BROCCOLI\n",(float)(endTime - startTime));
 	}
     
+   	// Print build info to file
+	fp = fopen("buildinfo.txt","w");
+	if (fp == NULL)
+	{     
+	    printf("Could not open buildinfo.txt! \n");
+	}
+	if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
+	{
+	    int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
+	    if (error == EOF)
+	    {
+	        printf("Could not write to buildinfo.txt! \n");
+	    }
+	}
+	fclose(fp);
+
     // Something went wrong...
     if (!BROCCOLI.GetOpenCLInitiated())
     {              
@@ -589,23 +605,7 @@ int main(int argc, char ** argv)
             {
                 printf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }                
-        
-        // Print build info to file    
-        fp = fopen("buildinfo.txt","w");
-        if (fp == NULL)
-        {     
-            printf("Could not open buildinfo.txt! \n");
-        }
-        if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
-        {
-            int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
-            if (error == EOF)
-            {
-                printf("Could not write to buildinfo.txt! \n");
-            }
-        }
-        fclose(fp);
+        }                        
                 
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
@@ -643,7 +643,7 @@ int main(int argc, char ** argv)
         {
             if (createBufferErrors[i] != 0)
             {
-                printf("Create buffer error %i is %d \n",i,BROCCOLI.GetOpenCLErrorMessage(createBufferErrors[i]));
+                printf("Create buffer error %i is %s \n",i,BROCCOLI.GetOpenCLErrorMessage(createBufferErrors[i]));
             }
         }
         

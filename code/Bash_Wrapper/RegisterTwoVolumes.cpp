@@ -1381,6 +1381,22 @@ int main(int argc, char **argv)
 		printf("It took %f seconds to initiate BROCCOLI\n",(float)(endTime - startTime));
 	}
 
+    // Print build info to file (always)
+	fp = fopen("buildinfo.txt","w");
+	if (fp == NULL)
+	{     
+	    printf("Could not open buildinfo.txt! \n");
+	}
+	if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
+	{
+	    int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
+	    if (error == EOF)
+	    {
+	        printf("Could not write to buildinfo.txt! \n");
+	    }
+	}
+	fclose(fp);
+
     // Something went wrong...
     if ( !BROCCOLI.GetOpenCLInitiated() )
     {              
@@ -1397,22 +1413,6 @@ int main(int argc, char **argv)
             }
         } 
        
-       	// Print build info to file (always)
-	    fp = fopen("buildinfo.txt","w");
-	    if (fp == NULL)
-	    {     
-	        printf("Could not open buildinfo.txt! \n");
-	    }
-	    if (BROCCOLI.GetOpenCLBuildInfoChar() != NULL)
-	    {
-	        int error = fputs(BROCCOLI.GetOpenCLBuildInfoChar(),fp);
-	        if (error == EOF)
-	        {
-	            printf("Could not write to buildinfo.txt! \n");
-	        }
-	    }
-	    fclose(fp);
-
         printf("OpenCL initialization failed, aborting! \nSee buildinfo.txt for output of OpenCL compilation!\n");      
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);

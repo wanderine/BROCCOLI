@@ -544,7 +544,7 @@ int main(int argc, char **argv)
 		    {
 				float zero = 0.0f;
 				float one = 1.0f;
-		        printf("Significance level must be between %f and %f ! You provided %s \n",zero,one,SIGNIFICANCE_LEVEL);
+		        printf("Significance level must be between %f and %f ! You provided %f \n",zero,one,SIGNIFICANCE_LEVEL);
 				return EXIT_FAILURE;
 		    }
             i += 2;
