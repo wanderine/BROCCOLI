@@ -6077,7 +6077,7 @@ double unirand(__private int* seed)
 	double const m = 2147483647.0; //ie 2**31-1
 	double const reciprocal_m = 1.0/m;
 	double temp = (*seed) * a;
-	*seed = (int)(temp - m * floor(temp * reciprocal_m));
+	//*seed = (int)(temp - m * floor(temp * reciprocal_m));
 
 	return ((double)(*seed) * reciprocal_m);
 }
@@ -6090,7 +6090,8 @@ double normalrand(__private int* seed)
 	double u = unirand(seed);
 	double v = unirand(seed);
 
-	return sqrt(-2.0*log(u))*cos(2.0*pi*v);
+	//return sqrt(-2.0*log(u))*cos(2.0*pi*v);
+	return 1.0;
 }
 
 // Generate inverse Gamma number
