@@ -1252,16 +1252,16 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	}
 
 	// Create kernels
-
-	// Non-separable convolution kernel using 24 KB of shared memory and 1024 threads per thread block (32 * 32)
-	if ( (localMemorySize >= 24) && (maxThreadsPerBlock >= 1024) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 32)  )
-	{
-		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_24KB_1024threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
-	}
+	
 	// Non-separable convolution kernel using 32 KB of shared memory and 512 threads per thread block (32 * 16)
-	else if ( (localMemorySize >= 32) && (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 16)  )
+	if ( (localMemorySize >= 32) && (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 16)  )
 	{
 		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_32KB_512threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+	}
+	// Non-separable convolution kernel using 24 KB of shared memory and 1024 threads per thread block (32 * 32)
+	else if ( (localMemorySize >= 24) && (maxThreadsPerBlock >= 1024) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 32)  )
+	{
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFilters_24KB_1024threads",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
 	}
 	// Non-separable convolution kernel using 32 KB of shared memory and 256 threads per thread block (16 * 16)
 	else if ( (localMemorySize >= 32) && (maxThreadsPerBlock >= 256) && (maxThreadsPerDimension[0] >= 16) && (maxThreadsPerDimension[1] >= 16)  )
@@ -1734,25 +1734,8 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMemset(int N)
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W, int DATA_H, int DATA_D)
 {
-	// 1024 threads per block, as 32 * 32 threads
-	if ( (maxThreadsPerBlock >= 1024) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 32)  )
-	{
-		localWorkSizeNonseparableConvolution3DComplex[0] = 32;
-		localWorkSizeNonseparableConvolution3DComplex[1] = 32;
-		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
-
-		// Calculate how many blocks are required
-		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_24KB);
-		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_24KB);
-		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
-
-		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
-		globalWorkSizeNonseparableConvolution3DComplex[0] = xBlocks * localWorkSizeNonseparableConvolution3DComplex[0];
-		globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
-		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
-	}
 	// 512 threads per block, as 32 * 16 threads
-	else if ( (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 16)  )
+	if ( (maxThreadsPerBlock >= 512) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 16)  )
 	{
 		localWorkSizeNonseparableConvolution3DComplex[0] = 32;
 		localWorkSizeNonseparableConvolution3DComplex[1] = 16;
@@ -1761,6 +1744,23 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W,
 		// Calculate how many blocks are required
 		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_32KB);
 		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_32KB);
+		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
+
+		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+		globalWorkSizeNonseparableConvolution3DComplex[0] = xBlocks * localWorkSizeNonseparableConvolution3DComplex[0];
+		globalWorkSizeNonseparableConvolution3DComplex[1] = yBlocks * localWorkSizeNonseparableConvolution3DComplex[1];
+		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
+	}
+	// 1024 threads per block, as 32 * 32 threads
+	else if ( (maxThreadsPerBlock >= 1024) && (maxThreadsPerDimension[0] >= 32) && (maxThreadsPerDimension[1] >= 32)  )
+	{
+		localWorkSizeNonseparableConvolution3DComplex[0] = 32;
+		localWorkSizeNonseparableConvolution3DComplex[1] = 32;
+		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
+
+		// Calculate how many blocks are required
+		xBlocks = (size_t)ceil((float)DATA_W / (float)VALID_FILTER_RESPONSES_X_CONVOLUTION_2D_24KB);
+		yBlocks = (size_t)ceil((float)DATA_H / (float)VALID_FILTER_RESPONSES_Y_CONVOLUTION_2D_24KB);
 		zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeNonseparableConvolution3DComplex[2]);
 
 		// Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
