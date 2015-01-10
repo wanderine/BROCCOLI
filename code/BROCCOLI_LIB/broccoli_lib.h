@@ -554,8 +554,8 @@ class BROCCOLI_LIB
 		void ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume, float threshold, int DATA_W, int DATA_H, int DATA_D);
 
 
-		cl_int CreateProgramFromBinary(cl_context context, cl_device_id device, std::string filename);
-		bool SaveProgramBinary(cl_device_id device, std::string filename);
+		void CreateProgramFromBinary(cl_context context, cl_device_id device, std::string filename);
+		bool SaveProgramBinary(cl_device_id device, std::string filename,int kernelFile);
 		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, float smoothing_FWHM, float voxel_size_x, float voxel_size_y, float voxel_size_z);
 		void CreateSmoothingFilters(float* Smoothing_Filter_X, float* Smoothing_Filter_Y, float* Smoothing_Filter_Z, int size, double sigma);
 		void SolveEquationSystem(float* h_Parameter_Vector, float* h_A_matrix, float* h_h_vector, int N);
@@ -636,6 +636,7 @@ class BROCCOLI_LIB
 		cl_program programBayesian;
 
 		cl_program OpenCLPrograms[10];
+	
 
 		cl_ulong localMemorySize;
 		size_t maxThreadsPerBlock;
@@ -663,6 +664,9 @@ class BROCCOLI_LIB
 		cl_int createCommandQueueError;
 		cl_int createProgramError;
 		cl_int buildProgramError;
+		cl_int binaryBuildProgramErrors[10];
+		cl_int sourceBuildProgramErrors[10];
+		cl_int createProgramErrors[10];
 		cl_int getProgramBuildInfoError;
 
 		int NUMBER_OF_OPENCL_KERNELS;

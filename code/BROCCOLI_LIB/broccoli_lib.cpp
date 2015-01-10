@@ -493,6 +493,13 @@ void BROCCOLI_LIB::SetStartValues()
 
 	NUMBER_OF_KERNEL_FILES = 8;
 
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+	{
+		OpenCLPrograms[k] = NULL;
+		binaryBuildProgramErrors[k] = FAIL;
+		sourceBuildProgramErrors[k] = FAIL;
+	}
+
 	kernelFileNames.push_back("kernelConvolution.cpp");
 	kernelFileNames.push_back("kernelRegistration.cpp");
 	kernelFileNames.push_back("kernelClusterize.cpp");		
@@ -739,8 +746,8 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 	}
 }
 
-// Creates an OpenCL program from a binary file
-cl_int BROCCOLI_LIB::CreateProgramFromBinary(cl_context context, cl_device_id device, std::string filename)
+// Creates OpenCL programs from binary files
+void BROCCOLI_LIB::CreateProgramFromBinary(cl_context context, cl_device_id device, std::string filename)
 {
 	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
 	{
@@ -771,8 +778,13 @@ cl_int BROCCOLI_LIB::CreateProgramFromBinary(cl_context context, cl_device_id de
 		FILE* fp = fopen(thisFilename.c_str(), "rb");
 		if (fp == NULL)
 		{
-			program = NULL;
-			return -1;
+			if ((WRAPPER == BASH) && VERBOS)
+			{
+				printf("Unable to open binary kernel file %s \n",thisFilename.c_str());
+			}
+			OpenCLPrograms[k] = NULL;
+			createProgramErrors[k] = FAIL;
+			continue;
 		}
 
 		// Determine the size of the binary
@@ -788,9 +800,10 @@ cl_int BROCCOLI_LIB::CreateProgramFromBinary(cl_context context, cl_device_id de
 
 		cl_int binaryStatus;
 
-		OpenCLPrograms[k] = clCreateProgramWithBinary(context, 1, &device, &binarySize, (const unsigned char**)&programBinary, &binaryStatus, &error);
+		OpenCLPrograms[k] = clCreateProgramWithBinary(context, 1, &device, &binarySize, (const unsigned char**)&programBinary, &binaryStatus, &createProgramErrors[k]);
 		delete [] programBinary;
 
+		/*
 		if (binaryStatus != SUCCESS)
 		{
 			program = NULL;
@@ -802,114 +815,56 @@ cl_int BROCCOLI_LIB::CreateProgramFromBinary(cl_context context, cl_device_id de
 			program = NULL;
 			return error;
 		}
+		*/
 	}
-
-	return error;
 }
 
 // Saves a compiled program to a binary file
-bool BROCCOLI_LIB::SaveProgramBinary(cl_device_id device, std::string filename)
+bool BROCCOLI_LIB::SaveProgramBinary(cl_device_id device, std::string filename, int k)
 {
-	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+	std::string thisFilename = filename;		
+
+	// Get number of devices for program
+	cl_uint numDevices = 0;
+	error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &numDevices, NULL);
+	if (error != SUCCESS)
 	{
-		std::string thisFilename = filename;		
+		return false;
+	}
 
-		// Get number of devices for program
-		cl_uint numDevices = 0;
-		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_NUM_DEVICES, sizeof(cl_uint), &numDevices, NULL);
-		if (error != SUCCESS)
-		{
-			return false;
-		}
+	// Get device IDs
+	cl_device_id* devices = new cl_device_id[numDevices];
+	error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_DEVICES, sizeof(cl_device_id) * numDevices, devices, NULL);
+	if (error != SUCCESS)
+	{
+		// Cleanup
+		delete [] devices;
+		return false;
+	}
 
-		// Get device IDs
-		cl_device_id* devices = new cl_device_id[numDevices];
-		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_DEVICES, sizeof(cl_device_id) * numDevices, devices, NULL);
-		if (error != SUCCESS)
-		{
-			// Cleanup
-			delete [] devices;
-			return false;
-		}
+	// Get size of each program binary
+	size_t* programBinarySizes = new size_t[numDevices];
+	error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_BINARY_SIZES, sizeof(size_t) * numDevices, programBinarySizes, NULL);
+	if (error != SUCCESS)
+	{
+		// Cleanup
+		delete [] devices;
+		delete [] programBinarySizes;
+		return false;
+	}
 
-		// Get size of each program binary
-		size_t* programBinarySizes = new size_t[numDevices];
-		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_BINARY_SIZES, sizeof(size_t) * numDevices, programBinarySizes, NULL);
-		if (error != SUCCESS)
-		{
-			// Cleanup
-			delete [] devices;
-			delete [] programBinarySizes;
-			return false;
-		}
-
-		// Allocate temporary memory
-		unsigned char** programBinaries = new unsigned char*[numDevices];
+	// Allocate temporary memory
+	unsigned char** programBinaries = new unsigned char*[numDevices];
 	
-		for (cl_uint i = 0; i < numDevices; i++)
-		{
-			programBinaries[i] = new unsigned char[programBinarySizes[i]];
-		}
+	for (cl_uint i = 0; i < numDevices; i++)
+	{
+		programBinaries[i] = new unsigned char[programBinarySizes[i]];
+	}
 
-		// Get all program binaries
-		error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_BINARIES, sizeof(unsigned char*) * numDevices, programBinaries, NULL);
-		if (error != SUCCESS)
-		{
-			// Cleanup
-			delete [] devices;
-			delete [] programBinarySizes;
-			for (cl_uint i = 0; i < numDevices; i++)
-			{
-				delete [] programBinaries[i];
-			}
-			delete [] programBinaries;
-			return false;
-		}
-
-		// Loop over devices
-		for (cl_uint i = 0; i < numDevices; i++)
-		{
-			// Only save the binary for the requested device
-			if (devices[i] == device)
-			{
-				// Get device name and remove spaces, add to filename
-				char* value;
-				size_t valueSize;
-				std::string device_name;
-				clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &valueSize);
-				value = (char*) malloc(valueSize);
-				clGetDeviceInfo(device, CL_DEVICE_NAME, valueSize, value, NULL);            
-				thisFilename.append("_");
-				device_name = value;
-				// Remove spaces and add device name
-				device_name.erase(std::remove (device_name.begin(), device_name.end(), ' '), device_name.end());
-				thisFilename.append(device_name);
-
-				// Remove ".cpp" and "kernel" from kernel name and add kernel name
-				std::string name = kernelFileNames[k];
-				name = name.substr(0,name.size()-4);
-				name = name.substr(6,name.size());
-				thisFilename.append("_");
-				thisFilename.append(name);	
-				thisFilename.append(".bin");
-				free(value);
-
-				// Write binary to file
-				FILE* fp = fopen(thisFilename.c_str(), "wb");
-				if (fp != NULL)
-				{
-					programBinarySize = programBinarySizes[i];
-					writtenElements = fwrite(programBinaries[i], 1, programBinarySizes[i], fp);
-					fclose(fp);
-					break;				
-				}
-				else
-				{
-					return false;
-				}
-			}
-		}
-
+	// Get all program binaries
+	error = clGetProgramInfo(OpenCLPrograms[k], CL_PROGRAM_BINARIES, sizeof(unsigned char*) * numDevices, programBinaries, NULL);
+	if (error != SUCCESS)
+	{
 		// Cleanup
 		delete [] devices;
 		delete [] programBinarySizes;
@@ -918,9 +873,64 @@ bool BROCCOLI_LIB::SaveProgramBinary(cl_device_id device, std::string filename)
 			delete [] programBinaries[i];
 		}
 		delete [] programBinaries;
-	}	
+		return false;
+	}
 
-	return true;
+	// Loop over devices
+	for (cl_uint i = 0; i < numDevices; i++)
+	{
+		// Only save the binary for the requested device
+		if (devices[i] == device)
+		{
+			// Get device name and remove spaces, add to filename
+			char* value;
+			size_t valueSize;
+			std::string device_name;
+			clGetDeviceInfo(device, CL_DEVICE_NAME, 0, NULL, &valueSize);
+			value = (char*) malloc(valueSize);
+			clGetDeviceInfo(device, CL_DEVICE_NAME, valueSize, value, NULL);            
+			thisFilename.append("_");
+			device_name = value;
+			// Remove spaces and add device name
+			device_name.erase(std::remove (device_name.begin(), device_name.end(), ' '), device_name.end());
+			thisFilename.append(device_name);
+
+			// Remove ".cpp" and "kernel" from kernel name and add kernel name
+			std::string name = kernelFileNames[k];
+			name = name.substr(0,name.size()-4);
+			name = name.substr(6,name.size());
+			thisFilename.append("_");
+			thisFilename.append(name);	
+			thisFilename.append(".bin");
+			free(value);
+
+			// Write binary to file
+			FILE* fp = fopen(thisFilename.c_str(), "wb");
+			if (fp != NULL)
+			{
+				programBinarySize = programBinarySizes[i];
+				writtenElements = fwrite(programBinaries[i], 1, programBinarySizes[i], fp);
+				fclose(fp);
+				break;				
+			}
+			else
+			{
+				if (WRAPPER == BASH)
+				{
+					printf("Unable to write to binary file for kernel %s, null file pointer!\n",kernelFileNames[k].c_str());
+				}
+			}
+		}
+	}
+
+	// Cleanup
+	delete [] devices;
+	delete [] programBinarySizes;
+	for (cl_uint i = 0; i < numDevices; i++)
+	{
+		delete [] programBinaries[i];
+	}
+	delete [] programBinaries;
 }
 
 
@@ -1110,61 +1120,54 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	binaryPathAndFilename.append(binaryFilename);
 
 	// First try to compile from binary file for the selected device
-	error = CreateProgramFromBinary(context, deviceIds[OPENCL_DEVICE], binaryPathAndFilename);
-
-	if (error == CL_SUCCESS)
+	CreateProgramFromBinary(context, deviceIds[OPENCL_DEVICE], binaryPathAndFilename);
+	
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
 	{
-		for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
-		{
+		if (createProgramErrors[k] == CL_SUCCESS)
+		{	
 			if ( (WRAPPER == BASH) && VERBOS )
 			{
 				printf("Building program from binary for %s \n",kernelFileNames[k].c_str());
 			}
 
 			// Build program for the selected device
-			error = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+			binaryBuildProgramErrors[k] = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
 
-			if ( (WRAPPER == BASH) && (error != SUCCESS) )
+			if ( (WRAPPER == BASH) && (binaryBuildProgramErrors[k] != CL_SUCCESS) )
 			{
-				printf("Binary build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(error));
+				printf("Binary build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(binaryBuildProgramErrors[k]));
+			}
+		}
+		else
+		{
+			if ( (WRAPPER == BASH) && VERBOS )
+			{
+				printf("Not building program from binary for %s since create program error was %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(createProgramErrors[k]));
 			}
 		}
 	}
 
 	// Otherwise compile from source code
-	std::string OpenCLSourcename = "broccoli_lib_kernel.cpp";
-	std::string OpenCLSourcenameShort = "broccoli_lib_kernel_short.cpp";
-
-	std::string OpenCLPathAndSourcename;
-	std::string OpenCLPathAndSourcenameShort;
-
+	std::string OpenCLPath;
 	if (WRAPPER == BASH)
-	{
-	    OpenCLPathAndSourcename.append(GetBROCCOLIDirectory());
-	    OpenCLPathAndSourcenameShort.append(GetBROCCOLIDirectory());
+	{	
+		OpenCLPath.append(GetBROCCOLIDirectory());
 	}
-	OpenCLPathAndSourcename.append(OpenCLSourcename);
-	OpenCLPathAndSourcenameShort.append(OpenCLSourcenameShort);
 
+	std::vector<std::string> kernelPathAndFileNames;
 
-	if (error != SUCCESS)
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
 	{
-		std::string OpenCLPath;
-		if (WRAPPER == BASH)
-		{	
-			OpenCLPath.append(GetBROCCOLIDirectory());
-		}
+		std::string temp = OpenCLPath;
+		temp.append(kernelFileNames[k]);
+		kernelPathAndFileNames.push_back(temp);
+	}
 
-		std::vector<std::string> kernelPathAndFileNames;
-
-		for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
-		{
-			std::string temp = OpenCLPath;
-			temp.append(kernelFileNames[k]);
-			kernelPathAndFileNames.push_back(temp);
-		}
-
-		for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+	{
+		// Check if kernel was built from binary
+		if (binaryBuildProgramErrors[k] != CL_SUCCESS)
 		{
 			// Check if kernel file exists
 			std::ifstream file(kernelPathAndFileNames[k].c_str());
@@ -1204,11 +1207,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			}
 
 			// Build program for the selected device
-			buildProgramError = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+			sourceBuildProgramErrors[k] = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
 
-			if ( (WRAPPER == BASH) && (buildProgramError != SUCCESS) )
+			if ( (WRAPPER == BASH) && (sourceBuildProgramErrors[k] != SUCCESS) )
 			{
-				printf("Source build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(buildProgramError));
+				printf("Source build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(sourceBuildProgramErrors[k]));
 			}
 
 			// Always get build info
@@ -1220,7 +1223,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 			if (error != SUCCESS)
 			{
-				INITIALIZATION_ERROR = "Unable to get size of build info.";
+				INITIALIZATION_ERROR = "Unable to get size of build info .";
 				OPENCL_ERROR = GetOpenCLErrorMessage(error);
 				return false;
 			}
@@ -1238,23 +1241,21 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 			buildInfo.push_back(value);
 			free(value);
-		}
 
+			/*
+			if (error != SUCCESS)
+			{
+				INITIALIZATION_ERROR = "Unable to create program with source.";
+				OPENCL_ERROR = GetOpenCLErrorMessage(error);			
+			}
+			*/
 
-		/*
-		if (error != SUCCESS)
-		{
-			INITIALIZATION_ERROR = "Unable to create program with source.";
-			OPENCL_ERROR = GetOpenCLErrorMessage(error);			
+			// If successful build, save each program as a binary file
+			if (sourceBuildProgramErrors[k] == CL_SUCCESS)
+			{
+				SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename,k);		
+			}
 		}
-		*/
-
-		// If successful build, save to binary file
-		if (buildProgramError == SUCCESS)
-		{
-			SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
-		}
-		
 	}
 
 
@@ -1305,19 +1306,30 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		// If successful build, save to binary file
 		if (buildProgramError == SUCCESS)
 		{
-			SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename);
+			SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename,k);
 		}
 	}
 	*/
 
-	
+	/*
+	buildProgramError = SUCCESS;
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+	{
+		if (buildProgramErrors[k] != SUCCESS]
+		{
+			buildProgramError = FAIL;
+			break;
+		}
+	}
 
+	
 	if (buildProgramError != SUCCESS)
 	{
 		INITIALIZATION_ERROR = "Unable build OpenCL program from binary or source.";
 		OPENCL_ERROR = GetOpenCLErrorMessage(buildProgramError);
 		return false;
 	}
+	*/
 
 
 	// Get some info about the selected device
@@ -1584,7 +1596,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		OPENCL_ERROR = "";
 		if (WRAPPER == BASH)
 		{
-			printf("One or several kernels were not created correctly!\n");
+			printf("One or several kernels were not created correctly, check buildInfo* !\n");
 		}
 		return true;
 	}

@@ -101,6 +101,7 @@
 #define INITIAL_MM_T1_Z_CUT 15
 
 #define SUCCESS 0
+#define FAIL 1
 
 #define LOWPASS 0
 #define RANDOM 1
