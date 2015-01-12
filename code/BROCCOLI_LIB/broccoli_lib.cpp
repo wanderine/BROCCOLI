@@ -1198,49 +1198,56 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 			if ( (WRAPPER == BASH) && (error != SUCCESS) )
 			{
-				printf("Create error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(error));
+				printf("Create program error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(error));
 			}
 
-			if ( (WRAPPER == BASH) && (VERBOS) )
+			if (error == SUCCESS)
 			{
-				printf("Building program from source for %s \n",kernelFileNames[k].c_str());
-			}
+				if ( (WRAPPER == BASH) && (VERBOS) )
+				{
+					printf("Building program from source for %s \n",kernelFileNames[k].c_str());
+				}
 
-			// Build program for the selected device
-			sourceBuildProgramErrors[k] = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+				// Build program for the selected device
+				sourceBuildProgramErrors[k] = clBuildProgram(OpenCLPrograms[k], 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
 
-			if ( (WRAPPER == BASH) && (sourceBuildProgramErrors[k] != SUCCESS) )
-			{
-				printf("Source build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(sourceBuildProgramErrors[k]));
-			}
+				if ( (WRAPPER == BASH) && (sourceBuildProgramErrors[k] != SUCCESS) )
+				{
+					printf("Source build error for %s is %s \n",kernelFileNames[k].c_str(),GetOpenCLErrorMessage(sourceBuildProgramErrors[k]));
+				}
 
-			// Always get build info
+				// Always get build info
 
-			// Get size of build info
+				// Get size of build info
 	
-			valueSize = 0;
-			error = clGetProgramBuildInfo(OpenCLPrograms[k], deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
+				valueSize = 0;
+				error = clGetProgramBuildInfo(OpenCLPrograms[k], deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, 0, NULL, &valueSize);
 
-			if (error != SUCCESS)
-			{
-				INITIALIZATION_ERROR = "Unable to get size of build info .";
-				OPENCL_ERROR = GetOpenCLErrorMessage(error);
-				return false;
-			}
+				if (error != SUCCESS)
+				{
+					INITIALIZATION_ERROR = "Unable to get size of build info .";
+					OPENCL_ERROR = GetOpenCLErrorMessage(error);
+					return false;
+				}
 
-			value = (char*)malloc(valueSize);
-			error = clGetProgramBuildInfo(OpenCLPrograms[k], deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
+				value = (char*)malloc(valueSize);
+				error = clGetProgramBuildInfo(OpenCLPrograms[k], deviceIds[OPENCL_DEVICE], CL_PROGRAM_BUILD_LOG, valueSize, value, NULL);
 
-			if (error != SUCCESS)
-			{
-				INITIALIZATION_ERROR = "Unable to get build info.";
-				OPENCL_ERROR = GetOpenCLErrorMessage(error);
+				if (error != SUCCESS)
+				{
+					INITIALIZATION_ERROR = "Unable to get build info.";
+					OPENCL_ERROR = GetOpenCLErrorMessage(error);
+					free(value);
+					return false;
+				}
+
+				buildInfo.push_back(std::string(value,valueSize));
 				free(value);
-				return false;
 			}
-
-			buildInfo.push_back(value);
-			free(value);
+			else
+			{
+				buildInfo.push_back("No build info available, since create program error occured");
+			}
 
 			/*
 			if (error != SUCCESS)
