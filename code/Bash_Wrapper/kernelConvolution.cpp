@@ -49,7 +49,46 @@ int Calculate4DIndex(int x, int y, int z, int t, int DATA_W, int DATA_H, int DAT
 #define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_ROWS 8
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_ROWS 8
 
+__kernel void SeparableConvolutionRowsGlobalMemory(__global float *Filter_Response,
+	                                   __global const float* Volume, 
+									   __global const float* Certainty, 
+									   __constant float *c_Smoothing_Filter_Y, 
+									   __private int t, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
 
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+	
+    float sum = 0.0f;
+	float pixel;
+	
+	int yoff = -4;
+	for (int fy = 8; fy >= 0; fy--)
+	{
+		if ( ((y + yoff) >= 0) && ((y + yoff) < DATA_H) )
+		{
+			pixel = Volume[Calculate4DIndex(x,y + yoff,z,t,DATA_W, DATA_H, DATA_D)] * Certainty[Calculate3DIndex(x,y + yoff,z,DATA_W, DATA_H)];
+		}
+		else
+		{
+			pixel = 0.0f;
+		}
+		
+		sum += pixel * c_Smoothing_Filter_Y[fy];
+		yoff++;
+	}
+
+	Filter_Response[Calculate3DIndex(x,y,z,DATA_W, DATA_H)] = sum;
+}
 
 __kernel void SeparableConvolutionRows_16KB_512threads(__global float *Filter_Response,
 	                                   __global const float* Volume, 
@@ -489,6 +528,45 @@ __kernel void SeparableConvolutionRows_16KB_256threads(__global float *Filter_Re
 #define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_COLUMNS 16
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_COLUMNS 8
 
+__kernel void SeparableConvolutionColumnsGlobalMemory(__global float *Filter_Response,
+	                                   __global float* Volume, 
+									   __constant float *c_Smoothing_Filter_X, 
+									   __private int t, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+	
+    float sum = 0.0f;
+	float pixel;
+	
+	int xoff = -4;
+	for (int fx = 8; fx >= 0; fx--)
+	{
+		if ( ((x + xoff) >= 0) && ((x + xoff) < DATA_W) )
+		{
+			pixel = Volume[Calculate3DIndex(x + xoff,y,z,DATA_W, DATA_H)];
+		}
+		else
+		{
+			pixel = 0.0f;
+		}
+		
+		sum += pixel * c_Smoothing_Filter_X[fx];
+		xoff++;
+	}
+
+	Filter_Response[Calculate3DIndex(x,y,z,DATA_W, DATA_H)] = sum;
+}
 
 __kernel void SeparableConvolutionColumns_16KB_512threads(__global float *Filter_Response, 
 	                                      __global float* Volume, 
@@ -1120,6 +1198,46 @@ __kernel void SeparableConvolutionColumns_16KB_256threads(__global float *Filter
 #define VALID_FILTER_RESPONSES_Y_SEPARABLE_CONVOLUTION_RODS 8
 #define VALID_FILTER_RESPONSES_Z_SEPARABLE_CONVOLUTION_RODS 8
 
+__kernel void SeparableConvolutionRodsGlobalMemory(__global float *Filter_Response,
+	                                   __global float* Volume, 
+									   __global const float* Smoothed_Certainty, 
+									   __constant float *c_Smoothing_Filter_Z, 
+									   __private int t, 
+									   __private int DATA_W, 
+									   __private int DATA_H, 
+									   __private int DATA_D, 
+									   __private int DATA_T)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if ( (x >= DATA_W) || (y >= DATA_H) || (z >= DATA_D) )
+		return;
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+	
+    float sum = 0.0f;
+	float pixel;
+	
+	int zoff = -4;
+	for (int fz = 8; fz >= 0; fz--)
+	{
+		if ( ((z + zoff) >= 0) && ((z + zoff) < DATA_D) )
+		{
+			pixel = Volume[Calculate3DIndex(x,y,z+zoff,DATA_W, DATA_H)];
+		}
+		else
+		{
+			pixel = 0.0f;
+		}
+		
+		sum += pixel * c_Smoothing_Filter_Z[fz];
+		zoff++;
+	}
+
+	Filter_Response[Calculate4DIndex(x,y,z,t,DATA_W, DATA_H,DATA_D)] = sum / Smoothed_Certainty[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+}
 
 __kernel void SeparableConvolutionRods_16KB_512threads(__global float *Filter_Response, 
 	                                   __global float* Volume, 
@@ -2680,6 +2798,7 @@ float66 Conv_2D_Unrolled_7x7_ThreeFilters_64KB(__local float* image,
 	return sum;
 }
 
+// Slow backup function
 __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersGlobalMemory(
 																	 __global float2* Filter_Response_1,
 	                                                                 __global float2* Filter_Response_2,

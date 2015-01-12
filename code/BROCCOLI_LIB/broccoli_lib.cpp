@@ -1402,9 +1402,9 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	// Separable convolution kernels using global memory only (backup)
 	else
 	{
-		//SeparableConvolutionRowsKernel = clCreateKernel(program,"SeparableConvolutionRowsGlobalMemory",&createKernelErrorSeparableConvolutionRows);
-		//SeparableConvolutionColumnsKernel = clCreateKernel(program,"SeparableConvolutionColumnsGlobalMemory",&createKernelErrorSeparableConvolutionColumns);
-		//SeparableConvolutionRodsKernel = clCreateKernel(program,"SeparableConvolutionRodsGlobalMemory",&createKernelErrorSeparableConvolutionRods);
+		SeparableConvolutionRowsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionRowsGlobalMemory",&createKernelErrorSeparableConvolutionRows);
+		SeparableConvolutionColumnsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionColumnsGlobalMemory",&createKernelErrorSeparableConvolutionColumns);
+		SeparableConvolutionRodsKernel = clCreateKernel(OpenCLPrograms[0],"SeparableConvolutionRodsGlobalMemory",&createKernelErrorSeparableConvolutionRods);
 	}
 
 	OpenCLKernels[0] = NonseparableConvolution3DComplexThreeFiltersKernel;
@@ -2211,13 +2211,13 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, in
 		globalWorkSizeSeparableConvolutionRods[2] = zBlocks * localWorkSizeSeparableConvolutionRods[2];
 	}
 	// Backup version for global memory
-	else if ( (maxThreadsPerBlock >= 128) && (maxThreadsPerDimension[0] >= 128) )
+	else if ( (maxThreadsPerBlock >= 64) && (maxThreadsPerDimension[0] >= 64) )
 	{
 		//----------------------------------
 		// Separable convolution rows
 		//----------------------------------
 
-		localWorkSizeSeparableConvolutionRows[0] = 128;
+		localWorkSizeSeparableConvolutionRows[0] = 64;
 		localWorkSizeSeparableConvolutionRows[1] = 1;
 		localWorkSizeSeparableConvolutionRows[2] = 1;
 
@@ -2235,7 +2235,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, in
 		// Separable convolution columns
 		//----------------------------------
 
-		localWorkSizeSeparableConvolutionColumns[0] = 128;
+		localWorkSizeSeparableConvolutionColumns[0] = 64;
 		localWorkSizeSeparableConvolutionColumns[1] = 1;
 		localWorkSizeSeparableConvolutionColumns[2] = 1;
 
@@ -2253,7 +2253,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, in
 		// Separable convolution rods
 		//----------------------------------
 
-		localWorkSizeSeparableConvolutionRods[0] = 128;
+		localWorkSizeSeparableConvolutionRods[0] = 64;
 		localWorkSizeSeparableConvolutionRods[1] = 1;
 		localWorkSizeSeparableConvolutionRods[2] = 1;
 
@@ -2272,9 +2272,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSeparableConvolution(int DATA_W, in
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMemset(int N)
 {
-	localWorkSizeMemset[0] = 256;
-	localWorkSizeMemset[1] = 1;
-	localWorkSizeMemset[2] = 1;
+	if (maxThreadsPerDimension[1] >= 64)
+	{
+		localWorkSizeMemset[0] = 256;
+		localWorkSizeMemset[1] = 1;
+		localWorkSizeMemset[2] = 1;
+	}
+	else
+	{
+		localWorkSizeMemset[0] = 64;
+		localWorkSizeMemset[1] = 1;
+		localWorkSizeMemset[2] = 1;	
+	}
 
 	xBlocks = (size_t)ceil((float)(N) / (float)localWorkSizeMemset[0]);
 
@@ -2361,9 +2370,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	// Phase differences and certainties
 	//----------------------------------
 
-	localWorkSizeCalculatePhaseDifferencesAndCertainties[0] = 16;
-	localWorkSizeCalculatePhaseDifferencesAndCertainties[1] = 16;
-	localWorkSizeCalculatePhaseDifferencesAndCertainties[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculatePhaseDifferencesAndCertainties[0] = 16;
+		localWorkSizeCalculatePhaseDifferencesAndCertainties[1] = 16;
+		localWorkSizeCalculatePhaseDifferencesAndCertainties[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculatePhaseDifferencesAndCertainties[0] = 64;
+		localWorkSizeCalculatePhaseDifferencesAndCertainties[1] = 1;
+		localWorkSizeCalculatePhaseDifferencesAndCertainties[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculatePhaseDifferencesAndCertainties[0]);
@@ -2379,9 +2397,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	// Phase gradients
 	//----------------------------------
 
-	localWorkSizeCalculatePhaseGradients[0] = 16;
-	localWorkSizeCalculatePhaseGradients[1] = 16;
-	localWorkSizeCalculatePhaseGradients[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculatePhaseGradients[0] = 16;
+		localWorkSizeCalculatePhaseGradients[1] = 16;
+		localWorkSizeCalculatePhaseGradients[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculatePhaseGradients[0] = 64;
+		localWorkSizeCalculatePhaseGradients[1] = 1;
+		localWorkSizeCalculatePhaseGradients[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculatePhaseGradients[0]);
@@ -2397,9 +2424,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	// Tensor norms
 	//----------------------------------
 
-	localWorkSizeCalculateTensorNorms[0] = 16;
-	localWorkSizeCalculateTensorNorms[1] = 16;
-	localWorkSizeCalculateTensorNorms[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculateTensorNorms[0] = 16;
+		localWorkSizeCalculateTensorNorms[1] = 16;
+		localWorkSizeCalculateTensorNorms[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateTensorNorms[0] = 64;
+		localWorkSizeCalculateTensorNorms[1] = 1;
+		localWorkSizeCalculateTensorNorms[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateTensorNorms[0]);
@@ -2433,9 +2469,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	// A-matrices and h-vectors
 	//----------------------------------
 
-	localWorkSizeCalculateAMatricesAndHVectors[0] = 16;
-	localWorkSizeCalculateAMatricesAndHVectors[1] = 16;
-	localWorkSizeCalculateAMatricesAndHVectors[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculateAMatricesAndHVectors[0] = 16;
+		localWorkSizeCalculateAMatricesAndHVectors[1] = 16;
+		localWorkSizeCalculateAMatricesAndHVectors[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateAMatricesAndHVectors[0] = 64;
+		localWorkSizeCalculateAMatricesAndHVectors[1] = 1;
+		localWorkSizeCalculateAMatricesAndHVectors[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateAMatricesAndHVectors[0]);
@@ -2513,9 +2558,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesClusterize(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeClusterize[0] = 16;
-	localWorkSizeClusterize[1] = 16;
-	localWorkSizeClusterize[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeClusterize[0] = 16;
+		localWorkSizeClusterize[1] = 16;
+		localWorkSizeClusterize[2] = 1;
+	}
+	else
+	{
+		localWorkSizeClusterize[0] = 64;
+		localWorkSizeClusterize[1] = 1;
+		localWorkSizeClusterize[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeClusterize[0]);
@@ -2530,9 +2584,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesClusterize(int DATA_W, int DATA_H, 
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeInterpolateVolume[0] = 16;
-	localWorkSizeInterpolateVolume[1] = 16;
-	localWorkSizeInterpolateVolume[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeInterpolateVolume[0] = 16;
+		localWorkSizeInterpolateVolume[1] = 16;
+		localWorkSizeInterpolateVolume[2] = 1;
+	}
+	else
+	{
+		localWorkSizeInterpolateVolume[0] = 64;
+		localWorkSizeInterpolateVolume[1] = 1;
+		localWorkSizeInterpolateVolume[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeInterpolateVolume[0]);
@@ -2546,9 +2609,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesInterpolateVolume(int DATA_W, int D
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeCopyVolumeToNew[0] = 16;
-	localWorkSizeCopyVolumeToNew[1] = 16;
-	localWorkSizeCopyVolumeToNew[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCopyVolumeToNew[0] = 16;
+		localWorkSizeCopyVolumeToNew[1] = 16;
+		localWorkSizeCopyVolumeToNew[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCopyVolumeToNew[0] = 64;
+		localWorkSizeCopyVolumeToNew[1] = 1;
+		localWorkSizeCopyVolumeToNew[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCopyVolumeToNew[0]);
@@ -2562,9 +2634,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCopyVolumeToNew(int DATA_W, int DAT
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeMultiplyVolumes[0] = 16;
-	localWorkSizeMultiplyVolumes[1] = 16;
-	localWorkSizeMultiplyVolumes[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeMultiplyVolumes[0] = 16;
+		localWorkSizeMultiplyVolumes[1] = 16;
+		localWorkSizeMultiplyVolumes[2] = 1;
+	}
+	else
+	{
+		localWorkSizeMultiplyVolumes[0] = 64;
+		localWorkSizeMultiplyVolumes[1] = 1;
+		localWorkSizeMultiplyVolumes[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeMultiplyVolumes[0]);
@@ -2579,9 +2660,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesMultiplyVolumes(int DATA_W, int DAT
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesAddVolumes(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeAddVolumes[0] = 16;
-	localWorkSizeAddVolumes[1] = 16;
-	localWorkSizeAddVolumes[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeAddVolumes[0] = 16;
+		localWorkSizeAddVolumes[1] = 16;
+		localWorkSizeAddVolumes[2] = 1;
+	}
+	else
+	{
+		localWorkSizeAddVolumes[0] = 64;
+		localWorkSizeAddVolumes[1] = 1;
+		localWorkSizeAddVolumes[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeAddVolumes[0]);
@@ -2596,9 +2686,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesAddVolumes(int DATA_W, int DATA_H, 
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateSum(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeCalculateColumnSums[0] = 16;
-	localWorkSizeCalculateColumnSums[1] = 16;
-	localWorkSizeCalculateColumnSums[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculateColumnSums[0] = 16;
+		localWorkSizeCalculateColumnSums[1] = 16;
+		localWorkSizeCalculateColumnSums[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateColumnSums[0] = 64;
+		localWorkSizeCalculateColumnSums[1] = 1;
+		localWorkSizeCalculateColumnSums[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculateColumnSums[0]);
@@ -2627,9 +2726,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateSum(int DATA_W, int DATA_H
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateMax(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeCalculateMaxAtomic[0] = 32;
-	localWorkSizeCalculateMaxAtomic[1] = 8;
-	localWorkSizeCalculateMaxAtomic[2] = 1;
+	if (maxThreadsPerDimension[1] >= 8)
+	{
+		localWorkSizeCalculateMaxAtomic[0] = 32;
+		localWorkSizeCalculateMaxAtomic[1] = 8;
+		localWorkSizeCalculateMaxAtomic[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateMaxAtomic[0] = 64;
+		localWorkSizeCalculateMaxAtomic[1] = 1;
+		localWorkSizeCalculateMaxAtomic[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateMaxAtomic[0]);
@@ -2642,9 +2750,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateMax(int DATA_W, int DATA_H
 	globalWorkSizeCalculateMaxAtomic[2] = zBlocks * localWorkSizeCalculateMaxAtomic[2];
 
 
-	localWorkSizeCalculateColumnMaxs[0] = 16;
-	localWorkSizeCalculateColumnMaxs[1] = 16;
-	localWorkSizeCalculateColumnMaxs[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculateColumnMaxs[0] = 16;
+		localWorkSizeCalculateColumnMaxs[1] = 16;
+		localWorkSizeCalculateColumnMaxs[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateColumnMaxs[0] = 64;
+		localWorkSizeCalculateColumnMaxs[1] = 1;
+		localWorkSizeCalculateColumnMaxs[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculateColumnMaxs[0]);
@@ -2674,9 +2791,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateMax(int DATA_W, int DATA_H
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateMagnitudes(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeCalculateMagnitudes[0] = 16;
-	localWorkSizeCalculateMagnitudes[1] = 16;
-	localWorkSizeCalculateMagnitudes[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculateMagnitudes[0] = 16;
+		localWorkSizeCalculateMagnitudes[1] = 16;
+		localWorkSizeCalculateMagnitudes[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateMagnitudes[0] = 64;
+		localWorkSizeCalculateMagnitudes[1] = 1;
+		localWorkSizeCalculateMagnitudes[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateMagnitudes[0]);
@@ -2691,9 +2817,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesCalculateMagnitudes(int DATA_W, int
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesThresholdVolume(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeThresholdVolume[0] = 16;
-	localWorkSizeThresholdVolume[1] = 16;
-	localWorkSizeThresholdVolume[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeThresholdVolume[0] = 16;
+		localWorkSizeThresholdVolume[1] = 16;
+		localWorkSizeThresholdVolume[2] = 1;
+	}
+	else
+	{
+		localWorkSizeThresholdVolume[0] = 64;
+		localWorkSizeThresholdVolume[1] = 1;
+		localWorkSizeThresholdVolume[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeThresholdVolume[0]);
@@ -2708,9 +2843,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesThresholdVolume(int DATA_W, int DAT
 
 void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W, int DATA_H, int DATA_D)
 {
-	localWorkSizeCalculateBetaWeightsGLM[0] = 32;
-	localWorkSizeCalculateBetaWeightsGLM[1] = 8;
-	localWorkSizeCalculateBetaWeightsGLM[2] = 1;
+	if (maxThreadsPerDimension[1] >= 8)
+	{
+		localWorkSizeCalculateBetaWeightsGLM[0] = 32;
+		localWorkSizeCalculateBetaWeightsGLM[1] = 8;
+		localWorkSizeCalculateBetaWeightsGLM[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateBetaWeightsGLM[0] = 64;
+		localWorkSizeCalculateBetaWeightsGLM[1] = 1;
+		localWorkSizeCalculateBetaWeightsGLM[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateBetaWeightsGLM[0]);
@@ -2722,9 +2866,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeCalculateBetaWeightsGLM[1] = yBlocks * localWorkSizeCalculateBetaWeightsGLM[1];
 	globalWorkSizeCalculateBetaWeightsGLM[2] = zBlocks * localWorkSizeCalculateBetaWeightsGLM[2];
 
-	localWorkSizeCalculateStatisticalMapsGLM[0] = 32;
-	localWorkSizeCalculateStatisticalMapsGLM[1] = 8;
-	localWorkSizeCalculateStatisticalMapsGLM[2] = 1;
+	if (maxThreadsPerDimension[1] >= 8)
+	{
+		localWorkSizeCalculateStatisticalMapsGLM[0] = 32;
+		localWorkSizeCalculateStatisticalMapsGLM[1] = 8;
+		localWorkSizeCalculateStatisticalMapsGLM[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateStatisticalMapsGLM[0] = 64;
+		localWorkSizeCalculateStatisticalMapsGLM[1] = 1;
+		localWorkSizeCalculateStatisticalMapsGLM[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateStatisticalMapsGLM[0]);
@@ -2736,10 +2889,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeCalculateStatisticalMapsGLM[1] = yBlocks * localWorkSizeCalculateStatisticalMapsGLM[1];
 	globalWorkSizeCalculateStatisticalMapsGLM[2] = zBlocks * localWorkSizeCalculateStatisticalMapsGLM[2];
 
-
-	localWorkSizeEstimateAR4Models[0] = 32;
-	localWorkSizeEstimateAR4Models[1] = 8;
-	localWorkSizeEstimateAR4Models[2] = 1;
+	if (maxThreadsPerDimension[1] >= 8)
+	{
+		localWorkSizeEstimateAR4Models[0] = 32;
+		localWorkSizeEstimateAR4Models[1] = 8;
+		localWorkSizeEstimateAR4Models[2] = 1;
+	}
+	else
+	{
+		localWorkSizeEstimateAR4Models[0] = 64;
+		localWorkSizeEstimateAR4Models[1] = 1;
+		localWorkSizeEstimateAR4Models[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeEstimateAR4Models[0]);
@@ -2751,9 +2912,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeEstimateAR4Models[1] = yBlocks * localWorkSizeEstimateAR4Models[1];
 	globalWorkSizeEstimateAR4Models[2] = zBlocks * localWorkSizeEstimateAR4Models[2];
 
-	localWorkSizeApplyWhiteningAR4[0] = 32;
-	localWorkSizeApplyWhiteningAR4[1] = 8;
-	localWorkSizeApplyWhiteningAR4[2] = 1;
+	if (maxThreadsPerDimension[1] >= 8)
+	{
+		localWorkSizeApplyWhiteningAR4[0] = 32;
+		localWorkSizeApplyWhiteningAR4[1] = 8;
+		localWorkSizeApplyWhiteningAR4[2] = 1;
+	}
+	else
+	{
+		localWorkSizeApplyWhiteningAR4[0] = 64;
+		localWorkSizeApplyWhiteningAR4[1] = 1;
+		localWorkSizeApplyWhiteningAR4[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeApplyWhiteningAR4[0]);
@@ -2779,9 +2949,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeGeneratePermutedVolumesFirstLevel[1] = yBlocks * localWorkSizeGeneratePermutedVolumesFirstLevel[1];
 	globalWorkSizeGeneratePermutedVolumesFirstLevel[2] = zBlocks * localWorkSizeGeneratePermutedVolumesFirstLevel[2];
 
-	localWorkSizeRemoveLinearFit[0] = 32;
-	localWorkSizeRemoveLinearFit[1] = 8;
-	localWorkSizeRemoveLinearFit[2] = 1;
+	if (maxThreadsPerDimension[1] >= 8)
+	{
+		localWorkSizeRemoveLinearFit[0] = 32;
+		localWorkSizeRemoveLinearFit[1] = 8;
+		localWorkSizeRemoveLinearFit[2] = 1;
+	}
+	else
+	{
+		localWorkSizeRemoveLinearFit[0] = 64;
+		localWorkSizeRemoveLinearFit[1] = 1;
+		localWorkSizeRemoveLinearFit[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeRemoveLinearFit[0]);
@@ -2793,9 +2972,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	globalWorkSizeRemoveLinearFit[1] = yBlocks * localWorkSizeRemoveLinearFit[1];
 	globalWorkSizeRemoveLinearFit[2] = zBlocks * localWorkSizeRemoveLinearFit[2];
 
-	localWorkSizeCalculatePermutationPValues[0] = 32;
-	localWorkSizeCalculatePermutationPValues[1] = 8;
-	localWorkSizeCalculatePermutationPValues[2] = 1;
+	if (maxThreadsPerDimension[1] >= 8)
+	{
+		localWorkSizeCalculatePermutationPValues[0] = 32;
+		localWorkSizeCalculatePermutationPValues[1] = 8;
+		localWorkSizeCalculatePermutationPValues[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculatePermutationPValues[0] = 64;
+		localWorkSizeCalculatePermutationPValues[1] = 1;
+		localWorkSizeCalculatePermutationPValues[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculatePermutationPValues[0]);
