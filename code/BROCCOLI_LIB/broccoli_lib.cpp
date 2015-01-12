@@ -508,6 +508,8 @@ void BROCCOLI_LIB::SetStartValues()
 	kernelFileNames.push_back("kernelStatistics2.cpp");
 	kernelFileNames.push_back("kernelWhitening.cpp");
 	kernelFileNames.push_back("kernelBayesian.cpp");
+
+	buildInfo.resize(10);
 }
 
 
@@ -1241,12 +1243,12 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 					return false;
 				}
 
-				buildInfo.push_back(std::string(value,valueSize));
+				buildInfo[k] = std::string(value);
 				free(value);
 			}
 			else
 			{
-				buildInfo.push_back("No build info available, since create program error occured");
+				buildInfo[k] = std::string("No build info available, since create program error occured");
 			}
 
 			/*
@@ -1262,6 +1264,10 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			{
 				SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename,k);		
 			}
+		}
+		else
+		{
+			buildInfo[k] = std::string("Kernel was successfully built from binary!");
 		}
 	}
 

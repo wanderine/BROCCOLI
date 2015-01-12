@@ -1401,18 +1401,15 @@ int main(int argc, char **argv)
 		}
 		else
 		{	
-			if (buildInfo.size() > k)
+			if (buildInfo[k].c_str() != NULL)
 			{
-				if (buildInfo[k].c_str() != NULL)
-				{
-				    int error = fputs(buildInfo[k].c_str(),fp);
-				    if (error == EOF)
-				    {
-				        printf("Could not write to %s ! \n",temp.c_str());
-				    }
-				}
-				fclose(fp);
+			    int error = fputs(buildInfo[k].c_str(),fp);
+			    if (error == EOF)
+			    {
+			        printf("Could not write to %s ! \n",temp.c_str());
+			    }
 			}
+			fclose(fp);
 		}
 	}
 
