@@ -2860,7 +2860,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	}
 	else
 	{
-		localWorkSizeCalculateBetaWeightsGLM[0] = 32;
+		localWorkSizeCalculateBetaWeightsGLM[0] = 16;
 		localWorkSizeCalculateBetaWeightsGLM[1] = 1;
 		localWorkSizeCalculateBetaWeightsGLM[2] = 1;
 	}
@@ -2883,7 +2883,7 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 	}
 	else
 	{
-		localWorkSizeCalculateStatisticalMapsGLM[0] = 32;
+		localWorkSizeCalculateStatisticalMapsGLM[0] = 16;
 		localWorkSizeCalculateStatisticalMapsGLM[1] = 1;
 		localWorkSizeCalculateStatisticalMapsGLM[2] = 1;
 	}
