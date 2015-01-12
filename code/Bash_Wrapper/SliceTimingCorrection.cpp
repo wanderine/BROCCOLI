@@ -610,7 +610,7 @@ int main(int argc, char ** argv)
     // Something went wrong...
     if (!BROCCOLI.GetOpenCLInitiated())
     {              
-        printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
+        printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError().c_str());
 		printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
 
         // Print create kernel errors
