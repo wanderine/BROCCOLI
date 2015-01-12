@@ -363,7 +363,7 @@ class BROCCOLI_LIB
 		int GetOpenCLBuildProgramError();
 		int GetOpenCLProgramBuildInfoError();
 
-		const char* GetOpenCLInitializationError();
+		std::string GetOpenCLInitializationError();
 		const char* GetOpenCLError();
 
 		int GetProgramBinarySize();
@@ -654,7 +654,7 @@ class BROCCOLI_LIB
 		bool SUCCESSFUL_INITIALIZATION;
 
 		const char* OPENCL_ERROR;
-		const char* INITIALIZATION_ERROR;
+		std::string INITIALIZATION_ERROR;
 
 		cl_int error;
 		cl_int getPlatformIDsError;

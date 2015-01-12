@@ -1177,7 +1177,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			{
 				std::string temp = "Unable to open ";
 				temp.append(kernelFileNames[k]);
-				INITIALIZATION_ERROR = temp.c_str();
+				INITIALIZATION_ERROR = temp;
 				OPENCL_ERROR = "";
 				return false;
 			}
@@ -1382,7 +1382,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	// Non-separable convolution kernel using global memory only (backup)
 	else
 	{
-		//NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersGlobalMemory",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersGlobalMemory",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
 	}
 
 	// Separable convolution kernels using 16 KB of shared memory and 512 threads per thread block (32 * 8 * 2 and 32 * 2 * 8)
@@ -2337,9 +2337,9 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesNonSeparableConvolution(int DATA_W,
 		globalWorkSizeNonseparableConvolution3DComplex[2] = zBlocks * localWorkSizeNonseparableConvolution3DComplex[2];
 	}
 	// Backup version for global memory, 128 threads per block, along one dimension (e.g. for Intel on the Apple platform)
-	else if ( (maxThreadsPerBlock >= 128) && (maxThreadsPerDimension[0] >= 128)   )
+	else if ( (maxThreadsPerBlock >= 64) && (maxThreadsPerDimension[0] >= 64)   )
 	{
-		localWorkSizeNonseparableConvolution3DComplex[0] = 128;
+		localWorkSizeNonseparableConvolution3DComplex[0] = 64;
 		localWorkSizeNonseparableConvolution3DComplex[1] = 1;
 		localWorkSizeNonseparableConvolution3DComplex[2] = 1;
 
@@ -3955,7 +3955,7 @@ int BROCCOLI_LIB::GetOpenCLProgramBuildInfoError()
 	return getProgramBuildInfoError;
 }
 
-const char* BROCCOLI_LIB::GetOpenCLInitializationError()
+std::string BROCCOLI_LIB::GetOpenCLInitializationError()
 {
 	return INITIALIZATION_ERROR;
 }

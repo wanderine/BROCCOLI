@@ -2680,6 +2680,72 @@ float66 Conv_2D_Unrolled_7x7_ThreeFilters_64KB(__local float* image,
 	return sum;
 }
 
+__kernel void Nonseparable3DConvolutionComplexThreeQuadratureFiltersGlobalMemory(
+																	 __global float2* Filter_Response_1,
+	                                                                 __global float2* Filter_Response_2,
+																	 __global float2* Filter_Response_3,
+																	 
+																	 __global const float* Volume, 
+																	 
+																	 __constant float* c_Quadrature_Filter_1_Real, 
+																	 __constant float* c_Quadrature_Filter_1_Imag, 
+																	 __constant float* c_Quadrature_Filter_2_Real, 
+																	 __constant float* c_Quadrature_Filter_2_Imag, 
+																	 __constant float* c_Quadrature_Filter_3_Real, 
+																	 __constant float* c_Quadrature_Filter_3_Imag, 
+
+																	 __private int z_offset, 
+																	 __private int DATA_W, 
+																	 __private int DATA_H, 
+																	 __private int DATA_D)
+{
+    int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H)
+		return;
+
+	float pixel;
+	float66 sum;
+	sum.a = 0.0f;
+	sum.b = 0.0f;
+	sum.c = 0.0f;
+	sum.d = 0.0f;
+	sum.e = 0.0f;
+	sum.f = 0.0f;
+
+	int yoff = -3;
+	for (int fy = 6; fy >= 0; fy--)
+	{
+		int xoff = -3;
+		for (int fx = 6; fx >= 0; fx--)
+		{
+			if ( ((x+xoff) >= 0) && ((x+xoff) < DATA_W) && ((y+yoff) >= 0) && ((y+yoff) < DATA_H) && ((z + z_offset) >= 0) && ((z + z_offset) < DATA_D)  )
+			{
+				pixel = Volume[Calculate3DIndex(x + xoff,y + yoff,z+z_offset,DATA_W,DATA_H)];
+			}
+			else
+			{
+				pixel = 0.0f;
+			}
+			sum.a += c_Quadrature_Filter_1_Real[fx + fy*7] * pixel;
+			sum.b += c_Quadrature_Filter_1_Imag[fx + fy*7] * pixel;
+			sum.c += c_Quadrature_Filter_2_Real[fx + fy*7] * pixel;
+			sum.d += c_Quadrature_Filter_2_Imag[fx + fy*7] * pixel;
+			sum.e += c_Quadrature_Filter_3_Real[fx + fy*7] * pixel;
+			sum.f += c_Quadrature_Filter_3_Imag[fx + fy*7] * pixel;
+			xoff++;
+		}
+		yoff++;
+	}
+		
+	Filter_Response_1[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(sum.a,sum.b);
+	Filter_Response_2[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(sum.c,sum.d);
+	Filter_Response_3[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] += (float2)(sum.e,sum.f);
+}
 
 __kernel void Nonseparable3DConvolutionComplexThreeQuadratureFilters_24KB_1024threads(
 																	 __global float2* Filter_Response_1,
