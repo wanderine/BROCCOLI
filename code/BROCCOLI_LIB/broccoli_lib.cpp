@@ -1382,7 +1382,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	// Non-separable convolution kernel using global memory only (backup)
 	else
 	{
-		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(program,"Nonseparable3DConvolutionComplexThreeQuadratureFiltersGlobalMemory",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
+		NonseparableConvolution3DComplexThreeFiltersKernel = clCreateKernel(OpenCLPrograms[0],"Nonseparable3DConvolutionComplexThreeQuadratureFiltersGlobalMemory",&createKernelErrorNonseparableConvolution3DComplexThreeFilters);
 	}
 
 	// Separable convolution kernels using 16 KB of shared memory and 512 threads per thread block (32 * 8 * 2 and 32 * 2 * 8)
