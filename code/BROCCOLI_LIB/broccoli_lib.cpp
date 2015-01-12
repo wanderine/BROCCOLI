@@ -2451,9 +2451,18 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesImageRegistration(int DATA_W, int D
 	// Displacement
 	//----------------------------------
 
-	localWorkSizeCalculateDisplacementAndCertaintyUpdate[0] = 16;
-	localWorkSizeCalculateDisplacementAndCertaintyUpdate[1] = 16;
-	localWorkSizeCalculateDisplacementAndCertaintyUpdate[2] = 1;
+	if (maxThreadsPerDimension[1] >= 16)
+	{
+		localWorkSizeCalculateDisplacementAndCertaintyUpdate[0] = 16;
+		localWorkSizeCalculateDisplacementAndCertaintyUpdate[1] = 16;
+		localWorkSizeCalculateDisplacementAndCertaintyUpdate[2] = 1;
+	}
+	else
+	{
+		localWorkSizeCalculateDisplacementAndCertaintyUpdate[0] = 64;
+		localWorkSizeCalculateDisplacementAndCertaintyUpdate[1] = 1;
+		localWorkSizeCalculateDisplacementAndCertaintyUpdate[2] = 1;
+	}
 
 	// Calculate how many blocks are required
 	xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateDisplacementAndCertaintyUpdate[0]);
