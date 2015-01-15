@@ -1046,16 +1046,18 @@ __kernel void InterpolateVolumeNearestNonLinear(__global float* Volume,
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	int idx = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
+	int idx4D = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
+	int idx3D = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+
 	float4 Motion_Vector;
 	
-	Motion_Vector.x = (float)x + d_Displacement_Field_X[idx] + 0.5f;
-	Motion_Vector.y = (float)y + d_Displacement_Field_Y[idx] + 0.5f;
-	Motion_Vector.z = (float)z + d_Displacement_Field_Z[idx] + 0.5f;
+	Motion_Vector.x = (float)x + d_Displacement_Field_X[idx3D] + 0.5f;
+	Motion_Vector.y = (float)y + d_Displacement_Field_Y[idx3D] + 0.5f;
+	Motion_Vector.z = (float)z + d_Displacement_Field_Z[idx3D] + 0.5f;
 	Motion_Vector.w = 0.0f;
 
 	float4 Interpolated_Value = read_imagef(Original_Volume, volume_sampler_nearest, Motion_Vector);
-	Volume[idx] = Interpolated_Value.x;
+	Volume[idx4D] = Interpolated_Value.x;
 }
 
 __constant sampler_t volume_sampler_linear = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP_TO_EDGE | CLK_FILTER_LINEAR;

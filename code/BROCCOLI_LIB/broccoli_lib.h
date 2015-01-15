@@ -463,8 +463,8 @@ class BROCCOLI_LIB
 		void PerformDetrendingPriorPermutation();
 		void PerformWhiteningPriorPermutations(cl_mem Whitened_volumes, cl_mem Volumes);
 		void GeneratePermutedVolumesFirstLevel(cl_mem Permuted_Volumes, cl_mem Whitened_Volumes, int permutation);
-		void CalculateStatisticalMapsFirstLevelPermutation();
-		void CalculateStatisticalMapsGLMTTestFirstLevelPermutation();
+		void CalculateStatisticalMapsFirstLevelPermutation(int contrast);
+		void CalculateStatisticalMapsGLMTTestFirstLevelPermutation(int contrast);
 		void CalculateStatisticalMapsGLMFTestFirstLevelPermutation();
 
 		// Permutation second level
@@ -512,7 +512,7 @@ class BROCCOLI_LIB
 
 		void TransformVolumesLinear(cl_mem d_Volumes, float* h_Registration_Parameters, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformVolumesNonLinear(cl_mem d_Volumes, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
-		void TransformFirstLevelResultsToMNI();
+		void TransformFirstLevelResultsToMNI(bool WHITENED);
 		void TransformResidualsToMNI();
 		void TransformFirstLevelResultsToT1();
 		void TransformBayesianFirstLevelResultsToMNI();

@@ -405,9 +405,18 @@ int main(int argc, char **argv)
     //----------
     
     void*           allMemoryPointers[500];
+	for (int i = 0; i < 500; i++)
+	{
+		allMemoryPointers[i] = NULL;
+	}
     int             numberOfMemoryPointers = 0;
     
 	nifti_image*	allNiftiImages[500];
+	for (int i = 0; i < 500; i++)
+	{
+		allNiftiImages[i] = NULL;
+	}
+
 	int				numberOfNiftiImages = 0;
     
     //---------------------
@@ -1541,7 +1550,7 @@ int main(int argc, char **argv)
     int RESIDUALS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * EPI_DATA_T * sizeof(float);
     
 	int PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int);
-	int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * sizeof(float);
+	int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
 
     // Print some info
     if (PRINT)
@@ -2418,6 +2427,7 @@ int main(int argc, char **argv)
 		BROCCOLI.SetSaveAREstimatesEPI(WRITE_AR_ESTIMATES_EPI);
 		BROCCOLI.SetSaveAREstimatesT1(WRITE_AR_ESTIMATES_T1);
 		BROCCOLI.SetSaveAREstimatesMNI(WRITE_AR_ESTIMATES_MNI);
+		BROCCOLI.SetSaveUnwhitenedResults(WRITE_UNWHITENED_RESULTS);
 
         BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
         BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
