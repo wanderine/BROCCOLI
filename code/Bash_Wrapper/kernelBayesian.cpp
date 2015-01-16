@@ -51,7 +51,7 @@ double unirand(__private int* seed)
 	double const m = 2147483647.0; //ie 2**31-1
 	double const reciprocal_m = 1.0/m;
 	double temp = (*seed) * a;
-	//*seed = (int)(temp - m * floor(temp * reciprocal_m));
+	*seed = (int)(temp - m * floor(temp * reciprocal_m));
 
 	return ((double)(*seed) * reciprocal_m);
 }
@@ -64,8 +64,8 @@ double normalrand(__private int* seed)
 	double u = unirand(seed);
 	double v = unirand(seed);
 
-	//return sqrt(-2.0*log(u))*cos(2.0*pi*v);
-	return 1.0;
+	return sqrt(-2.0*log(u))*cos(2.0*pi*v);
+	//return 1.0;
 }
 
 // Generate inverse Gamma number
@@ -309,6 +309,14 @@ void Invert_2x2(float Cxx[2][2], float inv_Cxx[2][2])
 	inv_Cxx[1][1] = Cxx[0][0] / determinant;
 }
 
+float  myabs(float value)
+{
+	if (value < 0.0f)
+		return -value;
+	else
+		return value;
+}
+
 // Generates a posterior probability map (PPM) using Gibbs sampling
 
 __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Maps,
@@ -329,8 +337,6 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		                                          __private int NUMBER_OF_REGRESSORS,
 											      __private int NUMBER_OF_ITERATIONS)
 {
-/*
-
 	int x = get_global_id(0);
 	int y = get_global_id(1);
 	int z = get_global_id(2);
@@ -565,7 +571,6 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
 
 	AR_Estimates[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = rhoT;
-*/
 }
 
 
