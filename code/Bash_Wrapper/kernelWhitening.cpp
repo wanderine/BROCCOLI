@@ -108,7 +108,8 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
 								__private int DATA_H, 
 								__private int DATA_D, 
 								__private int DATA_T,
-								__private int INVALID_TIMEPOINTS)
+								__private int INVALID_TIMEPOINTS,
+                                __private int slice)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -117,12 +118,12 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
     if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
         return;
 
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+    if ( Mask[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] != 1.0f )
 	{
-        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+        AR1_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
+		AR2_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
+		AR3_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
+		AR4_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
 
 		return;
 	}
@@ -135,16 +136,20 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
     float c3 = 0.0f;
     float c4 = 0.0f;
 
-    old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    //old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+	old_value_1 = fMRI_Volumes[Calculate3DIndex(x, y, 0 + INVALID_TIMEPOINTS, DATA_W, DATA_H)];
     c0 += old_value_1 * old_value_1;
-    old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    //old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+	old_value_2 = fMRI_Volumes[Calculate3DIndex(x, y, 1 + INVALID_TIMEPOINTS, DATA_W, DATA_H)];
     c0 += old_value_2 * old_value_2;
     c1 += old_value_2 * old_value_1;
-    old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    //old_value_3 = fMRI_Volumes[Calculate4DIndex(x, y, z, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+	old_value_3 = fMRI_Volumes[Calculate3DIndex(x, y, 2 + INVALID_TIMEPOINTS, DATA_W, DATA_H)];
     c0 += old_value_3 * old_value_3;
     c1 += old_value_3 * old_value_2;
     c2 += old_value_3 * old_value_1;
-    old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+    //old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H, DATA_D)];
+	old_value_4 = fMRI_Volumes[Calculate3DIndex(x, y, 3 + INVALID_TIMEPOINTS, DATA_W, DATA_H)];
     c0 += old_value_4 * old_value_4;
     c1 += old_value_4 * old_value_3;
     c2 += old_value_4 * old_value_2;
@@ -154,7 +159,8 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
     for (t = 4 + INVALID_TIMEPOINTS; t < DATA_T; t++)
     {
         // Read data into register
-        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+        //old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+		old_value_5 = fMRI_Volumes[Calculate3DIndex(x, y, t, DATA_W, DATA_H)];
         
         // Sum and multiply the values in fast registers
         c0 += old_value_5 * old_value_5;
@@ -216,17 +222,17 @@ __kernel void EstimateAR4Models(__global float* AR1_Estimates,
         alphas.z = inv_matrix[2][0] * r.x + inv_matrix[2][1] * r.y + inv_matrix[2][2] * r.z + inv_matrix[2][3] * r.w;
         alphas.w = inv_matrix[3][0] * r.x + inv_matrix[3][1] * r.y + inv_matrix[3][2] * r.z + inv_matrix[3][3] * r.w;
 
-        AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.x;
-		AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.y;
-		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.z;
-		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = alphas.w;
+        AR1_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = alphas.x;
+		AR2_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = alphas.y;
+		AR3_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = alphas.z;
+		AR4_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = alphas.w;
     }
     else
     {
-		AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-        AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
-		AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] = 0.0f;
+		AR1_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
+        AR2_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
+		AR3_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
+		AR4_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] = 0.0f;
     }
 }
 
@@ -241,7 +247,8 @@ __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes,
 								__private int DATA_W, 
 								__private int DATA_H, 
 								__private int DATA_D, 
-								__private int DATA_T)
+								__private int DATA_T,
+                                __private int slice)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -250,19 +257,20 @@ __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes,
     if ( x >= DATA_W || y >= DATA_H || z >= DATA_D )
         return;
 
-    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] != 1.0f )
+    if ( Mask[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)] != 1.0f )
 		return;
 
     int t = 0;
 	float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
     float4 alphas;
-	alphas.x = AR1_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.y = AR2_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.z = AR3_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
-    alphas.w = AR4_Estimates[Calculate3DIndex(x, y, z, DATA_W, DATA_H)];
+	alphas.x = AR1_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)];
+    alphas.y = AR2_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)];
+    alphas.z = AR3_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)];
+    alphas.w = AR4_Estimates[Calculate3DIndex(x, y, slice, DATA_W, DATA_H)];
 
     // Calculate the whitened timeseries
 
+	/*
     old_value_1 = fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)];	
     Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 0, DATA_W, DATA_H, DATA_D)] = old_value_1;
     old_value_2 = fMRI_Volumes[Calculate4DIndex(x, y, z, 1, DATA_W, DATA_H, DATA_D)];
@@ -271,12 +279,24 @@ __kernel void ApplyWhiteningAR4(__global float* Whitened_fMRI_Volumes,
     Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 2, DATA_W, DATA_H, DATA_D)] = old_value_3 - alphas.x * old_value_2 - alphas.y * old_value_1;
     old_value_4 = fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)];
     Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, 3, DATA_W, DATA_H, DATA_D)] = old_value_4 - alphas.x * old_value_3 - alphas.y * old_value_2 - alphas.z * old_value_1;
+	*/
+
+    old_value_1 = fMRI_Volumes[Calculate3DIndex(x, y,  0, DATA_W, DATA_H)];	
+    Whitened_fMRI_Volumes[Calculate3DIndex(x, y, 0, DATA_W, DATA_H)] = old_value_1;
+    old_value_2 = fMRI_Volumes[Calculate3DIndex(x, y, 1, DATA_W, DATA_H)];
+    Whitened_fMRI_Volumes[Calculate3DIndex(x, y, 1, DATA_W, DATA_H)] = old_value_2  - alphas.x * old_value_1;
+    old_value_3 = fMRI_Volumes[Calculate3DIndex(x, y, 2, DATA_W, DATA_H)];
+    Whitened_fMRI_Volumes[Calculate3DIndex(x, y, 2, DATA_W, DATA_H)] = old_value_3 - alphas.x * old_value_2 - alphas.y * old_value_1;
+    old_value_4 = fMRI_Volumes[Calculate3DIndex(x, y, 3, DATA_W, DATA_H)];
+    Whitened_fMRI_Volumes[Calculate3DIndex(x, y, 3, DATA_W, DATA_H)] = old_value_4 - alphas.x * old_value_3 - alphas.y * old_value_2 - alphas.z * old_value_1;
 
     for (t = 4; t < DATA_T; t++)
     {
-        old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+        //old_value_5 = fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)];
+        //Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
 
-        Whitened_fMRI_Volumes[Calculate4DIndex(x, y, z, t, DATA_W, DATA_H, DATA_D)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
+        old_value_5 = fMRI_Volumes[Calculate3DIndex(x, y, t, DATA_W, DATA_H)];
+        Whitened_fMRI_Volumes[Calculate3DIndex(x, y, t, DATA_W, DATA_H)] = old_value_5 - alphas.x * old_value_4 - alphas.y * old_value_3 - alphas.z * old_value_2 - alphas.w * old_value_1;
 
 		// Save old values
         old_value_1 = old_value_2;

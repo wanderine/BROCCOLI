@@ -437,7 +437,9 @@ class BROCCOLI_LIB
 		void SegmentEPIData(cl_mem Volume);
 		void PerformSliceTimingCorrection();
 		void PerformMotionCorrection(cl_mem Volumes);
+		void PerformMotionCorrectionHost(float* h_Volumes);
 
+		void CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);
 		void CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes, cl_mem Mask);
@@ -445,10 +447,10 @@ class BROCCOLI_LIB
 
 		void CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volumes);
 
-		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D);
+		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D);
 
-		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
-		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
+		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int slice, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
 		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
 		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
@@ -487,6 +489,8 @@ class BROCCOLI_LIB
 		void NonseparableConvolution3D(cl_mem d_q1, cl_mem d_q2, cl_mem d_q3, cl_mem d_Volume, cl_mem c_Filter_1_Real, cl_mem c_Filter_1_Imag, cl_mem c_Filter_2_Real, cl_mem c_Filter_2_Imag, cl_mem c_Filter_3_Real, cl_mem c_Filter_3_Imag, float* h_Filter_1_Real, float* h_Filter_1_Imag, float* h_Filter_2_Real, float* h_Filter_2_Imag, float* h_Filter_3_Real, float* h_Filter_3_Imag, int DATA_W, int DATA_H, int DATA_D);
 		void PerformSmoothing(cl_mem Smoothed_Volumes, cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingNormalized(cl_mem Smoothed_Volumes, cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void PerformSmoothingNormalizedHost(float* h_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+
 		void PerformSmoothing(cl_mem d_Volumes, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingNormalized(cl_mem d_Volumes, cl_mem d_Certainty, cl_mem d_Smoothed_Certainty, float* h_Smoothing_Filter_X, float* h_Smoothing_Filter_Y, float* h_Smoothing_Filter_Z, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void PerformSmoothingNormalizedPermutation();
@@ -498,12 +502,12 @@ class BROCCOLI_LIB
 		void AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D);
 		void AlignTwoVolumesLinear(float* h_Registration_Parameters, float* h_Rotations, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int INTERPOLATION_MODE);
 		void AlignTwoVolumesLinearSeveralScales(float *h_Registration_Parameters, float* h_Rotations, cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int ALIGNMENT_TYPE, int OVERWRITE, int INTERPOLATION_MODE);
-		void AlignTwoVolumesLinearCleanup();
+		void AlignTwoVolumesLinearCleanup(int DATA_W, int DATA_H, int DATA_D);
 
 		void AlignTwoVolumesNonLinearSetup(int DATA_W, int DATA_H, int DATA_D);
 		void AlignTwoVolumesNonLinear(int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_ITERATIONS, int INTERPOLATION_MODE);
 		void AlignTwoVolumesNonLinearSeveralScales(cl_mem d_Al_Volume, cl_mem d_Ref_Volume, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_SCALES, int NUMBER_OF_ITERATIONS, int OVERWRITE, int INTERPOLATION_MODE, int SAVE_DISPLACEMENT_FIELD);
-		void AlignTwoVolumesNonLinearCleanup();
+		void AlignTwoVolumesNonLinearCleanup(int DATA_W, int DATA_H, int DATA_D);
 
 		void ChangeVolumeSize(cl_mem d_New_Volume, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);
 		void ChangeVolumeSize(cl_mem& d_Volume, int DATA_W, int DATA_H, int DATA_D, int CURRENT_DATA_W, int CURRENT_DATA_H, int CURRENT_DATA_D, int INTERPOLATION_MODE);
@@ -531,6 +535,10 @@ class BROCCOLI_LIB
 		void CenterVolumeMass(cl_mem d_Volume, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
 		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
 		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
+
+		void FlipVolumesXYZTtoXYTZ(float* h_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
+		void CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
 
 		void CalculateGlobalMeans(cl_mem d_Volumes);		
 
