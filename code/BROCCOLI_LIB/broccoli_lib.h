@@ -128,6 +128,7 @@ class BROCCOLI_LIB
 
 		// Statistics
 		void SetTemporalDerivatives(int TD);
+		void SetBayesian(bool B);
 		void SetRegressOnly(int R);
 		void SetRegressMotion(int R);
 		void SetRegressGlobalMean(int R);
@@ -393,7 +394,7 @@ class BROCCOLI_LIB
 		void PerformMotionCorrectionWrapper();
 		void PerformRegression(cl_mem, cl_mem, int, int, int, int);
 		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
-		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
+		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int, int);
 		void PerformSmoothingWrapper();
 		void PerformSmoothingNormalizedWrapper();
 		void PerformGLMTTestFirstLevelWrapper();
@@ -407,7 +408,6 @@ class BROCCOLI_LIB
 		void PerformGLMFTestSecondLevelPermutationWrapper();
 		void PerformBayesianFirstLevelWrapper();
 		void PerformFirstLevelAnalysisWrapper();
-		void PerformFirstLevelAnalysisBayesianWrapper();
 		void PerformSecondLevelAnalysisWrapper();
 
 		void GetOpenCLInfo();
@@ -445,7 +445,7 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 		void CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 
-		void CalculateStatisticalMapsGLMBayesianFirstLevel(cl_mem d_Volumes);
+		void CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volumes);
 
 		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D);
 
@@ -540,7 +540,7 @@ class BROCCOLI_LIB
 		void CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
 		void CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
 
-		void CalculateGlobalMeans(cl_mem d_Volumes);		
+		void CalculateGlobalMeans(float* h_Volumes);		
 
 		void SetMemory(cl_mem memory, float value, int N);
 		void SetMemoryInt(cl_mem memory, int value, int N);
@@ -1062,6 +1062,7 @@ class BROCCOLI_LIB
 		int INFERENCE_MODE;
 		int USE_TEMPORAL_DERIVATIVES;
 		bool RAW_REGRESSORS;
+		bool BAYESIAN;
 		bool REGRESS_ONLY;
 		int REGRESS_MOTION;
 		int REGRESS_GLOBALMEAN;

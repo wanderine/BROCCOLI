@@ -335,7 +335,8 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		                                          __private int DATA_D,
 		                                          __private int NUMBER_OF_VOLUMES,
 		                                          __private int NUMBER_OF_REGRESSORS,
-											      __private int NUMBER_OF_ITERATIONS)
+											      __private int NUMBER_OF_ITERATIONS,
+												  __private int slice)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -346,25 +347,25 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
-	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	if ( Mask[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] != 1.0f )
 	{
-		Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,slice,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,slice,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,slice,2,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,slice,3,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,slice,4,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Statistical_Maps[Calculate4DIndex(x,y,slice,5,DATA_W,DATA_H,DATA_D)] = 0.0f;
 
-		Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
-		Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Beta_Volumes[Calculate4DIndex(x,y,slice,0,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		Beta_Volumes[Calculate4DIndex(x,y,slice,1,DATA_W,DATA_H,DATA_D)] = 0.0f;
 
-		AR_Estimates[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = 0.0f;
+		AR_Estimates[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] = 0.0f;
 
 		return;
 	}
 
 	// Get seed from host
-	int seed = Seeds[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+	int seed = Seeds[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)];
 
 	// Prior options
 	float iota = 1.0f;                 // Decay factor for lag length in prior for rho.
@@ -411,7 +412,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 	float g01 = 0.0f;
 	float g11 = 0.0f;
 
-	float old_value = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+	float old_value = Volumes[Calculate3DIndex(x,y,0,DATA_W,DATA_H)];
 
 	m00[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + 0] * old_value;
 	m00[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + 0] * old_value;
@@ -420,7 +421,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 
 	for (int v = 1; v < NUMBER_OF_VOLUMES; v++)
 	{
-		float value = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		float value = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
 
 		m00[0] += c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * value;
 		m00[1] += c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * value;
@@ -527,7 +528,7 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		// Calculate residuals
 		for (int v = 1; v < NUMBER_OF_VOLUMES; v++)
 		{
-			float eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			float eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 0 + v] * beta[0];
 			eps -= c_X_GLM[NUMBER_OF_VOLUMES * 1 + v] * beta[1];
 
@@ -560,17 +561,17 @@ __kernel void CalculateStatisticalMapsGLMBayesian(__global float* Statistical_Ma
 		Ytildesquared = g00 - 2.0f * rho * g01 + rho * rho * g11;
 	}
 	
-	Statistical_Maps[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = (float)probability1/(float)NUMBER_OF_ITERATIONS;
-	Statistical_Maps[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = (float)probability2/(float)NUMBER_OF_ITERATIONS;
-	Statistical_Maps[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)] = (float)probability3/(float)NUMBER_OF_ITERATIONS;
-	Statistical_Maps[Calculate4DIndex(x,y,z,3,DATA_W,DATA_H,DATA_D)] = (float)probability4/(float)NUMBER_OF_ITERATIONS;
-	Statistical_Maps[Calculate4DIndex(x,y,z,4,DATA_W,DATA_H,DATA_D)] = (float)probability5/(float)NUMBER_OF_ITERATIONS;
-	Statistical_Maps[Calculate4DIndex(x,y,z,5,DATA_W,DATA_H,DATA_D)] = (float)probability6/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,slice,0,DATA_W,DATA_H,DATA_D)] = (float)probability1/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,slice,1,DATA_W,DATA_H,DATA_D)] = (float)probability2/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,slice,2,DATA_W,DATA_H,DATA_D)] = (float)probability3/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,slice,3,DATA_W,DATA_H,DATA_D)] = (float)probability4/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,slice,4,DATA_W,DATA_H,DATA_D)] = (float)probability5/(float)NUMBER_OF_ITERATIONS;
+	Statistical_Maps[Calculate4DIndex(x,y,slice,5,DATA_W,DATA_H,DATA_D)] = (float)probability6/(float)NUMBER_OF_ITERATIONS;
 
-	Beta_Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)] = beta[0];
-	Beta_Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)] = beta[1];
+	Beta_Volumes[Calculate4DIndex(x,y,slice,0,DATA_W,DATA_H,DATA_D)] = beta[0];
+	Beta_Volumes[Calculate4DIndex(x,y,slice,1,DATA_W,DATA_H,DATA_D)] = beta[1];
 
-	AR_Estimates[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = rhoT;
+	AR_Estimates[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] = rhoT;
 }
 
 

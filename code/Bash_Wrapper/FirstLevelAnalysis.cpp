@@ -2505,6 +2505,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputContrastVolumesNoWhiteningMNI(h_Contrast_Volumes_No_Whitening_MNI);
         BROCCOLI.SetOutputStatisticalMapsNoWhiteningMNI(h_Statistical_Maps_No_Whitening_MNI);
 
+		BROCCOLI.SetBayesian(BAYESIAN);
 		BROCCOLI.SetRegressOnly(REGRESS_ONLY);
         BROCCOLI.SetOutputResidualsMNI(h_Residuals_MNI);
         BROCCOLI.SetOutputResidualsEPI(h_Residuals_EPI);
@@ -2519,14 +2520,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
         
 		startTime = GetWallTime();
-		if (BAYESIAN)
-		{
-        	BROCCOLI.PerformFirstLevelAnalysisBayesianWrapper();	        
-		}
-		else
-		{
-			BROCCOLI.PerformFirstLevelAnalysisWrapper();			
-		}
+       	BROCCOLI.PerformFirstLevelAnalysisWrapper();	        
 		endTime = GetWallTime();
 
 		if (VERBOS)
