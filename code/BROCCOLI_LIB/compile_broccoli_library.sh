@@ -4,12 +4,14 @@
 AMD=0
 INTEL=1
 NVIDIA=2
-OPENCL_PACKAGE=$INTEL
+#OPENCL_PACKAGE=$INTEL
+OPENCL_PACKAGE=$AMD
 
 # Set compilation mode to use
 RELEASE=0
 DEBUG=1
 COMPILATION=$RELEASE
+#COMPILATION=$DEBUG
 
 BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 
@@ -17,8 +19,8 @@ BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 
 # Need to install AMD OpenCL SDK first
 if [ "$OPENCL_PACKAGE" -eq "$AMD" ] ; then
-    OPENCL_HEADER_DIRECTORY1=/opt/AMDAPP/include 
-    OPENCL_HEADER_DIRECTORY2=/opt/AMDAPP/include/CL 
+    OPENCL_HEADER_DIRECTORY1=/opt/AMDAPPSDK-2.9-1/include 
+    OPENCL_HEADER_DIRECTORY2=/opt/AMDAPPSDK-2.9-1/include/CL 
 # Need to install Intel OpenCL SDK first
 elif [ "$OPENCL_PACKAGE" -eq "$INTEL" ] ; then
     OPENCL_HEADER_DIRECTORY1=/opt/intel/opencl-sdk/include 
@@ -35,15 +37,15 @@ fi
 
 # Set compilation flags
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
-    FLAGS="-O3 -DNDEBUG"
+    FLAGS="-O3 -DNDEBUG -m64 "
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
-    FLAGS="-O0 -g"
+    FLAGS="-O0 -g -m64"
 else
     echo "Unknown compilation mode"
 fi
 
 # Using g++
-g++ -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -m64 -fPIC -c -o broccoli_lib.o broccoli_lib.cpp
+g++ -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -fPIC -c -o broccoli_lib.o broccoli_lib.cpp
 
 # Make a library
 ar rcs libBROCCOLI_LIB.a broccoli_lib.o

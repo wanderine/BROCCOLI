@@ -102,7 +102,7 @@ void ReadBinaryFile(float* pointer, int size, const char* filename, void** point
     }
 }
 
-void AllocateMemory(float *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
+void AllocateMemory(float *& pointer, size_t size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
 {
     pointer = (float*)malloc(size);
     if (pointer != NULL)
@@ -905,15 +905,15 @@ int main(int argc, char **argv)
     // ------------------------------------------------
 
     // Calculate size, in bytes 
-    int DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS * sizeof(float);
-    int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
-  	int GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
-    int CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
-    int CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-	int PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
-	int SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
-    int NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
-    int STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+  	size_t GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
+    size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
+	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
+	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
+    size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
             
     // ------------------------------------------------
 
@@ -1170,6 +1170,24 @@ int main(int argc, char **argv)
     if ( inputData->datatype == DT_SIGNED_SHORT )
     {
         short int *p = (short int*)inputData->data;
+    
+        for (int i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
+        {
+            h_First_Level_Results[i] = (float)p[i];
+        }
+    }
+	else if ( inputData->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputData->data;
+    
+        for (int i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
+        {
+            h_First_Level_Results[i] = (float)p[i];
+        }
+    }
+    else if ( inputData->datatype == DT_UINT16 )
+    {
+        unsigned short int *p = (unsigned short int*)inputData->data;
     
         for (int i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
         {

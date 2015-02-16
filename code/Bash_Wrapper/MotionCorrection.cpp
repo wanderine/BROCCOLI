@@ -92,7 +92,7 @@ void ReadBinaryFile(float* pointer, int size, const char* filename, void** point
     }
 }
 
-void AllocateMemory(float *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
+void AllocateMemory(float *& pointer, size_t size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
 {
     pointer = (float*)malloc(size);
     if (pointer != NULL)
@@ -441,10 +441,10 @@ int main(int argc, char ** argv)
     EPI_VOXEL_SIZE_Z = inputData->dz;
                                
     // Calculate size, in bytes
-    int DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
-    int MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T * sizeof(float);
-    int FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
-    int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T * sizeof(float);
+    size_t FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
     
     // Print some info
     if (PRINT)
@@ -497,6 +497,24 @@ int main(int argc, char ** argv)
     if ( inputData->datatype == DT_SIGNED_SHORT )
     {
         short int *p = (short int*)inputData->data;
+    
+        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        {
+            h_fMRI_Volumes[i] = (float)p[i];
+        }
+    }
+    else if ( inputData->datatype == DT_UINT8 )
+    {
+        unsigned char *p = (unsigned char*)inputData->data;
+    
+        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        {
+            h_fMRI_Volumes[i] = (float)p[i];
+        }
+    }
+    else if ( inputData->datatype == DT_UINT16 )
+    {
+        unsigned short int *p = (unsigned short int*)inputData->data;
     
         for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {

@@ -23,9 +23,9 @@ COMPILATION=$RELEASE
 
 # Need to install AMD OpenCL SDK first
 if [ "$OPENCL_PACKAGE" -eq "$AMD" ]; then
-    OPENCL_HEADER_DIRECTORY1=/opt/AMDAPP/include 
-    OPENCL_HEADER_DIRECTORY2=/opt/AMDAPP/include/CL 
-    OPENCL_LIBRARY_DIRECTORY=/opt/AMDAPP/lib/x86_64 
+    OPENCL_HEADER_DIRECTORY1=/opt/AMDAPPSDK-2.9-1/include 
+    OPENCL_HEADER_DIRECTORY2=/opt/AMDAPPSDK-2.9-1/include/CL 
+    OPENCL_LIBRARY_DIRECTORY=/opt/AMDAPPSDK-2.9-1/lib/x86_64 
 # Need to install Intel OpenCL SDK and Intel OpenCL runtime first
 elif [ "$OPENCL_PACKAGE" -eq "$INTEL" ]; then
     OPENCL_HEADER_DIRECTORY1=/opt/intel/opencl-sdk/include 
@@ -43,10 +43,10 @@ fi
 
 # Set compilation flags
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
-    FLAGS="-O3 -DNDEBUG"
+    FLAGS="-O3 -DNDEBUG -m64"
 	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Compiled/Linux/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
-    FLAGS="-O0 -g"
+    FLAGS="-O0 -g -m64"
 	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Compiled/Linux/Debug
 else
     echo "Unknown compilation mode"

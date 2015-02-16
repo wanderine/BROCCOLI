@@ -1296,7 +1296,7 @@ class BROCCOLI_LIB
 		cl_mem		c_Sign_Vector;
 
 		int			memoryAllocations, memoryDeallocations;
-		unsigned int allocatedMemory;
+		unsigned long int allocatedMemory;
 
 };
 
