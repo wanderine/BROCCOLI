@@ -19,8 +19,8 @@ BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 
 # Need to install AMD OpenCL SDK first
 if [ "$OPENCL_PACKAGE" -eq "$AMD" ] ; then
-    OPENCL_HEADER_DIRECTORY1=/opt/AMDAPPSDK-2.9-1/include 
-    OPENCL_HEADER_DIRECTORY2=/opt/AMDAPPSDK-2.9-1/include/CL 
+    OPENCL_HEADER_DIRECTORY1=/opt/AMDAPP/include 
+    OPENCL_HEADER_DIRECTORY2=/opt/AMDAPP/include/CL 
 # Need to install Intel OpenCL SDK first
 elif [ "$OPENCL_PACKAGE" -eq "$INTEL" ] ; then
     OPENCL_HEADER_DIRECTORY1=/opt/intel/opencl-sdk/include 
