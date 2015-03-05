@@ -83,6 +83,16 @@ The following preprocessing options are available
                   No slice timing correction is performed if pattern in \newline
                   NIFTI file is unknown and no pattern is provided. 
 
+\item -slicecustom
+\newline \newline Provide a text file with the slice times, \newline
+				  one value per slice, in milli seconds (0 - TR). \newline
+
+\item -slicecustomref
+\newline \newline Provide a reference slice for the custom slice times, \newline
+				  between 0 and N-1, where N is number of slices. \newline
+				  The default reference slice is N/2.
+ 
+
 \item -iterationsmc 
 \newline \newline Set the number of iterations used for the \newline motion correction (the default is 5).
 
@@ -90,6 +100,44 @@ The following preprocessing options are available
 \newline \newline Set the amount of smoothing applied to \newline each fMRI volume (the default is 6 mm FWHM). 
 
 \end{itemize}
+
+\newpage
+
+A text file with slice timing information can for example look like
+\begin{verbatim}
+    0.0000
+  180.0000
+  362.5000
+  545.0000
+  727.5000
+   60.0000
+  242.5000
+  425.0000
+  605.0000
+  787.5000
+  120.0000
+  302.5000
+  485.0000
+  667.5000
+    0.0000
+  180.0000
+  362.5000
+  545.0000
+  727.5000
+   60.0000
+  242.5000
+  425.0000
+  605.0000
+  787.5000
+  120.0000
+  302.5000
+  485.0000
+  667.5000
+\end{verbatim}
+
+which means that the first slice was collected at time 0, the second slice was collected after 180 milli seconds, the third slice was collected after 362.5 milli seconds, and so on.
+
+\newpage
 
 
 \section{Statistical options}
@@ -104,8 +152,6 @@ The following statistical options are available
 \item -regressmotion 
 \newline \newline Add the 6 estimated motion parameters (3 for translation and 3 for rotation) to the design matrix, to further suppress the effect of head motion. The contrast vectors are automatically extended with zeros for these additional regressors. 
 
-\newpage 
-
 \item -regressglobalmean 
 \newline \newline Include a regressor for the global mean in the design matrix. The contrast vectors are automatically extended with one zero for this additional regressor. 
  
@@ -117,6 +163,8 @@ The following statistical options are available
 
 \item -inferencemode 
 \newline \newline Set if voxel-wise or cluster-wise p-values should be calculated for the permutation test, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = threshold free cluster enhancement (TFCE) (default 1)
+
+\newpage 
 
 \item -cdt 
 \newline \newline Cluster defining threshold for permutation based cluster inference (default 2.5). 
@@ -173,8 +221,6 @@ The following output options are available
 \item -saveepialignedt1          
 \newline \newline Save EPI volume aligned to the T1 volume (default no). 
 
-\newpage
-
 \item -saveepialignedmni         
 \newline \newline Save EPI volume aligned to the MNI volume (default no). 
 
@@ -192,6 +238,8 @@ The following output options are available
 
 \item -savesmoothed              
 \newline \newline Save smoothed fMRI volumes (default no). 
+
+\newpage
 
 \item -saveactivityepi           
 \newline \newline Save activity maps in EPI space \newline (in addition to MNI space, default no). 
@@ -222,6 +270,8 @@ The following output options are available
 
 \item -saveallpreprocessed       
 \newline \newline Save all preprocessed fMRI data  \newline (slice timing corrected, motion corrected, smoothed) (default no). 
+
+\newpage
 
 \item -saveunwhitenedresults     
 \newline \newline Save all statistical results without voxel-wise whitening (default no). 

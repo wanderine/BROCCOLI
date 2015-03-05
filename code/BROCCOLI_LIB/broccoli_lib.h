@@ -153,7 +153,7 @@ class BROCCOLI_LIB
 		void SetPermutationFileUsage(bool);
 		void SetDoAllPermutations(bool);
 		void SetRawRegressors(bool);
-
+		void SetCustomReferenceSlice(int);
 
 		// Smoothing
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
@@ -185,6 +185,9 @@ class BROCCOLI_LIB
 		void SetDsigma(float);
 		void SetDoSkullstrip(bool);
 		void SetDoSkullstripOriginal(bool);
+
+		// Slice timing
+		void SetCustomSliceTimes(float *times);
 
 		// EPI data
 		void SetEPIVoxelSizeX(float value);
@@ -436,6 +439,7 @@ class BROCCOLI_LIB
 		void SegmentEPIData();
 		void SegmentEPIData(cl_mem Volume);
 		void PerformSliceTimingCorrection();
+		void PerformSliceTimingCorrectionHost(float* h_Volumes);
 		void PerformMotionCorrection(cl_mem Volumes);
 		void PerformMotionCorrectionHost(float* h_Volumes);
 
@@ -537,6 +541,7 @@ class BROCCOLI_LIB
 		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
 
 		void FlipVolumesXYZTtoXYTZ(float* h_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void FlipVolumesXYTZtoXYZT(float* h_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
 		void CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
 
@@ -1017,6 +1022,7 @@ class BROCCOLI_LIB
 		double processing_times[20];
 
 		int SLICE_ORDER;
+		int SLICE_CUSTOM_REF;
 
 		// Image registration variables
 		int INTERPOLATION_MODE;
@@ -1114,6 +1120,7 @@ class BROCCOLI_LIB
 		// Slice timing correction pointers
 		float		*h_Slice_Timing_Corrections_Real, *h_Slice_Timing_Corrections_Imag;
 		float		*h_Slice_Timing_Corrected_fMRI_Volumes;
+		float		*h_Custom_Slice_Times;
 
 		// Image Registration pointers
 		cl_float2	*h_Quadrature_Filter_1_Linear_Registration, *h_Quadrature_Filter_2_Linear_Registration, *h_Quadrature_Filter_3_Linear_Registration;

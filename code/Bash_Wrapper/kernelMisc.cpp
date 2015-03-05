@@ -380,7 +380,7 @@ float InterpolateCubic(float p0, float p1, float p2, float p3, float delta)
 
 __kernel void SliceTimingCorrection(__global float* Corrected_Volumes, 
                                     __global const float* Volumes, 									 
-									__constant float* c_Slice_Differences, 									 
+									__private float delta, 									 
 									__private int DATA_W, 
 									__private int DATA_H, 
 									__private int DATA_D, 
@@ -388,29 +388,27 @@ __kernel void SliceTimingCorrection(__global float* Corrected_Volumes,
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
-	int z = get_global_id(2);
 
 	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
 
-	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+	if (x >= DATA_W || y >= DATA_H)
 		return;
 
-	float delta = c_Slice_Differences[z];
 	float t0, t1, t2, t3;
 
 	// Forward interpolation
 	if (delta > 0.0f)
 	{
-		t0 = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+		t0 = Volumes[Calculate3DIndex(x,y,0,DATA_W,DATA_H)];
 		t1 = t0;
-		t2 = Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
-		t3 = Volumes[Calculate4DIndex(x,y,z,2,DATA_W,DATA_H,DATA_D)];
+		t2 = Volumes[Calculate3DIndex(x,y,1,DATA_W,DATA_H)];
+		t3 = Volumes[Calculate3DIndex(x,y,2,DATA_W,DATA_H)];
 
 		// Loop over timepoints
 		for (int t = 0; t < DATA_T - 3; t++)
 		{
 			// Cubic interpolation in time
-			Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+			Corrected_Volumes[Calculate3DIndex(x,y,t,DATA_W,DATA_H)] = InterpolateCubic(t0,t1,t2,t3,delta); 
 		
 			// Shift old values backwards
 			t0 = t1;
@@ -418,38 +416,38 @@ __kernel void SliceTimingCorrection(__global float* Corrected_Volumes,
 			t2 = t3;
 
 			// Read one new value
-			t3 = Volumes[Calculate4DIndex(x,y,z,t+3,DATA_W,DATA_H,DATA_D)];
+			t3 = Volumes[Calculate3DIndex(x,y,t+3,DATA_W,DATA_H)];
 		}
 
 		int t = DATA_T - 3;	
-		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		Corrected_Volumes[Calculate3DIndex(x,y,t,DATA_W,DATA_H)] = InterpolateCubic(t0,t1,t2,t3,delta); 
 	
 		t = DATA_T - 2;
 		t0 = t1;
 		t1 = t2;
 		t2 = t3;	
-		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		Corrected_Volumes[Calculate3DIndex(x,y,t,DATA_W,DATA_H)] = InterpolateCubic(t0,t1,t2,t3,delta); 
 
 		t = DATA_T - 1;
 		t0 = t1;
 		t1 = t2;
-		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		Corrected_Volumes[Calculate3DIndex(x,y,t,DATA_W,DATA_H)] = InterpolateCubic(t0,t1,t2,t3,delta); 
 	}
 	// Backward interpolation
 	else
 	{
 		delta = 1.0f - (-delta);
 
-		t0 = Volumes[Calculate4DIndex(x,y,z,0,DATA_W,DATA_H,DATA_D)];
+		t0 = Volumes[Calculate3DIndex(x,y,0,DATA_W,DATA_H)];
 		t1 = t0;
 		t2 = t0;
-		t3 = Volumes[Calculate4DIndex(x,y,z,1,DATA_W,DATA_H,DATA_D)];
+		t3 = Volumes[Calculate3DIndex(x,y,1,DATA_W,DATA_H)];
 
 		// Loop over timepoints
 		for (int t = 0; t < DATA_T - 2; t++)
 		{
 			// Cubic interpolation in time
-			Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+			Corrected_Volumes[Calculate3DIndex(x,y,t,DATA_W,DATA_H)] = InterpolateCubic(t0,t1,t2,t3,delta); 
 		
 			// Shift old values backwards
 			t0 = t1;
@@ -457,17 +455,17 @@ __kernel void SliceTimingCorrection(__global float* Corrected_Volumes,
 			t2 = t3;
 
 			// Read one new value
-			t3 = Volumes[Calculate4DIndex(x,y,z,t+2,DATA_W,DATA_H,DATA_D)];
+			t3 = Volumes[Calculate3DIndex(x,y,t+2,DATA_W,DATA_H)];
 		}
 
 		int t = DATA_T - 2;	
-		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		Corrected_Volumes[Calculate3DIndex(x,y,t,DATA_W,DATA_H)] = InterpolateCubic(t0,t1,t2,t3,delta); 
 	
 		t = DATA_T - 1;
 		t0 = t1;
 		t1 = t2;
 		t2 = t3;	
-		Corrected_Volumes[Calculate4DIndex(x,y,z,t,DATA_W,DATA_H,DATA_D)] = InterpolateCubic(t0,t1,t2,t3,delta); 
+		Corrected_Volumes[Calculate3DIndex(x,y,t,DATA_W,DATA_H)] = InterpolateCubic(t0,t1,t2,t3,delta); 
 	}
 }
 

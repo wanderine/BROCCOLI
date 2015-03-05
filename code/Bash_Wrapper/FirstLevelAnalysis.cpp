@@ -361,6 +361,7 @@ int main(int argc, char **argv)
     float           *h_Slice_Timing_Corrected_fMRI_Volumes;
     float           *h_Motion_Corrected_fMRI_Volumes;
     float           *h_Smoothed_fMRI_Volumes;    
+	float			h_Custom_Slice_Times[1000];
     
     float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressor, *h_LowpassFiltered_Regressor;
     unsigned short int        *h_Permutation_Matrix;
@@ -436,6 +437,8 @@ int main(int argc, char **argv)
     
 	int				SLICE_ORDER = UNDEFINED;
 	bool			DEFINED_SLICE_PATTERN = false;
+	bool			DEFINED_SLICE_CUSTOM_REF = false;
+	int				SLICE_CUSTOM_REF = 0;
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
 
 	bool			FOUND_REGRESSORS = false;
@@ -458,6 +461,7 @@ int main(int argc, char **argv)
     int             NUMBER_OF_MCMC_ITERATIONS = 1000;
 	bool			MASK = false;
 	const char*		MASK_NAME;
+	const char*		SLICE_TIMINGS_FILE;
     float			SIGNIFICANCE_LEVEL = 0.05f;
 	int				TEST_STATISTICS = 0;
     
@@ -517,6 +521,8 @@ int main(int argc, char **argv)
         printf(" -slicepattern              The sampling pattern used during scanning (overrides pattern provided in NIFTI file)\n");
 		printf("                            0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), 2 = interleaved 1-N, 3 = interleaved N-1 \n");
 		printf("                            (no slice timing correction is performed if pattern in NIFTI file is unknown and no pattern is provided) \n");        
+        printf(" -slicecustom               Provide a text file with the slice times, one value per slice, in milli seconds (0 - TR) (overrides pattern provided in NIFTI file)\n");
+		printf(" -slicecustomref            Reference slice for the custom slice times (0 - (#slices-1)) (default #slices/2)\n");
         printf(" -iterationsmc              Number of iterations for motion correction (default 5) \n");
         printf(" -smoothing                 Amount of smoothing to apply to the fMRI data (default 6.0 mm) \n\n");
         
@@ -846,6 +852,43 @@ int main(int argc, char **argv)
             }
             i += 2;
 			DEFINED_SLICE_PATTERN = true;
+        }
+		else if (strcmp(input,"-slicecustom") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -slicecustom !\n");
+                return EXIT_FAILURE;
+			}
+
+			SLICE_ORDER = CUSTOM;
+			SLICE_TIMINGS_FILE = argv[i+1];
+
+            i += 2;
+			DEFINED_SLICE_PATTERN = true;
+        }
+        else if (strcmp(input,"-slicecustomref") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -slicecustomref !\n");
+                return EXIT_FAILURE;
+			}
+
+            SLICE_CUSTOM_REF = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Reference slice must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            else if (SLICE_CUSTOM_REF < 0)
+            {
+                printf("Reference slice must be >= 0 !\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+			DEFINED_SLICE_CUSTOM_REF = true;
         }
         else if (strcmp(input,"-iterationsmc") == 0)
         {
@@ -1186,6 +1229,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
+
+
     //------------------------------------------
 
     // Read number of regressors from design matrix file
@@ -1376,6 +1421,8 @@ int main(int argc, char **argv)
 		printf("It took %f seconds to read the nifti file(s)\n",(float)(endTime - startTime));
 	}
 
+	// -----------------------    
+    
     // Get fMRI data dimensions
     EPI_DATA_W = inputfMRI->nx;
     EPI_DATA_H = inputfMRI->ny;
@@ -1390,59 +1437,146 @@ int main(int argc, char **argv)
     // Get fMRI repetition time
     TR = inputfMRI->dt;
 
+	if (DEFINED_SLICE_CUSTOM_REF)
+	{
+	    if (SLICE_CUSTOM_REF >= EPI_DATA_D) 
+	    {
+	    	printf("Reference slice must be < number of slices!\n");
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+	    }
+	}
+	else
+	{
+		SLICE_CUSTOM_REF = (int)round((float)EPI_DATA_D/2.0f);
+	}
+
 	// Get fMRI slice order
 	int SLICE_ORDER_NIFTI = (int)inputfMRI->slice_code;
 
 	std::string SLICE_ORDER_STRING;
-	if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_INC)
-	{
-		SLICE_ORDER_STRING = std::string("Seqential increasing");
-	}
-	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_DEC)
-	{
-		SLICE_ORDER_STRING = std::string("Seqential decreasing");
-	}
-	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC)
-	{
-		SLICE_ORDER_STRING = std::string("Alternating increasing");
-	}
-	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC)
-	{
-		SLICE_ORDER_STRING = std::string("Alternating decreasing");
-	}
-	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC2)
-	{
-		SLICE_ORDER_STRING = std::string("Alternating increasing 2, not yet supported");
-	}
-	else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC2)
-	{
-		SLICE_ORDER_STRING = std::string("Alternating decreasing 2, not yet supported");
-	}
-	else
-	{
-		SLICE_ORDER_STRING = std::string("Unknown, need to specify with option -slicepattern");
-	}
 
 	// No slice pattern given by user, so use the one from the nifti file (if not unknown)
-	if ( !DEFINED_SLICE_PATTERN && (SLICE_ORDER_NIFTI != NIFTI_SLICE_UNKNOWN) )
+	if (!DEFINED_SLICE_PATTERN)
 	{
 		if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_INC)
 		{
+			SLICE_ORDER_STRING = std::string("Seqential increasing");
 			SLICE_ORDER = UP;
 		}
 		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_SEQ_DEC)
 		{
+			SLICE_ORDER_STRING = std::string("Seqential decreasing");
 			SLICE_ORDER = DOWN;
 		}
 		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC)
 		{
+			SLICE_ORDER_STRING = std::string("Alternating increasing");
 			SLICE_ORDER = UP_INTERLEAVED;
-		}		
+		}
 		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC)
 		{
+			SLICE_ORDER_STRING = std::string("Alternating decreasing");
 			SLICE_ORDER = DOWN_INTERLEAVED;
 		}
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_INC2)
+		{
+			SLICE_ORDER_STRING = std::string("Alternating increasing 2, not yet supported. Use -slicecustom");
+			SLICE_ORDER = UNDEFINED;
+		}
+		else if (SLICE_ORDER_NIFTI == NIFTI_SLICE_ALT_DEC2)
+		{
+			SLICE_ORDER_STRING = std::string("Alternating decreasing 2, not yet supported. Use -slicecustom");
+			SLICE_ORDER = UNDEFINED;
+		}
+		else
+		{
+			SLICE_ORDER_STRING = std::string("Unknown, need to specify with option -slicepattern or -slicecustom");
+			SLICE_ORDER = UNDEFINED;
+		}
 	}
+	// Slice pattern defined by user
+	else
+	{
+		if (SLICE_ORDER == UP)
+		{
+			SLICE_ORDER_STRING = std::string("Seqential increasing");
+		}
+		else if (SLICE_ORDER == DOWN)
+		{
+			SLICE_ORDER_STRING = std::string("Seqential decreasing");
+		}
+		else if (SLICE_ORDER == UP_INTERLEAVED)
+		{
+			SLICE_ORDER_STRING = std::string("Alternating increasing");
+		}
+		else if (SLICE_ORDER == DOWN_INTERLEAVED)
+		{
+			SLICE_ORDER_STRING = std::string("Alternating decreasing");
+		}
+		else if (SLICE_ORDER == CUSTOM)
+		{
+			SLICE_ORDER_STRING = std::string("Custom slice order defined by file");
+		}
+	}
+
+    //------------------------------------------	
+	// Read slice timing information from text file
+	
+	if (SLICE_ORDER == CUSTOM)
+	{		
+		std::ifstream slicetimes;
+		slicetimes.open(SLICE_TIMINGS_FILE);
+
+		if (!slicetimes.good())    
+		{
+			slicetimes.close();
+	        printf("Unable to open slice timing file %s. Aborting! \n",SLICE_TIMINGS_FILE);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+		}
+
+		// Loop over slices
+	    for (int slice = 0; slice < EPI_DATA_D; slice++)
+	    {
+	        float time;
+    	        
+	        // Read onset, duration and value for current event
+			if (! (slicetimes >> time) )
+			{
+	            slicetimes.close();
+	            printf("Unable to read the slice time for slice %i in slice timing file %s, aborting! Check the slice timing file. \n",slice,SLICE_TIMINGS_FILE);
+				FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	            return EXIT_FAILURE;
+			}
+
+			if (time > (TR*1000.0f))
+			{
+	            slicetimes.close();
+	            printf("Slice time cannot be larger than the TR! Check the time for slice %i in slice timing file %s ! \n",slice,SLICE_TIMINGS_FILE);
+				FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	            return EXIT_FAILURE;
+			}
+
+			if (time < 0.0f)
+			{
+	            slicetimes.close();
+	            printf("Slice time cannot be negative! Check the time for slice %i in slice timing file %s ! \n",slice,SLICE_TIMINGS_FILE);
+				FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	            return EXIT_FAILURE;
+			}
+	
+			h_Custom_Slice_Times[slice] = time/1000.0f;		
+
+			if (DEBUG)
+			{
+				printf("Slice time for slice %i is %f milli seconds \n",slice,time);
+			}
+		}
+		slicetimes.close();
+	}
+
+    //------------------------------------------	
 
 	// Get T1 data dimensions
     T1_DATA_W = inputT1->nx;
@@ -2373,6 +2507,8 @@ int main(int argc, char **argv)
         BROCCOLI.SetEPITimepoints(EPI_DATA_T);     
         BROCCOLI.SetEPITR(TR);  
         BROCCOLI.SetEPISliceOrder(SLICE_ORDER); 
+		BROCCOLI.SetCustomSliceTimes(h_Custom_Slice_Times);
+		BROCCOLI.SetCustomReferenceSlice(SLICE_CUSTOM_REF);
 
         BROCCOLI.SetT1Width(T1_DATA_W);
         BROCCOLI.SetT1Height(T1_DATA_H);
