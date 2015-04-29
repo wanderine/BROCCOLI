@@ -542,8 +542,8 @@ class BROCCOLI_LIB
 
 		void FlipVolumesXYZTtoXYTZ(float* h_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 		void FlipVolumesXYTZtoXYZT(float* h_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
-		void CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
-		void CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T);
+		void CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
 
 		void CalculateGlobalMeans(float* h_Volumes);		
 

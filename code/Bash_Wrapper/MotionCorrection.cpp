@@ -461,7 +461,11 @@ int main(int argc, char ** argv)
     
 	startTime = GetWallTime();
 
-	AllocateMemory(h_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INPUT_DATA");
+	// If the data is in float format, we can just copy the pointer
+	if ( inputData->datatype != DT_FLOAT )
+	{
+		AllocateMemory(h_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INPUT_DATA");
+	}
 	AllocateMemory(h_Motion_Corrected_fMRI_Volumes, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MOTION_CORRECTED_DATA");
 	AllocateMemory(h_Quadrature_Filter_1_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_REAL");    
   	AllocateMemory(h_Quadrature_Filter_1_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_IMAG");    
@@ -521,14 +525,21 @@ int main(int argc, char ** argv)
             h_fMRI_Volumes[i] = (float)p[i];
         }
     }
+	// Correct data type, just copy the pointer
 	else if ( inputData->datatype == DT_FLOAT )
     {
-        float *p = (float*)inputData->data;
+		h_fMRI_Volumes = (float*)inputData->data;
+
+		// Save the pointer in the pointer list
+		allMemoryPointers[numberOfMemoryPointers] = (void*)h_fMRI_Volumes;
+        numberOfMemoryPointers++;
+
+        //float *p = (float*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
-        {
-            h_fMRI_Volumes[i] = p[i];
-        }
+        //for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        //{
+        //    h_fMRI_Volumes[i] = p[i];
+        //}
     }
     else
     {
@@ -538,6 +549,19 @@ int main(int argc, char ** argv)
         return EXIT_FAILURE;
     }
     
+	// Free input fMRI data, it has been converted to floats
+	if ( inputData->datatype != DT_FLOAT )
+	{		
+		free(inputData->data);
+		inputData->data = NULL;
+	}
+	// Pointer has been copied to h_fMRI_Volumes and pointer list, so set the input data pointer to NULL
+	else
+	{		
+		inputData->data = NULL;
+	}
+
+
 	endTime = GetWallTime();
 
 	if (VERBOS)

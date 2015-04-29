@@ -7667,6 +7667,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	if ((WRAPPER == BASH) && PRINT)
 	{
 		printf("Performing motion correction");
+		if (!VERBOS)
+		{
+			printf("\n");	
+		}
 	}
 
 	PrintMemoryStatus("Before motion correction");
@@ -7885,6 +7889,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	}
 	else if (BAYESIAN)
 	{
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing statistical analysis\n");
+		}
+
 		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + 		NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 		c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -8829,13 +8838,13 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionHost(float* h_Volumes)
 	}
 
 	// Flip data from x,y,z,t to x,y,t,z, to be able to copy one slice at a time
-	FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	//FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 	// Loop over slices
 	for (int z = 0; z < EPI_DATA_D; z++)
 	{
 		// Copy a new slice of data to device, for all time points
-		CopyCurrentfMRISliceToDevice(d_Temp_Volumes, h_Volumes, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+		CopyCurrentfMRISliceToDevice(d_Temp_Volumes, h_Volumes, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 				
 		clSetKernelArg(SliceTimingCorrectionKernel, 0, sizeof(cl_mem), &d_Temp_Volumes_Corrected);
 		clSetKernelArg(SliceTimingCorrectionKernel, 1, sizeof(cl_mem), &d_Temp_Volumes);
@@ -8849,11 +8858,11 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionHost(float* h_Volumes)
 		clFinish(commandQueue);
 
 		// Copy slice timing corrected slice from device, for all time points
-		CopyCurrentfMRISliceToHost(h_Volumes, d_Temp_Volumes_Corrected, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);		
+		CopyCurrentfMRISliceToHost(h_Volumes, d_Temp_Volumes_Corrected, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);		
 	}
 
 	// Flip data back from x,y,t,z to x,y,z,t
-	FlipVolumesXYTZtoXYZT(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	//FlipVolumesXYTZtoXYZT(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 	clReleaseMemObject(d_Temp_Volumes);
 	clReleaseMemObject(d_Temp_Volumes_Corrected);
@@ -8963,13 +8972,13 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 	}
 
 	// Flip data from x,y,z,t to x,y,t,z, to be able to copy one slice at a time
-	FlipVolumesXYZTtoXYTZ(h_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	//FlipVolumesXYZTtoXYTZ(h_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 	// Loop over slices
 	for (int z = 0; z < EPI_DATA_D; z++)
 	{
 		// Copy a new slice of data to device, for all time points
-		CopyCurrentfMRISliceToDevice(d_Temp_Volumes, h_fMRI_Volumes, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+		CopyCurrentfMRISliceToDevice(d_Temp_Volumes, h_fMRI_Volumes, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 				
 		clSetKernelArg(SliceTimingCorrectionKernel, 0, sizeof(cl_mem), &d_Temp_Volumes_Corrected);
 		clSetKernelArg(SliceTimingCorrectionKernel, 1, sizeof(cl_mem), &d_Temp_Volumes);
@@ -8983,11 +8992,11 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 		clFinish(commandQueue);
 
 		// Copy slice timing corrected slice from device, for all time points
-		CopyCurrentfMRISliceToHost(h_fMRI_Volumes, d_Temp_Volumes_Corrected, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);		
+		CopyCurrentfMRISliceToHost(h_fMRI_Volumes, d_Temp_Volumes_Corrected, z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);		
 	}
 
 	// Flip data back from x,y,t,z to x,y,z,t
-	FlipVolumesXYTZtoXYZT(h_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	//FlipVolumesXYTZtoXYZT(h_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 	clReleaseMemObject(d_Temp_Volumes);
 	clReleaseMemObject(d_Temp_Volumes_Corrected);
@@ -9072,7 +9081,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionHost(float* h_Volumes)
 	h_Motion_Parameters[4 * EPI_DATA_T] = 0.0f;
 	h_Motion_Parameters[5 * EPI_DATA_T] = 0.0f;
 
-	if (WRAPPER == BASH)
+	if ((WRAPPER == BASH) && VERBOS)
 	{
 		printf(", volume");
 	}
@@ -9106,9 +9115,10 @@ void BROCCOLI_LIB::PerformMotionCorrectionHost(float* h_Volumes)
 		h_Motion_Parameters[t + 4 * EPI_DATA_T] = h_Rotations[1];
 		h_Motion_Parameters[t + 5 * EPI_DATA_T] = h_Rotations[2];
 
-		if (WRAPPER == BASH)
+		if ((WRAPPER == BASH) && VERBOS)
 		{
 			printf(", %i",t);
+			fflush(stdout);
 		}
 	}
 
@@ -12003,16 +12013,50 @@ void BROCCOLI_LIB::FlipVolumesXYTZtoXYZT(float* h_Volumes, int DATA_W, int DATA_
 }
 
 
-void BROCCOLI_LIB::CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T)
+void BROCCOLI_LIB::CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
-	// Copy the current slice for all time points, assumes data is stored as x, y, t, z
-	clEnqueueWriteBuffer(commandQueue, d_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_T * sizeof(float), &h_Volumes[slice * DATA_W * DATA_H * DATA_T], 0, NULL, NULL);
+	// Allocate temporary space, for storing slice as x, y, t
+	float* h_Temp_Data = (float*)malloc(DATA_W * DATA_H * DATA_T * sizeof(float));
+
+	// Copy data to temporary space
+    for (int t = 0; t < DATA_T ; t++)
+    {
+         for (int y = 0; y < DATA_H ; y++)
+         {
+	        for (int x = 0; x < DATA_W ; x++)
+	        {
+                h_Temp_Data[x + y * DATA_W + t * DATA_W * DATA_H] = h_Volumes[x + y * DATA_W + slice * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D];
+            }
+        }
+    }
+
+	// Copy the current slice for all time points
+	clEnqueueWriteBuffer(commandQueue, d_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_T * sizeof(float), h_Temp_Data, 0, NULL, NULL);
+
+	free(h_Temp_Data);
 }
 
-void BROCCOLI_LIB::CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_T)
+void BROCCOLI_LIB::CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
-	// Copy the current slice for all time points, assumes data is stored as x, y, t, z
-	clEnqueueReadBuffer(commandQueue, d_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_T * sizeof(float), &h_Volumes[slice * DATA_W * DATA_H * DATA_T], 0, NULL, NULL);
+	// Allocate temporary space, for storing slice as x, y, t
+	float* h_Temp_Data = (float*)malloc(DATA_W * DATA_H * DATA_T * sizeof(float));
+
+	// Copy the current slice for all time points
+	clEnqueueReadBuffer(commandQueue, d_Volumes, CL_TRUE, 0, DATA_W * DATA_H * DATA_T * sizeof(float), h_Temp_Data, 0, NULL, NULL);
+
+	// Copy data to correct location in 4D array
+    for (int t = 0; t < DATA_T ; t++)
+    {
+         for (int y = 0; y < DATA_H ; y++)
+         {
+	        for (int x = 0; x < DATA_W ; x++)
+	        {
+                h_Volumes[x + y * DATA_W + slice * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D] = h_Temp_Data[x + y * DATA_W + t * DATA_W * DATA_H];
+            }
+        }
+    }
+
+	free(h_Temp_Data);
 }
 
 // Calculates a statistical map for first level analysis, using a Cochrane-Orcutt procedure
@@ -12046,7 +12090,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 	SetMemory(d_AR4_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
 	
 	// Flip the fMRI data from x,y,z,t to x,y,t,z, to be able to copy all time points for one slice
-	FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	//FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 	h_Whitened_fMRI_Volumes = (float*)malloc(EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
 	memcpy(h_Whitened_fMRI_Volumes, h_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));	
 
@@ -12071,7 +12115,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 			WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
 
 			// Copy fMRI data to the device, for the current slice
-			CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+			CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 			// Calculate beta values, using whitened data and the whitened voxel-specific models
 			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0,  sizeof(cl_mem), &d_Beta_Volumes);
@@ -12091,7 +12135,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 			clFinish(commandQueue);
 
 			// Copy fMRI data to the device, for the current slice
-			CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+			CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 			// Calculate residuals, using original data and the original model
 			clSetKernelArg(CalculateGLMResidualsKernel, 0, sizeof(cl_mem), &d_Residuals);
@@ -12136,7 +12180,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 		for (int slice = 0; slice < EPI_DATA_D; slice++)
 		{
 			// Copy fMRI data to the device, for the current slice
-			CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+			CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 			// Apply whitening to data
 			clSetKernelArg(ApplyWhiteningAR4Kernel, 0,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
@@ -12154,7 +12198,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 			runKernelErrorApplyWhiteningAR4 = clEnqueueNDRangeKernel(commandQueue, ApplyWhiteningAR4Kernel, 3, NULL, globalWorkSizeApplyWhiteningAR4, localWorkSizeApplyWhiteningAR4, 0, NULL, NULL);
 
 			// Copy fMRI data to the host, for the current slice
-			CopyCurrentfMRISliceToHost(h_Whitened_fMRI_Volumes, d_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+			CopyCurrentfMRISliceToHost(h_Whitened_fMRI_Volumes, d_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 		}
 
 		// First four timepoints are now invalid
@@ -12175,7 +12219,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 		WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
 
 		// Copy fMRI data to the device, for the current slice
-		CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+		CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 		// Calculate beta values, using whitened data and the whitened voxel-specific models
 		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0,  sizeof(cl_mem), &d_Beta_Volumes);
@@ -12509,7 +12553,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volume
 	free(h_Seeds);
 
 	// Flip the fMRI data from x,y,z,t to x,y,t,z, to be able to copy all time points for one slice
-	FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	//FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 	// Loop over slices, to save memory
 	for (int slice = 0; slice < EPI_DATA_D; slice++)
@@ -12520,7 +12564,8 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volume
 		}
 
 		// Copy fMRI data to the device, for the current slice
-		CopyCurrentfMRISliceToDevice(d_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
+		CopyCurrentfMRISliceToDevice(d_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		//CopyCurrentfMRISliceToDevice(d_Regressed_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
 
 		// Remove linear fit of detrending regressors and motion regressors
 		PerformDetrendingAndMotionRegression(d_Regressed_Volumes, d_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);

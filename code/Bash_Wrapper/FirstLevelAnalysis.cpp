@@ -1724,7 +1724,11 @@ int main(int argc, char **argv)
 
 	startTime = GetWallTime();
 
-	AllocateMemory(h_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "fMRI_VOLUMES");
+	// If the data is in float format, we can just copy the pointer
+	if ( inputfMRI->datatype != DT_FLOAT )
+	{
+		AllocateMemory(h_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "fMRI_VOLUMES");
+	}
 	AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "T1_VOLUME");
 	AllocateMemory(h_MNI_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_VOLUME");
 	AllocateMemory(h_MNI_Brain_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_BRAIN_VOLUME");
@@ -2198,14 +2202,21 @@ int main(int argc, char **argv)
             h_fMRI_Volumes[i] = (float)p[i];
         }
     }
+	// Correct data type, just copy the pointer
     else if ( inputfMRI->datatype == DT_FLOAT )
-    {
-        float *p = (float*)inputfMRI->data;
+    {		
+		h_fMRI_Volumes = (float*)inputfMRI->data;
+
+		// Save the pointer in the pointer list
+		allMemoryPointers[numberOfMemoryPointers] = (void*)h_fMRI_Volumes;
+        numberOfMemoryPointers++;
+
+        //float *p = (float*)inputfMRI->data;
     
-        for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
-        {
-            h_fMRI_Volumes[i] = p[i];
-        }
+        //for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
+        //{
+        //    h_fMRI_Volumes[i] = p[i];
+        //}
     }
     else
     {
@@ -2214,6 +2225,18 @@ int main(int argc, char **argv)
 		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
         return EXIT_FAILURE;
     }
+	
+	// Free input fMRI data, it has been converted to floats
+	if ( inputfMRI->datatype != DT_FLOAT )
+	{		
+		free(inputfMRI->data);
+		inputfMRI->data = NULL;
+	}
+	// Pointer has been copied to h_fMRI_Volumes and pointer list, so set the input data pointer to NULL
+	else
+	{		
+		inputfMRI->data = NULL;
+	}
 
 	// Convert T1 volume to floats
     if ( inputT1->datatype == DT_SIGNED_SHORT )
