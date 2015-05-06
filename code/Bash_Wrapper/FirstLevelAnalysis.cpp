@@ -961,6 +961,9 @@ int main(int argc, char **argv)
         {
             PERMUTE = true;
             i += 1;
+
+			printf("Permutation testing is currently turned off!\n");
+            return EXIT_FAILURE;
         }
         else if (strcmp(input,"-permutations") == 0)
         {
@@ -1005,6 +1008,12 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             i += 2;
+
+			if (INFERENCE_MODE == 3)
+			{
+				printf("TFCE is currently turned off!\n");
+    	        return EXIT_FAILURE;
+			}
         }
         else if (strcmp(input,"-cdt") == 0)
         {

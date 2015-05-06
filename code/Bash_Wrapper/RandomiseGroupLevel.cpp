@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 	    printf(" -groupmean                 Test for group mean, using sign flipping (design and contrast not needed) \n");
         printf(" -mask                      A mask that defines which voxels to permute (default none) \n");
         printf(" -permutations              Number of permutations to use (default 10,000) \n");
-        printf(" -teststatistics            Test statistics to use, 0 = GLM t-test, 1 = GLM F-test, 2 = CCA, 3 = Searchlight (default 0) \n");
+        //printf(" -teststatistics            Test statistics to use, 0 = GLM t-test, 1 = GLM F-test, 2 = CCA, 3 = Searchlight (default 0) \n");
         printf(" -inferencemode             Inference mode to use, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = TFCE (default 1) \n");
         printf(" -cdt                       Cluster defining threshold for cluster inference (default 2.5) \n");
         printf(" -significance              The significance level to calculate the threshold for (default 0.05) \n");		
@@ -507,6 +507,12 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             i += 2;
+
+			if (INFERENCE_MODE == 3)
+			{
+				printf("TFCE is currently turned off!\n");
+    	        return EXIT_FAILURE;
+			}
         }
         else if (strcmp(input,"-cdt") == 0)
         {
