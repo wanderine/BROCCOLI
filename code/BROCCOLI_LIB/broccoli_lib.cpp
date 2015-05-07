@@ -7715,7 +7715,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	PrintMemoryStatus("Before motion correction");
 
-	//PerformMotionCorrectionHost(h_fMRI_Volumes);
+	PerformMotionCorrectionHost(h_fMRI_Volumes);
 
 	if ((WRAPPER == BASH) && VERBOS)
 	{
