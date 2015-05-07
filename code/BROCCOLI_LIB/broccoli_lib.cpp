@@ -7945,6 +7945,12 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 					// Run the actual permutation test
 					ApplyPermutationTestFirstLevel(h_fMRI_Volumes); 
 	
+					// Free temporary memory
+					clReleaseMemObject(d_Temp_fMRI_Volumes_1);
+					clReleaseMemObject(d_Temp_fMRI_Volumes_2);
+					allocatedMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+					memoryDeallocations += 2;
+
 					// Calculate activity map without Cochrane-Orcutt
 					CalculateStatisticalMapsGLMTTestFirstLevelSlices(h_fMRI_Volumes,0);
 	
@@ -7960,16 +7966,13 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 					// Transform p-values to MNI space
 					TransformPValuesToMNI();
 	
-					// Free temporary memory
-					clReleaseMemObject(d_Temp_fMRI_Volumes_1);
-					clReleaseMemObject(d_Temp_fMRI_Volumes_2);
+
 					clReleaseMemObject(d_Cluster_Indices);
 					clReleaseMemObject(d_Cluster_Sizes);
 					clReleaseMemObject(d_TFCE_Values);
 					clReleaseMemObject(d_P_Values);
 
-					memoryDeallocations += 6;
-					allocatedMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+					memoryDeallocations += 4;					
 					allocatedMemory -= 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
 					allocatedMemory -= 1 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(int);
 	
@@ -13611,6 +13614,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(float* h_fMRI_Volumes)
 		if ((WRAPPER == BASH) && PRINT)
 		{
 			printf("Contrast %i, permutation, ", c+1);
+			fflush(stdout);
 		}
 
 		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
