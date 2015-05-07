@@ -47,6 +47,7 @@ int Calculate4DIndex(int x, int y, int z, int t, int DATA_W, int DATA_H, int DAT
 
 // General function for calculating beta weights, all voxels use the same design matrix, not optimized for speed
 
+
 __kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes, 
                                       __global const float* Volumes, 
 									  __global const float* Mask, 
@@ -56,8 +57,87 @@ __kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes,
 									  __private int DATA_H, 
 									  __private int DATA_D, 
 									  __private int NUMBER_OF_VOLUMES, 
-									  __private int NUMBER_OF_REGRESSORS,
-									  __private int slice)
+									  __private int NUMBER_OF_REGRESSORS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	int3 tIdx = {get_local_id(0), get_local_id(1), get_local_id(2)};
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+		return;
+	}
+
+	int t = 0;
+	float beta[25];
+	
+	// Reset beta weights
+	beta[0] = 0.0f;
+	beta[1] = 0.0f;
+	beta[2] = 0.0f;
+	beta[3] = 0.0f;
+	beta[4] = 0.0f;
+	beta[5] = 0.0f;
+	beta[6] = 0.0f;
+	beta[7] = 0.0f;
+	beta[8] = 0.0f;
+	beta[9] = 0.0f;
+	beta[10] = 0.0f;
+	beta[11] = 0.0f;
+	beta[12] = 0.0f;
+	beta[13] = 0.0f;
+	beta[14] = 0.0f;
+	beta[15] = 0.0f;
+	beta[16] = 0.0f;
+	beta[17] = 0.0f;
+	beta[18] = 0.0f;
+	beta[19] = 0.0f;
+	beta[20] = 0.0f;
+	beta[21] = 0.0f;
+	beta[22] = 0.0f;
+	beta[23] = 0.0f;
+	beta[24] = 0.0f;
+
+	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+	// Loop over volumes
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] * c_Censored_Timepoints[v];
+
+		// Loop over regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{
+			beta[r] += temp * c_xtxxt_GLM[NUMBER_OF_VOLUMES * r + v];
+		}
+	}
+
+	// Save beta values
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)] = beta[r];
+	}
+}
+
+__kernel void CalculateBetaWeightsGLMSlice(__global float* Beta_Volumes, 
+                                      	   __global const float* Volumes, 
+									       __global const float* Mask, 
+									       __constant float* c_xtxxt_GLM, 
+									       __constant float* c_Censored_Timepoints,
+									       __private int DATA_W, 
+									       __private int DATA_H, 
+									       __private int DATA_D, 
+									       __private int NUMBER_OF_VOLUMES, 
+									       __private int NUMBER_OF_REGRESSORS,
+									       __private int slice)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -111,7 +191,6 @@ __kernel void CalculateBetaWeightsGLM(__global float* Beta_Volumes,
 	// Loop over volumes
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		//float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] * c_Censored_Timepoints[v];
 		float temp = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] * c_Censored_Timepoints[v];
 
 		// Loop over regressors
@@ -4072,7 +4151,7 @@ __kernel void TransformData(__global float* Transformed_Volumes,
 
 
 
-// Removes a linear fit estimated with CalculateGLMBetaWeights
+// Removes a linear fit estimated with CalculateGLMBetaWeights
 __kernel void RemoveLinearFit(__global float* Residual_Volumes, 
                               __global const float* Volumes, 
 							  __global const float* Beta_Volumes, 
@@ -4082,8 +4161,58 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes,
 							  __private int DATA_H, 
 							  __private int DATA_D, 
 							  __private int NUMBER_OF_VOLUMES, 
-							  __private int NUMBER_OF_REGRESSORS,
-							  __private int slice)
+							  __private int NUMBER_OF_REGRESSORS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	if ( Mask[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] != 1.0f )
+	{
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
+		}
+
+		return;
+	}
+	
+	float eps;
+	float beta[10];
+
+	// Load beta values into regressors
+    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{ 
+		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,z,r,DATA_W,DATA_H,DATA_D)];
+	}
+
+	// Calculate the residual
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		{ 			
+			eps -= beta[r] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
+		}
+		Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;		
+	}
+}
+
+// Removes a linear fit estimated with CalculateGLMBetaWeights, for one slice
+__kernel void RemoveLinearFitSlice(__global float* Residual_Volumes, 
+		                           __global const float* Volumes, 
+								   __global const float* Beta_Volumes, 
+							  	   __global const float* Mask, 
+							  	   __constant float *c_X_Detrend, 
+							  	   __private int DATA_W, 
+							  	   __private int DATA_H, 
+							  	   __private int DATA_D, 
+							  	   __private int NUMBER_OF_VOLUMES, 
+							  	   __private int NUMBER_OF_REGRESSORS,
+							  	   __private int slice)
 {
 	int x = get_global_id(0);
 	int y = get_global_id(1);
@@ -4096,7 +4225,6 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes,
 	{
 		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 		{
-			//Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = 0.0f;
 			Residual_Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = 0.0f;
 		}
 
@@ -4115,13 +4243,11 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes,
 	// Calculate the residual
 	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 	{
-		//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
 		eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{ 			
 			eps -= beta[r] * c_X_Detrend[NUMBER_OF_VOLUMES * r + v];
 		}
-		//Residual_Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
 		Residual_Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = eps;
 	}
 }

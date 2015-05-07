@@ -459,7 +459,7 @@ class BROCCOLI_LIB
 		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 
-		void ApplyPermutationTestFirstLevel(cl_mem Volumes);
+		void ApplyPermutationTestFirstLevel(float* h_fMRI_Volumes);
 		void ApplyPermutationTestSecondLevel();
 
 		// Permutation first level
@@ -652,6 +652,7 @@ class BROCCOLI_LIB
 	
 
 		cl_ulong localMemorySize;
+		cl_ulong globalMemorySize;
 		size_t maxThreadsPerBlock;
 		size_t maxThreadsPerDimension[3];
 
@@ -729,14 +730,14 @@ class BROCCOLI_LIB
 		cl_kernel AddLinearAndNonLinearDisplacementKernel;
 
 		// Statistical kernels
-		cl_kernel CalculateBetaWeightsGLMKernel, CalculateBetaWeightsGLMFirstLevelKernel;
+		cl_kernel CalculateBetaWeightsGLMKernel, CalculateBetaWeightsGLMSliceKernel, CalculateBetaWeightsGLMFirstLevelKernel;
 		cl_kernel CalculateGLMResidualsKernel;
 		cl_kernel CalculateStatisticalMapsGLMTTestFirstLevelKernel, CalculateStatisticalMapsGLMFTestFirstLevelKernel;
 		cl_kernel CalculateStatisticalMapsGLMTTestKernel, CalculateStatisticalMapsGLMFTestKernel, CalculateStatisticalMapsGLMBayesianKernel;
 		cl_kernel CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel,CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
 		cl_kernel CalculateStatisticalMapsMeanSecondLevelPermutationKernel, CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel,CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-		cl_kernel RemoveLinearFitKernel;
-		cl_kernel EstimateAR4ModelsKernel, ApplyWhiteningAR4Kernel, GeneratePermutedVolumesFirstLevelKernel;
+		cl_kernel RemoveLinearFitKernel, RemoveLinearFitSliceKernel;
+		cl_kernel EstimateAR4ModelsKernel, EstimateAR4ModelsSliceKernel, ApplyWhiteningAR4Kernel, ApplyWhiteningAR4SliceKernel, GeneratePermutedVolumesFirstLevelKernel;
 		cl_kernel CalculatePermutationPValuesVoxelLevelInferenceKernel, CalculatePermutationPValuesClusterLevelInferenceKernel;
 
 		// Create kernel errors
@@ -788,15 +789,15 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorAddLinearAndNonLinearDisplacement;
 
 		// Statistical kernels
-		cl_int createKernelErrorCalculateBetaWeightsGLM,  createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+		cl_int createKernelErrorCalculateBetaWeightsGLM, createKernelErrorCalculateBetaWeightsGLMSlice,  createKernelErrorCalculateBetaWeightsGLMFirstLevel;
 		cl_int createKernelErrorCalculateGLMResiduals;
 		cl_int createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel, createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
 		cl_int createKernelErrorCalculateStatisticalMapsGLMTTest, createKernelErrorCalculateStatisticalMapsGLMFTest, createKernelErrorCalculateStatisticalMapsGLMBayesian;
 		cl_int createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation, createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
 		cl_int createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation, createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation, createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-		cl_int createKernelErrorEstimateAR4Models, createKernelErrorApplyWhiteningAR4;
+		cl_int createKernelErrorEstimateAR4Models, createKernelErrorEstimateAR4ModelsSlice, createKernelErrorApplyWhiteningAR4, createKernelErrorApplyWhiteningAR4Slice;
 		cl_int createKernelErrorGeneratePermutedVolumesFirstLevel;
-		cl_int createKernelErrorRemoveLinearFit;
+		cl_int createKernelErrorRemoveLinearFit, createKernelErrorRemoveLinearFitSlice;
 		cl_int createKernelErrorCalculatePermutationPValuesVoxelLevelInference, createKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
 		// Create buffer errors
@@ -871,15 +872,15 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorAddLinearAndNonLinearDisplacement;
 
 		// Statistical kernels
-		cl_int runKernelErrorCalculateBetaWeightsGLM, runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+		cl_int runKernelErrorCalculateBetaWeightsGLM, runKernelErrorCalculateBetaWeightsGLMSlice, runKernelErrorCalculateBetaWeightsGLMFirstLevel;
 		cl_int runKernelErrorCalculateGLMResiduals;
 		cl_int runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel, runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
 		cl_int runKernelErrorCalculateStatisticalMapsGLMTTest, runKernelErrorCalculateStatisticalMapsGLMFTest, runKernelErrorCalculateStatisticalMapsGLMBayesian;
 		cl_int runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation, runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
 		cl_int runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation, runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation, runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-		cl_int runKernelErrorEstimateAR4Models, runKernelErrorApplyWhiteningAR4;
+		cl_int runKernelErrorEstimateAR4Models, runKernelErrorEstimateAR4ModelsSlice, runKernelErrorApplyWhiteningAR4, runKernelErrorApplyWhiteningAR4Slice;
 		cl_int runKernelErrorGeneratePermutedVolumesFirstLevel;
-		cl_int runKernelErrorRemoveLinearFit;
+		cl_int runKernelErrorRemoveLinearFit, runKernelErrorRemoveLinearFitSlice;
 		cl_int runKernelErrorCalculatePermutationPValuesVoxelLevelInference, runKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
 
@@ -1298,6 +1299,8 @@ class BROCCOLI_LIB
 		cl_mem		d_Whitened_fMRI_Volumes;
 		cl_mem		d_Permuted_fMRI_Volumes;
 		cl_mem		d_Permuted_First_Level_Results;
+		cl_mem 		d_Temp_fMRI_Volumes_1;
+		cl_mem 		d_Temp_fMRI_Volumes_2;
 
 		cl_mem		c_Permutation_Vector;
 		cl_mem		c_Sign_Vector;

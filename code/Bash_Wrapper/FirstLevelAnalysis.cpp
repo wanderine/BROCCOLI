@@ -962,8 +962,8 @@ int main(int argc, char **argv)
             PERMUTE = true;
             i += 1;
 
-			printf("Permutation testing is currently turned off!\n");
-            return EXIT_FAILURE;
+			//printf("Permutation testing is currently turned off!\n");
+            //return EXIT_FAILURE;
         }
         else if (strcmp(input,"-permutations") == 0)
         {
@@ -2893,6 +2893,9 @@ int main(int argc, char **argv)
 	        // Write each t-map as a separate file
 	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
 	        {
+				// nifti file contains t-scores
+				outputNiftiStatisticsMNI->intent_code = 3;
+
 	            std::string temp = tscores;
 	            std::stringstream ss;
 	            ss << "_contrast";
@@ -2942,6 +2945,9 @@ int main(int argc, char **argv)
 			}
 	        if (PERMUTE)
 	        {
+				// nifti file contains p-values
+				outputNiftiStatisticsMNI->intent_code = 22;
+
 	            // Write each p-map as a separate file
 	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
 	            {
@@ -2983,14 +2989,14 @@ int main(int argc, char **argv)
 
 	    if (WRITE_AR_ESTIMATES_MNI && !BAYESIAN)
 	    {
-	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	        WriteNifti(outputNiftiStatisticsMNI,h_AR2_Estimates_MNI,"_ar2_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	        WriteNifti(outputNiftiStatisticsMNI,h_AR3_Estimates_MNI,"_ar3_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	        WriteNifti(outputNiftiStatisticsMNI,h_AR4_Estimates_MNI,"_ar4_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR2_Estimates_MNI,"_ar2_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR3_Estimates_MNI,"_ar3_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR4_Estimates_MNI,"_ar4_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	    }
 		else if (WRITE_AR_ESTIMATES_MNI && BAYESIAN)
 		{
-	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		}
 	}
 	else
@@ -3014,8 +3020,12 @@ int main(int argc, char **argv)
     // Create new nifti image
     nifti_image *outputNiftiStatisticsEPI = nifti_copy_nim_info(inputfMRI);
     outputNiftiStatisticsEPI->nt = 1;
+    outputNiftiStatisticsEPI->ndim = 3;
+    outputNiftiStatisticsEPI->dim[0] = 3;
     outputNiftiStatisticsEPI->dim[4] = 1;
+	outputNiftiStatisticsEPI->scl_slope = 1;	
     outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
+	nifti_free_extensions(outputNiftiStatisticsEPI);
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsEPI;
     numberOfNiftiImages++;
     
@@ -3050,6 +3060,8 @@ int main(int argc, char **argv)
     	        // Write each t-map as a separate file
     	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	        {
+					// nifti file contains t-scores
+					outputNiftiStatisticsEPI->intent_code = 3;
     	            std::string temp = tscores;
     	            std::stringstream ss;
     	            ss << "_contrast";
@@ -3100,6 +3112,9 @@ int main(int argc, char **argv)
 	
     	        if (PERMUTE)
     	        {
+					// nifti file contains p-values
+					outputNiftiStatisticsEPI->intent_code = 22;
+
     	            // Write each p-map as a separate file
     	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	            {
@@ -3142,14 +3157,14 @@ int main(int argc, char **argv)
     
     	if (WRITE_AR_ESTIMATES_EPI && !BAYESIAN)
     	{
-    	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	    WriteNifti(outputNiftiStatisticsEPI,h_AR2_Estimates_EPI,"_ar2_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	    WriteNifti(outputNiftiStatisticsEPI,h_AR3_Estimates_EPI,"_ar3_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	    WriteNifti(outputNiftiStatisticsEPI,h_AR4_Estimates_EPI,"_ar4_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);	
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR2_Estimates_EPI,"_ar2_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR3_Estimates_EPI,"_ar3_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR4_Estimates_EPI,"_ar4_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);	
     	}    
     	else if (WRITE_AR_ESTIMATES_EPI && BAYESIAN)
     	{
-    	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     	}    
 	}
 	else
