@@ -3062,6 +3062,7 @@ int main(int argc, char **argv)
     	        {
 					// nifti file contains t-scores
 					outputNiftiStatisticsEPI->intent_code = 3;
+
     	            std::string temp = tscores;
     	            std::stringstream ss;
     	            ss << "_contrast";
@@ -3155,6 +3156,8 @@ int main(int argc, char **argv)
     	    }
     	}
     
+		outputNiftiStatisticsEPI->intent_code = 0;
+
     	if (WRITE_AR_ESTIMATES_EPI && !BAYESIAN)
     	{
     	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);

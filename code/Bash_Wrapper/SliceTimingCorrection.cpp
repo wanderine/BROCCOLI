@@ -686,6 +686,7 @@ int main(int argc, char ** argv)
             h_fMRI_Volumes[i] = (float)p[i];
         }
     }
+	// Correct data type, just copy the pointer
 	else if ( inputData->datatype == DT_FLOAT )
     {
 		h_fMRI_Volumes = (float*)inputData->data;
