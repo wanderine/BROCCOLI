@@ -2725,6 +2725,7 @@ int main(int argc, char **argv)
         //BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
         BROCCOLI.SetOutputAREstimatesEPI(h_AR1_Estimates_EPI, h_AR2_Estimates_EPI, h_AR3_Estimates_EPI, h_AR4_Estimates_EPI);
         BROCCOLI.SetOutputAREstimatesMNI(h_AR1_Estimates_MNI, h_AR2_Estimates_MNI, h_AR3_Estimates_MNI, h_AR4_Estimates_MNI);
+        BROCCOLI.SetOutputAREstimatesT1(h_AR1_Estimates_T1, h_AR2_Estimates_T1, h_AR3_Estimates_T1, h_AR4_Estimates_T1);
         BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
 		    
 		BROCCOLI.SetPrint(PRINT);
@@ -3031,7 +3032,7 @@ int main(int argc, char **argv)
 		else if (WRITE_AR_ESTIMATES_MNI && BAYESIAN)
 		{
 	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		}
+		}		
 	}
 	else
 	{		
@@ -3271,6 +3272,14 @@ int main(int argc, char **argv)
     	            temp.append(t1);
     	            WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     	        }
+
+			    if (WRITE_AR_ESTIMATES_T1)
+			    {
+	    		    WriteNifti(outputNiftiStatisticsT1,h_AR1_Estimates_T1,"_ar1_estimates_T1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    		    WriteNifti(outputNiftiStatisticsT1,h_AR2_Estimates_T1,"_ar2_estimates_T1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    		    WriteNifti(outputNiftiStatisticsT1,h_AR3_Estimates_T1,"_ar3_estimates_T1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    		    WriteNifti(outputNiftiStatisticsT1,h_AR4_Estimates_T1,"_ar4_estimates_T1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    		}
 
 				// No whitening
 	
