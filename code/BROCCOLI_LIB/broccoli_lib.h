@@ -437,7 +437,7 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 
 		void PerformRegistrationEPIT1();
-		void PerformRegistrationEPIT1_();
+		void PerformRegistrationEPIT1Original();
 		void PerformRegistrationT1MNINoSkullstrip();
 		void SegmentEPIData();
 		void SegmentEPIData(cl_mem Volume);
@@ -525,7 +525,7 @@ class BROCCOLI_LIB
 		void TransformVolumesNonLinear(cl_mem d_Volumes, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformFirstLevelResultsToMNI(bool WHITENED);
 		void TransformResidualsToMNI();
-		void TransformFirstLevelResultsToT1();
+		void TransformFirstLevelResultsToT1(bool WHITENED);
 		void TransformBayesianFirstLevelResultsToMNI();
 		void TransformPValuesToMNI();
 		void TransformPValuesToT1();
@@ -1146,8 +1146,9 @@ class BROCCOLI_LIB
 		double		 h_A_Matrix_double[144], h_h_Vector_double[12];
 
 		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12];
-		float		 h_StartParameters_EPI[12], h_StartParameters_EPI_T1[12];
+		float		 h_StartParameters_EPI[12], h_StartParameters_EPI_Original[12], h_StartParameters_EPI_T1[12], h_StartParameters_EPI_T1_Original[12];
 		float		 h_Registration_Parameters_EPI_T1_Affine[12], h_Registration_Parameters_EPI_T1_Translation[12], h_Registration_Parameters_EPI_T1_Rigid[12], h_Registration_Parameters_EPI_MNI[12], h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out, *h_Registration_Parameters_EPI_MNI_Out;
+		float		 h_Registration_Parameters_EPI_T1_Affine_Original[12], h_Registration_Parameters_EPI_T1_Translation_Original[12], h_Registration_Parameters_EPI_T1_Rigid_Original[12];
 		float		 h_Registration_Parameters_Motion_Correction[12];
 		float		 h_Registration_Parameters_T1_MNI[12], *h_Registration_Parameters_T1_MNI_Out; 
 		double       h_Registration_Parameters_double[12];
@@ -1266,7 +1267,7 @@ class BROCCOLI_LIB
 
 		// T1-MNI and EPI-T1 registration
 		cl_mem		d_T1_Volume, d_Interpolated_T1_Volume, d_MNI_Volume, d_MNI_Brain_Volume, d_MNI_T1_Volume, d_Interpolated_fMRI_Volume, d_Skullstripped_T1_Volume, d_MNI_Brain_Mask;
-		cl_mem		d_EPI_Volume, d_T1_EPI_Volume, d_T1_EPI_Volume_;
+		cl_mem		d_EPI_Volume, d_T1_EPI_Volume;
 
 		// Smoothing
 		cl_mem		d_Certainty;

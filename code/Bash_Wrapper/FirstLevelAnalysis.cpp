@@ -3224,8 +3224,11 @@ int main(int argc, char **argv)
     nifti_image *outputNiftiStatisticsT1 = nifti_copy_nim_info(inputT1);
 	nifti_set_filenames(outputNiftiStatisticsT1, inputfMRI->fname, DONT_CHECK_EXISTING_FILE, 1);
     outputNiftiStatisticsT1->nt = 1;
+    outputNiftiStatisticsT1->dim[0] = 3;
     outputNiftiStatisticsT1->dim[4] = 1;
+	outputNiftiStatisticsT1->scl_slope = 1;	
     outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D;
+	nifti_free_extensions(outputNiftiStatisticsT1);
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsT1;
     numberOfNiftiImages++;
 
