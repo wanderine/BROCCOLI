@@ -188,6 +188,21 @@ void BROCCOLI_LIB::SetWrapper(int wrapper)
 	WRAPPER = wrapper;
 }
 
+void BROCCOLI_LIB::SetApplySliceTimingCorrection(bool value)
+{
+	APPLY_SLICE_TIMING_CORRECTION = value;
+}
+
+void BROCCOLI_LIB::SetApplyMotionCorrection(bool value)
+{
+	APPLY_MOTION_CORRECTION = value;
+}
+
+void BROCCOLI_LIB::SetApplySmoothing(bool value)
+{
+	APPLY_SMOOTHING = value;
+}
+
 //void BROCCOLI_LIB::SetSaveDisplacementField(bool save)
 //{
 //	DEBUG = debug;
@@ -210,6 +225,10 @@ void BROCCOLI_LIB::SetStartValues()
 	PRINT = true;
 	VERBOS = false;
 	DO_ALL_PERMUTATIONS = false;
+
+	APPLY_SLICE_TIMING_CORRECTION = true;
+	APPLY_MOTION_CORRECTION = true;
+	APPLY_SMOOTHING = true;
 
 	WRITE_INTERPOLATED_T1 = false;
 	WRITE_ALIGNED_T1_MNI_LINEAR = false;
@@ -7673,29 +7692,32 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// Slice timing correction
 	//---------------------------------------------------------------------------------------------------------------------------------------
 
-	if (SLICE_ORDER != UNDEFINED)
+	if (APPLY_SLICE_TIMING_CORRECTION)
 	{
-		if ((WRAPPER == BASH) && PRINT)
+		if (SLICE_ORDER != UNDEFINED)
 		{
-			printf("Performing slice timing correction \n");
+			if ((WRAPPER == BASH) && PRINT)
+			{
+				printf("Performing slice timing correction \n");
+			}
+
+			PrintMemoryStatus("Before slice timing correction");
+
+			PerformSliceTimingCorrectionHost(h_fMRI_Volumes);
+
+			PrintMemoryStatus("After slice timing correction");
+
+			if (WRITE_SLICETIMING_CORRECTED)
+			{
+				memcpy(h_Slice_Timing_Corrected_fMRI_Volumes, h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
+			}
 		}
-
-		PrintMemoryStatus("Before slice timing correction");
-
-		PerformSliceTimingCorrectionHost(h_fMRI_Volumes);
-
-		PrintMemoryStatus("After slice timing correction");
-
-		if (WRITE_SLICETIMING_CORRECTED)
+		else
 		{
-			memcpy(h_Slice_Timing_Corrected_fMRI_Volumes, h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
-		}
-	}
-	else
-	{
-		if (WRAPPER == BASH)
-		{
-			printf("Warning: Not performing slice timing correction as the slice order is undefined.\n");
+			if (WRAPPER == BASH)
+			{
+				printf("Warning: Not performing slice timing correction as the slice order is undefined.\n");
+			}
 		}
 	}
 
@@ -7704,38 +7726,41 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// Motion correction
 	//---------------------------------------------------------------------------------------------------------------------------------------
 
-	if ((WRAPPER == BASH) && PRINT)
+	if (APPLY_MOTION_CORRECTION)
 	{
-		printf("Performing motion correction");
-		if (!VERBOS)
+		if ((WRAPPER == BASH) && PRINT)
 		{
-			printf("\n");	
+			printf("Performing motion correction");
+			if (!VERBOS)
+			{
+				printf("\n");	
+			}
 		}
-	}
 
-	PrintMemoryStatus("Before motion correction");
+		PrintMemoryStatus("Before motion correction");
 
-	PerformMotionCorrectionHost(h_fMRI_Volumes);
+		PerformMotionCorrectionHost(h_fMRI_Volumes);
 
-	if ((WRAPPER == BASH) && VERBOS)
-	{
-		printf("\n");
-	}
-
-	PrintMemoryStatus("After motion correction");
-
-	// Copy motion parameters
-	for (int t = 0; t < EPI_DATA_T; t++)
-	{
-		for (int p = 0; p < 6; p++)
+		if ((WRAPPER == BASH) && VERBOS)
 		{
-			h_Motion_Parameters_Out[t + p * EPI_DATA_T] = h_Motion_Parameters[t + p * EPI_DATA_T];
+			printf("\n");
 		}
-	}
 
-	if (WRITE_MOTION_CORRECTED)
-	{
-		memcpy(h_Motion_Corrected_fMRI_Volumes, h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
+		PrintMemoryStatus("After motion correction");
+
+		// Copy motion parameters
+		for (int t = 0; t < EPI_DATA_T; t++)
+		{
+			for (int p = 0; p < 6; p++)
+			{
+				h_Motion_Parameters_Out[t + p * EPI_DATA_T] = h_Motion_Parameters[t + p * EPI_DATA_T];
+			}
+		}
+
+		if (WRITE_MOTION_CORRECTED)
+		{
+			memcpy(h_Motion_Corrected_fMRI_Volumes, h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
+		}
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------------------------
@@ -7763,27 +7788,31 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// Smoothing
 	//---------------------------------------------------------------------------------------------------------------------------------------
 
-	if ((WRAPPER == BASH) && PRINT)
-	{
-		printf("Performing smoothing\n");
-	}
-
 	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
 	memoryAllocations += 1;
 	allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
-	PrintMemoryStatus("Before smoothing");
-
 	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
 	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
-	PerformSmoothingNormalizedHost(h_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
-	PrintMemoryStatus("After smoothing");
-
-	if (WRITE_SMOOTHED)
+	if (APPLY_SMOOTHING)
 	{
-		memcpy(h_Smoothed_fMRI_Volumes, h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing smoothing\n");
+		}
+	
+		PrintMemoryStatus("Before smoothing");
+
+		PerformSmoothingNormalizedHost(h_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+		PrintMemoryStatus("After smoothing");
+
+		if (WRITE_SMOOTHED)
+		{
+			memcpy(h_Smoothed_fMRI_Volumes, h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
+		}
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------------------------
@@ -7887,7 +7916,25 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		}		
 
 		TransformFirstLevelResultsToMNI(true);
+
+		// Do statistical analysis without whitening	
+		if (WRITE_UNWHITENED_RESULTS)
+		{
+			// Calculate maps without whitening
+			CalculateStatisticalMapsGLMTTestFirstLevelSlices(h_fMRI_Volumes,0);
+
+			// Copy data to host
+			if (WRITE_ACTIVITY_EPI)
+			{
+				clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_No_Whitening_EPI, 0, NULL, NULL);
+				clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_No_Whitening_EPI, 0, NULL, NULL);
+				clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_No_Whitening_EPI, 0, NULL, NULL);
+				//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+			}
 	
+			// Apply transformations and save to unwhitened pointers
+			TransformFirstLevelResultsToMNI(false);
+		}
 
 		//---------------------------------------------------------------------------------------------------------------------------------------
 		// Single subject permutation test
@@ -8183,28 +8230,6 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 
 
-	/*
-	if (!REGRESS_ONLY)
-	{
-		if (WRITE_UNWHITENED_RESULTS)
-		{
-			// Now calculate maps without whitening
-			CalculateStatisticalMapsGLMTTestFirstLevel(d_Smoothed_fMRI_Volumes,0);
-	
-			// Copy data to host
-			if (WRITE_ACTIVITY_EPI)
-			{
-				clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_No_Whitening_EPI, 0, NULL, NULL);
-				clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_No_Whitening_EPI, 0, NULL, NULL);
-				clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_No_Whitening_EPI, 0, NULL, NULL);
-				//clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
-			}
-	
-			// Apply transformations and save to unwhitened pointers
-			TransformFirstLevelResultsToMNI(false);
-		}
-	}
-	*/
 
 
 	//---------------------------------------------------------------------------------------------------------------------------------------

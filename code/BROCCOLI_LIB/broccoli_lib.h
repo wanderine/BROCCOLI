@@ -160,6 +160,7 @@ class BROCCOLI_LIB
 		void SetSmoothingType(int);
 		void SetEPISmoothingAmount(float);
 		void SetARSmoothingAmount(float);
+		void SetApplySmoothing(bool);
 
 		// Image registration
 		void SetImageRegistrationFilterSize(int N);
@@ -175,6 +176,7 @@ class BROCCOLI_LIB
 		void SetNumberOfIterationsForLinearImageRegistration(int N);
 		void SetNumberOfIterationsForNonLinearImageRegistration(int N);
 		void SetNumberOfIterationsForMotionCorrection(int N);
+		void SetApplyMotionCorrection(bool);
 		void SetCoarsestScaleT1MNI(int N);
 		void SetCoarsestScaleEPIT1(int N);
 		void SetMMT1ZCUT(int mm);
@@ -188,6 +190,7 @@ class BROCCOLI_LIB
 
 		// Slice timing
 		void SetCustomSliceTimes(float *times);
+		void SetApplySliceTimingCorrection(bool);
 
 		// EPI data
 		void SetEPIVoxelSizeX(float value);
@@ -982,6 +985,10 @@ class BROCCOLI_LIB
 		bool PRINT;
 		bool VERBOS;
 		bool DO_ALL_PERMUTATIONS;
+
+		bool APPLY_SLICE_TIMING_CORRECTION;
+		bool APPLY_MOTION_CORRECTION;
+		bool APPLY_SMOOTHING;
 
 		bool WRITE_INTERPOLATED_T1;
 		bool WRITE_ALIGNED_T1_MNI_LINEAR;

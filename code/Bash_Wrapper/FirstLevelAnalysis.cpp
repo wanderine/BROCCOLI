@@ -435,6 +435,10 @@ int main(int argc, char **argv)
 	int				MM_EPI_Z_CUT = 0;
     float           SIGMA = 5.0f;
     
+	bool			APPLY_SLICE_TIMING_CORRECTION = true;
+	bool			APPLY_MOTION_CORRECTION = true;
+	bool			APPLY_SMOOTHING = true;
+
 	int				SLICE_ORDER = UNDEFINED;
 	bool			DEFINED_SLICE_PATTERN = false;
 	bool			DEFINED_SLICE_CUSTOM_REF = false;
@@ -515,9 +519,13 @@ int main(int argc, char **argv)
         //printf(" -lowestscaleepi            The lowest scale for the linear registration of the fMRI volume to the T1 volume, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
         printf(" -zcutt1                    Number of mm to cut from the bottom of the T1 volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n\n");
         printf(" -zcutepi                   Number of mm to cut from the bottom of the fMRI volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");
-        printf(" -sigma                    Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n\n\n\n");        
+        printf(" -sigma                     Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n\n\n\n");        
         
         printf("Preprocessing options:\n\n");
+        printf(" -noslicetimingcorrection   Do not apply slice timing correction\n");
+        printf(" -nomotioncorrection        Do not apply motion correction\n");
+        printf(" -nosmoothing               Do not apply any smoothing\n\n");
+
         printf(" -slicepattern              The sampling pattern used during scanning (overrides pattern provided in NIFTI file)\n");
 		printf("                            0 = sequential 1-N (bottom-up), 1 = sequential N-1 (top-down), 2 = interleaved 1-N, 3 = interleaved N-1 \n");
 		printf("                            (no slice timing correction is performed if pattern in NIFTI file is unknown and no pattern is provided) \n");        
@@ -825,6 +833,21 @@ int main(int argc, char **argv)
         }      
         
         // Preprocessing options
+        else if (strcmp(input,"-noslicetimingcorrection") == 0)
+        {
+			APPLY_SLICE_TIMING_CORRECTION = false;
+			i += 1;
+		}
+        else if (strcmp(input,"-nomotioncorrection") == 0)
+        {
+			APPLY_MOTION_CORRECTION = false;
+			i += 1;
+		}
+        else if (strcmp(input,"-nosmoothing") == 0)
+        {
+			APPLY_SMOOTHING = false;
+			i += 1;
+		}
         else if (strcmp(input,"-slicepattern") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -945,6 +968,13 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-regressmotion") == 0)
         {
             REGRESS_MOTION = 1;
+
+			if (APPLY_MOTION_CORRECTION == false)
+			{
+                printf("Nice try! Cannot regress motion if you skip motion correction!\n");
+                return EXIT_FAILURE;
+			}
+
             i += 1;
         }
         else if (strcmp(input,"-regressglobalmean") == 0)
@@ -2541,6 +2571,10 @@ int main(int argc, char **argv)
         BROCCOLI.SetEPISliceOrder(SLICE_ORDER); 
 		BROCCOLI.SetCustomSliceTimes(h_Custom_Slice_Times);
 		BROCCOLI.SetCustomReferenceSlice(SLICE_CUSTOM_REF);
+
+		BROCCOLI.SetApplySliceTimingCorrection(APPLY_SLICE_TIMING_CORRECTION);
+		BROCCOLI.SetApplyMotionCorrection(APPLY_MOTION_CORRECTION);
+		BROCCOLI.SetApplySmoothing(APPLY_SMOOTHING);
 
         BROCCOLI.SetT1Width(T1_DATA_W);
         BROCCOLI.SetT1Height(T1_DATA_H);
