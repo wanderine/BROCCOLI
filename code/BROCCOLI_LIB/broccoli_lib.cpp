@@ -13233,8 +13233,9 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 	d_Columns_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Set arguments for the smoothing kernels
+	
 	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Rows_Temp);
-	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Temp_fMRI_Volumes_2);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
 	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &EPI_DATA_W);
@@ -13250,7 +13251,7 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 6, sizeof(int), &EPI_DATA_D);
 	clSetKernelArg(SeparableConvolutionColumnsKernel, 7, sizeof(int), &EPI_DATA_T);
 
-	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Permuted_fMRI_Volumes);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Temp_fMRI_Volumes_2);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Columns_Temp);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Smoothed_EPI_Mask);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
@@ -13258,6 +13259,7 @@ void BROCCOLI_LIB::SetupPermutationTestFirstLevel()
 	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &EPI_DATA_H);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &EPI_DATA_D);
 	clSetKernelArg(SeparableConvolutionRodsKernel, 8, sizeof(int), &EPI_DATA_T);
+	
 
 	if (STATISTICAL_TEST == TTEST)
 	{
@@ -13744,7 +13746,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(float* h_fMRI_Volumes)
 			}
 
 			// Generate new fMRI volumes, through inverse whitening and permutation
-		    GeneratePermutedVolumesFirstLevel(d_Temp_fMRI_Volumes_2, d_Temp_fMRI_Volumes_1, p);
+		   	GeneratePermutedVolumesFirstLevel(d_Temp_fMRI_Volumes_2, d_Temp_fMRI_Volumes_1, p);
 
 			// Smooth new fMRI volumes (smoothing needs to be done in each permutation, as it otherwise alters the AR parameters)
 			//PerformSmoothingNormalized(d_Permuted_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
