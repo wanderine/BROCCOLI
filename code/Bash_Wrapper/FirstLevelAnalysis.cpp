@@ -480,7 +480,7 @@ int main(int argc, char **argv)
     bool            WRITE_SMOOTHED = false;
     bool            WRITE_ACTIVITY_EPI = false;
     bool            WRITE_ACTIVITY_T1 = false;
-    bool            WRITE_RESIDUALS = false;
+    bool            WRITE_RESIDUALS_EPI = false;
     bool            WRITE_RESIDUALS_MNI = false;
     bool            WRITE_DESIGNMATRIX = false;
 	bool			WRITE_ORIGINAL_DESIGNMATRIX = false;
@@ -1160,13 +1160,15 @@ int main(int argc, char **argv)
         }
         else if (strcmp(input,"-saveresiduals") == 0)
         {
-            WRITE_RESIDUALS = true;
+            WRITE_RESIDUALS_EPI = true;
             i += 1;
         }
         else if (strcmp(input,"-saveresidualsmni") == 0)
         {
             WRITE_RESIDUALS_MNI = true;
             i += 1;
+			printf("Saving residuals to MNI space is currently turned off!\n");
+    	    return EXIT_FAILURE;
         }
         else if (strcmp(input,"-savedesignmatrix") == 0)
         {
@@ -1226,7 +1228,7 @@ int main(int argc, char **argv)
             WRITE_MOTION_CORRECTED = true;
             WRITE_SMOOTHED = true;
             WRITE_ACTIVITY_EPI = true;
-            WRITE_RESIDUALS = true;
+            WRITE_RESIDUALS_EPI = true;
             WRITE_RESIDUALS_MNI = true;
             WRITE_AR_ESTIMATES_EPI = true;
             WRITE_AR_ESTIMATES_MNI = true;
@@ -1843,6 +1845,8 @@ int main(int argc, char **argv)
 		AllocateMemory(h_Smoothed_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SMOOTHED_fMRI_VOLUMES");
 	}
 
+
+
 	if (!REGRESS_ONLY)
 	{
 	    AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
@@ -1899,6 +1903,11 @@ int main(int argc, char **argv)
 			AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_MATRIX");
 			AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_DISTRIBUTION");             
 			AllocateMemory(h_P_Values_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_MNI");
+		}
+
+		if (WRITE_RESIDUALS_EPI)
+		{
+			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "RESIDUALS_EPI");  
 		}
 	}
 	else
@@ -2640,6 +2649,7 @@ int main(int argc, char **argv)
 		BROCCOLI.SetSaveAREstimatesT1(WRITE_AR_ESTIMATES_T1);
 		BROCCOLI.SetSaveAREstimatesMNI(WRITE_AR_ESTIMATES_MNI);
 		BROCCOLI.SetSaveUnwhitenedResults(WRITE_UNWHITENED_RESULTS);
+		BROCCOLI.SetSaveResidualsEPI(WRITE_RESIDUALS_EPI);
 
         BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
         BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
@@ -3204,6 +3214,16 @@ int main(int argc, char **argv)
     	{
     	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     	}    
+
+		if (WRITE_RESIDUALS_EPI && !BAYESIAN)
+		{
+		    outputNiftiStatisticsEPI->ndim = 4;
+			outputNiftiStatisticsEPI->nt = EPI_DATA_T;
+			outputNiftiStatisticsEPI->dim[0] = 4;
+	    	outputNiftiStatisticsEPI->dim[4] = EPI_DATA_T;
+	    	outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T;
+			WriteNifti(outputNiftiStatisticsEPI,h_Residuals_EPI,"_residuals",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
 	}
 	else
 	{

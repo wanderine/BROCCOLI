@@ -318,6 +318,7 @@ class BROCCOLI_LIB
 		void SetSaveAREstimatesT1(bool);
 		void SetSaveAREstimatesMNI(bool);
 		void SetSaveUnwhitenedResults(bool);
+		void SetSaveResidualsEPI(bool);
 
 		// Get functions for GUI / Wrappers
 
@@ -1015,6 +1016,9 @@ class BROCCOLI_LIB
 		bool WRITE_AR_ESTIMATES_MNI;
 
 		bool WRITE_UNWHITENED_RESULTS;
+
+		bool WRITE_RESIDUALS_EPI;
+		bool WRITE_RESIDUALS_MNI;
 
 		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		int T1_DATA_W, T1_DATA_H, T1_DATA_D;

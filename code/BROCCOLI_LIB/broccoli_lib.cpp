@@ -3664,6 +3664,11 @@ void BROCCOLI_LIB::SetSaveUnwhitenedResults(bool value)
 	WRITE_UNWHITENED_RESULTS = value;
 }
 
+void BROCCOLI_LIB::SetSaveResidualsEPI(bool value)
+{
+	WRITE_RESIDUALS_EPI = value;
+}
+
 void BROCCOLI_LIB::SetSmoothingType(int type)
 {
 	SMOOTHING_TYPE = type;
@@ -12254,7 +12259,7 @@ void BROCCOLI_LIB::CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes
          for (int y = 0; y < DATA_H ; y++)
          {
 	        for (int x = 0; x < DATA_W ; x++)
-	        {
+	        {				
                 h_Volumes[x + y * DATA_W + slice * DATA_W * DATA_H + t * DATA_W * DATA_H * DATA_D] = h_Temp_Data[x + y * DATA_W + t * DATA_W * DATA_H];
             }
         }
@@ -12468,6 +12473,12 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 19, sizeof(int),    &slice);
 		runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMTTestFirstLevelKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
 		clFinish(commandQueue);
+
+		if (WRITE_RESIDUALS_EPI)
+		{
+			// Copy residuals to the host, for the current slice			
+			CopyCurrentfMRISliceToHost(h_Residuals_EPI, d_Residuals, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		}
 
 		clReleaseMemObject(d_xtxxt_GLM);
 	}
@@ -13628,7 +13639,7 @@ void BROCCOLI_LIB::PerformWhiteningPriorPermutations(cl_mem d_Whitened_Volumes, 
 	// Set whitened volumes to original volumes
 	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Whitened_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
 
-	for (int it = 0; it < 3; it++)
+	for (int it = 0; it < 1; it++)
 	{
 		// Estimate auto correlation from whitened volumes
 		clSetKernelArg(EstimateAR4ModelsKernel, 0, sizeof(cl_mem), &d_AR1_Estimates);
