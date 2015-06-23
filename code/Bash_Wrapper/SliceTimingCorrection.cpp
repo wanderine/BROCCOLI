@@ -747,9 +747,18 @@ int main(int argc, char ** argv)
 	std::vector<std::string> buildInfo = BROCCOLI.GetOpenCLBuildInfo();
 	std::vector<std::string> kernelFileNames = BROCCOLI.GetKernelFileNames();
 
+	std::string buildInfoPath;
+	buildInfoPath.append(getenv("BROCCOLI_DIR"));
+	buildInfoPath.append("compiled/Kernels/");
+
 	for (int k = 0; k < BROCCOLI.GetNumberOfKernelFiles(); k++)
 	{
-		std::string temp = "buildInfo";
+		std::string temp = buildInfoPath;
+		temp.append("buildInfo_");
+		temp.append(BROCCOLI.GetOpenCLPlatformName());
+		temp.append("_");	
+		temp.append(BROCCOLI.GetOpenCLDeviceName());
+		temp.append("_");	
 		std::string name = kernelFileNames[k];
 		// Remove "kernel" and ".cpp" from kernel filename
 		name = name.substr(0,name.size()-4);

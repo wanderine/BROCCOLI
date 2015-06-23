@@ -2381,12 +2381,12 @@ int main(int argc, char **argv)
 	filter3RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
 	filter3ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
 
-	filter1RealLinearPathAndName.append("filter1_real_linear_registration.bin");
-	filter1ImagLinearPathAndName.append("filter1_imag_linear_registration.bin");
-	filter2RealLinearPathAndName.append("filter2_real_linear_registration.bin");
-	filter2ImagLinearPathAndName.append("filter2_imag_linear_registration.bin");
-	filter3RealLinearPathAndName.append("filter3_real_linear_registration.bin");
-	filter3ImagLinearPathAndName.append("filter3_imag_linear_registration.bin");
+	filter1RealLinearPathAndName.append("filters/filter1_real_linear_registration.bin");
+	filter1ImagLinearPathAndName.append("filters/filter1_imag_linear_registration.bin");
+	filter2RealLinearPathAndName.append("filters/filter2_real_linear_registration.bin");
+	filter2ImagLinearPathAndName.append("filters/filter2_imag_linear_registration.bin");
+	filter3RealLinearPathAndName.append("filters/filter3_real_linear_registration.bin");
+	filter3ImagLinearPathAndName.append("filters/filter3_imag_linear_registration.bin");
     
     // Read quadrature filters for linear registration, three real valued and three imaginary valued
 	ReadBinaryFile(h_Quadrature_Filter_1_Linear_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,filter1RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
@@ -2422,18 +2422,18 @@ int main(int argc, char **argv)
 	filter6RealNonLinearPathAndName.append(getenv("BROCCOLI_DIR"));
 	filter6ImagNonLinearPathAndName.append(getenv("BROCCOLI_DIR"));
 
-	filter1RealNonLinearPathAndName.append("filter1_real_nonlinear_registration.bin");
-	filter1ImagNonLinearPathAndName.append("filter1_imag_nonlinear_registration.bin");
-	filter2RealNonLinearPathAndName.append("filter2_real_nonlinear_registration.bin");
-	filter2ImagNonLinearPathAndName.append("filter2_imag_nonlinear_registration.bin");
-	filter3RealNonLinearPathAndName.append("filter3_real_nonlinear_registration.bin");
-	filter3ImagNonLinearPathAndName.append("filter3_imag_nonlinear_registration.bin");
-	filter4RealNonLinearPathAndName.append("filter4_real_nonlinear_registration.bin");
-	filter4ImagNonLinearPathAndName.append("filter4_imag_nonlinear_registration.bin");
-	filter5RealNonLinearPathAndName.append("filter5_real_nonlinear_registration.bin");
-	filter5ImagNonLinearPathAndName.append("filter5_imag_nonlinear_registration.bin");
-	filter6RealNonLinearPathAndName.append("filter6_real_nonlinear_registration.bin");
-	filter6ImagNonLinearPathAndName.append("filter6_imag_nonlinear_registration.bin");
+	filter1RealNonLinearPathAndName.append("filters/filter1_real_nonlinear_registration.bin");
+	filter1ImagNonLinearPathAndName.append("filters/filter1_imag_nonlinear_registration.bin");
+	filter2RealNonLinearPathAndName.append("filters/filter2_real_nonlinear_registration.bin");
+	filter2ImagNonLinearPathAndName.append("filters/filter2_imag_nonlinear_registration.bin");
+	filter3RealNonLinearPathAndName.append("filters/filter3_real_nonlinear_registration.bin");
+	filter3ImagNonLinearPathAndName.append("filters/filter3_imag_nonlinear_registration.bin");
+	filter4RealNonLinearPathAndName.append("filters/filter4_real_nonlinear_registration.bin");
+	filter4ImagNonLinearPathAndName.append("filters/filter4_imag_nonlinear_registration.bin");
+	filter5RealNonLinearPathAndName.append("filters/filter5_real_nonlinear_registration.bin");
+	filter5ImagNonLinearPathAndName.append("filters/filter5_imag_nonlinear_registration.bin");
+	filter6RealNonLinearPathAndName.append("filters/filter6_real_nonlinear_registration.bin");
+	filter6ImagNonLinearPathAndName.append("filters/filter6_imag_nonlinear_registration.bin");
 
 	// Read quadrature filters for nonLinear registration, six real valued and six imaginary valued
 	ReadBinaryFile(h_Quadrature_Filter_1_NonLinear_Registration_Real,IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE*IMAGE_REGISTRATION_FILTER_SIZE,filter1RealNonLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
@@ -2463,12 +2463,12 @@ int main(int argc, char **argv)
 	projectionTensor5PathAndName.append(getenv("BROCCOLI_DIR"));
 	projectionTensor6PathAndName.append(getenv("BROCCOLI_DIR"));
 
-	projectionTensor1PathAndName.append("projection_tensor1.bin");
-	projectionTensor2PathAndName.append("projection_tensor2.bin");
-	projectionTensor3PathAndName.append("projection_tensor3.bin");
-	projectionTensor4PathAndName.append("projection_tensor4.bin");
-	projectionTensor5PathAndName.append("projection_tensor5.bin");
-	projectionTensor6PathAndName.append("projection_tensor6.bin");
+	projectionTensor1PathAndName.append("filters/projection_tensor1.bin");
+	projectionTensor2PathAndName.append("filters/projection_tensor2.bin");
+	projectionTensor3PathAndName.append("filters/projection_tensor3.bin");
+	projectionTensor4PathAndName.append("filters/projection_tensor4.bin");
+	projectionTensor5PathAndName.append("filters/projection_tensor5.bin");
+	projectionTensor6PathAndName.append("filters/projection_tensor6.bin");
 
     // Read projection tensors   
     ReadBinaryFile(h_Projection_Tensor_1,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,projectionTensor1PathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
@@ -2486,9 +2486,9 @@ int main(int argc, char **argv)
 	filterDirections2PathAndName.append(getenv("BROCCOLI_DIR"));
 	filterDirections3PathAndName.append(getenv("BROCCOLI_DIR"));
 
-	filterDirections1PathAndName.append("filter_directions_x.bin");
-	filterDirections2PathAndName.append("filter_directions_y.bin");
-	filterDirections3PathAndName.append("filter_directions_z.bin");
+	filterDirections1PathAndName.append("filters/filter_directions_x.bin");
+	filterDirections2PathAndName.append("filters/filter_directions_y.bin");
+	filterDirections3PathAndName.append("filters/filter_directions_z.bin");
 
     // Read filter directions
     ReadBinaryFile(h_Filter_Directions_X,NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION,filterDirections1PathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);
@@ -2520,9 +2520,18 @@ int main(int argc, char **argv)
 	std::vector<std::string> buildInfo = BROCCOLI.GetOpenCLBuildInfo();
 	std::vector<std::string> kernelFileNames = BROCCOLI.GetKernelFileNames();
 
+	std::string buildInfoPath;
+	buildInfoPath.append(getenv("BROCCOLI_DIR"));
+	buildInfoPath.append("compiled/Kernels/");
+
 	for (int k = 0; k < BROCCOLI.GetNumberOfKernelFiles(); k++)
 	{
-		std::string temp = "buildInfo";
+		std::string temp = buildInfoPath;
+		temp.append("buildInfo_");
+		temp.append(BROCCOLI.GetOpenCLPlatformName());
+		temp.append("_");	
+		temp.append(BROCCOLI.GetOpenCLDeviceName());
+		temp.append("_");	
 		std::string name = kernelFileNames[k];
 		// Remove "kernel" and ".cpp" from kernel filename
 		name = name.substr(0,name.size()-4);

@@ -587,12 +587,12 @@ int main(int argc, char ** argv)
 	filter3RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
 	filter3ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
 
-	filter1RealLinearPathAndName.append("filter1_real_linear_registration.bin");
-	filter1ImagLinearPathAndName.append("filter1_imag_linear_registration.bin");
-	filter2RealLinearPathAndName.append("filter2_real_linear_registration.bin");
-	filter2ImagLinearPathAndName.append("filter2_imag_linear_registration.bin");
-	filter3RealLinearPathAndName.append("filter3_real_linear_registration.bin");
-	filter3ImagLinearPathAndName.append("filter3_imag_linear_registration.bin");
+	filter1RealLinearPathAndName.append("filters/filter1_real_linear_registration.bin");
+	filter1ImagLinearPathAndName.append("filters/filter1_imag_linear_registration.bin");
+	filter2RealLinearPathAndName.append("filters/filter2_real_linear_registration.bin");
+	filter2ImagLinearPathAndName.append("filters/filter2_imag_linear_registration.bin");
+	filter3RealLinearPathAndName.append("filters/filter3_real_linear_registration.bin");
+	filter3ImagLinearPathAndName.append("filters/filter3_imag_linear_registration.bin");
 
 	ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
 	ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1ImagLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
@@ -626,9 +626,18 @@ int main(int argc, char ** argv)
 	std::vector<std::string> buildInfo = BROCCOLI.GetOpenCLBuildInfo();
 	std::vector<std::string> kernelFileNames = BROCCOLI.GetKernelFileNames();
 
+	std::string buildInfoPath;
+	buildInfoPath.append(getenv("BROCCOLI_DIR"));
+	buildInfoPath.append("compiled/Kernels/");
+
 	for (int k = 0; k < BROCCOLI.GetNumberOfKernelFiles(); k++)
 	{
-		std::string temp = "buildInfo";
+		std::string temp = buildInfoPath;
+		temp.append("buildInfo_");
+		temp.append(BROCCOLI.GetOpenCLPlatformName());
+		temp.append("_");	
+		temp.append(BROCCOLI.GetOpenCLDeviceName());
+		temp.append("_");	
 		std::string name = kernelFileNames[k];
 		// Remove "kernel" and ".cpp" from kernel filename
 		name = name.substr(0,name.size()-4);

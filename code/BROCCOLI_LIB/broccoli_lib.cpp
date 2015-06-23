@@ -787,6 +787,16 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 	}
 }
 
+const char* BROCCOLI_LIB::GetOpenCLDeviceName()
+{
+	return deviceName.c_str();
+}
+
+const char* BROCCOLI_LIB::GetOpenCLPlatformName()
+{
+	return platformName.c_str();
+}
+
 // Creates OpenCL programs from binary files
 void BROCCOLI_LIB::CreateProgramFromBinary(cl_context context, cl_device_id device, std::string filename)
 {
@@ -1107,21 +1117,25 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	{
 		VENDOR = NVIDIA;
 		binaryFilename = "broccoli_lib_kernel_Nvidia";
+		platformName = "Nvidia";
 	}
 	else if (intelPos != std::string::npos)
 	{
 		VENDOR = INTEL;
 		binaryFilename = "broccoli_lib_kernel_Intel";
+		platformName = "Intel";
 	}
 	else if (amdPos != std::string::npos)
 	{
 		VENDOR = AMD;
 		binaryFilename = "broccoli_lib_kernel_AMD";
+		platformName = "AMD";
 	}
 	else if (applePos != std::string::npos)
 	{
 		VENDOR = APPLE;
 		binaryFilename = "broccoli_lib_kernel_Apple";
+		platformName = "Apple";
 	}
 	else
 	{
@@ -1140,6 +1154,35 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		return false;
 	}
 
+	// Get device name
+
+	// Get size of name
+	error = clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_NAME, 0, NULL, &valueSize);
+
+	if (error != SUCCESS)
+	{
+		INITIALIZATION_ERROR = "Unable to get size of device name.";
+		OPENCL_ERROR = GetOpenCLErrorMessage(error);		
+		return false;
+	}
+
+	// Get the actual name
+	value = (char*) malloc(valueSize);
+	error = clGetDeviceInfo(deviceIds[OPENCL_DEVICE], CL_DEVICE_NAME, valueSize, value, NULL);            
+
+	if (error != SUCCESS)
+	{
+		INITIALIZATION_ERROR = "Unable to get name of specified OpenCL device.";
+		OPENCL_ERROR = GetOpenCLErrorMessage(error);
+		free(value);
+		return false;
+	}
+	deviceName = value;
+	free(value);
+
+	// Remove spaces
+	deviceName.erase(std::remove (deviceName.begin(), deviceName.end(), ' '), deviceName.end());
+
 	// Support for running BROCCOLI from any directory
 
 	// Check if BROCCOLI_DIR environment variable is set
@@ -1157,6 +1200,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	if (WRAPPER == BASH)
 	{
 		binaryPathAndFilename.append(GetBROCCOLIDirectory());
+		binaryPathAndFilename.append("compiled/Kernels/");
 	}
 	binaryPathAndFilename.append(binaryFilename);
 
@@ -1194,6 +1238,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	if (WRAPPER == BASH)
 	{	
 		OpenCLPath.append(GetBROCCOLIDirectory());
+		OpenCLPath.append("code/Kernels/");
 	}
 
 	std::vector<std::string> kernelPathAndFileNames;
@@ -11289,6 +11334,35 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 	// Copy results to  host
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
+
+
+
+	float maxP = 0.0f;
+	bool significant = false;
+	// Check if any p-value is larger than 0.95
+	for (int z = 0; z < MNI_DATA_D; z++)
+	{
+		for (int y = 0; y < MNI_DATA_H; y++)
+		{
+			for (int x = 0; x < MNI_DATA_W; x++)
+			{
+				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > 0.95f)
+				{
+					significant = true;
+				}
+				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > maxP) 
+				{
+					maxP = h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H];
+				}
+			}
+		}
+	}
+	if (significant)
+		printf("Significant group activation detected!\n");
+
+	printf("Max p value is %f \n",maxP);
+
+
 
 	// Release memory
 	clReleaseMemObject(d_First_Level_Results);

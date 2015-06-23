@@ -323,7 +323,7 @@ class BROCCOLI_LIB
 		// Get functions for GUI / Wrappers
 
 		bool GetOpenCLInitiated();
-		int GetNumberOfOpenCLKernels();
+		int GetNumberOfOpenCLKernels();		
 
 		// EPI data
 		float GetEPIVoxelSizeX();
@@ -354,6 +354,8 @@ class BROCCOLI_LIB
 		const char* GetOpenCLDeviceInfoChar();
 		const char* GetOpenCLErrorMessage(int error);
 		const char* GetOpenCLKernelName(int kernel);
+		const char* GetOpenCLPlatformName();
+		const char* GetOpenCLDeviceName();
 
 		std::string GetOpenCLDeviceInfoString();
 		std::vector<std::string> GetOpenCLBuildInfo();
@@ -663,6 +665,8 @@ class BROCCOLI_LIB
 		std::string binaryPathAndFilename;
 		std::string binaryFilename;
 		std::string deviceInfo;
+		std::string deviceName;
+		std::string platformName;
 
 		std::vector<std::string> buildInfo;
 
