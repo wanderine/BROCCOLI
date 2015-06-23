@@ -6,8 +6,8 @@ BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 AMD=0
 INTEL=1
 NVIDIA=2
-OPENCL_PACKAGE=$AMD
-#OPENCL_PACKAGE=$INTEL
+#OPENCL_PACKAGE=$AMD
+OPENCL_PACKAGE=$INTEL
 #OPENCL_PACKAGE=$NVIDIA
 
 # Set compilation mode to use
@@ -44,10 +44,10 @@ fi
 # Set compilation flags
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
     FLAGS="-O3 -DNDEBUG -m64"
-	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Compiled/Linux/Release
+	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Linux/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
     FLAGS="-O0 -g -m64"
-	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Compiled/Linux/Debug
+	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Linux/Debug
 else
     echo "Unknown compilation mode"
 fi
@@ -66,6 +66,27 @@ g++ RandomiseGroupLevel.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRE
 g++ FirstLevelAnalysis.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lniftiio -lznz -lz ${FLAGS} -o FirstLevelAnalysis
 
 g++ SliceTimingCorrection.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lniftiio -lznz -lz ${FLAGS} -o SliceTimingCorrection
+
+# Move compiled files to correct directory
+if [ "$COMPILATION" -eq "$RELEASE" ] ; then
+	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv RandomiseGroupLevel ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
+	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv RandomiseGroupLevel ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+fi
+
+
 
 # No support for compressed files
 #g++ RegisterTwoVolumes.cpp ${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib/nifti1_io.c ${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib/znzlib.c -lOpenCL -lBROCCOLI_LIB -I${OPENCL_HEADER_DIRECTORY} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -o RegisterTwoVolumes
