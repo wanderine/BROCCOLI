@@ -22,16 +22,16 @@ fi
 
 
 # Using g++
-g++ -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -m64 -fPIC -c -o broccoli_lib.o broccoli_lib.cpp
+g++ -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -m64 -fPIC -c -o broccoli_lib.o broccoli_lib.cpp -Wall
 
 # Make a library
 ar rcs libBROCCOLI_LIB.a broccoli_lib.o
 
-# Move to correct folder
+# Move to correct directory
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
-    mv libBROCCOLI_LIB.a Compiled/Mac/Release
+    mv libBROCCOLI_LIB.a ${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Mac/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
-    mv libBROCCOLI_LIB.a Compiled/Mac/Debug
+    mv libBROCCOLI_LIB.a ${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Mac/Debug
 else
     echo "Unknown compilation mode"
 fi

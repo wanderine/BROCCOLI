@@ -3,7 +3,7 @@
 # Set compilation mode to use
 RELEASE=0
 DEBUG=1
-COMPILATION=$RELEASE
+COMPILATION=$DEBUG
 
 BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 OPENCL_HEADER_DIRECTORY=/System/Library/Frameworks/OpenCL.framework/Headers
@@ -16,10 +16,10 @@ OPENCL_HEADER_DIRECTORY=/System/Library/Frameworks/OpenCL.framework/Headers
 # Set compilation flags
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
     FLAGS="-O3 -DNDEBUG"
-	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Compiled/Mac/Release
+	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Mac/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
     FLAGS="-O0 -g"
-	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Compiled/Mac/Debug
+	BROCCOLI_LIBRARY_DIRECTORY=${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Mac/Debug
 else
     echo "Unknown compilation mode"
 fi
@@ -35,9 +35,29 @@ g++ -framework OpenCL TransformVolume.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I$
 
 g++ -framework OpenCL RandomiseGroupLevel.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o RandomiseGroupLevel
 
-g++ -framework OpenCL FirstLevelAnalysis.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o FirstLevelAnalysis
+g++ -framework OpenCL FirstLevelAnalysis.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o FirstLevelAnalysis -Wall
 
 g++ -framework OpenCL SliceTimingCorrection.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o SliceTimingCorrection
+
+# Move compiled files to correct directory
+
+if [ "$COMPILATION" -eq "$RELEASE" ] ; then
+    mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv RandomiseGroupLevel ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
+    mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv RandomiseGroupLevel ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+fi
 
 # For debugging, use lldb
 
