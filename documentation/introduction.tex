@@ -4,7 +4,7 @@ BROCCOLI is a software mainly created for analysis of functional magnetic resona
 
 \section{Downloading BROCCOLI}
 
-BROCCOLI is available as open source at https://github.com/wanderine/BROCCOLI/. For Linux and Mac computers, the following git command can be used to download BROCCOLI into the folder BROCCOLI. 
+BROCCOLI is available as open source at https://github.com/wanderine/BROCCOLI/. For Linux and Mac computers, the following git command can be used to download BROCCOLI into the directory BROCCOLI. 
 
 \begin{verbatim}
 git clone https://github.com/wanderine/BROCCOLI.git BROCCOLI
@@ -16,19 +16,23 @@ For Windows computers, see https://windows.github.com/ or download BROCCOLI as a
 
 BROCCOLI requires that at least one OpenCL driver is installed. All hardware platforms (e.g. Intel, AMD and Nvidia) require a specific OpenCL driver. It is possible to install several OpenCL drivers on a single machine.
 
-Intel drivers are currently located at \\ https://software.intel.com/en-us/articles/opencl-drivers. 
+Intel drivers (runtime) are currently located at \\ \\ https://software.intel.com/en-us/articles/opencl-drivers , 
 
-AMD drivers can be found at http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-tools-sdks/amd-accelerated-parallel-processing-app-sdk/. 
+and can for Linux also be downloaded from
+
+https://dl.dropboxusercontent.com/u/4494604/opencl\_runtime\_15.1\_x64\_5.0.0.57.tar
+
+AMD drivers can be found at http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-tools-sdks/amd-accelerated-parallel-processing-app-sdk/
 
 Nvidia drivers can be found at http://www.nvidia.com/Download/index.aspx. Note that a driver for an Nvidia graphics cards includes an OpenCL driver. 
 
 \section{Checking the OpenCL drivers}
 
-To check the installation of the OpenCL driver(s) on Linux and Mac computers, the BROCCOLI bash function GetOpenCLInfo can be used. It lists all the available devices for each OpenCL platform. The following output is from a computer with three OpenCL drivers (Intel, AMD, Nvidia) and one Intel CPU (with 32 GB of memory), one AMD graphics card (3 GB of memory) and one Nvidia graphics card (6 GB of memory). For each bash function, it is easy to select which platform and which device to use. Note that the Intel CPU can be used with the Intel platform or the AMD platform. 
+To check the installation of the OpenCL driver(s) on Linux and Mac computers, the BROCCOLI bash function GetOpenCLInfo can be used (located in the directory BROCCOLI/compiled/Bash/Linux/Release and BROCCOLI/compiled/Bash/Mac/Release). It lists all the available devices for each OpenCL platform. The following output is from a computer with three OpenCL drivers (Intel, AMD, Nvidia) and one Intel CPU (with 32 GB of memory), one AMD graphics card (3 GB of memory) and one Nvidia graphics card (6 GB of memory). For each bash function, it is easy to select which platform and which device to use. Note that the Intel CPU can be used with the Intel platform or the AMD platform. 
 
 \begin{verbatim}
 
-[andek@localhost Bash_Wrapper]$ ./GetOpenCLInfo 
+[andek@localhost]$ ./GetOpenCLInfo 
 Device info 
  
 ---------------------------------------------
@@ -157,16 +161,22 @@ Max number of threads in each dimension: 1024 1024 64
 
 \section{Setting environment variables}
 
-Just like for FSL, it is necessary to set a Linux environment variable called BROCCOLI\_DIR. The variable should contain the path of the BROCCOLI bash files. Using bash, it can for example be set by
+Just like for FSL, it is necessary to set a Linux environment variable called BROCCOLI\_DIR. The variable should contain the path of the BROCCOLI installation. Using bash, it can for example be set by
 
 \begin{verbatim}
-export BROCCOLI_DIR=/home/andek/BROCCOLI/code/Bash_Wrapper/
+export BROCCOLI_DIR=/home/andek/BROCCOLI/
 \end{verbatim}
 
-Note that the path should end with a "/" character. To make the change permanent, add the expression to your configuration file (e.g. /home/andek/.bash\_profile). It may also be a good idea to add the BROCCOLI path to your local PATH variable, e.g.
+Note that the path should end with a "/" character. To make the change permanent, add the expression to your configuration file (e.g. /home/andek/.bash\_profile). It may also be a good idea to add the BROCCOLI path to your local PATH variable, e.g. for Linux
 
 \begin{verbatim}
-export PATH=$PATH:/home/andek/BROCCOLI/code/Bash_Wrapper/
+export PATH=$PATH:/home/andek/BROCCOLI/compiled/Bash/Linux/Release
+\end{verbatim}
+
+and for Mac
+
+\begin{verbatim}
+export PATH=$PATH:/home/andek/BROCCOLI/compiled/Bash/Mac/Release
 \end{verbatim}
 
 
@@ -183,26 +193,38 @@ For the test computer used in the introduction, this means that the analysis run
 
 \section{Compiling the OpenCL kernel code}
 
-The file broccoli\_lib\_kernel.cpp contains all the OpenCL code that runs on the selected device. The first time BROCCOLI uses a specific device, it has to compile all the OpenCL code to a form that can be used by the device. For this reason, the first function call will take more time. The compiled code will however be saved as a binary file (for Linux and Mac computers in the Bash\_wrapper directory), such that BROCCOLI can simply read the compiled code for all subsequent function calls. For our specific test computer, BROCCOLI will produce the following binary files
+The files kernelBayesian.cpp, kernelClusterize.cpp, kernelConvolution.cpp, kernelMisc.cpp, kernelRegistration.cpp, kernelStatistics1.cpp, kernelStatistics2.cpp and kernelWhitening.cpp (in the directory BROCCOLI/code/Kernels) contain all the OpenCL code that runs on the selected device. The first time BROCCOLI uses a specific device, it has to compile all the OpenCL code to a form that can be used by the device. For this reason, the first function call will take more time. The compiled code will, however, be saved as binary files (for Linux and Mac computers in the BROCCOLI/compiled/Kernels directory), such that BROCCOLI can simply read the compiled code for all subsequent function calls. For our specific test computer, BROCCOLI will for example produce the following binary files for the Nvidia device
 
 \begin{verbatim}
-broccoli_lib_kernel_Intel_Intel(R)Core(TM)i7-3770KCPU@3.50GHz.bin
-broccoli_lib_kernel_AMD_Intel(R)Core(TM)i7-3770KCPU@3.50GHz.bin 
-broccoli_lib_kernel_AMD_Tahiti.bin
-broccoli_lib_kernel_Nvidia_GeForceGTXTITAN.bin
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Bayesian.bin
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Clusterize.bin 
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Convolution.bin
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Misc.bin 
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Registration.bin
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Statistics1.bin
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Statistics2.bin
+broccoli_lib_kernel_Nvidia_GeForceGTXTITAN_Whitening.bin
 \end{verbatim}
 
+If compilation of a kernel file fails, some information will be given in the corresponding build info file (e.g. buildInfo\_Nvidia\_GeForceGTXTITAN\_Convolution.txt) in the directory BROCCOLI/compiled/Kernels. 
 
 \section{Compiling the BROCCOLI library}
 
-BROCCOLI is written as a C++/OpenCL library, such that it can be linked to a number of softwares. To compile the BROCCOLI library on a Linux computer, the following command
-can be used from the folder BROCCOLI/code/BROCCOLI\_LIB (where BROCCOLI denotes where you saved BROCCOLI from github).
+BROCCOLI is written as a C++/OpenCL library, such that it can be linked to a number of softwares. Precompiled versions of the BROCCOLI library are located in BROCCOLI/compiled/BROCCOLI\_LIB/Linux and in BROCCOLI/compiled/BROCCOLI\_LIB/Mac . To compile the BROCCOLI library, it is necessary to first install an OpenCL SDK. For Intel, the OpenCL SDK (code builder) can be downloaded from
+
+https://software.intel.com/en-us/articles/opencl-drivers 
+
+and for Linux also from
+
+https://dl.dropboxusercontent.com/u/4494604/intel\_code\_builder\_for\_opencl\_2015\_5.0.0.62\_x64.tar
+
+To compile the BROCCOLI library on a Linux computer, the following command can be used from the directory BROCCOLI/code/BROCCOLI\_LIB 
 
 \begin{verbatim}
  ./compile_broccoli_library.sh 
 \end{verbatim}
 
-Note that you first need to install an OpenCL SDK to be able to compile the library. Also note that you may need to edit compile\_broccoli\_library.sh to point to a directory which contains opencl.h. 
+Note that you may need to edit compile\_broccoli\_library.sh to point to a directory which contains opencl.h. 
 
 For Mac, the BROCCOLI library can be compiled by using a similar bash script
 
@@ -210,11 +232,15 @@ For Mac, the BROCCOLI library can be compiled by using a similar bash script
  ./compile_broccoli_library_mac.sh 
 \end{verbatim}
 
+In these scripts it is easy to change the compilation mode from release to debug.
+
 On Windows computers, the BROCCOLI library can for example be compiled using Microsoft Visual Studio. Visual Studio project files are available in BROCCOLI/code/BROCCOLI\_LIB. 
 
 \section{Compiling the bash wrappers}
 
-It is possible to run BROCCOLI in a number of ways, for example from a Matlab terminal or from a Python terminal. The fMRI software packages FSL and AFNI can be launched from a Linux terminal, and BROCCOLI includes a bash wrapper for this purpose. The following bash script can be used to compile the bash wrappers (available in BROCCOLI/code/Bash\_Wrapper)
+It is possible to run BROCCOLI in a number of ways, for example from a Matlab terminal or from a Python terminal. The fMRI software packages FSL and AFNI can be launched from a Linux terminal, and BROCCOLI includes a bash wrapper for this purpose. Precompiled versions of the bash functions are located in BROCCOLI/compiled/Bash/Linux and in BROCCOLI/compiled/Bash/Mac .
+
+The following bash script can be used to compile the bash wrappers (available in BROCCOLI/code/Bash\_Wrapper)
 
 \begin{verbatim}
  ./compile_wrappers.sh 
@@ -226,9 +252,23 @@ Similarly, the following script can be used for Mac
  ./compile_wrappers_mac.sh 
 \end{verbatim}
 
-Since BROCCOLI uses the NIfTI library to read NIfTI files, it may be necessary to first compile the NIfTI library, by running make in the folder BROCCOLI/code/Bash\_Wrapper/nifticlib-2.0.0.
+In these scripts it is easy to change the compilation mode from release to debug. Since BROCCOLI uses the NIfTI library to read NIfTI files, it may be necessary to first compile the NIfTI library, by running make in the directory BROCCOLI/code/Bash\_Wrapper/nifticlib-2.0.0.
 
-For Linux computers running Ubuntu, it may be necessary to first install the zlib development files (for support of compressed files like *.nii.gz).
+\section{Required libraries}
+
+For Linux computers, it may be necessary to first install some additional development libraries, to be able to compile the BROCCOLI library.
+
+\begin{verbatim}
+yum -y install libXp.x86_64
+
+yum -y install libXpm.x86_64
+
+yum -y install libXmu.x86_64
+ 
+yum -y install gcc-c++
+ 
+yum -y install zlib-devel
+\end{verbatim}
 
 \begin{verbatim}
 sudo apt-get install zlib1g-dev
