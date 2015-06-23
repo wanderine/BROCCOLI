@@ -4,8 +4,8 @@
 AMD=0
 INTEL=1
 NVIDIA=2
-#OPENCL_PACKAGE=$INTEL
-OPENCL_PACKAGE=$AMD
+OPENCL_PACKAGE=$INTEL
+#OPENCL_PACKAGE=$AMD
 
 # Set compilation mode to use
 RELEASE=0
@@ -52,9 +52,9 @@ ar rcs libBROCCOLI_LIB.a broccoli_lib.o
 
 # Move to correct folder
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
-    mv libBROCCOLI_LIB.a Compiled/Linux/Release
+    mv libBROCCOLI_LIB.a ${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Linux/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
-    mv libBROCCOLI_LIB.a Compiled/Linux/Debug
+    mv libBROCCOLI_LIB.a ${BROCCOLI_GIT_DIRECTORY}/compiled/BROCCOLI_LIB/Linux/Debug
 else
     echo "Unknown compilation mode"
 fi
