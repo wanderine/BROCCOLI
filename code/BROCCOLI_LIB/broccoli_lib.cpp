@@ -982,6 +982,8 @@ bool BROCCOLI_LIB::SaveProgramBinary(cl_device_id device, std::string filename, 
 		delete [] programBinaries[i];
 	}
 	delete [] programBinaries;
+
+	return true;
 }
 
 
@@ -1075,7 +1077,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 	if (error != SUCCESS)
 	{
-		INITIALIZATION_ERROR = "Unable to create an OpenCL context.";
+		INITIALIZATION_ERROR = "Unable to create an OpenCL context for the selected device.";
 		OPENCL_ERROR = GetOpenCLErrorMessage(error);
 		return false;
 	}
@@ -1085,7 +1087,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 	if (error != SUCCESS)
 	{
-		INITIALIZATION_ERROR = "Unable to get size of platform name.";
+		INITIALIZATION_ERROR = "Unable to get size of name for selected OpenCL platform.";
 		OPENCL_ERROR = GetOpenCLErrorMessage(error);		
 		return false;
 	}
@@ -1096,13 +1098,13 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 	if (error != SUCCESS)
 	{
-		INITIALIZATION_ERROR = "Unable to get name of specified OpenCL platform.";
+		INITIALIZATION_ERROR = "Unable to get name of selected OpenCL platform.";
 		OPENCL_ERROR = GetOpenCLErrorMessage(error);
 		free(value);
 		return false;
 	}
 
-	// Convert to string
+	// Convert name to string
 	std::string vendor_string(value);
 	free(value);
 
@@ -1196,6 +1198,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 		}
 	}
 
+	// Get the location of the compiled kernels
 	std::string binaryPathAndFileName;
 	if (WRAPPER == BASH)
 	{
@@ -1204,7 +1207,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	}
 	binaryPathAndFilename.append(binaryFilename);
 
-	// First try to compile from binary file for the selected device
+	// First try to compile from binary file for the selected device and platform
 	CreateProgramFromBinary(context, deviceIds[OPENCL_DEVICE], binaryPathAndFilename);
 	
 	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
@@ -1234,6 +1237,8 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	}
 
 	// Otherwise compile from source code
+
+	// Get the location of the OpenCL kernel code
 	std::string OpenCLPath;
 	if (WRAPPER == BASH)
 	{	
@@ -1335,14 +1340,6 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 				buildInfo[k] = std::string("No build info available, since create program error occured");
 			}
 
-			/*
-			if (error != SUCCESS)
-			{
-				INITIALIZATION_ERROR = "Unable to create program with source.";
-				OPENCL_ERROR = GetOpenCLErrorMessage(error);			
-			}
-			*/
-
 			// If successful build, save each program as a binary file
 			if (sourceBuildProgramErrors[k] == CL_SUCCESS)
 			{
@@ -1354,80 +1351,6 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			buildInfo[k] = std::string("Kernel was successfully built from binary!");
 		}
 	}
-
-
-	/*
-	// Otherwise compile from source code, short version
-	if (buildProgramError != SUCCESS)
-	{
-		if (WRAPPER == BASH)
-		{
-			printf("Warning! Compilation of broccoli_lib_kernel.cpp failed, trying with broccoli_lib_kernel_short.cpp instead!\n");
-		}
-
-		// Check if kernel file exists
-		std::ifstream file(OpenCLPathAndSourcenameShort.c_str());
-		if ( !file.good() )
-		{
-			INITIALIZATION_ERROR = "Unable to open broccoli_lib_kernel_short.cpp.";
-			OPENCL_ERROR = "";
-			return false;
-		}
-
-		// Read the kernel code from file
-		std::fstream kernelFile(OpenCLPathAndSourcenameShort.c_str(),std::ios::in);
-
-		std::ostringstream oss;
-		oss << kernelFile.rdbuf();
-		std::string src = oss.str();
-		const char *srcstr = src.c_str();
-
-		// Create program and build the code for the selected device
-		program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &error);
-
-		if (error != SUCCESS)
-		{
-			INITIALIZATION_ERROR = "Unable to create program with source.";
-			OPENCL_ERROR = GetOpenCLErrorMessage(error);			
-		}
-
-		if (VENDOR == NVIDIA)
-		{
-			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
-		}
-		else
-		{
-			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
-		}
-
-		// If successful build, save to binary file
-		if (buildProgramError == SUCCESS)
-		{
-			SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename,k);
-		}
-	}
-	*/
-
-	/*
-	buildProgramError = SUCCESS;
-	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
-	{
-		if (buildProgramErrors[k] != SUCCESS]
-		{
-			buildProgramError = FAIL;
-			break;
-		}
-	}
-
-	
-	if (buildProgramError != SUCCESS)
-	{
-		INITIALIZATION_ERROR = "Unable build OpenCL program from binary or source.";
-		OPENCL_ERROR = GetOpenCLErrorMessage(buildProgramError);
-		return false;
-	}
-	*/
-
 
 	// Get some info about the selected device
 
@@ -4573,7 +4496,7 @@ void BROCCOLI_LIB::NonseparableConvolution3D(cl_mem d_q1,
 	clSetKernelArg(NonseparableConvolution3DComplexThreeFiltersKernel, 12, sizeof(int), &DATA_H);
 	clSetKernelArg(NonseparableConvolution3DComplexThreeFiltersKernel, 13, sizeof(int), &DATA_D);
 
-	// Reset filter responses
+	// Reset complex valued filter responses
 	SetMemoryFloat2(d_q1, 0.0f, DATA_W * DATA_H * DATA_D);
 	SetMemoryFloat2(d_q2, 0.0f, DATA_W * DATA_H * DATA_D);
 	SetMemoryFloat2(d_q3, 0.0f, DATA_W * DATA_H * DATA_D);
@@ -4624,7 +4547,7 @@ void BROCCOLI_LIB::SetMemoryFloat2(cl_mem memory, float value, int N)
 }
 
 
-// This function is used by all Linear registration functions, to setup necessary parameters
+// This function is used by all linear registration functions, to setup necessary parameters
 void BROCCOLI_LIB::AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D)
 {
 	// Set global and local work sizes

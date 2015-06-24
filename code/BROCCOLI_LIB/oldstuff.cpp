@@ -4537,3 +4537,77 @@ void BROCCOLI_LIB::ClusterizeOpenCLWrapper3()
 
 
 
+
+/*
+	// Otherwise compile from source code, short version
+	if (buildProgramError != SUCCESS)
+	{
+		if (WRAPPER == BASH)
+		{
+			printf("Warning! Compilation of broccoli_lib_kernel.cpp failed, trying with broccoli_lib_kernel_short.cpp instead!\n");
+		}
+
+		// Check if kernel file exists
+		std::ifstream file(OpenCLPathAndSourcenameShort.c_str());
+		if ( !file.good() )
+		{
+			INITIALIZATION_ERROR = "Unable to open broccoli_lib_kernel_short.cpp.";
+			OPENCL_ERROR = "";
+			return false;
+		}
+
+		// Read the kernel code from file
+		std::fstream kernelFile(OpenCLPathAndSourcenameShort.c_str(),std::ios::in);
+
+		std::ostringstream oss;
+		oss << kernelFile.rdbuf();
+		std::string src = oss.str();
+		const char *srcstr = src.c_str();
+
+		// Create program and build the code for the selected device
+		program = clCreateProgramWithSource(context, 1, (const char**)&srcstr , NULL, &error);
+
+		if (error != SUCCESS)
+		{
+			INITIALIZATION_ERROR = "Unable to create program with source.";
+			OPENCL_ERROR = GetOpenCLErrorMessage(error);			
+		}
+
+		if (VENDOR == NVIDIA)
+		{
+			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], "-cl-nv-verbose", NULL, NULL);
+		}
+		else
+		{
+			buildProgramError = clBuildProgram(program, 1, &deviceIds[OPENCL_DEVICE], NULL, NULL, NULL);
+		}
+
+		// If successful build, save to binary file
+		if (buildProgramError == SUCCESS)
+		{
+			SaveProgramBinary(deviceIds[OPENCL_DEVICE],binaryPathAndFilename,k);
+		}
+	}
+	*/
+
+	/*
+	buildProgramError = SUCCESS;
+	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
+	{
+		if (buildProgramErrors[k] != SUCCESS]
+		{
+			buildProgramError = FAIL;
+			break;
+		}
+	}
+
+	
+	if (buildProgramError != SUCCESS)
+	{
+		INITIALIZATION_ERROR = "Unable build OpenCL program from binary or source.";
+		OPENCL_ERROR = GetOpenCLErrorMessage(buildProgramError);
+		return false;
+	}
+	*/
+
+
