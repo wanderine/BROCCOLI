@@ -12654,8 +12654,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 	int one = 1;
 
 	// Cochrane-Orcutt procedure, iterate
-	//for (int it = 0; it < iterations; it++)
-	for (int it = 0; it < 1; it++)
+	for (int it = 0; it < iterations; it++)
 	{
 		for (int slice = 0; slice < EPI_DATA_D; slice++)
 		{
