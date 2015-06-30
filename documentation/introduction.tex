@@ -179,6 +179,14 @@ and for Mac
 export PATH=$PATH:/home/andek/BROCCOLI/compiled/Bash/Mac/Release
 \end{verbatim}
 
+Some parts of BROCCOLI support OpenMP (open multi processing on the CPU), to speedup code not written in OpenCL. The number of OpenMP threads can, for example, be set using
+
+\begin{verbatim}
+export OMP_NUM_THREADS=4
+\end{verbatim}
+
+to run 4 threads in parallel. If this variable is not defined, the default is to use a single CPU thread.
+
 
 \section{Selecting the OpenCL platform and device}
 
@@ -256,7 +264,7 @@ In these scripts it is easy to change the compilation mode from release to debug
 
 \section{Required libraries}
 
-For Linux computers, it may be necessary to first install some additional development libraries, to be able to compile the BROCCOLI library.
+For Linux computers, it may be necessary to install some development libraries, to be able to compile the BROCCOLI library.
 
 \begin{verbatim}
 yum -y install libXp.x86_64

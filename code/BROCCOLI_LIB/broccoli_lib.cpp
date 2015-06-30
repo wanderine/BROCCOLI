@@ -48,6 +48,7 @@
 
 #include <cstdlib>
 
+#define EIGEN_DONT_PARALLELIZE
 
 int mymax(int a, int b)
 {
@@ -151,6 +152,11 @@ void BROCCOLI_LIB::SetPrint(bool print)
 void BROCCOLI_LIB::SetVerbose(bool verbos)
 {
 	VERBOS = verbos;
+}
+
+void BROCCOLI_LIB::SetAllocatedHostMemory(unsigned long int allocated)
+{
+	allocatedHostMemory = allocated;
 }
 
 void BROCCOLI_LIB::SetDoAllPermutations(bool doall)
@@ -709,6 +715,15 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 			// Get global memory size
 			clGetDeviceInfo(deviceIds[j], CL_DEVICE_GLOBAL_MEM_SIZE, sizeof(memorySize), &memorySize, NULL);            
 			deviceInfo.append("Global memory size in MB: ");
+			temp_stream.str("");
+			temp_stream.clear();
+			temp_stream << memorySize/ (1024*1024);            
+			deviceInfo.append(temp_stream.str());
+			deviceInfo.append("\n");
+
+			// Get size of largest memory object that can be allocated
+			clGetDeviceInfo(deviceIds[j], CL_DEVICE_MAX_MEM_ALLOC_SIZE, sizeof(memorySize), &memorySize, NULL);            
+			deviceInfo.append("Size of largest memory object in MB: ");
 			temp_stream.str("");
 			temp_stream.clear();
 			temp_stream << memorySize/ (1024*1024);            
@@ -4601,24 +4616,24 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearSetup(int DATA_W, int DATA_H, int DATA_D
 	d_h_Vector_2D_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_H * DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), NULL, &createBufferErrorHVector2DValues);
 	d_h_Vector_1D_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float), NULL, &createBufferErrorHVector1DValues);
 
-	memoryAllocations += 18;
+	deviceMemoryAllocations += 18;
 
 	// original, aligned, reference
-	allocatedMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
+	allocatedDeviceMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
 
 	// filter responses, 6 complex valued
-	allocatedMemory += 12 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory += 12 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// phase differences, phase certainties, phase gradients
-	allocatedMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// A-matrix and h-vector
-	allocatedMemory += NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-	allocatedMemory += NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-	allocatedMemory += DATA_H * DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
-	allocatedMemory += DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
-	allocatedMemory += DATA_H * DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-	allocatedMemory += DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory += NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory += NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory += DATA_H * DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
+	allocatedDeviceMemory += DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
+	allocatedDeviceMemory += DATA_H * DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory += DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
 
 	// Allocate constant memory
 
@@ -4994,25 +5009,25 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearSetup(int DATA_W, int DATA_H, int DAT
 
 	//d_Update_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE,  DATA_W * DATA_H * DATA_D * sizeof(float), NULL, &createBufferErrorPhaseCertainties);
 
-	memoryAllocations += 36;
+	deviceMemoryAllocations += 36;
 
 	// original, aligned, reference
-	allocatedMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
+	allocatedDeviceMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
 
 	// filter responses, 12 complex valued
-	allocatedMemory += 24 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory += 24 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// tensor components, 6 
-	allocatedMemory += 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory += 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// A-values
-	allocatedMemory += 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory += 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// h-values
-	allocatedMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// displacement fields
-	allocatedMemory += 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory += 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// Allocate constant memory
 
@@ -5589,25 +5604,25 @@ void BROCCOLI_LIB::AlignTwoVolumesNonLinearCleanup(int DATA_W, int DATA_H, int D
 	clReleaseMemObject(d_Temp_Displacement_Field_Y);
 	clReleaseMemObject(d_Temp_Displacement_Field_Z);
 
-	memoryDeallocations += 36;
+	deviceMemoryDeallocations += 36;
 
 	// original, aligned, reference
-	allocatedMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
+	allocatedDeviceMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
 
 	// filter responses, 12 complex valued
-	allocatedMemory -= 24 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 24 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// tensor components, 6 
-	allocatedMemory -= 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// A-values
-	allocatedMemory -= 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// h-values
-	allocatedMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// displacement fields
-	allocatedMemory -= 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 6 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	clReleaseMemObject(c_Quadrature_Filter_1_Real);
 	clReleaseMemObject(c_Quadrature_Filter_1_Imag);
@@ -6185,24 +6200,24 @@ void BROCCOLI_LIB::AlignTwoVolumesLinearCleanup(int DATA_W, int DATA_H, int DATA
 
 	clReleaseMemObject(c_Registration_Parameters);
 
-	memoryDeallocations += 18;
+	deviceMemoryDeallocations += 18;
 
 	// original, aligned, reference
-	allocatedMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
+	allocatedDeviceMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float); 
 
 	// filter responses, 6 complex valued
-	allocatedMemory -= 12 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 12 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// phase differences, phase certainties, phase gradients
-	allocatedMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	// A-matrix and h-vector
-	allocatedMemory -= NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-	allocatedMemory -= NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-	allocatedMemory -= DATA_H * DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
-	allocatedMemory -= DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
-	allocatedMemory -= DATA_H * DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-	allocatedMemory -= DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory -= NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory -= NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory -= DATA_H * DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
+	allocatedDeviceMemory -= DATA_D * NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS * sizeof(float);
+	allocatedDeviceMemory -= DATA_H * DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+	allocatedDeviceMemory -= DATA_D * NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
 }
 
 
@@ -7533,22 +7548,28 @@ void BROCCOLI_LIB::PrintMemoryStatus(const char* text)
 	{
 		printf("\n");
 		printf("Code location is %s \n",text);
-		//printf("Number of memory allocations is %i  \n",memoryAllocations);
-		//printf("Number of memory deallocations is %i  \n",memoryDeallocations);
-		printf("Total allocated memory is %i MB  \n",allocatedMemory/1024/1024);
+		//printf("Number of memory allocations is %i  \n",deviceMemoryAllocations);
+		//printf("Number of memory deallocations is %i  \n",deviceMemoryDeallocations);
+		printf("Total allocated device memory is %lu MB  \n",(unsigned long)(allocatedDeviceMemory/1024/1024));
+		printf("Total allocated host memory is %lu MB  \n",(unsigned long)(allocatedHostMemory/1024/1024));
 		printf("\n");
 	}
 }
 
 void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 {
+	Eigen::initParallel();
+
+	deviceMemoryAllocations = 0;
+	deviceMemoryDeallocations = 0;
+	allocatedDeviceMemory = 0;
+
 	// Save the first untouched fMRI volume, to be used for fMRI-T1 registration later (if needed)
 	float* h_Temp_fMRI_Volume = (float*)malloc(EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float));
 	memcpy(h_Temp_fMRI_Volume, h_fMRI_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float));
 
-	memoryAllocations = 0;
-	memoryDeallocations = 0;
-	allocatedMemory = 0;
+	hostMemoryAllocations += 1;
+	allocatedHostMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
 	//---------------------------------------------------------------------------------------------------------------------------------------
 	// T1-MNI registration
@@ -7565,9 +7586,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	d_MNI_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_Skullstripped_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
-	memoryAllocations += 4;
-	allocatedMemory += T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
-	allocatedMemory += 3 * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+	deviceMemoryAllocations += 4;
+	allocatedDeviceMemory += T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+	allocatedDeviceMemory += 3 * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
 
 	PrintMemoryStatus("Before T1-MNI registration");
 
@@ -7594,9 +7615,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_MNI_Brain_Volume);
 	clReleaseMemObject(d_T1_Volume);
 
-	memoryDeallocations += 2;
-	allocatedMemory -= MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
-	allocatedMemory -= T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+	deviceMemoryDeallocations += 2;
+	allocatedDeviceMemory -= MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+	allocatedDeviceMemory -= T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
 
 	PrintMemoryStatus("After T1-MNI registration");
 
@@ -7613,9 +7634,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
-	memoryAllocations += 2;
-	allocatedMemory += MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	deviceMemoryAllocations += 2;
+	allocatedDeviceMemory += MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
 	PrintMemoryStatus("Before EPI-T1 registration");
 
@@ -7642,10 +7663,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	clReleaseMemObject(d_EPI_Volume);
 	clReleaseMemObject(d_T1_EPI_Volume);
 
-	allocatedMemory -= 3 * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
-	allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 3 * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
-	memoryDeallocations += 4;
+	deviceMemoryDeallocations += 4;
 
 	PrintMemoryStatus("After EPI-T1 registration");
 
@@ -7758,8 +7779,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
-	memoryAllocations += 1;
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	deviceMemoryAllocations += 1;
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
 	SegmentEPIData();
 
@@ -7774,8 +7795,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
-	memoryAllocations += 1;
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	deviceMemoryAllocations += 1;
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
 	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
 	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
@@ -7822,24 +7843,24 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		d_Whitened_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
 		d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
 
-		memoryAllocations += 3;
-		allocatedMemory += 3 * EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float);
+		deviceMemoryAllocations += 3;
+		allocatedDeviceMemory += 3 * EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float);
 
 		d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 		d_Contrast_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 		d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 		d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
-		memoryAllocations += 4;
-		allocatedMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS + NUMBER_OF_CONTRASTS + 1) * sizeof(float);
+		deviceMemoryAllocations += 4;
+		allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS + NUMBER_OF_CONTRASTS + 1) * sizeof(float);
 
 		d_AR1_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 		d_AR2_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 		d_AR3_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 		d_AR4_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
-		memoryAllocations += 4;
-		allocatedMemory += 4 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+		deviceMemoryAllocations += 4;
+		allocatedDeviceMemory += 4 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
 		PrintMemoryStatus("Before GLM");
 
@@ -7911,9 +7932,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 			d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
 
-			memoryAllocations += 3;
-			allocatedMemory += 2 * T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
-			allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+			deviceMemoryAllocations += 3;
+			allocatedDeviceMemory += 2 * T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+			allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
 			// Copy original T1 volume to device
 			clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
@@ -7929,9 +7950,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			clReleaseMemObject(d_EPI_Volume);
 			clReleaseMemObject(d_T1_EPI_Volume);
 
-			allocatedMemory -= 2 * T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
-			allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-			memoryDeallocations += 3;
+			allocatedDeviceMemory -= 2 * T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+			allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+			deviceMemoryDeallocations += 3;
 
 			TransformFirstLevelResultsToT1(true);
 		}
@@ -7974,7 +7995,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			// Need to keep all whitened and permuted volumes in memory at the same time
 			cl_ulong totalRequiredMemory = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float) * 2;
 
-			if ( ((totalRequiredMemory + (cl_ulong)allocatedMemory) / (1024*1024)) > globalMemorySize)
+			if ( ((totalRequiredMemory + (cl_ulong)allocatedDeviceMemory) / (1024*1024)) > globalMemorySize)
 			{
 				if ((WRAPPER == BASH))
 				{
@@ -8007,10 +8028,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 					d_TFCE_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
 					d_P_Values = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	
-					memoryAllocations += 6;
-					allocatedMemory += 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
-					allocatedMemory += 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
-					allocatedMemory += 1 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(int);
+					deviceMemoryAllocations += 6;
+					allocatedDeviceMemory += 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+					allocatedDeviceMemory += 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
+					allocatedDeviceMemory += 1 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(int);
 
 					c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(unsigned short int), NULL, NULL);
 					c_Permutation_Distribution = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_PERMUTATIONS * sizeof(float), NULL, NULL);
@@ -8023,8 +8044,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 					// Free temporary memory
 					clReleaseMemObject(d_Temp_fMRI_Volumes_1);
 					clReleaseMemObject(d_Temp_fMRI_Volumes_2);
-					allocatedMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
-					memoryDeallocations += 2;
+					allocatedDeviceMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+					deviceMemoryDeallocations += 2;
 
 					// Calculate activity map without Cochrane-Orcutt
 					CalculateStatisticalMapsGLMTTestFirstLevelSlices(h_fMRI_Volumes,0);
@@ -8052,9 +8073,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 					clReleaseMemObject(d_TFCE_Values);
 					clReleaseMemObject(d_P_Values);
 
-					memoryDeallocations += 4;					
-					allocatedMemory -= 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
-					allocatedMemory -= 1 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(int);
+					deviceMemoryDeallocations += 4;					
+					allocatedDeviceMemory -= 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
+					allocatedDeviceMemory -= 1 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(int);
 	
 					clReleaseMemObject(c_Permutation_Vector);
 					clReleaseMemObject(c_Permutation_Distribution);
@@ -8084,24 +8105,24 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clReleaseMemObject(d_Whitened_fMRI_Volumes);
 		clReleaseMemObject(d_Residuals);
 
-		allocatedMemory -= 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
-		memoryDeallocations += 3;
+		allocatedDeviceMemory -= 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
+		deviceMemoryDeallocations += 3;
 
 		clReleaseMemObject(d_Beta_Volumes);
 		clReleaseMemObject(d_Contrast_Volumes);
 		clReleaseMemObject(d_Statistical_Maps);
 		clReleaseMemObject(d_Residual_Variances);
 
-		allocatedMemory -= (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS + NUMBER_OF_CONTRASTS + 1) * sizeof(float);
-		memoryDeallocations += 4;
+		allocatedDeviceMemory -= (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS + NUMBER_OF_CONTRASTS + 1) * sizeof(float);
+		deviceMemoryDeallocations += 4;
 
 		clReleaseMemObject(d_AR1_Estimates);
 		clReleaseMemObject(d_AR2_Estimates);
 		clReleaseMemObject(d_AR3_Estimates);
 		clReleaseMemObject(d_AR4_Estimates);
 
-		allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 4 * sizeof(float);
-		memoryDeallocations += 4;
+		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 4 * sizeof(float);
+		deviceMemoryDeallocations += 4;
 
 		PrintMemoryStatus("After GLM");
 	}
@@ -8123,8 +8144,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 6 * sizeof(float), NULL, NULL);
 		d_AR1_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
-		memoryAllocations += 3;
-		allocatedMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(10 + 6 + 1) * sizeof(float);
+		deviceMemoryAllocations += 3;
+		allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(10 + 6 + 1) * sizeof(float);
 
 		PrintMemoryStatus("Before Bayesian GLM");
 
@@ -8189,9 +8210,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clReleaseMemObject(d_Statistical_Maps);
 		clReleaseMemObject(d_AR1_Estimates);
 
-		allocatedMemory -= (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(10  + 6) * sizeof(float);
-		allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-		memoryDeallocations += 3;
+		allocatedDeviceMemory -= (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(10  + 6) * sizeof(float);
+		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+		deviceMemoryDeallocations += 3;
 
 		PrintMemoryStatus("After Bayesian GLM");
 	}
@@ -8267,12 +8288,14 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	clReleaseMemObject(d_EPI_Mask);
 	clReleaseMemObject(d_Smoothed_EPI_Mask);
-	allocatedMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-	memoryDeallocations += 2;
-
-	PrintMemoryStatus("After deallocating masks");
+	allocatedDeviceMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	deviceMemoryDeallocations += 2;
 
 	free(h_Temp_fMRI_Volume);
+	allocatedHostMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	hostMemoryDeallocations += 1;
+
+	PrintMemoryStatus("After deallocating masks");
 }
 
 
@@ -8924,8 +8947,8 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionHost(float* h_Volumes)
 	cl_mem d_Temp_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float), NULL, NULL);
 	cl_mem d_Temp_Volumes_Corrected = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float), NULL, NULL);	
 
-	memoryAllocations += 2;
-	allocatedMemory += 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
+	deviceMemoryAllocations += 2;
+	allocatedDeviceMemory += 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
 
 	PrintMemoryStatus("Inside slice timing correction host");
 
@@ -9048,8 +9071,8 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionHost(float* h_Volumes)
 	clReleaseMemObject(d_Temp_Volumes);
 	clReleaseMemObject(d_Temp_Volumes_Corrected);
 
-	memoryDeallocations += 2;
-	allocatedMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
+	deviceMemoryDeallocations += 2;
+	allocatedDeviceMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
 
 	free(h_Slice_Differences);
 }
@@ -10199,8 +10222,8 @@ void BROCCOLI_LIB::PerformSmoothingNormalizedHost(float* h_Volumes,
 	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, DATA_W * DATA_H * DATA_D * sizeof(float), NULL, NULL);
 
-	memoryAllocations += 3;
-	allocatedMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	deviceMemoryAllocations += 3;
+	allocatedDeviceMemory += 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
 
 	PrintMemoryStatus("Inside smoothing normalized host");
 
@@ -10266,8 +10289,8 @@ void BROCCOLI_LIB::PerformSmoothingNormalizedHost(float* h_Volumes,
 	clReleaseMemObject(d_Convolved_Rows);
 	clReleaseMemObject(d_Convolved_Columns);
 
-	memoryDeallocations += 3;
-	allocatedMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
+	deviceMemoryDeallocations += 3;
+	allocatedDeviceMemory -= 3 * DATA_W * DATA_H * DATA_D * sizeof(float);
 }
 
 
@@ -10868,7 +10891,7 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 	clFinish(commandQueue);
 
 	// d_xtxxt_GLM now contains X_GLM and not xtxxt_GLM ...
-	WhitenDesignMatricesFTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM_In, h_Contrasts_In, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
+	WhitenDesignMatricesFTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM_In, h_Contrasts_In, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
 
 	// Finally calculate statistical maps using whitened model and whitened data
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
@@ -11576,9 +11599,49 @@ void BROCCOLI_LIB::PerformGLMFTestSecondLevelPermutationWrapper()
 }
 
 // Generates a number (index) for each brain voxel, for storing design matrices for brain voxels only
-void BROCCOLI_LIB::CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D)
+void BROCCOLI_LIB::CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D)
 {
 	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+
+	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
+
+	float voxel_number = 0.0f;
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				h_Voxel_Numbers[x + y * DATA_W + z * DATA_W * DATA_H] = 0.0f;
+				if ( h_Mask[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+				{
+					h_Voxel_Numbers[x + y * DATA_W + z * DATA_W * DATA_H] = voxel_number;
+					voxel_number += 1.0f;
+				}
+			}
+		}
+	}
+
+	NUMBER_OF_BRAIN_VOXELS = (int)voxel_number;
+
+	if ((WRAPPER == BASH) && VERBOS)
+	{
+		printf("\nThe number of brain voxels is %i \n",NUMBER_OF_BRAIN_VOXELS);
+	}
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
+
+	free(h_Voxel_Numbers);
+	free(h_Mask);
+}
+
+
+// Generates a number (index) for each brain voxel, for storing design matrices for brain voxels only, for one slice
+void BROCCOLI_LIB::CreateVoxelNumbersSlice(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D)
+{
+	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * sizeof(float));
 	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
 
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
@@ -11612,6 +11675,7 @@ void BROCCOLI_LIB::CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int
 }
 
 
+
 // Applies whitening to design matrix, different for each voxel, saves the pseudo inverse
 void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 		                                       float* h_X_GLM,
@@ -11620,6 +11684,129 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 		                                       cl_mem d_AR3_Estimates,
 		                                       cl_mem d_AR4_Estimates,
 		                                       cl_mem d_Mask,
+											   cl_mem d_Voxel_Numbers,
+											   int DATA_W,
+		                                       int DATA_H,
+		                                       int DATA_D,
+		                                       int DATA_T,
+		                                       int NUMBER_OF_REGRESSORS,
+		                                       int NUMBER_OF_INVALID_TIMEPOINTS)
+{
+	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+
+	//float* h_xtxxt_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
+
+	// Map buffer to host memory, to for example avoid double the memory when using the CPU as device
+	float* h_xtxxt_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
+
+	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), d_Voxel_Numbers, 0, NULL, NULL);
+
+	// Copy AR parameters to host
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
+	
+
+	// Loop over voxels
+	#pragma omp parallel for
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				if ( h_Mask[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+				{
+					Eigen::MatrixXd X(DATA_T,NUMBER_OF_REGRESSORS);
+
+					// Get AR parameters for current voxel
+					float AR1 = h_AR1_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR2 = h_AR2_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR3 = h_AR3_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR4 = h_AR4_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+
+					float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+
+					// Whiten original regressors
+					for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+					{
+					    old_value_1 = h_X_GLM[0 + r * DATA_T];
+						X(0,r) = old_value_1;
+						old_value_2 = h_X_GLM[1 + r * DATA_T];
+						X(1,r) = old_value_2  - AR1 * old_value_1;
+						old_value_3 = h_X_GLM[2 + r * DATA_T];
+						X(2,r) = old_value_3 - AR1 * old_value_2 - AR2 * old_value_1;
+						old_value_4 = h_X_GLM[3 + r * DATA_T];
+						X(3,r) = old_value_4 - AR1 * old_value_3 - AR2 * old_value_2 - AR3 * old_value_1;
+
+						for (int t = 4; t < DATA_T; t++)
+						{
+							old_value_5 = h_X_GLM[t + r * DATA_T];
+							X(t,r) = old_value_5 - AR1 * old_value_4 - AR2 * old_value_3 - AR3 * old_value_2 - AR4 * old_value_1;
+	
+							// Save old values
+							old_value_1 = old_value_2;
+							old_value_2 = old_value_3;
+							old_value_3 = old_value_4;
+							old_value_4 = old_value_5;
+						}
+					}
+
+					// Set invalid timepoints to 0 in the design matrix, since they affect the pseudo inverse
+					for (int t = 0; t < NUMBER_OF_INVALID_TIMEPOINTS; t++)
+					{
+						for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+						{
+							X(t,r) = 0.0;
+						}
+					}
+
+					// Calculate pseudo inverse in an ugly way
+					Eigen::MatrixXd xtx(NUMBER_OF_REGRESSORS,NUMBER_OF_REGRESSORS);
+					xtx = X.transpose() * X;
+					Eigen::MatrixXd inv_xtx = xtx.inverse();
+					Eigen::MatrixXd xtxxt = inv_xtx * X.transpose();
+
+					int voxel_number = h_Voxel_Numbers[x + y * DATA_W + z * DATA_W * DATA_H];
+
+					// Put whitened regressors into specific format, to copy to GPU
+					// (takes too much memory to store regressors for all voxels, so only store for brain voxels)
+					for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+					{
+						for (int t = 0; t < DATA_T; t++)
+						{
+							h_xtxxt_GLM_[voxel_number * NUMBER_OF_REGRESSORS * DATA_T + r * DATA_T + t] = xtxxt(r,t);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Copy data to device
+	//clEnqueueWriteBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_xtxxt_GLM_, 0, NULL, NULL);
+
+	// Unmap buffer
+	clEnqueueUnmapMemObject(commandQueue, d_xtxxt_GLM, h_xtxxt_GLM_, 0, NULL, NULL);
+
+	free(h_Mask);
+	//free(h_xtxxt_GLM_);
+	free(h_Voxel_Numbers);
+}
+
+
+// Applies whitening to design matrix, different for each voxel, saves the pseudo inverse, for one slice
+void BROCCOLI_LIB::WhitenDesignMatricesInverseSlice(cl_mem d_xtxxt_GLM,
+		                                       float* h_X_GLM,
+		                                       cl_mem d_AR1_Estimates,
+		                                       cl_mem d_AR2_Estimates,
+		                                       cl_mem d_AR3_Estimates,
+		                                       cl_mem d_AR4_Estimates,
+		                                       cl_mem d_Mask,
+											   cl_mem d_Voxel_Numbers,
 											   int slice,
 		                                       int DATA_W,
 		                                       int DATA_H,
@@ -11628,8 +11815,14 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 		                                       int NUMBER_OF_REGRESSORS,
 		                                       int NUMBER_OF_INVALID_TIMEPOINTS)
 {
+	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * sizeof(float));
+	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
+
 	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
-	float* h_xtxxt_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
+	//float* h_xtxxt_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
+
+	// Map buffer to host memory, to for example avoid double the memory when using the CPU as device
+	float* h_xtxxt_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
 
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
 
@@ -11639,8 +11832,9 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
+
 	// Loop over voxels
-	int voxel_number = 0;
+	#pragma omp parallel for
 	for (int y = 0; y < DATA_H; y++)
 	{
 		for (int x = 0; x < DATA_W; x++)
@@ -11697,6 +11891,8 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 				Eigen::MatrixXd inv_xtx = xtx.inverse();
 				Eigen::MatrixXd xtxxt = inv_xtx * X.transpose();
 
+				int voxel_number = h_Voxel_Numbers[x + y * DATA_W];
+
 				// Put whitened regressors into specific format, to copy to GPU
 				// (takes too much memory to store regressors for all voxels, so only store for brain voxels)
 				for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -11706,16 +11902,19 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 						h_xtxxt_GLM_[voxel_number * NUMBER_OF_REGRESSORS * DATA_T + r * DATA_T + t] = xtxxt(r,t);
 					}
 				}
-				voxel_number++;
 			}
 		}
 	}
 
 	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_xtxxt_GLM_, 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_xtxxt_GLM_, 0, NULL, NULL);
+
+	// Unmap buffer
+	clEnqueueUnmapMemObject(commandQueue, d_xtxxt_GLM, h_xtxxt_GLM_, 0, NULL, NULL);
 
 	free(h_Mask);
-	free(h_xtxxt_GLM_);
+	//free(h_xtxxt_GLM_);
+	free(h_Voxel_Numbers);
 }
 
 
@@ -11729,6 +11928,147 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 		                                	 cl_mem d_AR3_Estimates,
 		                                	 cl_mem d_AR4_Estimates,
 		                                	 cl_mem d_Mask,
+										 	 cl_mem d_Voxel_Numbers,											 
+		                                	 int DATA_W,
+		                                	 int DATA_H,
+		                                	 int DATA_D,
+		                                	 int DATA_T,
+		                                	 int NUMBER_OF_REGRESSORS,
+		                                	 int NUMBER_OF_INVALID_TIMEPOINTS,
+		                                	 int NUMBER_OF_CONTRASTS)
+{
+	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+	//float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
+	float* h_GLM_Scalars = (float*)malloc(DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float));
+	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+
+	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
+
+	float* h_X_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_X_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
+
+	// Copy AR parameters to host
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
+
+
+	// Loop over voxels	
+	#pragma omp parallel for
+	for (int z = 0; z < DATA_D; z++)
+	{
+		for (int y = 0; y < DATA_H; y++)
+		{
+			for (int x = 0; x < DATA_W; x++)
+			{
+				if ( h_Mask[x + y * DATA_W + z * DATA_W * DATA_H] == 1.0f )
+				{
+					Eigen::MatrixXd X(DATA_T,NUMBER_OF_REGRESSORS);
+
+					// Get AR parameters for current voxel
+					float AR1 = h_AR1_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR2 = h_AR2_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR3 = h_AR3_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+					float AR4 = h_AR4_Estimates_EPI[x + y * DATA_W + z * DATA_W * DATA_H];
+	
+					float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+
+					// Whiten original regressors
+					for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+					{
+					    old_value_1 = h_X_GLM[0 + r * DATA_T];
+						X(0,r) = old_value_1;
+						old_value_2 = h_X_GLM[1 + r * DATA_T];
+						X(1,r) = old_value_2  - AR1 * old_value_1;
+						old_value_3 = h_X_GLM[2 + r * DATA_T];
+						X(2,r) = old_value_3 - AR1 * old_value_2 - AR2 * old_value_1;
+						old_value_4 = h_X_GLM[3 + r * DATA_T];
+						X(3,r) = old_value_4 - AR1 * old_value_3 - AR2 * old_value_2 - AR3 * old_value_1;
+
+						for (int t = 4; t < DATA_T; t++)
+						{
+							old_value_5 = h_X_GLM[t + r * DATA_T];
+							X(t,r) = old_value_5 - AR1 * old_value_4 - AR2 * old_value_3 - AR3 * old_value_2 - AR4 * old_value_1;
+
+							// Save old values
+							old_value_1 = old_value_2;
+							old_value_2 = old_value_3;
+							old_value_3 = old_value_4;
+							old_value_4 = old_value_5;
+						}
+					}
+
+					// Set invalid timepoints to 0 in the design matrix
+					for (int t = 0; t < NUMBER_OF_INVALID_TIMEPOINTS; t++)
+					{
+						for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+						{
+							X(t,r) = 0.0;
+						}
+					}
+
+					// Calculate contrast scalars
+					Eigen::MatrixXd xtx(NUMBER_OF_REGRESSORS,NUMBER_OF_REGRESSORS);
+					xtx = X.transpose() * X;
+					Eigen::MatrixXd inv_xtx = xtx.inverse();
+
+					for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+					{
+						Eigen::MatrixXd Contrast(NUMBER_OF_REGRESSORS,1);
+	
+						for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+						{
+							Contrast(r) = (double)h_Contrasts[NUMBER_OF_REGRESSORS * c + r];
+						}
+	
+						Eigen::MatrixXd GLM_scalar = Contrast.transpose() * inv_xtx * Contrast;
+						h_GLM_Scalars[x + y * DATA_W + z * DATA_W * DATA_H + c * DATA_W * DATA_H * DATA_D] = GLM_scalar(0);
+					}
+
+					int voxel_number = h_Voxel_Numbers[x + y * DATA_W + z * DATA_W * DATA_H];
+
+					// Put whitened regressors into specific format, to copy to GPU
+					// (takes too much memory to store regressors for all voxels, so only store for brain voxels)
+					for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+					{
+						for (int t = 0; t < DATA_T; t++)
+						{
+							h_X_GLM_[voxel_number * NUMBER_OF_REGRESSORS * DATA_T + r * DATA_T + t] = X(t,r);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_X_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_GLM_Scalars, CL_TRUE, 0, DATA_W * DATA_H * NUMBER_OF_CONTRASTS * sizeof(float), h_GLM_Scalars, 0, NULL, NULL);
+
+	free(h_Mask);
+	//free(h_X_GLM_);
+	free(h_GLM_Scalars);
+	free(h_Voxel_Numbers);
+
+	// Unmap buffer
+	clEnqueueUnmapMemObject(commandQueue, d_X_GLM, h_X_GLM_, 0, NULL, NULL);
+}
+
+
+
+
+// Applies whitening to design matrix, different for each voxel, saves the whitened matrix, for one slice
+void BROCCOLI_LIB::WhitenDesignMatricesTTestSlice(cl_mem d_X_GLM,
+		                                	 cl_mem d_GLM_Scalars,
+		                                	 float* h_X_GLM,
+		                                	 float* h_Contrasts,
+		                                	 cl_mem d_AR1_Estimates,
+		                                	 cl_mem d_AR2_Estimates,
+		                                	 cl_mem d_AR3_Estimates,
+		                                	 cl_mem d_AR4_Estimates,
+		                                	 cl_mem d_Mask,
+										     cl_mem d_Voxel_Numbers,
 											 int slice,
 		                                	 int DATA_W,
 		                                	 int DATA_H,
@@ -11739,10 +12079,14 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 		                                	 int NUMBER_OF_CONTRASTS)
 {
 	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
-	float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
+	//float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 	float* h_GLM_Scalars = (float*)malloc(DATA_W * DATA_H * NUMBER_OF_CONTRASTS * sizeof(float));
+	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * sizeof(float));
+
+	float* h_X_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_X_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
 
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
 
 	// Copy AR parameters to host
 	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
@@ -11751,7 +12095,7 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 
 	// Loop over voxels
-	int voxel_number = 0;
+	#pragma omp parallel for
 	for (int y = 0; y < DATA_H; y++)
 	{
 		for (int x = 0; x < DATA_W; x++)
@@ -11820,6 +12164,8 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 					h_GLM_Scalars[x + y * DATA_W + c * DATA_W * DATA_H] = GLM_scalar(0);
 				}
 
+				int voxel_number = h_Voxel_Numbers[x + y * DATA_W];
+
 				// Put whitened regressors into specific format, to copy to GPU
 				// (takes too much memory to store regressors for all voxels, so only store for brain voxels)
 				for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -11829,7 +12175,6 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 						h_X_GLM_[voxel_number * NUMBER_OF_REGRESSORS * DATA_T + r * DATA_T + t] = X(t,r);
 					}
 				}
-				voxel_number++;
 			}
 		}
 	}
@@ -11838,9 +12183,13 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 	clEnqueueWriteBuffer(commandQueue, d_X_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_GLM_Scalars, CL_TRUE, 0, DATA_W * DATA_H * NUMBER_OF_CONTRASTS * sizeof(float), h_GLM_Scalars, 0, NULL, NULL);
 
+	// Unmap buffer
+	clEnqueueUnmapMemObject(commandQueue, d_X_GLM, h_X_GLM_, 0, NULL, NULL);
+
 	free(h_Mask);
-	free(h_X_GLM_);
+	//free(h_X_GLM_);
 	free(h_GLM_Scalars);
+	free(h_Voxel_Numbers);
 }
 
 
@@ -11854,6 +12203,7 @@ void BROCCOLI_LIB::WhitenDesignMatricesFTest(cl_mem d_X_GLM,
 		                                	 cl_mem d_AR3_Estimates,
 		                                	 cl_mem d_AR4_Estimates,
 		                                	 cl_mem d_Mask,
+											 cl_mem d_Voxel_Numbers,
 		                                	 int DATA_W,
 		                                	 int DATA_H,
 		                                	 int DATA_D,
@@ -11990,16 +12340,16 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes, 
 
 	// Create a mapping between voxel coordinates and brain voxel number, since we cannot store the modified GLM design matrix for all voxels, only for the brain voxels
 	cl_mem d_Voxel_Numbers = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-	//CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
 	cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
-	allocatedMemory += NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
+	allocatedDeviceMemory += NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
 
 	// Allocate memory for voxel specific GLM scalars
 	cl_mem d_GLM_Scalars = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
 	PrintMemoryStatus("Inside GLM");
 
 	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, AR_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
@@ -12017,7 +12367,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes, 
 	SetMemory(d_AR4_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
 
 	// Apply whitening to model (no whitening first time, so just copy regressors)
-	//WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
+	WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
 
 	// Set whitened volumes to original volumes
 	clEnqueueCopyBuffer(commandQueue, d_Volumes, d_Whitened_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
@@ -12096,7 +12446,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes, 
 		NUMBER_OF_INVALID_TIMEPOINTS = 4;
 
 		// Apply whitening to model and create voxel-specific models
-		//WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
+		WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
 	}
 
 	// Calculate beta values, using whitened data and the whitened voxel-specific models
@@ -12116,7 +12466,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes, 
 	clFinish(commandQueue);
 
 	// d_xtxxt_GLM now contains X_GLM and not xtxxt_GLM ...
-	//WhitenDesignMatricesTTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
+	WhitenDesignMatricesTTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
 
 	// Finally calculate statistical maps using whitened model and whitened data
 	clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 0,  sizeof(cl_mem), &d_Statistical_Maps);
@@ -12159,9 +12509,9 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem d_Volumes, 
 	clReleaseMemObject(d_Voxel_Numbers);
 	clReleaseMemObject(c_Censored_Timepoints);
 
-	allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-	allocatedMemory -= NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
-	allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	allocatedDeviceMemory -= NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
 }
 
 // Changes the storage order of a 4D dataset, from x, y, z, t to x, y, t, z
@@ -12278,8 +12628,8 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 	// Allocate memory for voxel specific GLM scalars
 	cl_mem d_GLM_Scalars = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * sizeof(float);
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * sizeof(float);
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * sizeof(float);
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * sizeof(float);
 
 	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, AR_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
 	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
@@ -12299,26 +12649,28 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 	//FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 	h_Whitened_fMRI_Volumes = (float*)malloc(EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
 	memcpy(h_Whitened_fMRI_Volumes, h_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));	
+	allocatedHostMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
 
 	int one = 1;
 
 	// Cochrane-Orcutt procedure, iterate
-	for (int it = 0; it < iterations; it++)
+	//for (int it = 0; it < iterations; it++)
+	for (int it = 0; it < 1; it++)
 	{
 		for (int slice = 0; slice < EPI_DATA_D; slice++)
 		{
 			// Create a mapping between voxel coordinates and brain voxel number, since we cannot store the modified GLM design matrix for all voxels, only for the brain voxels
-			CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+			CreateVoxelNumbersSlice(d_Voxel_Numbers, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 			// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
 			// Only store for brain voxels, which differs for each slice
-			cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+			cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 
-			allocatedMemory += NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
+			allocatedDeviceMemory += NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
 			PrintMemoryStatus("Inside GLM");
 			
 			// Apply whitening to model and create voxel-specific models
-			WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
+			WhitenDesignMatricesInverseSlice(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
 
 			// Copy fMRI data to the device, for the current slice
 			CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
@@ -12374,7 +12726,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 			runKernelErrorEstimateAR4ModelsSlice = clEnqueueNDRangeKernel(commandQueue, EstimateAR4ModelsSliceKernel, 3, NULL, globalWorkSizeEstimateAR4Models, localWorkSizeEstimateAR4Models, 0, NULL, NULL);
 
 			clReleaseMemObject(d_xtxxt_GLM);
-			allocatedMemory -= NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
+			allocatedDeviceMemory -= NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
 		}
 
 		// Smooth auto correlation estimates
@@ -12415,14 +12767,14 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 	for (int slice = 0; slice < EPI_DATA_D; slice++)
 	{
 		// Create a mapping between voxel coordinates and brain voxel number, since we cannot store the modified GLM design matrix for all voxels, only for the brain voxels
-		CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+		CreateVoxelNumbersSlice(d_Voxel_Numbers, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 		// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
 		// Only store for brain voxels, which differs for each slice
-		cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+		cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 
 		// Apply whitening to model and create voxel-specific models
-		WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
+		WhitenDesignMatricesInverseSlice(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
 
 		// Copy fMRI data to the device, for the current slice
 		CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
@@ -12445,7 +12797,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 		clFinish(commandQueue);
 
 		// d_xtxxt_GLM now contains X_GLM and not xtxxt_GLM ...
-		WhitenDesignMatricesTTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
+		WhitenDesignMatricesTTestSlice(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
 
 		// Finally calculate statistical maps using whitened model and whitened data
 		clSetKernelArg(CalculateStatisticalMapsGLMTTestFirstLevelKernel, 0,  sizeof(cl_mem), &d_Statistical_Maps);
@@ -12495,10 +12847,12 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Vol
 	clReleaseMemObject(d_Voxel_Numbers);
 	clReleaseMemObject(c_Censored_Timepoints);
 
-	allocatedMemory -= EPI_DATA_W * EPI_DATA_H * sizeof(float);
-	allocatedMemory -= EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * sizeof(float);
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * sizeof(float);
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * sizeof(float);
 
 	free(h_Whitened_fMRI_Volumes);
+
+	allocatedHostMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
 }
 
 
@@ -12510,7 +12864,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes, 
 
 	// Create a mapping between voxel coordinates and brain voxel number, since we cannot store the modified GLM design matrix for all voxels, only for the brain voxels
 	cl_mem d_Voxel_Numbers = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-	//CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
 	cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -12630,7 +12984,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes, 
 	clFinish(commandQueue);
 
 	// d_xtxxt_GLM now contains X_GLM and not xtxxt_GLM ...
-	WhitenDesignMatricesFTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
+	WhitenDesignMatricesFTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
 
 	// Finally calculate statistical maps using whitened model and whitened data
 	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
@@ -12681,9 +13035,9 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volume
 	cl_mem d_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
 	cl_mem d_Seeds = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int), NULL, NULL);
 
-	allocatedMemory += 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
-	allocatedMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-	memoryAllocations += 3;
+	allocatedDeviceMemory += 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	deviceMemoryAllocations += 3;
 
 	PrintMemoryStatus("Inside Bayesian GLM");
 
@@ -12819,9 +13173,9 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volume
 	clReleaseMemObject(c_S01);
 	clReleaseMemObject(c_S11);
 
-	allocatedMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
-	allocatedMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-	memoryDeallocations += 3;
+	allocatedDeviceMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+	deviceMemoryDeallocations += 3;
 }
 
 

@@ -121,6 +121,7 @@ class BROCCOLI_LIB
 		void SetPrint(bool print);
 		void SetVerbose(bool verbos);
 		void SetWrapper(int wrapper);
+		void SetAllocatedHostMemory(size_t allocated);
 
 		void SetMask(float* input);
 		void SetEPIMask(float* input);
@@ -449,19 +450,23 @@ class BROCCOLI_LIB
 		void PerformMotionCorrection(cl_mem Volumes);
 		void PerformMotionCorrectionHost(float* h_Volumes);
 
-		void CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);
+		void CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Volumes, int iterations);		
 		void CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 		void CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 
 		void CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volumes);
 
-		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D);
+		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D);
+		void CreateVoxelNumbersSlice(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D);
 
-		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
-		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int slice, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
-		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_EPI_Mask, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
+		void WhitenDesignMatricesInverseSlice(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
+		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesTTestSlice(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int slice, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		
 		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 
@@ -1120,10 +1125,10 @@ class BROCCOLI_LIB
 		float		*h_Mask;
 		float		*h_EPI_Mask;
 		float		*h_Smoothed_EPI_Mask;
-        float       *h_T1_Volume;
+        	float       	*h_T1_Volume;
 		float		*h_MNI_Volume;
 		float		*h_MNI_Brain_Volume;
-		float	    *h_EPI_Volume;
+		float	    	*h_EPI_Volume;
 		float		*h_Aligned_T1_Volume_Linear;
 		float		*h_Aligned_T1_Volume_NonLinear;
 		float		*h_Aligned_EPI_Volume_T1;
@@ -1140,15 +1145,15 @@ class BROCCOLI_LIB
 
 		// Image Registration pointers
 		cl_float2	*h_Quadrature_Filter_1_Linear_Registration, *h_Quadrature_Filter_2_Linear_Registration, *h_Quadrature_Filter_3_Linear_Registration;
-		float       *h_Quadrature_Filter_1_Linear_Registration_Real, *h_Quadrature_Filter_2_Linear_Registration_Real, *h_Quadrature_Filter_3_Linear_Registration_Real, *h_Quadrature_Filter_1_Linear_Registration_Imag, *h_Quadrature_Filter_2_Linear_Registration_Imag, *h_Quadrature_Filter_3_Linear_Registration_Imag;
-		float       *h_Quadrature_Filter_1_NonLinear_Registration_Real, *h_Quadrature_Filter_2_NonLinear_Registration_Real, *h_Quadrature_Filter_3_NonLinear_Registration_Real, *h_Quadrature_Filter_1_NonLinear_Registration_Imag, *h_Quadrature_Filter_2_NonLinear_Registration_Imag, *h_Quadrature_Filter_3_NonLinear_Registration_Imag;
-		float       *h_Quadrature_Filter_4_NonLinear_Registration_Real, *h_Quadrature_Filter_5_NonLinear_Registration_Real, *h_Quadrature_Filter_6_NonLinear_Registration_Real, *h_Quadrature_Filter_4_NonLinear_Registration_Imag, *h_Quadrature_Filter_5_NonLinear_Registration_Imag, *h_Quadrature_Filter_6_NonLinear_Registration_Imag;
+		float       	*h_Quadrature_Filter_1_Linear_Registration_Real, *h_Quadrature_Filter_2_Linear_Registration_Real, *h_Quadrature_Filter_3_Linear_Registration_Real, *h_Quadrature_Filter_1_Linear_Registration_Imag, *h_Quadrature_Filter_2_Linear_Registration_Imag, *h_Quadrature_Filter_3_Linear_Registration_Imag;
+		float       	*h_Quadrature_Filter_1_NonLinear_Registration_Real, *h_Quadrature_Filter_2_NonLinear_Registration_Real, *h_Quadrature_Filter_3_NonLinear_Registration_Real, *h_Quadrature_Filter_1_NonLinear_Registration_Imag, *h_Quadrature_Filter_2_NonLinear_Registration_Imag, *h_Quadrature_Filter_3_NonLinear_Registration_Imag;
+		float       	*h_Quadrature_Filter_4_NonLinear_Registration_Real, *h_Quadrature_Filter_5_NonLinear_Registration_Real, *h_Quadrature_Filter_6_NonLinear_Registration_Real, *h_Quadrature_Filter_4_NonLinear_Registration_Imag, *h_Quadrature_Filter_5_NonLinear_Registration_Imag, *h_Quadrature_Filter_6_NonLinear_Registration_Imag;
 		cl_float2	*h_Quadrature_Filter_1_NonLinear_Registration, *h_Quadrature_Filter_2_NonLinear_Registration, *h_Quadrature_Filter_3_NonLinear_Registration, *h_Quadrature_Filter_4_NonLinear_Registration, *h_Quadrature_Filter_5_NonLinear_Registration, *h_Quadrature_Filter_6_NonLinear_Registration;
 		float		*h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_3_Imag, *h_Quadrature_Filter_4_Real, *h_Quadrature_Filter_4_Imag, *h_Quadrature_Filter_5_Real, *h_Quadrature_Filter_5_Imag, *h_Quadrature_Filter_6_Real, *h_Quadrature_Filter_6_Imag;
-		cl_float2   *h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3, *h_Quadrature_Filter_4, *h_Quadrature_Filter_5, *h_Quadrature_Filter_6;
-		float       *h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_3_Real;
-		float       *h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag;
-		cl_float2   *h_Quadrature_Filter_Response_1, *h_Quadrature_Filter_Response_2, *h_Quadrature_Filter_Response_3, *h_Quadrature_Filter_Response_4, *h_Quadrature_Filter_Response_5, *h_Quadrature_Filter_Response_6;
+		cl_float2   	*h_Quadrature_Filter_1, *h_Quadrature_Filter_2, *h_Quadrature_Filter_3, *h_Quadrature_Filter_4, *h_Quadrature_Filter_5, *h_Quadrature_Filter_6;
+		float       	*h_Quadrature_Filter_Response_1_Real, *h_Quadrature_Filter_Response_2_Real, *h_Quadrature_Filter_Response_3_Real;
+		float       	*h_Quadrature_Filter_Response_1_Imag, *h_Quadrature_Filter_Response_2_Imag, *h_Quadrature_Filter_Response_3_Imag;
+		cl_float2   	*h_Quadrature_Filter_Response_1, *h_Quadrature_Filter_Response_2, *h_Quadrature_Filter_Response_3, *h_Quadrature_Filter_Response_4, *h_Quadrature_Filter_Response_5, *h_Quadrature_Filter_Response_6;
 		float		 h_A_Matrix[144], h_h_Vector[12];
 		float		 *h_A_Matrix_Out, *h_h_Vector_Out;
 		double		 h_A_Matrix_double[144], h_h_Vector_double[12];
@@ -1159,17 +1164,17 @@ class BROCCOLI_LIB
 		float		 h_Registration_Parameters_EPI_T1_Affine_Original[12], h_Registration_Parameters_EPI_T1_Translation_Original[12], h_Registration_Parameters_EPI_T1_Rigid_Original[12];
 		float		 h_Registration_Parameters_Motion_Correction[12];
 		float		 h_Registration_Parameters_T1_MNI[12], *h_Registration_Parameters_T1_MNI_Out; 
-		double       h_Registration_Parameters_double[12];
+		double       	h_Registration_Parameters_double[12];
 		float		 h_Rotations[3], h_Rotations_Temp[3];
 
-		float       *h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
+		float       	*h_Phase_Differences, *h_Phase_Certainties, *h_Phase_Gradients;
 
 		float		*h_t11, *h_t12, *h_t13, *h_t22, *h_t23, *h_t33;
 		float		*h_Displacement_Field_X, *h_Displacement_Field_Y, *h_Displacement_Field_Z;
 
 		float		*h_Slice_Sums, *h_Top_Slice;
 
-		float *h_Registration_Parameters_Out;
+		float 		*h_Registration_Parameters_Out;
 		// Motion correction variables
 		float		*h_Motion_Corrected_fMRI_Volumes;
 		float		*h_Motion_Parameters_Out, h_Motion_Parameters[10000];
@@ -1191,27 +1196,27 @@ class BROCCOLI_LIB
 
 		// Statistical analysis pointers
 		float		*hrf;
-		int			 HRF_LENGTH;
-		float       *h_Contrasts, *h_Contrasts_In;
+		int		 HRF_LENGTH;
+		float       	*h_Contrasts, *h_Contrasts_In;
 		float		*h_X_GLM_Out, *h_X_GLM_In, *h_X_GLM_Confounds, *h_xtxxt_GLM_In, *h_ctxtxc_GLM_In;
 		float		*h_X_GLM, *h_X_GLM_With_Temporal_Derivatives, *h_X_GLM_Convolved, *h_xtxxt_GLM, *h_xtxxt_GLM_Out, *h_ctxtxc_GLM;
 		float 		*h_Global_Mean;
 		float		*h_Censored_Timepoints, *h_Censored_Volumes;
-		float       *h_Beta_Volumes_MNI, *h_Beta_Volumes_EPI, *h_Beta_Volumes_T1;
-		float       *h_Beta_Volumes_No_Whitening_MNI, *h_Beta_Volumes_No_Whitening_EPI, *h_Beta_Volumes_No_Whitening_T1;
-		float       *h_Contrast_Volumes_MNI, *h_Contrast_Volumes_EPI, *h_Contrast_Volumes_T1;
-		float       *h_Contrast_Volumes_No_Whitening_MNI, *h_Contrast_Volumes_No_Whitening_EPI, *h_Contrast_Volumes_No_Whitening_T1;
+		float       	*h_Beta_Volumes_MNI, *h_Beta_Volumes_EPI, *h_Beta_Volumes_T1;
+		float       	*h_Beta_Volumes_No_Whitening_MNI, *h_Beta_Volumes_No_Whitening_EPI, *h_Beta_Volumes_No_Whitening_T1;
+		float       	*h_Contrast_Volumes_MNI, *h_Contrast_Volumes_EPI, *h_Contrast_Volumes_T1;
+		float       	*h_Contrast_Volumes_No_Whitening_MNI, *h_Contrast_Volumes_No_Whitening_EPI, *h_Contrast_Volumes_No_Whitening_T1;
 		float		*h_Statistical_Maps_MNI, *h_Statistical_Maps_EPI, *h_Statistical_Maps_T1;
 		float		*h_Statistical_Maps_No_Whitening_MNI, *h_Statistical_Maps_No_Whitening_EPI, *h_Statistical_Maps_No_Whitening_T1;
 		float		*h_P_Values_MNI, *h_P_Values_EPI, *h_P_Values_T1;
 		float		*h_First_Level_Results;
-		float       *h_Residuals_EPI;
-		float       *h_Residuals_MNI;
-		float       *h_Residual_Variances;
+		float       	*h_Residuals_EPI;
+		float       	*h_Residuals_MNI;
+		float       	*h_Residual_Variances;
 		float		*h_AR1_Estimates_EPI, *h_AR2_Estimates_EPI, *h_AR3_Estimates_EPI, *h_AR4_Estimates_EPI;
 		float		*h_AR1_Estimates_T1, *h_AR2_Estimates_T1, *h_AR3_Estimates_T1, *h_AR4_Estimates_T1;
 		float		*h_AR1_Estimates_MNI, *h_AR2_Estimates_MNI, *h_AR3_Estimates_MNI, *h_AR4_Estimates_MNI;
-		int			*h_Cluster_Indices;
+		int		*h_Cluster_Indices;
 		int 		*h_Largest_Cluster;
 		cl_mem		 d_Cluster_Indices;
 		cl_mem		 d_Cluster_Sizes;
@@ -1219,7 +1224,7 @@ class BROCCOLI_LIB
 		cl_mem		 d_Largest_Cluster;
 		cl_mem		 d_Updated;
 		cl_mem		d_TFCE_Values;
-		int			*h_Cluster_Sizes;
+		int		*h_Cluster_Sizes;
 		float		*h_Whitened_Models;
 
 		// Random permutation pointers
@@ -1245,14 +1250,14 @@ class BROCCOLI_LIB
 
 		// Image registration
 		cl_mem		d_Tensor_Magnitude_T1, d_Tensor_Magnitude_T1_EPI;
-		cl_mem      d_Reference_Volume, d_Aligned_Volume, d_Original_Volume;
+		cl_mem      	d_Reference_Volume, d_Aligned_Volume, d_Original_Volume;
 		cl_mem		d_Current_Aligned_Volume, d_Current_Reference_Volume;
 		cl_mem		d_A_Matrix, d_h_Vector, d_A_Matrix_2D_Values, d_A_Matrix_1D_Values, d_h_Vector_2D_Values, d_h_Vector_1D_Values;
 		cl_mem		d_A_Matrix_double, d_h_Vector_double, d_A_Matrix_2D_Values_double, d_A_Matrix_1D_Values_double, d_h_Vector_2D_Values_double, d_h_Vector_1D_Values_double;
 		cl_mem 		d_Phase_Differences, d_Phase_Gradients, d_Phase_Certainties;
-		cl_mem      d_q11, d_q12, d_q13, d_q14, d_q15, d_q16, d_q21, d_q22, d_q23, d_q24, d_q25, d_q26;
-		cl_mem      d_q11_Real, d_q12_Real, d_q13_Real, d_q14_Real, d_q15_Real, d_q16_Real, d_q21_Real, d_q22_Real, d_q23_Real, d_q24_Real, d_q25_Real, d_q26_Real;
-		cl_mem      d_q11_Imag, d_q12_Imag, d_q13_Imag, d_q14_Imag, d_q15_Imag, d_q16_Imag, d_q21_Imag, d_q22_Imag, d_q23_Imag, d_q24_Imag, d_q25_Imag, d_q26_Imag;
+		cl_mem      	d_q11, d_q12, d_q13, d_q14, d_q15, d_q16, d_q21, d_q22, d_q23, d_q24, d_q25, d_q26;
+		cl_mem      	d_q11_Real, d_q12_Real, d_q13_Real, d_q14_Real, d_q15_Real, d_q16_Real, d_q21_Real, d_q22_Real, d_q23_Real, d_q24_Real, d_q25_Real, d_q26_Real;
+		cl_mem      	d_q11_Imag, d_q12_Imag, d_q13_Imag, d_q14_Imag, d_q15_Imag, d_q16_Imag, d_q21_Imag, d_q22_Imag, d_q23_Imag, d_q24_Imag, d_q25_Imag, d_q26_Imag;
 		cl_mem		c_Quadrature_Filter_1_Real, c_Quadrature_Filter_2_Real, c_Quadrature_Filter_3_Real, c_Quadrature_Filter_4_Real, c_Quadrature_Filter_5_Real, c_Quadrature_Filter_6_Real;
 		cl_mem		c_Quadrature_Filter_1_Imag, c_Quadrature_Filter_2_Imag, c_Quadrature_Filter_3_Imag, c_Quadrature_Filter_4_Imag, c_Quadrature_Filter_5_Imag, c_Quadrature_Filter_6_Imag;
 		cl_mem		c_Quadrature_Filter_1, c_Quadrature_Filter_2, c_Quadrature_Filter_3, c_Quadrature_Filter_4, c_Quadrature_Filter_5, c_Quadrature_Filter_6;
@@ -1321,11 +1326,10 @@ class BROCCOLI_LIB
 		cl_mem		c_Permutation_Vector;
 		cl_mem		c_Sign_Vector;
 
-		int			memoryAllocations, memoryDeallocations;
-		unsigned long int allocatedMemory;
+		int	hostMemoryAllocations, hostMemoryDeallocations;
+		int	deviceMemoryAllocations, deviceMemoryDeallocations;
+		size_t	allocatedDeviceMemory, allocatedHostMemory;
 
 };
-
-
 
 #endif

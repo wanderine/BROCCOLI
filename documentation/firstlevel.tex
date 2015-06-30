@@ -1,6 +1,6 @@
 \section{Introduction}
 
-BROCCOLI performs first level fMRI analysis using a single command. The analysis involves registering the anatomical volume to a brain template (using linear as well as non-linear registration), registering one fMRI volume to the anatomical volume, slice timing correction, motion correction, smoothing and statistical analysis. Contrary to other software packages, it is up to the user to decide which intermediate results to save. In its simplest form, a first level analysis can with the bash wrapper be performed as
+BROCCOLI performs first level fMRI analysis using a single command. The analysis involves registering the anatomical volume to a brain template (using linear as well as non-linear registration), registering one fMRI volume to the anatomical volume, slice timing correction, motion correction, smoothing and statistical analysis. In contrast to other software packages, it is up to the user to decide which intermediate results to save. In its simplest form, a first level analysis can with the bash wrapper be performed as
 
 \begin{verbatim}
 ./FirstLevelAnalysis fMRI.nii T1_brain.nii BrainTemplate.nii ... 
@@ -74,6 +74,15 @@ Several options can be used to control the image registration, see the chapter a
 The following preprocessing options are available
 
 \begin{itemize}
+
+\item -noslicetimingcorrection
+\newline \newline Do not apply slice timing correction. \newline
+
+\item -nomotioncorrection
+\newline \newline Do not apply motion correction. \newline
+
+\item -nosmoothing
+\newline \newline Do not apply any smoothing. \newline
 
 \item -slicepattern
 \newline \newline Set the sampling pattern used during scanning \newline

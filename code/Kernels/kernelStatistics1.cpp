@@ -234,6 +234,11 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
+	int NUMBER_OF_REGRESSORS_PER_CHUNK = 25;
+	int REGRESSOR_GROUPS = (int)ceil((float)NUMBER_OF_REGRESSORS / (float)NUMBER_OF_REGRESSORS_PER_CHUNK);
+	int NUMBER_OF_REGRESSORS_IN_CURRENT_CHUNK = 0;
+
+	// First deal with voxels outside the mask
 	if ( Mask[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] != 1.0f )
 	{
 		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -243,66 +248,85 @@ __kernel void CalculateBetaWeightsGLMFirstLevel(__global float* Beta_Volumes,
 		return;
 	}
 
-	int t = 0;
-	float beta[25];
-	
-	// Reset beta weights
-	beta[0] = 0.0f;
-	beta[1] = 0.0f;
-	beta[2] = 0.0f;
-	beta[3] = 0.0f;
-	beta[4] = 0.0f;
-	beta[5] = 0.0f;
-	beta[6] = 0.0f;
-	beta[7] = 0.0f;
-	beta[8] = 0.0f;
-	beta[9] = 0.0f;
-	beta[10] = 0.0f;
-	beta[11] = 0.0f;
-	beta[12] = 0.0f;
-	beta[13] = 0.0f;
-	beta[14] = 0.0f;
-	beta[15] = 0.0f;
-	beta[16] = 0.0f;
-	beta[17] = 0.0f;
-	beta[18] = 0.0f;
-	beta[19] = 0.0f;
-	beta[20] = 0.0f;
-	beta[21] = 0.0f;
-	beta[22] = 0.0f;
-	beta[23] = 0.0f;
-	beta[24] = 0.0f;
-
-	// Get the specific voxel number for this brain voxel
-	//int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
-	int voxel_number = (int)d_Voxel_Numbers[Calculate2DIndex(x,y,DATA_W)];
-
-	// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
-	// Loop over volumes
-	for (int v = NUMBER_OF_INVALID_TIMEPOINTS; v < NUMBER_OF_VOLUMES; v++)
+	// Loop over chunks of 25 regressors at a time, since it is not possible to use for example 400 registers per thread
+	for (int regressor_group = 0; regressor_group < REGRESSOR_GROUPS; regressor_group++)
 	{
-		//float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		float temp = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
-
-		// Loop over regressors
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		// Check how many regressors that are left
+		if ( (NUMBER_OF_REGRESSORS - regressor_group * NUMBER_OF_REGRESSORS_PER_CHUNK) >= 25 )
 		{
-			beta[r] += temp * d_xtxxt_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v];
+			NUMBER_OF_REGRESSORS_IN_CURRENT_CHUNK = 25;
+		}	
+		else
+		{
+			NUMBER_OF_REGRESSORS_IN_CURRENT_CHUNK = NUMBER_OF_REGRESSORS - regressor_group * NUMBER_OF_REGRESSORS_PER_CHUNK;
+		}
+
+		int t = 0;
+		float beta[25];
+	
+		// Reset beta weights
+		beta[0] = 0.0f;
+		beta[1] = 0.0f;
+		beta[2] = 0.0f;
+		beta[3] = 0.0f;
+		beta[4] = 0.0f;
+		beta[5] = 0.0f;
+		beta[6] = 0.0f;
+		beta[7] = 0.0f;
+		beta[8] = 0.0f;
+		beta[9] = 0.0f;
+		beta[10] = 0.0f;
+		beta[11] = 0.0f;
+		beta[12] = 0.0f;
+		beta[13] = 0.0f;
+		beta[14] = 0.0f;
+		beta[15] = 0.0f;
+		beta[16] = 0.0f;
+		beta[17] = 0.0f;
+		beta[18] = 0.0f;
+		beta[19] = 0.0f;
+		beta[20] = 0.0f;
+		beta[21] = 0.0f;
+		beta[22] = 0.0f;
+		beta[23] = 0.0f;
+		beta[24] = 0.0f;
+
+		// Get the specific voxel number for this brain voxel
+		//int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
+		int voxel_number = (int)d_Voxel_Numbers[Calculate2DIndex(x,y,DATA_W)];
+
+		// Calculate betahat, i.e. multiply (x^T x)^(-1) x^T with Y
+		// Loop over volumes
+		for (int v = NUMBER_OF_INVALID_TIMEPOINTS; v < NUMBER_OF_VOLUMES; v++)
+		{
+			//float temp = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			float temp = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
+
+			// Loop over regressors
+			for (int r = 0; r < NUMBER_OF_REGRESSORS_IN_CURRENT_CHUNK; r++)
+			{
+				beta[r] += temp * d_xtxxt_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * (r + regressor_group * NUMBER_OF_REGRESSORS_PER_CHUNK) + v];
+			}
+		}
+
+		// Save beta values for the current chunk of regressors
+		for (int r = 0; r < NUMBER_OF_REGRESSORS_IN_CURRENT_CHUNK; r++)
+		{
+			Beta_Volumes[Calculate4DIndex(x,y,slice,r + regressor_group * NUMBER_OF_REGRESSORS_PER_CHUNK,DATA_W,DATA_H,DATA_D)] = beta[r];
 		}
 	}
-
-	// Save beta values
-	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{
-		Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)] = beta[r];
-	}
 }
+
+
+
+
+
 
 __kernel void CalculateGLMResiduals(__global float* Residuals,
 		                            __global const float* Volumes,
 		                            __global const float* Beta_Volumes,
 		                            __global const float* Mask,
-		                            __constant float *c_X_GLM,
+		                            __global const float *c_X_GLM,
 		                            __private int DATA_W,
 		                            __private int DATA_H,
 		                            __private int DATA_D,
@@ -332,28 +356,53 @@ __kernel void CalculateGLMResiduals(__global float* Residuals,
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[25];
 
-	// Load beta values into registers
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	// Special case for low number of regressors, store beta scores in registers for faster performance
+	if (NUMBER_OF_REGRESSORS <= 25)
 	{
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
-	}
+		float beta[25];
 
-	// Calculate the residual
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		// Load beta values into registers
+	    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			beta[r] = Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
 		}
 
-		//Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-		Residuals[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = eps;
+		// Calculate the residual
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+
+			//Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+			Residuals[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = eps;
+		}
+	}
+	// General case for large number of regressors (slower)
+	else
+	{
+		// Calculate the residual
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+			eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
+			}
+
+			//Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
+			Residuals[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = eps;
+		}
 	}
 }
+
+
+
 
 __kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statistical_Maps,
 														 __global float* Contrast_Volumes,
@@ -385,6 +434,7 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statist
 	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
 		return;
 
+	// First deal with voxels outside the mask
 	if ( Mask[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] != 1.0f )
 	{
 		Residual_Variances[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] = 0.0f;
@@ -406,67 +456,120 @@ __kernel void CalculateStatisticalMapsGLMTTestFirstLevel(__global float* Statist
 
 	int t = 0;
 	float eps, meaneps, vareps;
-	float beta[25];
-
-	// Load beta values into registers
-    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-	{
-		beta[r] = Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
-	}
 
     // Get the specific voxel number for this brain voxel
     //int voxel_number = (int)d_Voxel_Numbers[Calculate3DIndex(x,y,z,DATA_W,DATA_H)];
 	int voxel_number = (int)d_Voxel_Numbers[Calculate2DIndex(x,y,DATA_W)];
 
-	// Calculate the mean of the error eps, using voxel-specific design models
-	meaneps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	// Special case for a low number of regressors
+	if (NUMBER_OF_REGRESSORS <= 25)
 	{
-		//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		float beta[25];
+		
+		// Load beta values into registers
+	    for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
 		{
-			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
-			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			beta[r] = Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
 		}
-		eps *= c_Censored_Timepoints[v];
-		meaneps += eps;
-		//Residuals[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)] = eps;
-		Residuals[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = eps;
-	}
-	//meaneps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS);
-	meaneps /= ((float)NUMBER_OF_VOLUMES);
 
-	// Now calculate the variance of eps, using voxel-specific design models
-	vareps = 0.0f;
-	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
-	{
-		//eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
-		eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+		// Calculate the mean of the error eps, using voxel-specific design models
+		meaneps = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
 		{
-			eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
-			//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
-		}
-		vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
-		//vareps += (eps - meaneps) * (eps - meaneps);
-	}
-	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
-	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_CENSORED_TIMEPOINTS - 1.0f);
-	//vareps /= ((float)NUMBER_OF_VOLUMES - (float)NUMBER_OF_REGRESSORS - 1.0f);
-	vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
-	Residual_Variances[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] = vareps;
+			eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
 
-	// Loop over contrasts and calculate t-values, using a voxel-specific GLM scalar
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		float contrast_value = 0.0f;
-		for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
-		{
-			contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+			// Calculate eps
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+			eps *= c_Censored_Timepoints[v];
+			meaneps += eps;
+	
+			Residuals[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = eps;		
 		}
-		Contrast_Volumes[Calculate4DIndex(x,y,slice,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
-		Statistical_Maps[Calculate4DIndex(x,y,slice,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * d_GLM_Scalars[Calculate3DIndex(x,y,c,DATA_W,DATA_H)]);
+		meaneps /= ((float)NUMBER_OF_VOLUMES);
+
+		// Now calculate the variance of eps, using voxel-specific design models
+		vareps = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
+
+			// Calculate eps
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * beta[r];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+			vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+		}
+		vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+		Residual_Variances[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] = vareps;
+
+		// Loop over contrasts and calculate t-values, using a voxel-specific GLM scalar
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			float contrast_value = 0.0f;
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * beta[r];
+			}
+			Contrast_Volumes[Calculate4DIndex(x,y,slice,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
+			Statistical_Maps[Calculate4DIndex(x,y,slice,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * d_GLM_Scalars[Calculate3DIndex(x,y,c,DATA_W,DATA_H)]);
+		}
+	}
+	// General case for large number of regressors, slower
+	else
+	{
+		// Calculate the mean of the error eps, using voxel-specific design models
+		meaneps = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
+
+			// Calculate eps
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+			eps *= c_Censored_Timepoints[v];
+			meaneps += eps;
+	
+			Residuals[Calculate3DIndex(x,y,v,DATA_W,DATA_H)] = eps;		
+		}
+		meaneps /= ((float)NUMBER_OF_VOLUMES);
+
+		// Now calculate the variance of eps, using voxel-specific design models
+		vareps = 0.0f;
+		for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+		{
+			eps = Volumes[Calculate3DIndex(x,y,v,DATA_W,DATA_H)];
+
+			// Calculate eps
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				eps -= d_X_GLM[voxel_number * NUMBER_OF_VOLUMES * NUMBER_OF_REGRESSORS + NUMBER_OF_VOLUMES * r + v] * Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
+				//eps -= c_X_GLM[NUMBER_OF_VOLUMES * r + v] * beta[r];
+			}
+			vareps += (eps - meaneps) * (eps - meaneps) * c_Censored_Timepoints[v];
+		}
+		vareps /= ((float)NUMBER_OF_VOLUMES - 1.0f);
+		Residual_Variances[Calculate3DIndex(x,y,slice,DATA_W,DATA_H)] = vareps;
+
+		// Loop over contrasts and calculate t-values, using a voxel-specific GLM scalar
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			float contrast_value = 0.0f;
+			for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+			{
+				contrast_value += c_Contrasts[NUMBER_OF_REGRESSORS * c + r] * Beta_Volumes[Calculate4DIndex(x,y,slice,r,DATA_W,DATA_H,DATA_D)];
+			}
+			Contrast_Volumes[Calculate4DIndex(x,y,slice,c,DATA_W,DATA_H,DATA_D)] = contrast_value;
+			Statistical_Maps[Calculate4DIndex(x,y,slice,c,DATA_W,DATA_H,DATA_D)] = contrast_value * rsqrt(vareps * d_GLM_Scalars[Calculate3DIndex(x,y,c,DATA_W,DATA_H)]);
+		}
 	}
 }
 
@@ -4201,7 +4304,8 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes,
 	}
 }
 
-// Removes a linear fit estimated with CalculateGLMBetaWeights, for one slice
+
+// Removes a linear fit estimated with CalculateGLMBetaWeights, for one slice
 __kernel void RemoveLinearFitSlice(__global float* Residual_Volumes, 
 		                           __global const float* Volumes, 
 								   __global const float* Beta_Volumes, 

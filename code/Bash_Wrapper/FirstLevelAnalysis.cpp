@@ -29,8 +29,6 @@
 #define ADD_FILENAME true
 #define DONT_ADD_FILENAME true
 
-//#define HAVE_ZLIB 1
-
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
 
@@ -148,13 +146,14 @@ void ReadBinaryFile(float* pointer, int size, const char* filename, void** point
     }
 }
 
-void AllocateMemory(float *& pointer, size_t size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
+void AllocateMemory(float *& pointer, size_t size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, size_t allocatedMemory, const char* variable)
 {
     pointer = (float*)malloc(size);
     if (pointer != NULL)
     {
         pointers[Npointers] = (void*)pointer;
         Npointers++;
+		allocatedMemory += size;
     }
     else
     {
@@ -166,13 +165,14 @@ void AllocateMemory(float *& pointer, size_t size, void** pointers, int& Npointe
     }
 }
 
-void AllocateMemoryInt(unsigned short int *& pointer, size_t size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
+void AllocateMemoryInt(unsigned short int *& pointer, size_t size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, size_t allocatedMemory, const char* variable)
 {
     pointer = (unsigned short int*)malloc(size);
     if (pointer != NULL)
     {
         pointers[Npointers] = (void*)pointer;
         Npointers++;
+		allocatedMemory += size;
     }
     else
     {
@@ -184,13 +184,14 @@ void AllocateMemoryInt(unsigned short int *& pointer, size_t size, void** pointe
 }
 
     
-void AllocateMemoryFloat2(cl_float2 *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
+void AllocateMemoryFloat2(cl_float2 *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, size_t allocatedMemory, const char* variable)
 {
     pointer = (cl_float2*)malloc(size);
     if (pointer != NULL)
     {
         pointers[Npointers] = (void*)pointer;
         Npointers++;
+		allocatedMemory += size;
     }
     else
     {
@@ -420,6 +421,8 @@ int main(int argc, char **argv)
 	}
 
 	int				numberOfNiftiImages = 0;
+
+	size_t			allocatedHostMemory = 0;
     
     //---------------------
     // Settings
@@ -1308,10 +1311,10 @@ int main(int argc, char **argv)
 	        printf("Number of regressors must be > 0 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
 	        return EXIT_FAILURE;
 	    }
-	    else if (NUMBER_OF_GLM_REGRESSORS > 25)
+	    else if ((NUMBER_OF_GLM_REGRESSORS > 25) && PERMUTE)
 	    {
 	        design.close();
-	        printf("Number of regressors must be <= 25 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+	        printf("Number of regressors must be <= 25 when permuting ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
 	        return EXIT_FAILURE;
 	    }
 	    else if ( BAYESIAN && (NUMBER_OF_GLM_REGRESSORS != 2) )
@@ -1677,16 +1680,16 @@ int main(int argc, char **argv)
 		NUMBER_OF_TOTAL_GLM_REGRESSORS = 2;
 	}
     
-    if (NUMBER_OF_TOTAL_GLM_REGRESSORS > 25)
+    if ((NUMBER_OF_TOTAL_GLM_REGRESSORS > 25) && PERMUTE)
     {
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 		if (REGRESS_MOTION)
 		{
-        	printf("Number of total regressors must be <= 25 ! You provided %i regressors in the design file, with 6 regressors for motion and 4 for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+        	printf("Number of total regressors must be <= 25 when permuting ! You provided %i regressors in the design file, with 6 regressors for motion and 4 for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		}
 		else
 		{
-        	printf("Number of total regressors must be <= 25 ! You provided %i regressors in the design file, with 4 regressors for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+        	printf("Number of total regressors must be <= 25 when permuting ! You provided %i regressors in the design file, with 4 regressors for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		}
         return EXIT_FAILURE;
     }
@@ -1768,186 +1771,190 @@ int main(int argc, char **argv)
 	// If the data is in float format, we can just copy the pointer
 	if ( inputfMRI->datatype != DT_FLOAT )
 	{
-		AllocateMemory(h_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "fMRI_VOLUMES");
+		AllocateMemory(h_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "fMRI_VOLUMES");
 	}
-	AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "T1_VOLUME");
-	AllocateMemory(h_MNI_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_VOLUME");
-	AllocateMemory(h_MNI_Brain_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MNI_BRAIN_VOLUME");
+	else
+	{
+		allocatedHostMemory += EPI_DATA_SIZE;
+	}
+	AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "T1_VOLUME");
+	AllocateMemory(h_MNI_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MNI_VOLUME");
+	AllocateMemory(h_MNI_Brain_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MNI_BRAIN_VOLUME");
  
     if (WRITE_INTERPOLATED_T1)
     {
-        AllocateMemory(h_Interpolated_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "T1_INTERPOLATED");
+        AllocateMemory(h_Interpolated_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "T1_INTERPOLATED");
     }
     if (WRITE_ALIGNED_T1_MNI_LINEAR)
     {
-        AllocateMemory(h_Aligned_T1_Volume_Linear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "ALIGNED_T1_LINEAR");
+        AllocateMemory(h_Aligned_T1_Volume_Linear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "ALIGNED_T1_LINEAR");
     }
     if (WRITE_ALIGNED_T1_MNI_NONLINEAR)
     {
-        AllocateMemory(h_Aligned_T1_Volume_NonLinear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "ALIGNED_T1_NONLINEAR");
+        AllocateMemory(h_Aligned_T1_Volume_NonLinear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "ALIGNED_T1_NONLINEAR");
     }
 	if (WRITE_ALIGNED_EPI_T1)
 	{
-        AllocateMemory(h_Aligned_EPI_Volume_T1, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "ALIGNED_EPI_T1");
+        AllocateMemory(h_Aligned_EPI_Volume_T1, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "ALIGNED_EPI_T1");
 	}
 	if (WRITE_ALIGNED_EPI_MNI)
 	{
-        AllocateMemory(h_Aligned_EPI_Volume_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "ALIGNED_EPI_MNI");
+        AllocateMemory(h_Aligned_EPI_Volume_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "ALIGNED_EPI_MNI");
 	}
 
-	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_IMAG");    
-	AllocateMemory(h_Quadrature_Filter_2_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_2_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_IMAG");    
-	AllocateMemory(h_Quadrature_Filter_3_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_LINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_3_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_LINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_2_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_2_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_2_LINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_3_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_3_LINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_3_Linear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_3_LINEAR_REGISTRATION_IMAG");    
     
-	AllocateMemory(h_Quadrature_Filter_1_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_NONLINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_1_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_1_NONLINEAR_REGISTRATION_IMAG");    
-	AllocateMemory(h_Quadrature_Filter_2_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_NONLINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_2_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_2_NONLINEAR_REGISTRATION_IMAG");    
-	AllocateMemory(h_Quadrature_Filter_3_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_NONLINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_3_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_3_NONLINEAR_REGISTRATION_IMAG");    
-	AllocateMemory(h_Quadrature_Filter_4_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_4_NONLINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_4_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_4_NONLINEAR_REGISTRATION_IMAG");    
-	AllocateMemory(h_Quadrature_Filter_5_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_5_NONLINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_5_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_5_NONLINEAR_REGISTRATION_IMAG");    
-	AllocateMemory(h_Quadrature_Filter_6_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_6_NONLINEAR_REGISTRATION_REAL");    
-	AllocateMemory(h_Quadrature_Filter_6_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "QUADRATURE_FILTER_6_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_1_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_1_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_2_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_2_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_2_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_2_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_3_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_3_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_3_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_3_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_4_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_4_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_4_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_4_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_5_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_5_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_5_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_5_NONLINEAR_REGISTRATION_IMAG");    
+	AllocateMemory(h_Quadrature_Filter_6_NonLinear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_6_NONLINEAR_REGISTRATION_REAL");    
+	AllocateMemory(h_Quadrature_Filter_6_NonLinear_Registration_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_6_NONLINEAR_REGISTRATION_IMAG");    
 
-    AllocateMemory(h_Projection_Tensor_1, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_1");    
-    AllocateMemory(h_Projection_Tensor_2, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_2");    
-    AllocateMemory(h_Projection_Tensor_3, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_3");    
-    AllocateMemory(h_Projection_Tensor_4, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_4");    
-    AllocateMemory(h_Projection_Tensor_5, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_5");    
-    AllocateMemory(h_Projection_Tensor_6, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PROJECTION_TENSOR_6");    
+    AllocateMemory(h_Projection_Tensor_1, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PROJECTION_TENSOR_1");    
+    AllocateMemory(h_Projection_Tensor_2, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PROJECTION_TENSOR_2");    
+    AllocateMemory(h_Projection_Tensor_3, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PROJECTION_TENSOR_3");    
+    AllocateMemory(h_Projection_Tensor_4, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PROJECTION_TENSOR_4");    
+    AllocateMemory(h_Projection_Tensor_5, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PROJECTION_TENSOR_5");    
+    AllocateMemory(h_Projection_Tensor_6, PROJECTION_TENSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PROJECTION_TENSOR_6");    
 
-    AllocateMemory(h_Filter_Directions_X, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "FILTER_DIRECTIONS_X");
-    AllocateMemory(h_Filter_Directions_Y, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "FILTER_DIRECTIONS_Y");        
-    AllocateMemory(h_Filter_Directions_Z, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "FILTER_DIRECTIONS_Z");                
+    AllocateMemory(h_Filter_Directions_X, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory,  "FILTER_DIRECTIONS_X");
+    AllocateMemory(h_Filter_Directions_Y, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "FILTER_DIRECTIONS_Y");        
+    AllocateMemory(h_Filter_Directions_Z, FILTER_DIRECTIONS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "FILTER_DIRECTIONS_Z");                
    
-	AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MOTION_PARAMETERS");       
+	AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MOTION_PARAMETERS");       
 
 	if (WRITE_EPI_MASK)
 	{
-		AllocateMemory(h_EPI_Mask, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "EPI_MASK");
+		AllocateMemory(h_EPI_Mask, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "EPI_MASK");
 	}
 	if (WRITE_SLICETIMING_CORRECTED)
 	{
-		AllocateMemory(h_Slice_Timing_Corrected_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SLICETIMINGCORRECTED_fMRI_VOLUMES");
+		AllocateMemory(h_Slice_Timing_Corrected_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "SLICETIMINGCORRECTED_fMRI_VOLUMES");
 	}
 	if (WRITE_MOTION_CORRECTED)
 	{
-		AllocateMemory(h_Motion_Corrected_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "MOTIONCORRECTED_fMRI_VOLUMES");
+		AllocateMemory(h_Motion_Corrected_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MOTIONCORRECTED_fMRI_VOLUMES");
 	}
 	if (WRITE_SMOOTHED)
 	{
-		AllocateMemory(h_Smoothed_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "SMOOTHED_fMRI_VOLUMES");
+		AllocateMemory(h_Smoothed_fMRI_Volumes, EPI_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "SMOOTHED_fMRI_VOLUMES");
 	}
 
 
 
 	if (!REGRESS_ONLY)
 	{
-	    AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
-		AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
-		AllocateMemory(h_Statistical_Maps_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
+	    AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_MNI");
+		AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_MNI");
+		AllocateMemory(h_Statistical_Maps_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS_MNI");
     
 		if (WRITE_UNWHITENED_RESULTS)
 		{
-		    AllocateMemory(h_Beta_Volumes_No_Whitening_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_MNI");
-			AllocateMemory(h_Contrast_Volumes_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_MNI");
-			AllocateMemory(h_Statistical_Maps_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_MNI");
+		    AllocateMemory(h_Beta_Volumes_No_Whitening_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_MNI");
+			AllocateMemory(h_Contrast_Volumes_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_MNI");
+			AllocateMemory(h_Statistical_Maps_No_Whitening_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS_MNI");
 		}
 
 	    if (WRITE_ACTIVITY_EPI)
 	    {
-	        AllocateMemory(h_Beta_Volumes_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
-	        AllocateMemory(h_Contrast_Volumes_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
-	        AllocateMemory(h_Statistical_Maps_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
+	        AllocateMemory(h_Beta_Volumes_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_EPI");
+	        AllocateMemory(h_Contrast_Volumes_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_EPI");
+	        AllocateMemory(h_Statistical_Maps_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS_EPI");
 
 			if (WRITE_UNWHITENED_RESULTS)
 			{
-	        	AllocateMemory(h_Beta_Volumes_No_Whitening_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_EPI");
-		        AllocateMemory(h_Contrast_Volumes_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_EPI");
-		        AllocateMemory(h_Statistical_Maps_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_EPI");
+	        	AllocateMemory(h_Beta_Volumes_No_Whitening_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_EPI");
+		        AllocateMemory(h_Contrast_Volumes_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_EPI");
+		        AllocateMemory(h_Statistical_Maps_No_Whitening_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS_EPI");
 			}
 
 			if (PERMUTE)
 			{
-				AllocateMemory(h_P_Values_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_EPI");
+				AllocateMemory(h_P_Values_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PVALUES_EPI");
 			}
 	    }        
 
 	    if (WRITE_ACTIVITY_T1)
     	{
-	        AllocateMemory(h_Beta_Volumes_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
-	        AllocateMemory(h_Contrast_Volumes_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
-	        AllocateMemory(h_Statistical_Maps_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
+	        AllocateMemory(h_Beta_Volumes_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_T1");
+	        AllocateMemory(h_Contrast_Volumes_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_T1");
+	        AllocateMemory(h_Statistical_Maps_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS_T1");
 
 			if (WRITE_UNWHITENED_RESULTS)
 			{
-	        	AllocateMemory(h_Beta_Volumes_No_Whitening_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "BETA_VOLUMES_T1");
-		        AllocateMemory(h_Contrast_Volumes_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_VOLUMES_T1");
-		        AllocateMemory(h_Statistical_Maps_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "STATISTICALMAPS_T1");
+	        	AllocateMemory(h_Beta_Volumes_No_Whitening_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_T1");
+		        AllocateMemory(h_Contrast_Volumes_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_T1");
+		        AllocateMemory(h_Statistical_Maps_No_Whitening_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS_T1");
 			}
 
 			if (PERMUTE)
 			{
-				AllocateMemory(h_P_Values_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_T1");
+				AllocateMemory(h_P_Values_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PVALUES_T1");
 			}
 	    }        
 
 		if (PERMUTE)
 		{
-			AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_MATRIX");
-			AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PERMUTATION_DISTRIBUTION");             
-			AllocateMemory(h_P_Values_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "PVALUES_MNI");
+			AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_MATRIX");
+			AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_DISTRIBUTION");             
+			AllocateMemory(h_P_Values_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PVALUES_MNI");
 		}
 
 		if (WRITE_RESIDUALS_EPI)
 		{
-			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "RESIDUALS_EPI");  
+			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "RESIDUALS_EPI");  
 		}
 	}
 	else
 	{
-		AllocateMemory(h_Residuals_MNI, RESIDUALS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "RESIDUALS_MNI");             
+		AllocateMemory(h_Residuals_MNI, RESIDUALS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "RESIDUALS_MNI");             
 
 	    if (WRITE_ACTIVITY_EPI)
 	    {
-			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "RESIDUALS_EPI");             
+			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "RESIDUALS_EPI");             
 		}
 	}
     
-    AllocateMemory(h_X_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DESIGN_MATRIX");
-    AllocateMemory(h_Highres_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "HIGHRES_REGRESSOR");
-    AllocateMemory(h_LowpassFiltered_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "LOWPASSFILTERED_REGRESSOR");
-    AllocateMemory(h_xtxxt_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DESIGN_MATRIX_INVERSE");
-    AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRASTS");
-    AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "CONTRAST_SCALARS");
-    AllocateMemory(h_Design_Matrix, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TOTAL_DESIGN_MATRIX");
-    AllocateMemory(h_Design_Matrix2, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "TOTAL_DESIGN_MATRIX2");
+    AllocateMemory(h_X_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX");
+    AllocateMemory(h_Highres_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "HIGHRES_REGRESSOR");
+    AllocateMemory(h_LowpassFiltered_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "LOWPASSFILTERED_REGRESSOR");
+    AllocateMemory(h_xtxxt_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX_INVERSE");
+    AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRASTS");
+    AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_SCALARS");
+    AllocateMemory(h_Design_Matrix, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "TOTAL_DESIGN_MATRIX");
+    AllocateMemory(h_Design_Matrix2, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "TOTAL_DESIGN_MATRIX2");
 
-    AllocateMemory(h_AR1_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR1_ESTIMATES");
-    AllocateMemory(h_AR2_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR2_ESTIMATES");
-    AllocateMemory(h_AR3_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR3_ESTIMATES");
-    AllocateMemory(h_AR4_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR4_ESTIMATES");
+    AllocateMemory(h_AR1_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR1_ESTIMATES");
+    AllocateMemory(h_AR2_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR2_ESTIMATES");
+    AllocateMemory(h_AR3_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR3_ESTIMATES");
+    AllocateMemory(h_AR4_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR4_ESTIMATES");
 
     if (WRITE_AR_ESTIMATES_MNI)
     {
-        AllocateMemory(h_AR1_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR1_ESTIMATES_MNI");
-        AllocateMemory(h_AR2_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR2_ESTIMATES_MNI");
-        AllocateMemory(h_AR3_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR3_ESTIMATES_MNI");
-        AllocateMemory(h_AR4_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR4_ESTIMATES_MNI");
+        AllocateMemory(h_AR1_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR1_ESTIMATES_MNI");
+        AllocateMemory(h_AR2_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR2_ESTIMATES_MNI");
+        AllocateMemory(h_AR3_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR3_ESTIMATES_MNI");
+        AllocateMemory(h_AR4_Estimates_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR4_ESTIMATES_MNI");
     }
 
     if (WRITE_AR_ESTIMATES_T1)
     {
-        AllocateMemory(h_AR1_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR1_ESTIMATES_T1");
-        AllocateMemory(h_AR2_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR2_ESTIMATES_T1");
-        AllocateMemory(h_AR3_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR3_ESTIMATES_T1");
-        AllocateMemory(h_AR4_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "AR4_ESTIMATES_T1");
+        AllocateMemory(h_AR1_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR1_ESTIMATES_T1");
+        AllocateMemory(h_AR2_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR2_ESTIMATES_T1");
+        AllocateMemory(h_AR3_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR3_ESTIMATES_T1");
+        AllocateMemory(h_AR4_Estimates_T1, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR4_ESTIMATES_T1");
     }
     
 	endTime = GetWallTime();
@@ -2581,6 +2588,8 @@ int main(int argc, char **argv)
 	// Initialization went OK
     else
     {
+		BROCCOLI.SetAllocatedHostMemory(allocatedHostMemory);
+
         BROCCOLI.SetEPIWidth(EPI_DATA_W);
         BROCCOLI.SetEPIHeight(EPI_DATA_H);
         BROCCOLI.SetEPIDepth(EPI_DATA_D);

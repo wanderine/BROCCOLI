@@ -37,7 +37,7 @@ fi
 
 # Set compilation flags
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
-    FLAGS="-O3 -DNDEBUG -m64 "
+    FLAGS="-O3 -DNDEBUG -m64 -fopenmp"
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
     FLAGS="-O0 -g -m64"
 else
