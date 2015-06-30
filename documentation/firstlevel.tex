@@ -6,10 +6,7 @@ BROCCOLI performs first level fMRI analysis using a single command. The analysis
 ./FirstLevelAnalysis fMRI.nii T1_brain.nii BrainTemplate.nii ... 
   regressors.txt contrasts.txt 
 \end{verbatim}
-
-fMRI.nii is here the 4D fMRI data, T1\_brain.nii is the skullstripped anatomical volume of the subject and BrainTemplate.nii is for example the MNI template in the FSL software (without skull). Currently it is necessary that all the NIfTI files are stored in the same orientation (e.g. RPI). The orientation can for example be checked with the AFNI function 3dinfo, and the orientation can be changed using the function 3dresample (e.g. 3dresample -orient RPI -input volume.nii -prefix volume\_RPI.nii).
-
-regressors.txt is a text file that contains the number of regressors to use, and the filename of each regressor. It can for example look like
+fMRI.nii is here the 4D fMRI data, T1\_brain.nii is the skullstripped anatomical volume of the subject and BrainTemplate.nii is for example the MNI template in the FSL software (without skull). Currently it is necessary that all the NIfTI files are stored in the same orientation (e.g. RPI). The orientation can for example be checked with the AFNI function 3dinfo, and the orientation can be changed using the function 3dresample (e.g. 3dresample -orient RPI -input volume.nii -prefix volume\_RPI.nii). \\ \\ regressors.txt is a text file that contains the number of regressors to use, and the filename of each regressor. It can for example look like
 
 \begin{verbatim}
 NumRegressors 3
@@ -18,7 +15,6 @@ task1.txt
 task2.txt
 task3.txt
 \end{verbatim}
-
 Each task file needs to include the number of events, the start time of each event, the length of each event and the value for the regressor of each event (this format is very similar to the one used by the FSL software). A task file can for example look like
 
 \begin{verbatim}
@@ -33,7 +29,6 @@ NumEvents 8
 280.457018      1.367038        1
 308.66593       2.084071        1
 \end{verbatim}
-
 contrasts.txt contains a list of all the contrasts for which BROCCOLI will calculate a volume with t-scores. An example is given by
 
 \begin{verbatim}
@@ -92,6 +87,14 @@ The following preprocessing options are available
                   No slice timing correction is performed if pattern in \newline
                   NIFTI file is unknown and no pattern is provided. 
 
+\item -iterationsmc 
+\newline \newline Set the number of iterations used for the \newline motion correction (the default is 5).
+
+\item -smoothing 
+\newline \newline Set the amount of smoothing applied to \newline each fMRI volume (the default is 6 mm FWHM). 
+
+\newpage
+
 \item -slicecustom
 \newline \newline Provide a text file with the slice times, \newline
 				  one value per slice, in milli seconds (0 - TR). \newline
@@ -101,16 +104,7 @@ The following preprocessing options are available
 				  between 0 and N-1, where N is the number of slices. \newline
 				  The default reference slice is N/2.
  
-
-\item -iterationsmc 
-\newline \newline Set the number of iterations used for the \newline motion correction (the default is 5).
-
-\item -smoothing 
-\newline \newline Set the amount of smoothing applied to \newline each fMRI volume (the default is 6 mm FWHM). 
-
 \end{itemize}
-
-\newpage
 
 A text file with slice timing information can for example look like
 \begin{verbatim}
