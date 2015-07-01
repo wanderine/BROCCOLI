@@ -205,6 +205,7 @@ int main(int argc, char **argv)
 	int				REGRESS_CONFOUNDS = 0;
     float           EPI_SMOOTHING_AMOUNT = 6.0f;
     float           AR_SMOOTHING_AMOUNT = 6.0f;
+	bool			BETAS_ONLY = false;
 	bool			REGRESS_ONLY = false;
     
     int             USE_TEMPORAL_DERIVATIVES = 0;
@@ -240,7 +241,8 @@ int main(int argc, char **argv)
     bool            WRITE_AR_ESTIMATES_T1 = false;
     bool            WRITE_AR_ESTIMATES_MNI = false;
 	bool			WRITE_UNWHITENED_RESULTS = false;
-    
+	bool			WRITE_COMPACT = false;    
+
     bool            PRINT = true;
     bool            VERBOS = false;
     bool            DEBUG = false;
@@ -287,6 +289,7 @@ int main(int argc, char **argv)
         printf(" -smoothing                 Amount of smoothing to apply to the fMRI data (default 6.0 mm) \n\n");
         
         printf("Statistical options:\n\n");
+        printf(" -betasonly                 Only perform preprocessing and calculate beta values and contrasts, no t- or F-scores are calculated (default no). \n");
         printf(" -regressonly               Only perform preprocessing and regress nuisance variables, no GLM is performed (default no). \n");
 		printf("                            Regressor and contrast file not needed. \n");
         printf(" -rawregressors             Use raw regressors (FSL format, one value per TR) (default no) \n");
@@ -302,6 +305,7 @@ int main(int argc, char **argv)
         printf(" -mask                      Apply a mask to the statistical maps after the statistical analysis, in MNI space (default none) \n\n");
 
         printf("Misc options:\n\n");
+        printf(" -savecompact	        	Save beta values, contrast results and t-/F-scores as single files, instead of one per regressor/contrast (default no)\n");
         printf(" -savet1interpolated        Save T1 volume after resampling to MNI voxel size and resizing to MNI size (default no) \n");
         printf(" -savet1alignedlinear       Save T1 volume linearly aligned to the MNI volume (default no) \n");
         printf(" -savet1alignednonlinear    Save T1 volume non-linearly aligned to the MNI volume (default no) \n");
@@ -712,6 +716,11 @@ int main(int argc, char **argv)
         
         // Statistical options
 
+        else if (strcmp(input,"-betasonly") == 0)
+        {
+            BETAS_ONLY = true;
+            i += 1;
+        }
         else if (strcmp(input,"-rawregressors") == 0)
         {
             RAW_REGRESSORS = true;
@@ -855,6 +864,11 @@ int main(int argc, char **argv)
         }
         
         // Misc options
+        else if (strcmp(input,"-savecompact") == 0)
+        {
+            WRITE_COMPACT = true;
+            i += 1;
+        }
         else if (strcmp(input,"-savet1interpolated") == 0)
         {
             WRITE_INTERPOLATED_T1 = true;
@@ -1603,7 +1617,7 @@ int main(int argc, char **argv)
 
 
 
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !BETAS_ONLY)
 	{
 	    AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_MNI");
 		AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_MNI");
@@ -1664,6 +1678,23 @@ int main(int argc, char **argv)
 		if (WRITE_RESIDUALS_EPI)
 		{
 			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "RESIDUALS_EPI");  
+		}
+	}
+	else if (!REGRESS_ONLY && BETAS_ONLY)
+	{
+		AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_MNI");
+		AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_MNI");    
+
+	   	if (WRITE_ACTIVITY_EPI)
+       	{
+	    	AllocateMemory(h_Beta_Volumes_EPI, BETA_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_EPI");
+	        AllocateMemory(h_Contrast_Volumes_EPI, STATISTICAL_MAPS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_EPI");
+		}
+
+		if (WRITE_ACTIVITY_T1)
+    	{
+	        AllocateMemory(h_Beta_Volumes_T1, BETA_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_T1");
+	        AllocateMemory(h_Contrast_Volumes_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_T1");
 		}
 	}
 	else
@@ -2496,6 +2527,7 @@ int main(int argc, char **argv)
 
 		BROCCOLI.SetBayesian(BAYESIAN);
 		BROCCOLI.SetRegressOnly(REGRESS_ONLY);
+		BROCCOLI.SetBetasOnly(BETAS_ONLY);
         BROCCOLI.SetOutputResidualsMNI(h_Residuals_MNI);
         BROCCOLI.SetOutputResidualsEPI(h_Residuals_EPI);
 
@@ -2680,97 +2712,202 @@ int main(int argc, char **argv)
 	{
 	    if (!BAYESIAN)
 	    {
-		    // Write each beta weight as a separate file
-	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-	        {
-	            std::string temp = beta;
-	            std::stringstream ss;
-	            ss << "_regressor";
-	            ss << i + 1;
-	            temp.append(ss.str());
-	            temp.append(mni);
-	            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	        }
-		    // Write each contrast volume as a separate file
-	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-	        {
-	            std::string temp = cope;
-	            std::stringstream ss;
-	            ss << "_contrast";
-	            ss << i + 1;
-	            temp.append(ss.str());
-	            temp.append(mni);
-	            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	        }  
-	        // Write each t-map as a separate file
-	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-	        {
-				// nifti file contains t-scores
-				outputNiftiStatisticsMNI->intent_code = 3;
-
-	            std::string temp = tscores;
-	            std::stringstream ss;
-	            ss << "_contrast";
-	            ss << i + 1;
-	            temp.append(ss.str());
-	            temp.append(mni);
-	            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	        }
-
-			// No whitening
-
-			if (WRITE_UNWHITENED_RESULTS)
+			if (!WRITE_COMPACT)
 			{
-				// Write each beta weight as a separate file
+			    // Write each beta weight as a separate file
 		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 		        {
-		            std::string temp = betaNoWhitening;
+		            std::string temp = beta;
 		            std::stringstream ss;
 		            ss << "_regressor";
 		            ss << i + 1;
 		            temp.append(ss.str());
 		            temp.append(mni);
-		            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		        }
 			    // Write each contrast volume as a separate file
 		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
 		        {
-		            std::string temp = copeNoWhitening;
+		            std::string temp = cope;
 		            std::stringstream ss;
 		            ss << "_contrast";
 		            ss << i + 1;
 		            temp.append(ss.str());
 		            temp.append(mni);
-		            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		        }  
-	    	    // Write each t-map as a separate file
-		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-		        {
-		            std::string temp = tscoresNoWhitening;
-		            std::stringstream ss;
-		            ss << "_contrast";
-		            ss << i + 1;
-		            temp.append(ss.str());
-		            temp.append(mni);
-		            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		        }
+				if (!BETAS_ONLY)
+				{
+			        // Write each t-map as a separate file
+			        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			        {
+						// nifti file contains t-scores
+						outputNiftiStatisticsMNI->intent_code = 3;
+		
+			            std::string temp = tscores;
+			            std::stringstream ss;
+			            ss << "_contrast";
+			            ss << i + 1;
+			            temp.append(ss.str());
+			            temp.append(mni);
+			            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			        }
+				}
 			}
-	        if (PERMUTE)
+			else
+			{
+    			outputNiftiStatisticsMNI->ndim = 4;
+			    outputNiftiStatisticsMNI->dim[0] = 4;
+
+				// Write all beta weights as a single file
+			    outputNiftiStatisticsMNI->nt = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+				outputNiftiStatisticsMNI->dim[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+			    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS;
+	            std::string temp = beta;
+	            temp.append("_allregressors");
+	            temp.append(mni);
+				WriteNifti(outputNiftiStatisticsMNI,h_Beta_Volumes_MNI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+
+				// Write all contrast volumes as a single file
+			    outputNiftiStatisticsMNI->nt = NUMBER_OF_CONTRASTS;
+				outputNiftiStatisticsMNI->dim[4] = NUMBER_OF_CONTRASTS;
+			    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS;
+	            temp = cope;
+	            temp.append("_allcontrasts");
+	            temp.append(mni);
+				WriteNifti(outputNiftiStatisticsMNI,h_Contrast_Volumes_MNI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+
+				if (!BETAS_ONLY)
+				{
+					// Write all statistical maps as a single file
+					// nifti file contains t-scores
+					outputNiftiStatisticsMNI->intent_code = 3;
+		            temp = tscores;
+		            temp.append("_allcontrasts");
+		            temp.append(mni);
+					WriteNifti(outputNiftiStatisticsMNI,h_Statistical_Maps_MNI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+				}				
+			}
+
+			// No whitening
+
+			if (WRITE_UNWHITENED_RESULTS && !BETAS_ONLY)
+			{
+				if (!WRITE_COMPACT)
+				{
+	    			outputNiftiStatisticsMNI->ndim = 3;
+				    outputNiftiStatisticsMNI->dim[0] = 3;
+				    outputNiftiStatisticsMNI->nt = 1;
+					outputNiftiStatisticsMNI->dim[4] = 1;
+				    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D;
+
+					// Write each beta weight as a separate file
+			        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+			        {
+			            std::string temp = betaNoWhitening;
+			            std::stringstream ss;
+			            ss << "_regressor";
+			            ss << i + 1;
+			            temp.append(ss.str());
+			            temp.append(mni);
+			            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			        }
+				    // Write each contrast volume as a separate file
+			        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			        {
+			            std::string temp = copeNoWhitening;
+			            std::stringstream ss;
+			            ss << "_contrast";
+			            ss << i + 1;
+			            temp.append(ss.str());
+			            temp.append(mni);
+			            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			        }  
+		    	    // Write each t-map as a separate file
+			        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			        {
+			            std::string temp = tscoresNoWhitening;
+			            std::stringstream ss;
+			            ss << "_contrast";
+			            ss << i + 1;
+			            temp.append(ss.str());
+			            temp.append(mni);
+			            WriteNifti(outputNiftiStatisticsMNI,&h_Statistical_Maps_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			        }
+				}
+				else
+				{
+	    			outputNiftiStatisticsMNI->ndim = 4;
+				    outputNiftiStatisticsMNI->dim[0] = 4;
+
+					// Write all beta weights as a single file
+				    outputNiftiStatisticsMNI->nt = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+					outputNiftiStatisticsMNI->dim[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+				    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS;
+		            std::string temp = betaNoWhitening;
+		            temp.append("_allregressors");
+		            temp.append(mni);
+					WriteNifti(outputNiftiStatisticsMNI,h_Beta_Volumes_No_Whitening_MNI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	
+					// Write all contrast volumes as a single file
+				    outputNiftiStatisticsMNI->nt = NUMBER_OF_CONTRASTS;
+					outputNiftiStatisticsMNI->dim[4] = NUMBER_OF_CONTRASTS;
+				    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS;
+		            temp = copeNoWhitening;
+		            temp.append("_allcontrasts");
+		            temp.append(mni);
+					WriteNifti(outputNiftiStatisticsMNI,h_Contrast_Volumes_No_Whitening_MNI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	
+					if (!BETAS_ONLY)
+					{
+						// Write all statistical maps as a single file
+						// nifti file contains t-scores
+						outputNiftiStatisticsMNI->intent_code = 3;
+			            temp = tscoresNoWhitening;
+			            temp.append("_allcontrasts");
+			            temp.append(mni);
+						WriteNifti(outputNiftiStatisticsMNI,h_Statistical_Maps_No_Whitening_MNI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+					}
+				}
+			}
+	        if (PERMUTE && !BETAS_ONLY)
 	        {
 				// nifti file contains p-values
 				outputNiftiStatisticsMNI->intent_code = 22;
 
-	            // Write each p-map as a separate file
-	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-	            {
-	                std::string temp = pvalues;
-			        std::stringstream ss;
-	                ss << "_contrast";
-	                ss << i + 1;
-	                temp.append(ss.str());
-	                temp.append(mni);
-	                WriteNifti(outputNiftiStatisticsMNI,&h_P_Values_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	            }
+				if (!WRITE_COMPACT)
+				{
+	    			outputNiftiStatisticsMNI->ndim = 3;
+				    outputNiftiStatisticsMNI->dim[0] = 3;
+				    outputNiftiStatisticsMNI->nt = 1;
+					outputNiftiStatisticsMNI->dim[4] = 1;
+				    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D;
+
+		            // Write each p-map as a separate file
+		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		            {
+		                std::string temp = pvalues;
+				        std::stringstream ss;
+		                ss << "_contrast";
+		                ss << i + 1;
+		                temp.append(ss.str());
+		                temp.append(mni);
+		                WriteNifti(outputNiftiStatisticsMNI,&h_P_Values_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		            }
+				}
+				else
+				{
+					// Write all p-maps as a single file
+	    			outputNiftiStatisticsMNI->ndim = 4;
+				    outputNiftiStatisticsMNI->dim[0] = 4;
+				    outputNiftiStatisticsMNI->nt = NUMBER_OF_CONTRASTS;
+					outputNiftiStatisticsMNI->dim[4] = NUMBER_OF_CONTRASTS;
+				    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS;
+		            std::string temp = pvalues;
+		            temp.append("_allcontrasts");
+		            temp.append(mni);
+					WriteNifti(outputNiftiStatisticsMNI,h_P_Values_MNI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+				}
 	        }
 	    }
 	    else if (BAYESIAN)
@@ -2799,7 +2936,7 @@ int main(int argc, char **argv)
 	        }
 	    }
 
-	    if (WRITE_AR_ESTIMATES_MNI && !BAYESIAN)
+	    if (WRITE_AR_ESTIMATES_MNI && !BAYESIAN && !BETAS_ONLY)
 	    {
 	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	        WriteNifti(outputNiftiStatisticsMNI,h_AR2_Estimates_MNI,"_ar2_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -2811,7 +2948,7 @@ int main(int argc, char **argv)
 	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		}		
 	}
-	else
+	else if (!BETAS_ONLY)
 	{		
 		outputNiftiStatisticsMNI->nt = EPI_DATA_T;
 		outputNiftiStatisticsMNI->ndim = 4;
@@ -2847,98 +2984,203 @@ int main(int argc, char **argv)
 	    {
     	    if (!BAYESIAN)
     	    {
-    	        // Write each beta weight as a separate file
-    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-    	        {
-    	            std::string temp = beta;
-    	            std::stringstream ss;
-    	            ss << "_regressor";
-					ss << i + 1;
-    	            temp.append(ss.str());
-    	            temp.append(epi);
-    	            WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	        }
-    	        // Write each contrast volume as a separate file
-    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-    	        {
-    	            std::string temp = cope;
-    	            std::stringstream ss;
-    	            ss << "_contrast";
-    	            ss << i + 1;
-    	            temp.append(ss.str());
-    	            temp.append(epi);
-    	            WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	        }
-    	        // Write each t-map as a separate file
-    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-    	        {
-					// nifti file contains t-scores
-					outputNiftiStatisticsEPI->intent_code = 3;
-
-    	            std::string temp = tscores;
-    	            std::stringstream ss;
-    	            ss << "_contrast";
-    	            ss << i + 1;
-    	            temp.append(ss.str());
-    	            temp.append(epi);
-    	            WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	        }
-
-				// No whitening
-	
-				if (WRITE_UNWHITENED_RESULTS)
+				if (!WRITE_COMPACT)
 				{
-					// Write each beta weight as a separate file
-    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-		            {
-		                std::string temp = betaNoWhitening;
-		                std::stringstream ss;
-		                ss << "_regressor";
+	    	        // Write each beta weight as a separate file
+	    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	    	        {
+    		            std::string temp = beta;
+    		            std::stringstream ss;
+    		            ss << "_regressor";
 						ss << i + 1;
-		                temp.append(ss.str());
-		                temp.append(epi);
-		                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		            }
-		            // Write each contrast volume as a separate file
-		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-		            {
-		                std::string temp = copeNoWhitening;
-		                std::stringstream ss;
-		                ss << "_contrast";
-		                ss << i + 1;
-		                temp.append(ss.str());
-		                temp.append(epi);
-		                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		            }
-		            // Write each t-map as a separate file
-		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-		            {
-		                std::string temp = tscoresNoWhitening;
-		                std::stringstream ss;
-		                ss << "_contrast";
-		                ss << i + 1;
-		                temp.append(ss.str());
-		                temp.append(epi);
-		                WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		            }
+    		            temp.append(ss.str());
+    		            temp.append(epi);
+    		            WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    		        }
+    		        // Write each contrast volume as a separate file
+    		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    		        {
+    		            std::string temp = cope;
+    		            std::stringstream ss;
+    		            ss << "_contrast";
+    		            ss << i + 1;
+    		            temp.append(ss.str());
+    		            temp.append(epi);
+    		            WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    		        }
+					if (!BETAS_ONLY)
+					{
+		    	        // Write each t-map as a separate file
+		    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		    	        {
+							// nifti file contains t-scores
+							outputNiftiStatisticsEPI->intent_code = 3;
+	
+    			            std::string temp = tscores;
+    			            std::stringstream ss;
+    			            ss << "_contrast";
+    			            ss << i + 1;
+    			            temp.append(ss.str());
+    			            temp.append(epi);
+    			            WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    			        }
+					}
+				}
+				else
+				{
+	    			outputNiftiStatisticsEPI->ndim = 4;
+				    outputNiftiStatisticsEPI->dim[0] = 4;
+
+					// Write all beta weights as a single file
+				    outputNiftiStatisticsEPI->nt = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+					outputNiftiStatisticsEPI->dim[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+				    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS;
+		            std::string temp = beta;
+		            temp.append("_allregressors");
+		            temp.append(epi);
+					WriteNifti(outputNiftiStatisticsEPI,h_Beta_Volumes_EPI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+
+					// Write all contrast volumes as a single file
+				    outputNiftiStatisticsEPI->nt = NUMBER_OF_CONTRASTS;
+					outputNiftiStatisticsEPI->dim[4] = NUMBER_OF_CONTRASTS;
+				    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS;
+		            temp = cope;
+		            temp.append("_allcontrasts");
+		            temp.append(epi);
+					WriteNifti(outputNiftiStatisticsEPI,h_Contrast_Volumes_EPI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+
+					if (!BETAS_ONLY)
+					{
+						// Write all statistical maps as a single file
+						// nifti file contains t-scores
+						outputNiftiStatisticsEPI->intent_code = 3;
+			            temp = tscores;
+			            temp.append("_allcontrasts");
+			            temp.append(epi);
+						WriteNifti(outputNiftiStatisticsEPI,h_Statistical_Maps_EPI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+					}
 				}
 	
-    	        if (PERMUTE)
+				// No whitening
+	
+				if (WRITE_UNWHITENED_RESULTS && !BETAS_ONLY)
+				{
+					if (!WRITE_COMPACT)
+					{
+		    			outputNiftiStatisticsEPI->ndim = 3;
+					    outputNiftiStatisticsEPI->dim[0] = 3;
+					    outputNiftiStatisticsEPI->nt = 1;
+						outputNiftiStatisticsEPI->dim[4] = 1;
+					    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;									
+
+						// Write each beta weight as a separate file
+	    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+			            {
+			                std::string temp = betaNoWhitening;
+			                std::stringstream ss;
+			                ss << "_regressor";
+							ss << i + 1;
+			                temp.append(ss.str());
+			                temp.append(epi);
+			                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			            }
+			            // Write each contrast volume as a separate file
+			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            {
+			                std::string temp = copeNoWhitening;
+			                std::stringstream ss;
+			                ss << "_contrast";
+			                ss << i + 1;
+			                temp.append(ss.str());
+			                temp.append(epi);
+			                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			            }
+			            // Write each t-map as a separate file
+			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            {
+			                std::string temp = tscoresNoWhitening;
+			                std::stringstream ss;
+			                ss << "_contrast";
+			                ss << i + 1;
+			                temp.append(ss.str());
+			                temp.append(epi);
+			                WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			            }
+					}
+					else
+					{
+		    			outputNiftiStatisticsEPI->ndim = 4;
+					    outputNiftiStatisticsEPI->dim[0] = 4;
+
+						// Write all beta weights as a single file
+					    outputNiftiStatisticsEPI->nt = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+						outputNiftiStatisticsEPI->dim[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+					    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS;
+			            std::string temp = betaNoWhitening;
+			            temp.append("_allregressors");
+			            temp.append(epi);
+						WriteNifti(outputNiftiStatisticsEPI,h_Beta_Volumes_No_Whitening_EPI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	
+						// Write all contrast volumes as a single file
+					    outputNiftiStatisticsEPI->nt = NUMBER_OF_CONTRASTS;
+						outputNiftiStatisticsEPI->dim[4] = NUMBER_OF_CONTRASTS;
+					    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS;
+			            temp = copeNoWhitening;
+			            temp.append("_allcontrasts");
+			            temp.append(epi);
+						WriteNifti(outputNiftiStatisticsEPI,h_Contrast_Volumes_No_Whitening_EPI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	
+						if (!BETAS_ONLY)
+						{
+							// Write all statistical maps as a single file
+							// nifti file contains t-scores
+							outputNiftiStatisticsEPI->intent_code = 3;
+				            temp = tscoresNoWhitening;
+				            temp.append("_allcontrasts");
+				            temp.append(epi);
+							WriteNifti(outputNiftiStatisticsEPI,h_Statistical_Maps_No_Whitening_EPI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+						}
+					}
+				}
+	
+    	        if (PERMUTE && !BETAS_ONLY)
     	        {
 					// nifti file contains p-values
 					outputNiftiStatisticsEPI->intent_code = 22;
 
-    	            // Write each p-map as a separate file
-    	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-    	            {
-    	                std::string temp = pvalues;
-    	                std::stringstream ss;
-		                ss << "_contrast";
-    	                ss << i + 1;
-    	                temp.append(ss.str());
-    	                temp.append(epi);
-    	                WriteNifti(outputNiftiStatisticsEPI,&h_P_Values_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	            }
+					if (!WRITE_COMPACT)
+					{
+		    			outputNiftiStatisticsEPI->ndim = 3;
+					    outputNiftiStatisticsEPI->dim[0] = 3;
+					    outputNiftiStatisticsEPI->nt = 1;
+						outputNiftiStatisticsEPI->dim[4] = 1;
+					    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
+	
+			            // Write each p-map as a separate file
+			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            {
+			                std::string temp = pvalues;
+					        std::stringstream ss;
+			                ss << "_contrast";
+			                ss << i + 1;
+			                temp.append(ss.str());
+			                temp.append(epi);
+			                WriteNifti(outputNiftiStatisticsEPI,&h_P_Values_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			            }
+					}
+					else
+					{
+						// Write all p-maps as a single file
+		    			outputNiftiStatisticsEPI->ndim = 4;
+					    outputNiftiStatisticsEPI->dim[0] = 4;
+					    outputNiftiStatisticsEPI->nt = NUMBER_OF_CONTRASTS;
+						outputNiftiStatisticsEPI->dim[4] = NUMBER_OF_CONTRASTS;
+					    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS;
+			            std::string temp = pvalues;
+			            temp.append("_allcontrasts");
+			            temp.append(epi);
+						WriteNifti(outputNiftiStatisticsEPI,h_P_Values_EPI,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+					}
     	        }
     	    }
     	    else if (BAYESIAN)
@@ -2970,7 +3212,7 @@ int main(int argc, char **argv)
     
 		outputNiftiStatisticsEPI->intent_code = 0;
 
-    	if (WRITE_AR_ESTIMATES_EPI && !BAYESIAN)
+    	if (WRITE_AR_ESTIMATES_EPI && !BAYESIAN && !BETAS_ONLY)
     	{
     	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     	    WriteNifti(outputNiftiStatisticsEPI,h_AR2_Estimates_EPI,"_ar2_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -2982,7 +3224,7 @@ int main(int argc, char **argv)
     	    WriteNifti(outputNiftiStatisticsEPI,h_AR1_Estimates_EPI,"_ar1_estimates_EPI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     	}    
 
-		if (WRITE_RESIDUALS_EPI && !BAYESIAN)
+		if (WRITE_RESIDUALS_EPI && !BAYESIAN && !BETAS_ONLY)
 		{
 		    outputNiftiStatisticsEPI->ndim = 4;
 			outputNiftiStatisticsEPI->nt = EPI_DATA_T;
@@ -3026,41 +3268,81 @@ int main(int argc, char **argv)
 	    {
     	    if (!BAYESIAN)
     	    {
-    	        // Write each beta weight as a separate file
-    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-    	        {
-    	            std::string temp = beta;
-    	            std::stringstream ss;
-    	            ss << "_regressor";
-					ss << i + 1;
-    	            temp.append(ss.str());
-    	            temp.append(t1);
-    	            WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	        }
-    	        // Write each contrast volume as a separate file
-    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-    	        {
-    	            std::string temp = cope;
-    	            std::stringstream ss;
-    	            ss << "_contrast";
-    	            ss << i + 1;
-    	            temp.append(ss.str());
-    	            temp.append(t1);
-    	            WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	        }
-    	        // Write each t-map as a separate file
-    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-    	        {
-    	            std::string temp = tscores;
-    	            std::stringstream ss;
-    	            ss << "_contrast";
-    	            ss << i + 1;
-    	            temp.append(ss.str());
-    	            temp.append(t1);
-    	            WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	        }
+				if (!WRITE_COMPACT)
+				{
+	    	        // Write each beta weight as a separate file
+    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+    		        {
+    		            std::string temp = beta;
+    		            std::stringstream ss;
+    		            ss << "_regressor";
+						ss << i + 1;
+    		            temp.append(ss.str());
+    		            temp.append(t1);
+    		            WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    		        }
+    		        // Write each contrast volume as a separate file
+    		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    		        {
+    		            std::string temp = cope;
+    		            std::stringstream ss;
+    		            ss << "_contrast";
+    		            ss << i + 1;
+    		            temp.append(ss.str());
+    		            temp.append(t1);
+    		            WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    		        }
+					if (!BETAS_ONLY)
+					{
+		    	        // Write each t-map as a separate file
+		    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		    	        {
+		    	            std::string temp = tscores;
+		    	            std::stringstream ss;
+		    	            ss << "_contrast";
+		    	            ss << i + 1;
+		    	            temp.append(ss.str());
+		    	            temp.append(t1);
+		    	            WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    			        }
+					}
+				}
+				else
+				{
+					outputNiftiStatisticsT1->ndim = 4;
+				    outputNiftiStatisticsT1->dim[0] = 4;
 
-			    if (WRITE_AR_ESTIMATES_T1)
+					// Write all beta weights as a single file
+				    outputNiftiStatisticsT1->nt = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+					outputNiftiStatisticsT1->dim[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+				    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS;
+		            std::string temp = beta;
+		            temp.append("_allregressors");
+		            temp.append(t1);
+					WriteNifti(outputNiftiStatisticsT1,h_Beta_Volumes_T1,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+
+					// Write all contrast volumes as a single file
+				    outputNiftiStatisticsT1->nt = NUMBER_OF_CONTRASTS;
+					outputNiftiStatisticsT1->dim[4] = NUMBER_OF_CONTRASTS;
+				    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS;
+		            temp = cope;
+		            temp.append("_allcontrasts");
+		            temp.append(t1);
+					WriteNifti(outputNiftiStatisticsT1,h_Contrast_Volumes_T1,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+
+					if (!BETAS_ONLY)
+					{
+						// Write all statistical maps as a single file
+						// nifti file contains t-scores
+						outputNiftiStatisticsT1->intent_code = 3;
+			            temp = tscores;
+			            temp.append("_allcontrasts");
+			            temp.append(t1);
+						WriteNifti(outputNiftiStatisticsT1,h_Statistical_Maps_T1,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+					}
+				}
+
+			    if (WRITE_AR_ESTIMATES_T1 && !BETAS_ONLY)
 			    {
 	    		    WriteNifti(outputNiftiStatisticsT1,h_AR1_Estimates_T1,"_ar1_estimates_T1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	    		    WriteNifti(outputNiftiStatisticsT1,h_AR2_Estimates_T1,"_ar2_estimates_T1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -3070,56 +3352,121 @@ int main(int argc, char **argv)
 
 				// No whitening
 	
-				if (WRITE_UNWHITENED_RESULTS)
+				if (WRITE_UNWHITENED_RESULTS && !BETAS_ONLY)
 				{
-					// Write each beta weight as a separate file
-    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
-		            {
-		                std::string temp = betaNoWhitening;
-		                std::stringstream ss;
-		                ss << "_regressor";
-						ss << i + 1;
-		                temp.append(ss.str());
-		                temp.append(t1);
-		                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		            }
-		            // Write each contrast volume as a separate file
-		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-		            {
-		                std::string temp = copeNoWhitening;
-		                std::stringstream ss;
-		                ss << "_contrast";
-		                ss << i + 1;
-		                temp.append(ss.str());
-		                temp.append(t1);
-		                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		            }
-		            // Write each t-map as a separate file
-		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-		            {
-		                std::string temp = tscoresNoWhitening;
-		                std::stringstream ss;
-		                ss << "_contrast";
-		                ss << i + 1;
-		                temp.append(ss.str());
-		                temp.append(t1);
-		                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-		            }
+					if (!WRITE_COMPACT)
+					{
+		    			outputNiftiStatisticsT1->ndim = 3;
+					    outputNiftiStatisticsT1->dim[0] = 3;
+					    outputNiftiStatisticsT1->nt = 1;
+						outputNiftiStatisticsT1->dim[4] = 1;
+					    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D;	
+
+						// Write each beta weight as a separate file
+    			        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+			            {
+			                std::string temp = betaNoWhitening;
+			                std::stringstream ss;
+			                ss << "_regressor";
+							ss << i + 1;
+			                temp.append(ss.str());
+			                temp.append(t1);
+			                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			            }
+			            // Write each contrast volume as a separate file
+			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            {
+			                std::string temp = copeNoWhitening;
+			                std::stringstream ss;
+			                ss << "_contrast";
+			                ss << i + 1;
+			                temp.append(ss.str());
+			                temp.append(t1);
+			                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			            }
+			            // Write each t-map as a separate file
+			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            {
+			                std::string temp = tscoresNoWhitening;
+			                std::stringstream ss;
+			                ss << "_contrast";
+			                ss << i + 1;
+			                temp.append(ss.str());
+			                temp.append(t1);
+			                WriteNifti(outputNiftiStatisticsT1,&h_Statistical_Maps_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+			            }
+					}
+					else
+					{
+						outputNiftiStatisticsT1->ndim = 4;
+					    outputNiftiStatisticsT1->dim[0] = 4;
+
+						// Write all beta weights as a single file
+					    outputNiftiStatisticsT1->nt = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+						outputNiftiStatisticsT1->dim[4] = NUMBER_OF_TOTAL_GLM_REGRESSORS;
+					    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS;
+			            std::string temp = betaNoWhitening;
+			            temp.append("_allregressors");
+			            temp.append(t1);
+						WriteNifti(outputNiftiStatisticsT1,h_Beta_Volumes_No_Whitening_T1,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	
+						// Write all contrast volumes as a single file
+					    outputNiftiStatisticsT1->nt = NUMBER_OF_CONTRASTS;
+						outputNiftiStatisticsT1->dim[4] = NUMBER_OF_CONTRASTS;
+					    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS;
+			            temp = copeNoWhitening;
+			            temp.append("_allcontrasts");
+			            temp.append(epi);
+						WriteNifti(outputNiftiStatisticsT1,h_Contrast_Volumes_No_Whitening_T1,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	
+						if (!BETAS_ONLY)
+						{
+							// Write all statistical maps as a single file
+							// nifti file contains t-scores
+							outputNiftiStatisticsT1->intent_code = 3;
+				            temp = tscoresNoWhitening;
+				            temp.append("_allcontrasts");
+				            temp.append(t1);
+							WriteNifti(outputNiftiStatisticsT1,h_Statistical_Maps_No_Whitening_T1,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+						}
+					}
 				}
 	
-    	        if (PERMUTE)
+    	        if (PERMUTE && !BETAS_ONLY)
     	        {
-    	            // Write each p-map as a separate file
-    	            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-    	            {
-    	                std::string temp = pvalues;
-    	                std::stringstream ss;
-		                ss << "_contrast";
-    	                ss << i + 1;
-    	                temp.append(ss.str());
-    	                temp.append(t1);
-    	                WriteNifti(outputNiftiStatisticsT1,&h_P_Values_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    	            }
+					if (!WRITE_COMPACT)
+					{
+		    			outputNiftiStatisticsT1->ndim = 3;
+					    outputNiftiStatisticsT1->dim[0] = 3;
+					    outputNiftiStatisticsT1->nt = 1;
+						outputNiftiStatisticsT1->dim[4] = 1;
+					    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D;
+
+	    	            // Write each p-map as a separate file
+    		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    		            {
+    		                std::string temp = pvalues;
+    		                std::stringstream ss;
+			                ss << "_contrast";
+    		                ss << i + 1;
+    		                temp.append(ss.str());
+    		                temp.append(t1);
+    		                WriteNifti(outputNiftiStatisticsT1,&h_P_Values_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+    		            }
+					}
+					else
+					{
+						// Write all p-maps as a single file
+		    			outputNiftiStatisticsT1->ndim = 4;
+					    outputNiftiStatisticsT1->dim[0] = 4;
+					    outputNiftiStatisticsT1->nt = NUMBER_OF_CONTRASTS;
+						outputNiftiStatisticsT1->dim[4] = NUMBER_OF_CONTRASTS;
+					    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS;
+			            std::string temp = pvalues;
+			            temp.append("_allcontrasts");
+			            temp.append(t1);
+						WriteNifti(outputNiftiStatisticsT1,h_P_Values_T1,temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+					}
     	        }
     	    }
     	    else if (BAYESIAN)

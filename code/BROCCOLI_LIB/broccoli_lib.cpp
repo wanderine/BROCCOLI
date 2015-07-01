@@ -296,6 +296,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	BAYESIAN = false;
 	REGRESS_ONLY = false;
+	BETAS_ONLY = false;
 	REGRESS_MOTION = 0;
 	REGRESS_GLOBALMEAN = 0;
 	REGRESS_CONFOUNDS = 0;
@@ -312,7 +313,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	error = 0;
 
-	NUMBER_OF_OPENCL_KERNELS = 81;
+	NUMBER_OF_OPENCL_KERNELS = 82;
 
 	commandQueue = NULL;
 	program = NULL;
@@ -423,6 +424,7 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorTransformData = 0;
 	createKernelErrorCalculateBetaWeightsGLM = 0;
 	createKernelErrorCalculateBetaWeightsGLMSlice = 0;
+	createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice = 0;
 	createKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
 	createKernelErrorCalculateGLMResiduals = 0;
 	createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel = 0;
@@ -505,6 +507,7 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorTransformData = 0;
 	runKernelErrorCalculateBetaWeightsGLM = 0;
 	runKernelErrorCalculateBetaWeightsGLMSlice = 0;
+	runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice = 0;
 	runKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
 	runKernelErrorCalculateGLMResiduals = 0;
 	runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel = 0;
@@ -1572,6 +1575,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	// Statistical kernels
 	CalculateBetaWeightsGLMKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
 	CalculateBetaWeightsGLMSliceKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLMSlice",&createKernelErrorCalculateBetaWeightsGLMSlice);
+	CalculateBetaWeightsAndContrastsGLMSliceKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsAndContrastsGLMSlice",&createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice);
 	CalculateBetaWeightsGLMFirstLevelKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLMFirstLevel",&createKernelErrorCalculateBetaWeightsGLMFirstLevel);
 	CalculateGLMResidualsKernel = clCreateKernel(OpenCLPrograms[4],"CalculateGLMResiduals",&createKernelErrorCalculateGLMResiduals);
 	CalculateStatisticalMapsGLMTTestFirstLevelKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMTTestFirstLevel",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel);
@@ -1589,25 +1593,26 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 
 	OpenCLKernels[59] = CalculateBetaWeightsGLMKernel;
 	OpenCLKernels[60] = CalculateBetaWeightsGLMSliceKernel;
-	OpenCLKernels[61] = CalculateBetaWeightsGLMFirstLevelKernel;
-	OpenCLKernels[62] = CalculateGLMResidualsKernel;
-	OpenCLKernels[63] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-	OpenCLKernels[64] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-	OpenCLKernels[65] = CalculateStatisticalMapsGLMTTestKernel;
-	OpenCLKernels[66] = CalculateStatisticalMapsGLMFTestKernel;
-	OpenCLKernels[67] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
-	OpenCLKernels[68] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
-	OpenCLKernels[69] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
-	OpenCLKernels[70] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-	OpenCLKernels[71] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
-	OpenCLKernels[72] = TransformDataKernel;
-	OpenCLKernels[73] = RemoveLinearFitKernel;
-	OpenCLKernels[74] = RemoveLinearFitSliceKernel;
+	OpenCLKernels[61] = CalculateBetaWeightsAndContrastsGLMSliceKernel;
+	OpenCLKernels[62] = CalculateBetaWeightsGLMFirstLevelKernel;
+	OpenCLKernels[63] = CalculateGLMResidualsKernel;
+	OpenCLKernels[64] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+	OpenCLKernels[65] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+	OpenCLKernels[66] = CalculateStatisticalMapsGLMTTestKernel;
+	OpenCLKernels[67] = CalculateStatisticalMapsGLMFTestKernel;
+	OpenCLKernels[68] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
+	OpenCLKernels[69] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+	OpenCLKernels[70] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
+	OpenCLKernels[71] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+	OpenCLKernels[72] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
+	OpenCLKernels[73] = TransformDataKernel;
+	OpenCLKernels[74] = RemoveLinearFitKernel;
+	OpenCLKernels[75] = RemoveLinearFitSliceKernel;
 
 	// Bayesian kernels
 	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(OpenCLPrograms[7],"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
 
-	OpenCLKernels[75] = CalculateStatisticalMapsGLMBayesianKernel;
+	OpenCLKernels[76] = CalculateStatisticalMapsGLMBayesianKernel;
 
 	// Whitening kernels	
 	EstimateAR4ModelsKernel = clCreateKernel(OpenCLPrograms[6],"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
@@ -1616,11 +1621,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	ApplyWhiteningAR4SliceKernel = clCreateKernel(OpenCLPrograms[6],"ApplyWhiteningAR4Slice",&createKernelErrorApplyWhiteningAR4Slice);
 	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(OpenCLPrograms[6],"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
 
-	OpenCLKernels[76] = EstimateAR4ModelsKernel;
-	OpenCLKernels[77] = EstimateAR4ModelsSliceKernel;
-	OpenCLKernels[78] = ApplyWhiteningAR4Kernel;
-	OpenCLKernels[79] = ApplyWhiteningAR4SliceKernel;
-	OpenCLKernels[80] = GeneratePermutedVolumesFirstLevelKernel;
+	OpenCLKernels[77] = EstimateAR4ModelsKernel;
+	OpenCLKernels[78] = EstimateAR4ModelsSliceKernel;
+	OpenCLKernels[79] = ApplyWhiteningAR4Kernel;
+	OpenCLKernels[80] = ApplyWhiteningAR4SliceKernel;
+	OpenCLKernels[81] = GeneratePermutedVolumesFirstLevelKernel;
 
 	OPENCL_INITIATED = true;
 
@@ -1846,65 +1851,68 @@ const char* BROCCOLI_LIB::GetOpenCLKernelName(int kernel)
 			return "CalculateBetaWeightsGLMSlice";
 			break;
 		case 61:
-			return "CalculateBetaWeightsGLMFirstLevel";
+			return "CalculateBetaWeightsAndContrastsGLMSlice";
 			break;
 		case 62:
-			return "CalculateGLMResiduals";
+			return "CalculateBetaWeightsGLMFirstLevel";
 			break;
 		case 63:
-			return "CalculateStatisticalMapsGLMTTestFirstLevel";
+			return "CalculateGLMResiduals";
 			break;
 		case 64:
-			return "CalculateStatisticalMapsGLMFTestFirstLevel";
+			return "CalculateStatisticalMapsGLMTTestFirstLevel";
 			break;
 		case 65:
-			return "CalculateStatisticalMapsGLMTTest";
+			return "CalculateStatisticalMapsGLMFTestFirstLevel";
 			break;
 		case 66:
-			return "CalculateStatisticalMapsGLMFTest";
+			return "CalculateStatisticalMapsGLMTTest";
 			break;
 		case 67:
-			return "CalculateStatisticalMapsGLMTTestFirstLevelPermutation";
+			return "CalculateStatisticalMapsGLMFTest";
 			break;
 		case 68:
-			return "CalculateStatisticalMapsGLMFTestFirstLevelPermutation";
+			return "CalculateStatisticalMapsGLMTTestFirstLevelPermutation";
 			break;
 		case 69:
-			return "CalculateStatisticalMapsGLMTTestSecondLevelPermutation";
+			return "CalculateStatisticalMapsGLMFTestFirstLevelPermutation";
 			break;
 		case 70:
-			return "CalculateStatisticalMapsGLMFTestSecondLevelPermutation";
+			return "CalculateStatisticalMapsGLMTTestSecondLevelPermutation";
 			break;
 		case 71:
-			return "CalculateStatisticalMapsMeanSecondLevelPermutation";
+			return "CalculateStatisticalMapsGLMFTestSecondLevelPermutation";
 			break;
 		case 72:
-			return "TransformData";
+			return "CalculateStatisticalMapsMeanSecondLevelPermutation";
 			break;
 		case 73:
-			return "RemoveLinearFit";
+			return "TransformData";
 			break;
 		case 74:
+			return "RemoveLinearFit";
+			break;
+		case 75:
 			return "RemoveLinearFitSlice";
 			break;
 
 
-		case 75:
+		case 76:
 			return "CalculateStatisticalMapsGLMBayesian";
 			break;
-		case 76:
+		case 77:
 			return "EstimateAR4Models";
 			break;
-		case 77:
+		case 78:
 			return "EstimateAR4ModelsSlice";
 			break;
-		case 78:
+		case 79:
 			return "ApplyWhiteningAR4";
 			break;
-		case 79:
+		case 80:
 			return "ApplyWhiteningAR4Slice";
 			break;
-		case 80:
+		case 81:
 			return "GeneratePermutedVolumesFirstLevel";
 			break;
 
@@ -1982,28 +1990,29 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 
 	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateBetaWeightsGLM;
 	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateGLMResiduals;
-	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[71] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLCreateKernelErrors[72] = createKernelErrorTransformData;
-	OpenCLCreateKernelErrors[73] = createKernelErrorRemoveLinearFit;
-	OpenCLCreateKernelErrors[74] = createKernelErrorRemoveLinearFitSlice;
+	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateGLMResiduals;
+	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[71] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[72] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLCreateKernelErrors[73] = createKernelErrorTransformData;
+	OpenCLCreateKernelErrors[74] = createKernelErrorRemoveLinearFit;
+	OpenCLCreateKernelErrors[75] = createKernelErrorRemoveLinearFitSlice;
 
-	OpenCLCreateKernelErrors[75] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLCreateKernelErrors[76] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLCreateKernelErrors[76] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[77] = createKernelErrorEstimateAR4ModelsSlice;
-	OpenCLCreateKernelErrors[78] = createKernelErrorApplyWhiteningAR4;
-	OpenCLCreateKernelErrors[79] = createKernelErrorApplyWhiteningAR4Slice;
-	OpenCLCreateKernelErrors[80] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLCreateKernelErrors[77] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[78] = createKernelErrorEstimateAR4ModelsSlice;
+	OpenCLCreateKernelErrors[79] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[80] = createKernelErrorApplyWhiteningAR4Slice;
+	OpenCLCreateKernelErrors[81] = createKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLCreateKernelErrors;
 }
@@ -2077,28 +2086,29 @@ int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
 
 	OpenCLRunKernelErrors[59] = runKernelErrorCalculateBetaWeightsGLM;
 	OpenCLRunKernelErrors[60] = runKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLRunKernelErrors[61] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLRunKernelErrors[62] = runKernelErrorCalculateGLMResiduals;
-	OpenCLRunKernelErrors[63] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[71] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLRunKernelErrors[72] = runKernelErrorTransformData;
-	OpenCLRunKernelErrors[73] = runKernelErrorRemoveLinearFit;
-	OpenCLRunKernelErrors[74] = runKernelErrorRemoveLinearFitSlice;
+	OpenCLRunKernelErrors[61] = runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLRunKernelErrors[62] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLRunKernelErrors[63] = runKernelErrorCalculateGLMResiduals;
+	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[71] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[72] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLRunKernelErrors[73] = runKernelErrorTransformData;
+	OpenCLRunKernelErrors[74] = runKernelErrorRemoveLinearFit;
+	OpenCLRunKernelErrors[75] = runKernelErrorRemoveLinearFitSlice;
 
-	OpenCLRunKernelErrors[75] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLRunKernelErrors[76] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLRunKernelErrors[76] = runKernelErrorEstimateAR4Models;
-	OpenCLRunKernelErrors[77] = runKernelErrorEstimateAR4ModelsSlice;
-	OpenCLRunKernelErrors[78] = runKernelErrorApplyWhiteningAR4;
-	OpenCLRunKernelErrors[79] = runKernelErrorApplyWhiteningAR4Slice;
-	OpenCLRunKernelErrors[80] = runKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLRunKernelErrors[77] = runKernelErrorEstimateAR4Models;
+	OpenCLRunKernelErrors[78] = runKernelErrorEstimateAR4ModelsSlice;
+	OpenCLRunKernelErrors[79] = runKernelErrorApplyWhiteningAR4;
+	OpenCLRunKernelErrors[80] = runKernelErrorApplyWhiteningAR4Slice;
+	OpenCLRunKernelErrors[81] = runKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLRunKernelErrors;
 }
@@ -3168,6 +3178,11 @@ void BROCCOLI_LIB::SetBayesian(bool B)
 void BROCCOLI_LIB::SetRegressOnly(int R)
 {
 	REGRESS_ONLY = R;
+}
+
+void BROCCOLI_LIB::SetBetasOnly(int R)
+{
+	BETAS_ONLY = R;
 }
 
 void BROCCOLI_LIB::SetRegressMotion(int R)
@@ -7824,7 +7839,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// GLM
 	//---------------------------------------------------------------------------------------------------------------------------------------
 
-	if (!REGRESS_ONLY && !BAYESIAN)
+	if (!REGRESS_ONLY && !BAYESIAN && !BETAS_ONLY)
 	{
 		if ((WRAPPER == BASH) && PRINT)
 		{
@@ -8126,6 +8141,146 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 		PrintMemoryStatus("After GLM");
 	}
+	// Only estimate beta values, no t- or F-scores
+	else if (!REGRESS_ONLY && !BAYESIAN && BETAS_ONLY)
+	{
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing statistical analysis, only estimating beta values and contrasts\n");
+		}
+
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+
+		c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+		c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+		c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+		c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+		// Allocate memory for one slice for all time points, loop over slices to save memory
+		d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+		deviceMemoryAllocations += 1;
+		allocatedDeviceMemory += 1 * EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float);
+
+		d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+		d_Contrast_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+		deviceMemoryAllocations += 2;
+		allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS) * sizeof(float);
+
+		PrintMemoryStatus("Before GLM");
+
+		//SetMemory(d_EPI_Mask, 1.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
+
+		h_X_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
+		h_xtxxt_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
+		h_Contrasts = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float));
+		h_ctxtxc_GLM = (float*)malloc(NUMBER_OF_CONTRASTS * sizeof(float));
+		h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
+		h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
+		h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
+
+		if (REGRESS_GLOBALMEAN)
+		{
+			CalculateGlobalMeans(h_fMRI_Volumes);
+		}
+
+		SetupTTestFirstLevel(EPI_DATA_T);
+
+		// Copy data to device
+		clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
+		clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
+		clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts , 0, NULL, NULL);
+		clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM , 0, NULL, NULL);
+	
+		if (WRITE_DESIGNMATRIX)
+		{
+			for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+			{
+				for (int t = 0; t < EPI_DATA_T; t++)
+				{
+					h_X_GLM_Out[t + r * EPI_DATA_T] = h_X_GLM[t + r * EPI_DATA_T];
+					h_xtxxt_GLM_Out[t + r * EPI_DATA_T] = h_xtxxt_GLM[t + r * EPI_DATA_T];
+				}
+			}
+		}
+
+		// Run the actual GLM
+		CalculateBetaWeightsAndContrastsFirstLevelSlices(h_fMRI_Volumes);
+
+		// Copy data in EPI space to host
+
+		if (WRITE_ACTIVITY_EPI)
+		{
+			clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_EPI, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Contrast_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrast_Volumes_EPI, 0, NULL, NULL);
+		}
+		
+		TransformFirstLevelResultsToMNI(true);
+
+		if (WRITE_ACTIVITY_T1)
+		{
+			// Run the actual GLM again
+			CalculateBetaWeightsAndContrastsFirstLevelSlices(h_fMRI_Volumes);
+
+			// Allocate memory on device
+			d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+			d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+			d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+
+			deviceMemoryAllocations += 3;
+			allocatedDeviceMemory += 2 * T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+			allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
+			// Copy original T1 volume to device
+			clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+
+			// Copy first fMRI volume to device
+			clEnqueueWriteBuffer(commandQueue, d_EPI_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Temp_fMRI_Volume , 0, NULL, NULL);
+
+			// Register original fMRI volume to original T1 volume
+			PerformRegistrationEPIT1Original();
+
+			// Cleanup
+			clReleaseMemObject(d_T1_Volume);
+			clReleaseMemObject(d_EPI_Volume);
+			clReleaseMemObject(d_T1_EPI_Volume);
+
+			allocatedDeviceMemory -= 2 * T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+			allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+			deviceMemoryDeallocations += 3;
+
+			TransformFirstLevelResultsToT1(true);
+		}
+
+		// Cleanup host memory
+		free(h_X_GLM);
+		free(h_xtxxt_GLM);
+		free(h_Contrasts);
+		free(h_ctxtxc_GLM);
+		free(h_X_GLM_With_Temporal_Derivatives);
+		free(h_X_GLM_Convolved);
+		free(h_Global_Mean);
+
+		// Cleanup device memory
+		clReleaseMemObject(c_X_GLM);
+		clReleaseMemObject(c_xtxxt_GLM);
+		clReleaseMemObject(c_Contrasts);
+		clReleaseMemObject(c_ctxtxc_GLM);
+	
+		clReleaseMemObject(d_fMRI_Volumes);
+
+		allocatedDeviceMemory -= 1 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
+		deviceMemoryDeallocations += 1;
+
+		clReleaseMemObject(d_Beta_Volumes);
+		clReleaseMemObject(d_Contrast_Volumes);
+
+		allocatedDeviceMemory -= (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS) * sizeof(float);
+		deviceMemoryDeallocations += 2;
+
+		PrintMemoryStatus("After GLM");
+	}
 	else if (BAYESIAN)
 	{
 		if ((WRAPPER == BASH) && PRINT)
@@ -8346,7 +8501,10 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI(bool WHITENED)
 	// First apply initial translation before changing resolution and size 
 	TransformVolumesLinear(d_Beta_Volumes, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_TOTAL_GLM_REGRESSORS, INTERPOLATION_MODE);
 	TransformVolumesLinear(d_Contrast_Volumes, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
-	TransformVolumesLinear(d_Statistical_Maps, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+	if (!BETAS_ONLY)
+	{
+		TransformVolumesLinear(d_Statistical_Maps, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_CONTRASTS, INTERPOLATION_MODE);
+	}
 
 	// Loop over regressors
 	for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
@@ -8396,27 +8554,30 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI(bool WHITENED)
 		}
 	}
 
-	// Loop over contrasts, for statistical maps
-	for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	if (!BETAS_ONLY)
 	{
-		// Change resolution and size of volume
-		ChangeVolumesResolutionAndSize(d_Data, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
-
-		// Now apply the same translation as applied before the EPI-T1 registration
-		TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
-
-		// Apply transformation
-		TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
-		TransformVolumesNonLinear(d_Data, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
-
-		// Write transformed volume to host
-		if (WHITENED)
+		// Loop over contrasts, for statistical maps
+		for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
 		{
-			clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), &h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D], 0, NULL, NULL);
-		}
-		else
-		{
-			clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), &h_Statistical_Maps_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D], 0, NULL, NULL);
+			// Change resolution and size of volume
+			ChangeVolumesResolutionAndSize(d_Data, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
+
+			// Now apply the same translation as applied before the EPI-T1 registration
+			TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+			// Apply transformation
+			TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+			TransformVolumesNonLinear(d_Data, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+			// Write transformed volume to host
+			if (WHITENED)
+			{
+				clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), &h_Statistical_Maps_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D], 0, NULL, NULL);
+			}
+			else
+			{
+				clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), &h_Statistical_Maps_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D], 0, NULL, NULL);
+			}
 		}
 	}
 
@@ -8429,7 +8590,7 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToMNI(bool WHITENED)
 	//MultiplyVolumes(d_Statistical_Maps_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_CONTRASTS);
 	//MultiplyVolumes(d_Residual_Variances_MNI, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1);
 
-	if (WRITE_AR_ESTIMATES_MNI && WHITENED)
+	if (WRITE_AR_ESTIMATES_MNI && WHITENED && !BETAS_ONLY)
 	{
 		TransformVolumesLinear(d_AR1_Estimates, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, INTERPOLATION_MODE);
 		ChangeVolumesResolutionAndSize(d_Data, d_AR1_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, 0);
@@ -8528,33 +8689,36 @@ void BROCCOLI_LIB::TransformFirstLevelResultsToT1(bool WHITENED)
 		}
 	}
 
-	// Loop over contrasts, for statistical maps
-	for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	if (!BETAS_ONLY)
 	{
-		// Change resolution and size of volume
-		ChangeVolumesResolutionAndSize(d_Data, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
-
-		// Now apply the same translation as applied before the EPI-T1 registration
-		TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1_Original, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
-
-		// Apply transformation
-		TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_T1_Affine_Original, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
-
-		// Write transformed volume to host
-		if (WHITENED)
+		// Loop over contrasts, for statistical maps
+		for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
 		{
-			clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), &h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D], 0, NULL, NULL);
-		}
-		else
-		{
-			clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), &h_Statistical_Maps_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D], 0, NULL, NULL);
+			// Change resolution and size of volume
+			ChangeVolumesResolutionAndSize(d_Data, d_Statistical_Maps, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
+
+			// Now apply the same translation as applied before the EPI-T1 registration
+			TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1_Original, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+
+			// Apply transformation
+			TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_T1_Affine_Original, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
+
+			// Write transformed volume to host
+			if (WHITENED)
+			{
+				clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), &h_Statistical_Maps_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D], 0, NULL, NULL);
+			}
+			else
+			{
+				clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), &h_Statistical_Maps_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D], 0, NULL, NULL);
+			}
 		}
 	}
 
 	//ChangeVolumesResolutionAndSize(d_Residual_Variances_T1, d_Residual_Variances, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE);
 	//TransformVolumesLinear(d_Residual_Variances_T1, h_Registration_Parameters_EPI_T1_Affine, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, INTERPOLATION_MODE);
 
-	if (WRITE_AR_ESTIMATES_T1 && WHITENED)
+	if (WRITE_AR_ESTIMATES_T1 && WHITENED && !BETAS_ONLY)
 	{
 		//TransformVolumesLinear(d_AR1_Estimates, h_StartParameters_EPI_Original, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, INTERPOLATION_MODE);
 		ChangeVolumesResolutionAndSize(d_Data, d_AR1_Estimates, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, T1_DATA_W, T1_DATA_H, T1_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, 0);
@@ -12610,6 +12774,45 @@ void BROCCOLI_LIB::CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes
     }
 
 	free(h_Temp_Data);
+}
+
+// Calculates beta values for first level analysis
+// Loops over slices to save memory
+
+void BROCCOLI_LIB::CalculateBetaWeightsAndContrastsFirstLevelSlices(float* h_Volumes)
+{
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, 1);
+
+	// All timepoints are valid
+	NUMBER_OF_INVALID_TIMEPOINTS = 0;
+	c_Censored_Timepoints = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(float), NULL, NULL);
+	SetMemory(c_Censored_Timepoints, 1.0f, EPI_DATA_T);
+
+	for (int slice = 0; slice < EPI_DATA_D; slice++)
+	{
+		// Copy fMRI data to the device, for the current slice
+		CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+		// Calculate beta values, using whitened data and the whitened voxel-specific models
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 0,  sizeof(cl_mem), &d_Beta_Volumes);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 1,  sizeof(cl_mem), &d_Contrast_Volumes);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 2,  sizeof(cl_mem), &d_fMRI_Volumes);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 3,  sizeof(cl_mem), &d_EPI_Mask);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 4,  sizeof(cl_mem), &c_xtxxt_GLM);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 5,  sizeof(cl_mem), &c_Contrasts);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 6,  sizeof(cl_mem), &c_Censored_Timepoints);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 7,  sizeof(int),    &EPI_DATA_W);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 8,  sizeof(int),    &EPI_DATA_H);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 9,  sizeof(int),    &EPI_DATA_D);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 10, sizeof(int),    &EPI_DATA_T);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 11, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 12, sizeof(int),    &NUMBER_OF_CONTRASTS);
+		clSetKernelArg(CalculateBetaWeightsAndContrastsGLMSliceKernel, 13, sizeof(int),    &slice);
+		runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsAndContrastsGLMSliceKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+
+	clReleaseMemObject(c_Censored_Timepoints);
 }
 
 // Calculates a statistical map for first level analysis, using a Cochrane-Orcutt procedure

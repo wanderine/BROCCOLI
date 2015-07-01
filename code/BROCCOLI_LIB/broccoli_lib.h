@@ -131,6 +131,7 @@ class BROCCOLI_LIB
 		void SetTemporalDerivatives(int TD);
 		void SetBayesian(bool B);
 		void SetRegressOnly(int R);
+		void SetBetasOnly(int B);
 		void SetRegressMotion(int R);
 		void SetRegressGlobalMean(int R);
 		void SetRegressConfounds(int R);
@@ -450,8 +451,9 @@ class BROCCOLI_LIB
 		void PerformMotionCorrection(cl_mem Volumes);
 		void PerformMotionCorrectionHost(float* h_Volumes);
 
+		void CalculateBetaWeightsAndContrastsFirstLevelSlices(float* h_Volumes);
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);
-		void CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Volumes, int iterations);		
+		void CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 		void CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem Volumes, cl_mem Mask);
@@ -743,7 +745,7 @@ class BROCCOLI_LIB
 		cl_kernel AddLinearAndNonLinearDisplacementKernel;
 
 		// Statistical kernels
-		cl_kernel CalculateBetaWeightsGLMKernel, CalculateBetaWeightsGLMSliceKernel, CalculateBetaWeightsGLMFirstLevelKernel;
+		cl_kernel CalculateBetaWeightsGLMKernel, CalculateBetaWeightsGLMSliceKernel, CalculateBetaWeightsAndContrastsGLMSliceKernel, CalculateBetaWeightsGLMFirstLevelKernel;
 		cl_kernel CalculateGLMResidualsKernel;
 		cl_kernel CalculateStatisticalMapsGLMTTestFirstLevelKernel, CalculateStatisticalMapsGLMFTestFirstLevelKernel;
 		cl_kernel CalculateStatisticalMapsGLMTTestKernel, CalculateStatisticalMapsGLMFTestKernel, CalculateStatisticalMapsGLMBayesianKernel;
@@ -802,7 +804,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorAddLinearAndNonLinearDisplacement;
 
 		// Statistical kernels
-		cl_int createKernelErrorCalculateBetaWeightsGLM, createKernelErrorCalculateBetaWeightsGLMSlice,  createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+		cl_int createKernelErrorCalculateBetaWeightsGLM, createKernelErrorCalculateBetaWeightsGLMSlice, createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice,  createKernelErrorCalculateBetaWeightsGLMFirstLevel;
 		cl_int createKernelErrorCalculateGLMResiduals;
 		cl_int createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel, createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
 		cl_int createKernelErrorCalculateStatisticalMapsGLMTTest, createKernelErrorCalculateStatisticalMapsGLMFTest, createKernelErrorCalculateStatisticalMapsGLMBayesian;
@@ -885,7 +887,7 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorAddLinearAndNonLinearDisplacement;
 
 		// Statistical kernels
-		cl_int runKernelErrorCalculateBetaWeightsGLM, runKernelErrorCalculateBetaWeightsGLMSlice, runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+		cl_int runKernelErrorCalculateBetaWeightsGLM, runKernelErrorCalculateBetaWeightsGLMSlice, runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice, runKernelErrorCalculateBetaWeightsGLMFirstLevel;
 		cl_int runKernelErrorCalculateGLMResiduals;
 		cl_int runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel, runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
 		cl_int runKernelErrorCalculateStatisticalMapsGLMTTest, runKernelErrorCalculateStatisticalMapsGLMFTest, runKernelErrorCalculateStatisticalMapsGLMBayesian;
@@ -1091,6 +1093,7 @@ class BROCCOLI_LIB
 		bool RAW_REGRESSORS;
 		bool BAYESIAN;
 		bool REGRESS_ONLY;
+		bool BETAS_ONLY;
 		int REGRESS_MOTION;
 		int REGRESS_GLOBALMEAN;
 		int REGRESS_CONFOUNDS;
