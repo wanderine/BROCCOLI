@@ -24,140 +24,13 @@
 #include <fstream>
 #include <iomanip>
 
+#include "HelpFunctions.cpp"
+
 #define ADD_FILENAME true
 #define DONT_ADD_FILENAME true
 
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
-
-void FreeAllMemory(void **pointers, int N)
-{
-    for (int i = 0; i < N; i++)
-    {
-        if (pointers[i] != NULL)
-        {
-            free(pointers[i]);
-        }
-    }
-}
-
-void FreeAllNiftiImages(nifti_image **niftiImages, int N)
-{
-    for (int i = 0; i < N; i++)
-    {
-		if (niftiImages[i] != NULL)
-		{
-			nifti_image_free(niftiImages[i]);
-		}
-    }
-}
-
-void AllocateMemory(float *& pointer, int size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, const char* variable)
-{
-    pointer = (float*)malloc(size);
-    if (pointer != NULL)
-    {
-        pointers[Npointers] = (void*)pointer;
-        Npointers++;
-    }
-    else
-    {
-        printf("Could not allocate host memory for variable %s ! \n",variable);        
-		FreeAllMemory(pointers, Npointers);
-		FreeAllNiftiImages(niftiImages, Nimages);
-		exit(EXIT_FAILURE);        
-    }
-}
-    
-
-bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool addFilename, bool checkFilename)
-{       
-	if (data == NULL)
-    {
-        printf("The provided data pointer for file %s is NULL, aborting writing nifti file! \n",filename);
-		return false;
-	}	
-	if (inputNifti == NULL)
-    {
-        printf("The provided nifti pointer for file %s is NULL, aborting writing nifti file! \n",filename);
-		return false;
-	}	
-
-    char* filenameWithExtension;
-    
-    // Add the provided filename to the original filename, before the dot
-    if (addFilename)
-    {
-        // Find the dot in the original filename
-        const char* p = inputNifti->fname;
-        int dotPosition = 0;
-        while ( (p != NULL) && ((*p) != '.') )
-        {
-            p++;
-            dotPosition++;
-        }
-    
-        // Allocate temporary array
-        filenameWithExtension = (char*)malloc(strlen(inputNifti->fname) + strlen(filename) + 1);
-        if (filenameWithExtension == NULL)
-        {
-            printf("Could not allocate temporary host memory! \n");      
-            return false;
-        }
-    
-        // Copy filename to the dot
-        strncpy(filenameWithExtension,inputNifti->fname,dotPosition);
-        filenameWithExtension[dotPosition] = '\0';
-        // Add the extension
-        strcat(filenameWithExtension,filename);
-        // Add the rest of the original filename
-        strcat(filenameWithExtension,inputNifti->fname+dotPosition);    
-    }
-        
-    // Copy information from input data
-    nifti_image *outputNifti = nifti_copy_nim_info(inputNifti);    
-    // Set data pointer 
-    outputNifti->data = (void*)data;        
-    // Set data type to float
-    outputNifti->datatype = DT_FLOAT;
-    outputNifti->nbyper = 4;    
-    
-    // Change filename and write
-    bool written = false;
-    if (addFilename)
-    {
-        if ( nifti_set_filenames(outputNifti, filenameWithExtension, checkFilename, 1) == 0)
-        {
-            nifti_image_write(outputNifti);
-            written = true;
-        }
-    }
-    else if (!addFilename)
-    {
-        if ( nifti_set_filenames(outputNifti, filename, checkFilename, 1) == 0)
-        {
-            nifti_image_write(outputNifti);
-            written = true;
-        }                
-    }    
-    
-    outputNifti->data = NULL;
-    nifti_image_free(outputNifti);
-
-    if (addFilename)
-    {
-        free(filenameWithExtension);
-    } 
-        
-    if (written)
-    {      
-        return true;
-    }
-    else
-    {
-        return false;
-    }                        
-}
 
 int main(int argc, char **argv)
 {
@@ -165,17 +38,31 @@ int main(int argc, char **argv)
     // Input pointers
     
     float           *h_Input_Volume;
-    float           *h_Displacement_Field_X, *h_Displacement_Field_Y, *h_Displacement_Field_Z;
-            
+    float           *h_Displacement_Field_X, *h_Displacement_Field_Y, *h_Displacement_Field_Z;            
+
+	//--------------
+
+    void*           allMemoryPointers[500];
+	for (int i = 0; i < 500; i++)
+	{
+		allMemoryPointers[i] = NULL;
+	}
+    
+	nifti_image*	allNiftiImages[500];
+	for (int i = 0; i < 500; i++)
+	{
+		allNiftiImages[i] = NULL;
+	}
+
+    int             numberOfMemoryPointers = 0;
+	int				numberOfNiftiImages = 0;
+
+	size_t			allocatedHostMemory = 0;
+
     //-----------------------
     // Output pointers        
         
     float           *h_Interpolated_Volume;
-
-    void            *allMemoryPointers[500];
-    int             numberOfMemoryPointers = 0;
-	nifti_image*	allNiftiImages[500];
-	int				numberOfNiftiImages = 0;		
     
     // Default parameters
         
@@ -504,11 +391,11 @@ int main(int argc, char **argv)
     
     // Allocate memory on the host        
 
-	AllocateMemory(h_Input_Volume, INPUT_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INPUT_VOLUME");
-	AllocateMemory(h_Interpolated_Volume, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "INTERPOLATED_VOLUME");
-	AllocateMemory(h_Displacement_Field_X, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DISPLACEMENT_FIELD_X");
-	AllocateMemory(h_Displacement_Field_Y, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DISPLACEMENT_FIELD_Y");
-	AllocateMemory(h_Displacement_Field_Z, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, "DISPLACEMENT_FIELD_Z");
+	AllocateMemory(h_Input_Volume, INPUT_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INPUT_VOLUME");
+	AllocateMemory(h_Interpolated_Volume, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INTERPOLATED_VOLUME");
+	AllocateMemory(h_Displacement_Field_X, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_X");
+	AllocateMemory(h_Displacement_Field_Y, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_Y");
+	AllocateMemory(h_Displacement_Field_Z, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_Z");
 			           
     // Convert data to floats
     if ( inputVolume->datatype == DT_SIGNED_SHORT )
@@ -701,7 +588,9 @@ int main(int argc, char **argv)
 		BROCCOLI.SetT1VoxelSizeX(INPUT_VOXEL_SIZE_X);
 		BROCCOLI.SetT1VoxelSizeY(INPUT_VOXEL_SIZE_Y);
 		BROCCOLI.SetT1VoxelSizeZ(INPUT_VOXEL_SIZE_Z);
-             
+     
+		BROCCOLI.SetAllocatedHostMemory(allocatedHostMemory);
+        
         BROCCOLI.SetMNIWidth(REFERENCE_DATA_W);
         BROCCOLI.SetMNIHeight(REFERENCE_DATA_H);
         BROCCOLI.SetMNIDepth(REFERENCE_DATA_D);

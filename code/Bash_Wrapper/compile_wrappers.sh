@@ -14,7 +14,6 @@ OPENCL_PACKAGE=$INTEL
 RELEASE=0
 DEBUG=1
 COMPILATION=$RELEASE
-#COMPILATION=$DEBUG
 
 # Fist run make for Nifti library
 #cd nifticlib-2.0.0

@@ -9217,9 +9217,6 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 	// Set the first volume as the reference volume
 	clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
 
-	// Copy the first volume to the corrected volumes
-	clEnqueueReadBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Motion_Corrected_fMRI_Volumes, 0, NULL, NULL);
-
 	// Translations
 	h_Motion_Parameters_Out[0 * EPI_DATA_T] = 0.0f;
 	h_Motion_Parameters_Out[1 * EPI_DATA_T] = 0.0f;
@@ -9244,8 +9241,8 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 		// Do rigid registration with only one scale
 		AlignTwoVolumesLinear(h_Registration_Parameters_Motion_Correction, h_Rotations, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION, RIGID, INTERPOLATION_MODE);	
 
-		// Copy the corrected volume to the corrected volumes
-		clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_Motion_Corrected_fMRI_Volumes[t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
+		// Copy the corrected volume back to the original pointer, to save host memory
+		clEnqueueReadBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_fMRI_Volumes[t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
 
 		// Write the total parameter vector to host
 
