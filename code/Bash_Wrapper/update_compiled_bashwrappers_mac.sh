@@ -5,7 +5,7 @@ BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 cd $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB
 
 # Change release to debug for library
-sed -i 's/COMPILATION=$RELEASE/COMPILATION=$DEBUG/g' $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB/compile_broccoli_library_mac.sh
+sed -i '' 's/COMPILATION=$RELEASE/COMPILATION=$DEBUG/g' $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB/compile_broccoli_library_mac.sh
 
 # Compile library
 ./compile_broccoli_library_mac.sh
@@ -13,7 +13,7 @@ sed -i 's/COMPILATION=$RELEASE/COMPILATION=$DEBUG/g' $BROCCOLI_GIT_DIRECTORY/cod
 cd $BROCCOLI_GIT_DIRECTORY/code/Bash_Wrapper
 
 # Change release to debug for wrappers
-sed -i 's/COMPILATION=$RELEASE/COMPILATION=$DEBUG/g' $BROCCOLI_GIT_DIRECTORY/code/Bash_Wrapper/compile_wrappers_mac.sh
+sed -i '' 's/COMPILATION=$RELEASE/COMPILATION=$DEBUG/g' $BROCCOLI_GIT_DIRECTORY/code/Bash_Wrapper/compile_wrappers_mac.sh
 
 # Compile wrappers
 ./compile_wrappers_mac.sh
@@ -33,7 +33,7 @@ git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Debug/GetOpenCLInfo
 cd $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB
 
 # Change debug to release
-sed -i 's/COMPILATION=$DEBUG/COMPILATION=$RELEASE/g' $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB/compile_broccoli_library_mac.sh
+sed -i '' 's/COMPILATION=$DEBUG/COMPILATION=$RELEASE/g' $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB/compile_broccoli_library_mac.sh
 
 # Compile library
 ./compile_broccoli_library_mac.sh
@@ -41,7 +41,7 @@ sed -i 's/COMPILATION=$DEBUG/COMPILATION=$RELEASE/g' $BROCCOLI_GIT_DIRECTORY/cod
 cd $BROCCOLI_GIT_DIRECTORY/code/Bash_Wrapper
 
 # Change debug to release for wrappers
-sed -i 's/COMPILATION=$DEBUG/COMPILATION=$RELEASE/g' $BROCCOLI_GIT_DIRECTORY/code/Bash_Wrapper/compile_wrappers_mac.sh
+sed -i '' 's/COMPILATION=$DEBUG/COMPILATION=$RELEASE/g' $BROCCOLI_GIT_DIRECTORY/code/Bash_Wrapper/compile_wrappers_mac.sh
 
 # Compile wrappers
 ./compile_wrappers_mac.sh
