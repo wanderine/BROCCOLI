@@ -126,6 +126,7 @@ class BROCCOLI_LIB
 		void SetMask(float* input);
 		void SetEPIMask(float* input);
 		void SetSmoothedEPIMask(float* input);
+		void SetAutoMask(bool);
 
 		// Statistics
 		void SetTemporalDerivatives(int TD);
@@ -226,6 +227,7 @@ class BROCCOLI_LIB
 
 		// Input data
 		void SetInputfMRIVolumes(float* input);
+		void SetInputCertainty(float* input);
 		void SetInputEPIVolume(float* input);
 		void SetInputT1Volume(float* input);
 		void SetInputMNIVolume(float* input);
@@ -408,6 +410,7 @@ class BROCCOLI_LIB
 		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int, int);
 		void PerformSmoothingWrapper();
 		void PerformSmoothingNormalizedWrapper();
+		void PerformSmoothingNormalizedHostWrapper();
 		void PerformGLMTTestFirstLevelWrapper();
 		void PerformGLMFTestFirstLevelWrapper();
 		void PerformGLMTTestSecondLevelWrapper();
@@ -1078,6 +1081,7 @@ class BROCCOLI_LIB
 		int SMOOTHING_TYPE;
 		float EPI_Smoothing_FWHM;
 		float AR_Smoothing_FWHM;
+		bool AUTO_MASK;
 
 		// Statistical analysis variables
 		int NUMBER_OF_SUBJECTS;
@@ -1189,6 +1193,7 @@ class BROCCOLI_LIB
 		float		*h_Smoothing_Filter_X_In, *h_Smoothing_Filter_Y_In, *h_Smoothing_Filter_Z_In;
 		float		h_Smoothing_Filter_X[9], h_Smoothing_Filter_Y[9], h_Smoothing_Filter_Z[9];
 		float		*h_Smoothed_fMRI_Volumes;
+		float		*h_Certainty;
 
 		// Detrending pointers
 		float		*h_X_Detrend, *h_xtxxt_Detrend;

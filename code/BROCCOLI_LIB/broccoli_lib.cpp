@@ -258,6 +258,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	EPI_Smoothing_FWHM = 8.0f;
 	AR_Smoothing_FWHM = 8.0f;
+	AUTO_MASK = false;
 
 	programBinarySize = 0;
 	writtenElements = 0;
@@ -3099,6 +3100,11 @@ void BROCCOLI_LIB::SetInputEPIVolume(float* data)
     //    debugVolumeInfo("EPI", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, data);
 }
 
+void BROCCOLI_LIB::SetInputCertainty(float* data)
+{
+	h_Certainty = data;
+}
+
 void BROCCOLI_LIB::SetInputT1Volume(float* data)
 {
 	h_T1_Volume = data;
@@ -3142,6 +3148,11 @@ void BROCCOLI_LIB::SetMask(float* data)
 void BROCCOLI_LIB::SetEPIMask(float* data)
 {
 	h_EPI_Mask = data;
+}
+
+void BROCCOLI_LIB::SetAutoMask(bool mask)
+{
+	AUTO_MASK = mask;
 }
 
 void BROCCOLI_LIB::SetSmoothedEPIMask(float* data)
@@ -9718,12 +9729,12 @@ float BROCCOLI_LIB::CalculateMaxAtomic(cl_mem d_Volume, cl_mem d_Mask, int DATA_
 }
 
 // Thresholds a volume
-void BROCCOLI_LIB::ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume, float threshold, int DATA_W, int DATA_H, int DATA_D)
+void BROCCOLI_LIB::ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume_To_Threshold, float threshold, int DATA_W, int DATA_H, int DATA_D)
 {
 	SetGlobalAndLocalWorkSizesThresholdVolume(DATA_W, DATA_H, DATA_D);
 
 	clSetKernelArg(ThresholdVolumeKernel, 0, sizeof(cl_mem), &d_Thresholded_Volume);
-	clSetKernelArg(ThresholdVolumeKernel, 1, sizeof(cl_mem), &d_Volume);
+	clSetKernelArg(ThresholdVolumeKernel, 1, sizeof(cl_mem), &d_Volume_To_Threshold);
 	clSetKernelArg(ThresholdVolumeKernel, 2, sizeof(float), &threshold);
 	clSetKernelArg(ThresholdVolumeKernel, 3, sizeof(int), &DATA_W);
 	clSetKernelArg(ThresholdVolumeKernel, 4, sizeof(int), &DATA_H);
@@ -9740,7 +9751,6 @@ void BROCCOLI_LIB::SegmentEPIData()
 	cl_mem d_Smoothed_EPI = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy the first fMRI volume from host
-	//clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_EPI, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_EPI, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
 
 	// Smooth the volume with a 4 mm Gaussian filter
@@ -10424,7 +10434,7 @@ void BROCCOLI_LIB::PerformSmoothingNormalizedHost(float* h_Volumes,
 	for (int v = 0; v < DATA_T; v++)
 	{
 		// Copy new volume to device
-		clEnqueueWriteBuffer(commandQueue, d_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_Volumes[v * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
+		clEnqueueWriteBuffer(commandQueue, d_Volume, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), &h_Volumes[v * DATA_W * DATA_H * DATA_D], 0, NULL, NULL);
 
 		runKernelErrorSeparableConvolutionRows = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
 		clFinish(commandQueue);
@@ -10438,7 +10448,7 @@ void BROCCOLI_LIB::PerformSmoothingNormalizedHost(float* h_Volumes,
 		MultiplyVolumes(d_Volume, d_Certainty, DATA_W, DATA_H, DATA_D);
 
 		// Copy smoothed volume back to host
-		clEnqueueReadBuffer(commandQueue, d_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_Volumes[v * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Volume, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), &h_Volumes[v * DATA_W * DATA_H * DATA_D], 0, NULL, NULL);
 	}
 
 	// Free temporary memory
@@ -10455,6 +10465,133 @@ void BROCCOLI_LIB::PerformSmoothingNormalizedHost(float* h_Volumes,
 }
 
 
+// Performs normalized smoothing, loops over volumes and copies one volume to device, then copies back result
+void BROCCOLI_LIB::PerformSmoothingNormalizedHostWrapper()
+{
+	allocatedDeviceMemory = 0;
+
+	SetGlobalAndLocalWorkSizesSeparableConvolution(EPI_DATA_W,EPI_DATA_H,EPI_DATA_D);
+
+	// Allocate memory for certainty
+	cl_mem d_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Smoothed_Certainty = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	if (!AUTO_MASK)
+	{
+		// Copy certainty from host
+		clEnqueueWriteBuffer(commandQueue, d_Certainty, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Certainty, 0, NULL, NULL);
+	}
+	// Make a mask to use as certainty
+	else
+	{
+		d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+		SegmentEPIData();
+		// Copy mask to certainty
+		clEnqueueCopyBuffer(commandQueue, d_EPI_Mask, d_Certainty, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), 0, NULL, NULL);
+		// Copy mask to host
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Certainty, 0, NULL, NULL);
+		clReleaseMemObject(d_EPI_Mask);
+	}
+
+	// Create the smoothing filters for the requested FWHM
+	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+	PerformSmoothing(d_Smoothed_Certainty, d_Certainty, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+	// Allocate memory for smoothing filters
+	c_Smoothing_Filter_X = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Y = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+	c_Smoothing_Filter_Z = clCreateBuffer(context, CL_MEM_READ_ONLY, SMOOTHING_FILTER_SIZE * sizeof(float), NULL, NULL);
+
+	// Copy smoothing filters to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_X, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_X , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Y, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Y , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Smoothing_Filter_Z, CL_TRUE, 0, SMOOTHING_FILTER_SIZE * sizeof(float), h_Smoothing_Filter_Z , 0, NULL, NULL);
+
+	// Allocate temporary memory
+	cl_mem d_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Convolved_Rows = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Convolved_Columns = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	deviceMemoryAllocations += 5;
+	allocatedDeviceMemory += 5 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
+	PrintMemoryStatus("Inside smoothing normalized host");
+
+	int zero = 0;
+
+	// Set arguments for the kernels
+	clSetKernelArg(SeparableConvolutionRowsKernel, 0, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 1, sizeof(cl_mem), &d_Volume);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 2, sizeof(cl_mem), &d_Certainty);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Y);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 4, sizeof(int), &zero);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 5, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 6, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 7, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionRowsKernel, 8, sizeof(int), &EPI_DATA_T);
+
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 0, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 1, sizeof(cl_mem), &d_Convolved_Rows);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 2, sizeof(cl_mem), &c_Smoothing_Filter_X);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 3, sizeof(int), &zero);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 4, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 5, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 6, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionColumnsKernel, 7, sizeof(int), &EPI_DATA_T);
+
+	clSetKernelArg(SeparableConvolutionRodsKernel, 0, sizeof(cl_mem), &d_Volume);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 1, sizeof(cl_mem), &d_Convolved_Columns);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 2, sizeof(cl_mem), &d_Smoothed_Certainty);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 3, sizeof(cl_mem), &c_Smoothing_Filter_Z);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 4, sizeof(int), &zero);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 5, sizeof(int), &EPI_DATA_W);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 6, sizeof(int), &EPI_DATA_H);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 7, sizeof(int), &EPI_DATA_D);
+	clSetKernelArg(SeparableConvolutionRodsKernel, 8, sizeof(int), &EPI_DATA_T);
+
+	// Loop over volumes
+	for (int v = 0; v < EPI_DATA_T; v++)
+	{
+		// Copy new volume to device
+		clEnqueueWriteBuffer(commandQueue, d_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_fMRI_Volumes[v * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
+
+		runKernelErrorSeparableConvolutionRows = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRowsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRows, localWorkSizeSeparableConvolutionRows, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		runKernelErrorSeparableConvolutionColumns = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionColumnsKernel, 3, NULL, globalWorkSizeSeparableConvolutionColumns, localWorkSizeSeparableConvolutionColumns, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		runKernelErrorSeparableConvolutionRods = clEnqueueNDRangeKernel(commandQueue, SeparableConvolutionRodsKernel, 3, NULL, globalWorkSizeSeparableConvolutionRods, localWorkSizeSeparableConvolutionRods, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		MultiplyVolumes(d_Volume, d_Certainty, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+		// Copy smoothed volume back to host
+		clEnqueueReadBuffer(commandQueue, d_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_fMRI_Volumes[v * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
+
+		if ((WRAPPER == BASH) && VERBOS)
+		{
+			printf(", %i",v);
+			fflush(stdout);
+		}
+	}
+
+	// Free temporary memory
+	clReleaseMemObject(c_Smoothing_Filter_X);
+	clReleaseMemObject(c_Smoothing_Filter_Y);
+	clReleaseMemObject(c_Smoothing_Filter_Z);
+
+	clReleaseMemObject(d_Certainty);
+	clReleaseMemObject(d_Smoothed_Certainty);
+
+	clReleaseMemObject(d_Volume);
+	clReleaseMemObject(d_Convolved_Rows);
+	clReleaseMemObject(d_Convolved_Columns);
+
+	deviceMemoryDeallocations += 5;
+	allocatedDeviceMemory -= 5 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+}
 
 // Performs detrending of an fMRI dataset (removes mean, linear trend, quadratic trend, cubic trend)
 void BROCCOLI_LIB::PerformDetrending(cl_mem d_Detrended_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T)

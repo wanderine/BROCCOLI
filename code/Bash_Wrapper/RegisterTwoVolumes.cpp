@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 	bool			VERBOS = false;
     bool            WRITE_DISPLACEMENT_FIELD = false;
 	bool			WRITE_INTERPOLATED = false;
-   	bool			CHANGE_OUTPUT_NAME = false;    
+   	bool			CHANGE_OUTPUT_FILENAME = false;    
 	float			SIGMA = 5.0f;
 	bool			MASK = false;
 	bool			MASK_ORIGINAL = false;
@@ -627,13 +627,14 @@ int main(int argc, char **argv)
         }
         else if (strcmp(input,"-output") == 0)
         {
+			CHANGE_OUTPUT_FILENAME = true;
+
 			if ( (i+1) >= argc  )
 			{
 			    printf("Unable to read name after -output !\n");
                 return EXIT_FAILURE;
 			}
 
-			CHANGE_OUTPUT_NAME = true;
             outputFilename = argv[i+1];
             i += 2;
         }
@@ -1389,7 +1390,7 @@ int main(int argc, char **argv)
 	numberOfNiftiImages++;    
 
     // Copy information from input data    	
-	if (!CHANGE_OUTPUT_NAME)
+	if (!CHANGE_OUTPUT_FILENAME)
 	{
     	nifti_set_filenames(outputNifti, inputT1->fname, 0, 1);    
 	}

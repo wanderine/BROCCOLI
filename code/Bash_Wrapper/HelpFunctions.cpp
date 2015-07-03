@@ -167,7 +167,7 @@ bool WriteNifti(nifti_image* inputNifti, float* data, const char* filename, bool
 
     char* filenameWithExtension;
     
-    // Add the provided filename to the original filename, before the dot
+    // Add the provided filename extension to the original filename, before the dot
     if (addFilename)
     {
         // Find the dot in the original filename

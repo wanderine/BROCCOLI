@@ -82,6 +82,7 @@ int main(int argc, char ** argv)
     const char*     FILENAME_EXTENSION = "_mc";
     bool            PRINT = true;
 	bool			VERBOS = false;
+	bool			CHANGE_OUTPUT_FILENAME = false;
     
     int             DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -226,6 +227,8 @@ int main(int argc, char ** argv)
         }
         else if (strcmp(input,"-output") == 0)
         {
+			CHANGE_OUTPUT_FILENAME = true;
+
 			if ( (i+1) >= argc  )
 			{
 			    printf("Unable to read name after -output !\n");
@@ -641,9 +644,17 @@ int main(int argc, char ** argv)
         
     // Write motion corrected data to file            
     startTime = GetWallTime();
-
-    WriteNifti(inputData,h_fMRI_Volumes,FILENAME_EXTENSION,ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     
+	if (!CHANGE_OUTPUT_FILENAME)
+	{
+	    WriteNifti(inputData,h_fMRI_Volumes,FILENAME_EXTENSION,ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+	else
+	{
+		nifti_set_filenames(inputData, outputFilename, 0, 1);
+		WriteNifti(inputData,h_fMRI_Volumes,"",DONT_ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+
     if (DEBUG)
     {
         WriteNifti(inputData,h_Phase_Differences,"_phase_differences",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);

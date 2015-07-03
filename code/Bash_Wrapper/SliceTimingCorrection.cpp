@@ -74,6 +74,7 @@ int main(int argc, char ** argv)
     const char*     FILENAME_EXTENSION = "_stc";
     bool            PRINT = true;
 	bool			VERBOS = false;
+	bool			CHANGE_OUTPUT_FILENAME;
     
     int             DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -261,6 +262,8 @@ int main(int argc, char ** argv)
         }
         else if (strcmp(input,"-output") == 0)
         {
+			CHANGE_OUTPUT_FILENAME = true;
+
 			if ( (i+1) >= argc  )
 			{
 			    printf("Unable to read name after -output !\n");
@@ -710,25 +713,15 @@ int main(int argc, char ** argv)
     // Write slice timing corrected data to file            
     startTime = GetWallTime();
 
-	/*
-    // Create new nifti image
-	nifti_image *outputNifti = nifti_copy_nim_info(inputData);      
-	allNiftiImages[numberOfNiftiImages] = outputNifti;
-	numberOfNiftiImages++;   
-     
-    // Copy information from input data    	
-	if (!CHANGE_OUTPUT_NAME)
+	if (!CHANGE_OUTPUT_FILENAME)
 	{
-    	nifti_set_filenames(outputNifti, inputData->fname, 0, 1);    
+	    WriteNifti(inputData,h_fMRI_Volumes,FILENAME_EXTENSION,ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 	else
 	{
-		nifti_set_filenames(outputNifti, outputFilename, 0, 1);    
+		nifti_set_filenames(inputData, outputFilename, 0, 1);
+		WriteNifti(inputData,h_fMRI_Volumes,"",DONT_ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
-	*/
-
-    WriteNifti(inputData,h_fMRI_Volumes,FILENAME_EXTENSION,ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-
 
 	endTime = GetWallTime();
 

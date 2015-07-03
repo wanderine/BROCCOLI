@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 	int				INTERPOLATION_MODE = 1;
     bool            DEBUG = false;
     bool            PRINT = true;
-	bool			CHANGE_OUTPUT_NAME = false;    
+	bool			CHANGE_OUTPUT_FILENAME = false;    
 	int 			MM_T1_Z_CUT = 0;
 
 	const char*		outputFilename;
@@ -253,12 +253,14 @@ int main(int argc, char **argv)
         }
         else if (strcmp(input,"-output") == 0)
         {
+			CHANGE_OUTPUT_FILENAME = true;
+
 			if ( (i+1) >= argc  )
 			{
 			    printf("Unable to read name after -output !\n");
                 return EXIT_FAILURE;
 			}
-			CHANGE_OUTPUT_NAME = true;
+			
             outputFilename = argv[i+1];
             i += 2;
         }
@@ -649,7 +651,7 @@ int main(int argc, char **argv)
 	numberOfNiftiImages++;    
 
 	// Change filename and write transformed data to file
-	if (!CHANGE_OUTPUT_NAME)
+	if (!CHANGE_OUTPUT_FILENAME)
 	{
     	nifti_set_filenames(outputNifti, inputVolume->fname, 0, 1);
 	    WriteNifti(outputNifti,h_Interpolated_Volume,"_warped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);

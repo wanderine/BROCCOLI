@@ -66,6 +66,8 @@ g++ FirstLevelAnalysis.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIREC
 
 g++ SliceTimingCorrection.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lniftiio -lznz -lz ${FLAGS} -o SliceTimingCorrection
 
+g++ Smoothing.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lniftiio -lznz -lz ${FLAGS} -o Smoothing
+
 # Move compiled files to correct directory
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
@@ -75,6 +77,7 @@ if [ "$COMPILATION" -eq "$RELEASE" ] ; then
 	mv RandomiseGroupLevel ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv Smoothing ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
@@ -83,6 +86,7 @@ elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
 	mv RandomiseGroupLevel ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv Smoothing ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 fi
 
 
