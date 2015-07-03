@@ -3,7 +3,7 @@
 # Set compilation mode to use
 RELEASE=0
 DEBUG=1
-COMPILATION=$DEBUG
+COMPILATION=$RELEASE
 
 BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 OPENCL_HEADER_DIRECTORY=/System/Library/Frameworks/OpenCL.framework/Headers
