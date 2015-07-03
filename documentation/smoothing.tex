@@ -1,9 +1,9 @@
 \section{Introduction}
 
-BROCCOLI provides a separate function for motion correction. In its simplest form, motion correction can with the bash wrapper be performed as
+BROCCOLI provides a separate function for smoothing. In its simplest form, smoothing can with the bash wrapper be performed as
 
 \begin{verbatim}
-./MotionCorrection fMRI.nii
+./Smoothing fMRI.nii
 \end{verbatim}
 where fMRI.nii is a 4D fMRI dataset.
 
@@ -21,20 +21,26 @@ The following OpenCL options are available
 
 \end{itemize}
 
-\section{Motion correction options}
+\section{Smoothing options}
 
-The following motion correction options are available
+The following smoothing options are available
 
 \begin{itemize}
 
-\item -iterations  
-\newline \newline Number of iterations for the motion correction (default 5). 
+\item -fwhm
+\newline \newline Amount of smoothing to apply (in mm, default 6 mm).
+
+\item -mask
+\newline \newline Perform smoothing inside mask (normalized convolution).
+
+\item -automask
+\newline \newline Generate a mask and perform smoothing \\ inside mask (normalized convolution).
 
 \end{itemize}
 
 \section{Outputs}
 
-By default, the function saves the results as input\_mc.nii. The estimated motion parameters are saved as motion.1D. They can for example be viewed using the AFNI function 1dplot (1dplot motion.1D).
+By default, the function saves the results as input\_sm.nii. If -automask is selected, the generated mask will be saved as input\_mask.nii.
 
 \section{Output options}
 
@@ -43,7 +49,7 @@ The following output options are available
 \begin{itemize}
 
 \item -output 
-\newline \newline Set output filename (default input\_mc.nii). 
+\newline \newline Set output filename (default input\_sm.nii). 
 
 \end{itemize}
 
@@ -59,8 +65,6 @@ The following additional options are available
 \item -verbose
 \newline \newline Print extra stuff (default false).
  
-\item -debug 
-\newline \newline Get additional debug information saved as nifti files (default no). Warning: This will use a lot of extra memory! 
 
 \end{itemize}
 
