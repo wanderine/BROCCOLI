@@ -157,6 +157,7 @@ class BROCCOLI_LIB
 		void SetDoAllPermutations(bool);
 		void SetRawRegressors(bool);
 		void SetCustomReferenceSlice(int);
+		void SetNumberOfICAComponents(int);
 
 		// Smoothing
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
@@ -424,6 +425,8 @@ class BROCCOLI_LIB
 		void PerformFirstLevelAnalysisWrapper();
 		void PerformSecondLevelAnalysisWrapper();
 
+		void PerformICACPUWrapper();
+
 		void GetOpenCLInfo();
 		bool OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
 
@@ -500,6 +503,10 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMFTestSecondLevelPermutation();
 
 		void CalculatePermutationPValues(cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
+
+		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
+		void InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix);
+
 
 		//------------------------------------------------
 		// Convolution functions
@@ -1113,6 +1120,8 @@ class BROCCOLI_LIB
 		int NUMBER_OF_BRAIN_VOXELS;
 		int NUMBER_OF_INVALID_TIMEPOINTS;
 		bool USE_PERMUTATION_FILE;
+
+		int NUMBER_OF_ICA_COMPONENTS;
 
 		// Random permutation variables
 		int NUMBER_OF_PERMUTATIONS;

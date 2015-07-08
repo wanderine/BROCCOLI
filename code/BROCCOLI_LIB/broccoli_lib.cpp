@@ -23,7 +23,7 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-
+#include <Eigen/Eigenvalues> 
 #include <limits>
 #include <Dense>
 #include <stdio.h>
@@ -3224,6 +3224,11 @@ void BROCCOLI_LIB::SetNumberOfDetrendingRegressors(int N)
 void BROCCOLI_LIB::SetNumberOfContrasts(int N)
 {
 	NUMBER_OF_CONTRASTS = N;
+}
+
+void BROCCOLI_LIB::SetNumberOfICAComponents(int N)
+{
+	NUMBER_OF_ICA_COMPONENTS = N;
 }
 
 void BROCCOLI_LIB::SetDesignMatrix(float* data1, float* data2)
@@ -16123,6 +16128,433 @@ float BROCCOLI_LIB::CalculateMin(float *data, int N)
 	return min;
 }
 
+void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & inputData, int NUMBER_OF_COMPONENTS, bool demean)
+{
+	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
+	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
 
+	int NUMBER_OF_VOXELS = inputData.cols();
+	int NUMBER_OF_OBSERVATIONS = inputData.rows();
+
+	printf("Number of voxels are %i \n",NUMBER_OF_VOXELS);
+	printf("Number of observations are %i \n",NUMBER_OF_OBSERVATIONS);
+
+	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+
+  //gsl_matrix *input,// NOBS x NVOX
+  //size_t const NCOMP, //
+  //gsl_matrix *x_white, // NCOMP x NVOX
+  //gsl_matrix *white, // NCOMP x NCOMP
+  //gsl_matrix *dewhite, //NOBS x NVOX
+  //int demean){
+
+  // get input reference
+  //  size_t NSUB = input->size1;
+
+	if (demean)
+	{
+		for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+		{
+			Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+			DemeanRegressor(values,NUMBER_OF_OBSERVATIONS);
+			inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1) = values;
+		}
+	}
+
+	// Calculate covariance Matrix
+	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	{	
+		for (int j = 0; j < NUMBER_OF_OBSERVATIONS; j++)
+		{
+			covarianceMatrix(i,j) = 0.0;
+		}
+	}
+
+	for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+	{
+		Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+		covarianceMatrix += values * values.transpose();
+	}
+	//covarianceMatrix = inputData.transpose() * inputData;
+	covarianceMatrix *= 1.0/(double)NUMBER_OF_VOXELS;
+	printf("Covariance matrix size is %i x %i \n",covarianceMatrix.rows(),covarianceMatrix.cols());
+	
+	std::cout << covarianceMatrix << std::endl;
+
+	//gsl_matrix *cov = gsl_matrix_alloc(input->size1, input->size1);
+	//matrix_cov(input, cov);
+
+	// Calculate eigen values of covariance matrix	
+	Eigen::EigenSolver<Eigen::MatrixXd> es(covarianceMatrix);
+	Eigen::MatrixXd eigenValues = es.pseudoEigenvalueMatrix();
+	Eigen::MatrixXd eigenVectors = es.pseudoEigenvectors();
+
+	printf("Eigen values matrix size is %i x %i \n",eigenValues.rows(),eigenValues.cols());
+	printf("Eigen vectors matrix size is %i x %i \n",eigenVectors.rows(),eigenVectors.cols());
+
+	Eigen::VectorXd savedEigenValues(NUMBER_OF_COMPONENTS);
+	Eigen::MatrixXd savedEigenVectors(NUMBER_OF_COMPONENTS,NUMBER_OF_OBSERVATIONS);
+	
+	double totalVariance = 0.0;
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	{
+		totalVariance += eigenValues(i,i);
+	}
+
+	// Get a sub matrix of all the eigen vectors, to remove the smallest ones
+	// Get a sub vector of the eigen values, to remove the smallest eigen values
+	double savedVariance = 0.0;
+	for (int i = 0; i < NUMBER_OF_COMPONENTS; i++)
+	{	
+		// Find largest eigen value for current component, and it's location
+		int xindex = 0; int yindex = 0;
+		double largestEigenValue = eigenValues.maxCoeff(&xindex,&yindex);
+		savedEigenValues(i) = largestEigenValue;
+		savedVariance += largestEigenValue;
+
+		printf("Largest eigen value is %f \n",(float)largestEigenValue);
+
+		// Get the corresponding eigen vector
+		savedEigenVectors.block(0,i,NUMBER_OF_OBSERVATIONS,1) = eigenVectors.block(0,xindex,NUMBER_OF_OBSERVATIONS,1);
+
+		// Set the previous largest eigen value to 0
+		eigenValues(xindex,yindex) = 0.0;
+	}
+
+	if ((WRAPPER == BASH) && VERBOSE)
+	{
+		printf("Saved %f %% of the total variance at the dimensionality reduction\n",(float)savedVariance/(float)totalVariance*100.0);
+	}
+
+	// Calculate  ^(-1/2) for all saved eigen values
+	Eigen::VectorXd scaledEigenValues(NUMBER_OF_COMPONENTS);
+	for (int i = 0; i < NUMBER_OF_COMPONENTS; i++)
+	{	
+		double eigenValue = savedEigenValues(i);
+		scaledEigenValues(i) = 1.0/sqrt(eigenValue);
+	}
+
+	// Calculate whitening matrix
+	Eigen::MatrixXd whiteningMatrix = scaledEigenValues.asDiagonal() * savedEigenVectors;
+	printf("Whitening matrix size is %i x %i \n",whiteningMatrix.rows(),whiteningMatrix.cols());
+
+	// Perform the actual whitening
+	whitenedData = whiteningMatrix * inputData;
+	Eigen::MatrixXd temp = whiteningMatrix * inputData;
+
+	printf("Whitened data matrix size is %i x %i \n",temp.rows(),temp.cols());
+
+	// Set up eigen decomposition
+	//gsl_vector *eval = gsl_vector_alloc(cov->size1); //eigen values
+	//gsl_matrix *evec = gsl_matrix_alloc(cov->size1, cov->size2); //eigen vector
+  
+	//Compute eigen values with GSL
+	//gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (cov->size1 );
+	//gsl_eigen_symmv(cov, eval, evec, w);
+	//gsl_matrix_free(cov);
+	//gsl_eigen_symmv_free(w);
+
+  // sort eigen values
+  //gsl_eigen_symmv_sort (eval, evec, GSL_EIGEN_SORT_ABS_DESC);
+  // reduce number of components
+  //Computing whitening matrix
+  //gsl_matrix_view temp = gsl_matrix_submatrix(evec, 0,0 , NSUB, NCOMP);
+  //gsl_matrix_transpose_memcpy(white, &temp.matrix);
+  //gsl_vector_view v;
+  //double e;
+  //size_t i;
+  // eval^{-1/2} evec^T
+  //for (i = 0; i < NCOMP; i++) {
+  //  e = gsl_vector_get(eval,i);
+  //  v = gsl_matrix_row(white,i);
+  //  gsl_blas_dscal(1/sqrt(e), &v.vector);
+ // }
+  // Computing dewhitening matrix
+  //gsl_matrix_memcpy(dewhite, &temp.matrix);
+
+  // evec eval^{1/2}
+ // for (i = 0; i < NCOMP; i++) {
+  //  e = gsl_vector_get(eval,i);
+  //  v = gsl_matrix_column(dewhite,i);
+  //  gsl_blas_dscal(sqrt(e), &v.vector);
+  //}
+  // whitening data (white x Input)
+
+  //gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,
+  //  white, input, 0.0, x_white);
+
+  //gsl_matrix_free(evec);
+  //gsl_vector_free(eval);
+
+}
+
+
+/*
+int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, double updateRate)
+{
+  //gsl_matrix *weights,
+  //gsl_matrix *x_white,
+  //gsl_matrix *bias,
+  //double lrate){
+
+  int error = 0;
+  size_t i;
+  const size_t NVOX = x_white->size2;
+  const size_t NCOMP = x_white->size1;
+  size_t block = (size_t)floor(sqrt(NVOX/3.0));
+  gsl_matrix *ib = gsl_matrix_alloc(1,block);
+  gsl_matrix_set_all( ib, 1.0);
+  //getting permutation vector
+
+    const gsl_rng_type * T;
+  gsl_rng * r;
+  gsl_permutation * p = gsl_permutation_alloc (NVOX);
+  gsl_rng_env_setup();
+  T = gsl_rng_default;
+  r = gsl_rng_alloc (T);
+  gsl_permutation_init (p);
+  gsl_ran_shuffle (r, p->data, NVOX, sizeof(size_t));
+  gsl_matrix *shuffled_x_white = gsl_matrix_alloc(NCOMP,NVOX);
+  gsl_matrix_memcpy(shuffled_x_white, x_white);
+  gsl_vector_view arow;
+  for (i = 0; i < x_white->size1; i++) {
+    arow = gsl_matrix_row(shuffled_x_white,i);
+    gsl_permute_vector (p, &arow.vector);
+
+  }
+
+  size_t start;
+  gsl_matrix *sub_x_white = gsl_matrix_alloc(NCOMP, block);
+  gsl_matrix *unmixed     = gsl_matrix_alloc(NCOMP,block);
+  gsl_matrix *unm_logit   = gsl_matrix_alloc(NCOMP,block);
+  gsl_matrix *temp_I      = gsl_matrix_alloc(NCOMP,NCOMP);
+  gsl_matrix *ones        = gsl_matrix_alloc(block,1);
+  gsl_matrix_set_all(ones, 1.0);
+  double max;
+  gsl_matrix_view sub_x_white_view;
+  gsl_matrix *d_unmixer = gsl_matrix_alloc(NCOMP,NCOMP);
+  for (start = 0; start < NVOX; start = start + block) {
+    if (start + block > NVOX-1){
+      block = NVOX-start;
+      gsl_matrix_free(sub_x_white);
+      sub_x_white= gsl_matrix_alloc(NCOMP, block);
+      gsl_matrix_free(ib);
+      ib = gsl_matrix_alloc(1,block);
+      gsl_matrix_set_all( ib, 1.0);
+      gsl_matrix_free(unmixed);
+      unmixed = gsl_matrix_alloc(NCOMP,block);
+      gsl_matrix_free(unm_logit);
+      unm_logit = gsl_matrix_alloc(NCOMP,block);
+      gsl_matrix_free(ones);
+      ones = gsl_matrix_alloc(block,1);
+      gsl_matrix_set_all(ones, 1.0);
+
+    }
+    // sub_x_white = xwhite[:, permute[start:start+block]]
+    //for (i = start; i < start+block; i++) {
+     // src = gsl_matrix_column(x_white, gsl_vector_get(permute, i));
+     // dest = gsl_matrix_column(sub_x_white, i-start);
+     // gsl_vector_memcpy(&dest.vector, &src.vector);
+    }//
+    sub_x_white_view = gsl_matrix_submatrix(shuffled_x_white, 0,start, NCOMP, block );
+    gsl_matrix_memcpy(sub_x_white, &sub_x_white_view.matrix);
+    // Compute unmixed = weights . sub_x_white + bias . ib
+    matrix_mmul(weights, sub_x_white, unmixed);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans,
+      1.0, bias, ib, 1.0, unmixed);
+    // Compute 1-2*logit
+    gsl_matrix_memcpy(unm_logit, unmixed);
+    matrix_apply_all(unm_logit, logit);
+    // weights = weights + lrate*(block*I+(unm_logit*unmixed.T))*weights
+    gsl_matrix_set_identity(temp_I); // temp_I = I
+    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
+    gsl_blas_dgemm( CblasNoTrans,CblasTrans,
+                    1.0, unm_logit, unmixed,
+                    (double)block , temp_I);
+    // BE CAREFUL with aliasing here! use d_unmixer if problems arise
+    gsl_matrix_memcpy(d_unmixer, weights);
+    // (2) weights = weights + lrate*temp_I*weights
+    gsl_blas_dgemm( CblasNoTrans,CblasNoTrans,
+                    lrate, temp_I, d_unmixer,
+                    1.0, weights);
+    // Update the bias
+    gsl_blas_dgemm( CblasNoTrans, CblasNoTrans,
+                    lrate, unm_logit, ones,
+                    1.0,  bias);
+    // check if blows up
+    max = gsl_matrix_max(weights);
+    if (max > MAX_W){
+
+      if (lrate<1e-6) {
+        printf("\nERROR: Weight matrix may not be invertible\n");
+        error = 2;
+        break;
+      }
+      error = 1;
+      break;
+    }
+  }
+
+
+  //clean up
+  gsl_rng_free (r);
+  gsl_permutation_free (p);
+  gsl_matrix_free(d_unmixer);
+  gsl_matrix_free(ib);
+  gsl_matrix_free(unmixed);
+  gsl_matrix_free(temp_I);
+  gsl_matrix_free(sub_x_white);
+  gsl_matrix_free(ones);
+  gsl_matrix_free(unm_logit);
+  gsl_matrix_free(shuffled_x_white);
+
+
+  return(error);
+}
+*/
+
+/*
+void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix)
+{
+  	// Computes ICA infomax in whitened data
+    //	Decomposes x_white as x_white=AS
+    //	*Input
+    //	x_white: whitened data (Use PCAwhiten)
+    //	*Output
+    //	A : mixing matrix
+    //	S : source matrix
+  	
+	Eigen::MatrixXd oldWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXd bias(NUMBER_OF_ICA_COMPONENTS,1);
+	Eigen::MatrixXd dWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXd oldDWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXd temp(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+
+	weights.Identity();
+	oldWeights.Identity();
+
+	bias.Zero();
+	dWeights.Zero();
+	oldDWeights.Zero();
+	temp.Zero();
+
+	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
+	double change = 1.0;
+	double angle_delta = 0.0;
+    size_t step = 1;
+	int error = 0;
+
+	while( (step < MAX_STEP) && (change > W_STOP))
+	{
+	    error = UpdateICAWeights(weights, whitenedData, bias, lrate);
+
+		if (error==1 || error==2)
+		{
+			// It blowed up! RESTART!
+    	  	step = 1;
+    	  	// change = 1;
+    	  	error = 0;
+    	 	lrate *= ANNEAL;
+		
+			weights.Identity();
+			oldWeights.Identity();
+
+			dWeights.Zero();
+			oldDWeights.Zero();
+			bias.Zero();
+			
+			if (lrate > MIN_LRATE)
+			{
+    	    	printf("\nLowering learning rate to %g and starting again.\n",lrate);
+    	  	}
+    	  	else
+			{
+		        printf("\nMatrix may not be invertible");
+			}
+    	}
+    	else if (error==0)
+		{
+			dWeights = weights;	
+			dWeights -= oldWeights;
+		    change = dWeights.norm();
+	
+			if (step > 2)
+			{
+		        // Compute angle delta
+				temp = dWeights;
+				// Pointwise multiplication
+				temp = temp.array() * oldDWeights.array();
+
+		        angle_delta = acos(temp.Sum() / sqrt(dWeights.Norm() * oldDWeights.Norm())));
+        		angle_delta *= (180.0 / M_PI);
+			}
+
+			oldWeights = weights;
+
+			if (angle_delta > 60)
+			{
+        		lrate *= ANNEAL;
+				oldWeights = dWeights;
+			} 
+			else if (step==1) 
+			{
+				oldWeights = dWeights;
+			}
+
+			if ((verbose && (step % 10)== 0) || change < W_STOP)
+			{
+				printf("\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f", step, lrate, change, angle_delta);
+      		}
+
+			step++;
+    	}
+  	}
+
+	S = weights * whitenedData;	
+}
+*/
+
+void BROCCOLI_LIB::PerformICACPUWrapper()
+{
+	int NUMBER_OF_VOXELS = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
+	int NUMBER_OF_OBSERVATIONS = EPI_DATA_T;
+
+	Eigen::MatrixXd inputData(NUMBER_OF_OBSERVATIONS,NUMBER_OF_VOXELS);
+	Eigen::MatrixXd whitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_VOXELS);
+
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			for (int y = 0; y < EPI_DATA_H; y++)
+			{
+				for (int x = 0; x < EPI_DATA_W; x++)
+				{
+					inputData(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H) = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+				}
+			}
+		}
+	}
+
+	PCAWhiten(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
+
+	for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)
+	{
+		for (int z = 0; z < EPI_DATA_D; z++)
+		{
+			for (int y = 0; y < EPI_DATA_H; y++)
+			{
+				for (int x = 0; x < EPI_DATA_W; x++)
+				{
+					h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = whitenedData(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H);
+				}
+			}
+		}
+	}
+
+
+
+}
 
 
