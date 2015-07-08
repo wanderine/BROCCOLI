@@ -505,6 +505,7 @@ class BROCCOLI_LIB
 		void CalculatePermutationPValues(cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
 
 		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
+		void PCADimensionalityReduction(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		void InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix);
 
 

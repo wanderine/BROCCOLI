@@ -82,7 +82,7 @@ int main(int argc, char ** argv)
 	// Settings
 	
     float           EPI_SMOOTHING_AMOUNT = 6.0f;
-	int				NUMBER_OF_ICA_COMPONENTS = 5;
+	int				NUMBER_OF_ICA_COMPONENTS = 15;
 
     //-----------------------
     // Output parameters

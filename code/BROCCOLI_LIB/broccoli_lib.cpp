@@ -16290,6 +16290,91 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 }
 
 
+void BROCCOLI_LIB::PCADimensionalityReduction(Eigen::MatrixXd & reducedData,  Eigen::MatrixXd & inputData, int NUMBER_OF_COMPONENTS, bool demean)
+{
+	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
+	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
+
+	int NUMBER_OF_VOXELS = inputData.cols();
+	int NUMBER_OF_OBSERVATIONS = inputData.rows();
+
+	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+
+	if (demean)
+	{
+		for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+		{
+			Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+			DemeanRegressor(values,NUMBER_OF_OBSERVATIONS);
+			inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1) = values;
+		}
+	}
+
+	// Calculate covariance Matrix
+	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	{	
+		for (int j = 0; j < NUMBER_OF_OBSERVATIONS; j++)
+		{
+			covarianceMatrix(i,j) = 0.0;
+		}
+	}
+
+	for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+	{
+		Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+		covarianceMatrix += values * values.transpose();
+	}
+	//covarianceMatrix = inputData.transpose() * inputData;
+	covarianceMatrix *= 1.0/(double)NUMBER_OF_VOXELS;
+	printf("Covariance matrix size is %i x %i \n",covarianceMatrix.rows(),covarianceMatrix.cols());
+	
+	// Calculate eigen values of covariance matrix	
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(covarianceMatrix);
+	Eigen::VectorXd eigenValues = es.eigenvalues();
+	Eigen::MatrixXd eigenVectors = es.eigenvectors();
+
+	printf("Eigen values matrix size is %i x %i \n",eigenValues.rows(),eigenValues.cols());
+	printf("Eigen vectors matrix size is %i x %i \n",eigenVectors.rows(),eigenVectors.cols());
+
+	Eigen::VectorXd savedEigenValues(NUMBER_OF_COMPONENTS);
+	Eigen::MatrixXd savedEigenVectors(NUMBER_OF_COMPONENTS,NUMBER_OF_OBSERVATIONS);
+	
+	double totalVariance = 0.0;
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	{
+		totalVariance += eigenValues(i);
+	}
+
+	// Get a sub matrix of all the eigen vectors, to remove the smallest ones
+	// Get a sub vector of the eigen values, to remove the smallest eigen values
+	double savedVariance = 0.0;
+	for (int i = 0; i < NUMBER_OF_COMPONENTS; i++)
+	{	
+		// Find largest eigen value for current component, and it's location
+		int index = 0;
+		double largestEigenValue = eigenValues.maxCoeff(&index);
+		savedEigenValues(i) = largestEigenValue;
+		savedVariance += largestEigenValue;
+
+		printf("Largest eigen value is %f \n",(float)largestEigenValue);
+
+		// Get the corresponding eigen vector
+		savedEigenVectors.block(0,i,NUMBER_OF_OBSERVATIONS,1) = eigenVectors.block(0,index,NUMBER_OF_OBSERVATIONS,1);
+
+		// Set the previous largest eigen value to 0
+		eigenValues(index) = 0.0;
+	}
+
+	if ((WRAPPER == BASH) && VERBOSE)
+	{
+		printf("Saved %f %% of the total variance at the dimensionality reduction\n",(float)savedVariance/(float)totalVariance*100.0);
+	}
+
+	// Perform the actual dimensionality reduction
+	reducedData = savedEigenVectors * inputData;
+}
+
 /*
 int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, double updateRate)
 {
@@ -16537,7 +16622,8 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 		}
 	}
 
-	PCAWhiten(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
+	//PCAWhiten(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
+	PCADimensionalityReduction(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 
 	for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)
 	{
