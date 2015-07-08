@@ -16216,7 +16216,7 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 		printf("Largest eigen value is %f \n",(float)largestEigenValue);
 
 		// Get the corresponding eigen vector
-		savedEigenVectors.block(0,i,NUMBER_OF_OBSERVATIONS,1) = eigenVectors.block(0,xindex,NUMBER_OF_OBSERVATIONS,1);
+		savedEigenVectors.row(i) = eigenVectors.col(index).transpose();
 
 		// Set the previous largest eigen value to 0
 		eigenValues(xindex,yindex) = 0.0;
@@ -16360,7 +16360,7 @@ void BROCCOLI_LIB::PCADimensionalityReduction(Eigen::MatrixXd & reducedData,  Ei
 		printf("Largest eigen value is %f \n",(float)largestEigenValue);
 
 		// Get the corresponding eigen vector
-		savedEigenVectors.block(0,i,NUMBER_OF_OBSERVATIONS,1) = eigenVectors.block(0,index,NUMBER_OF_OBSERVATIONS,1);
+		savedEigenVectors.row(i) = eigenVectors.col(index).transpose();
 
 		// Set the previous largest eigen value to 0
 		eigenValues(index) = 0.0;
