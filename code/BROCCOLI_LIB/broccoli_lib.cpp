@@ -16450,24 +16450,24 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 
 	// Create random permutation vector
 	std::vector<int> perm;
-	for (int i = 0; i < NUMBER_OF_VOXELS; i++) 
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++) 
 	{
 	    perm.push_back(i);
 	}
 	std::random_shuffle(perm.begin(), perm.end());
 
-	// Loop over observations, randomly permute each vector
-	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	// Loop over voxels, randomly permute each column
+	for (int i = 0; i < NUMBER_OF_VOXELS; i++)
 	{
-		Eigen::VectorXd row = shuffledWhitenedData.row(i);
-		Eigen::VectorXd permutedRow = row;
+		Eigen::VectorXd col = shuffledWhitenedData.col(i);
+		Eigen::VectorXd permutedCol = col;
 
-		for (int j = 0; j < NUMBER_OF_VOXELS; j++)
+		for (int j = 0; j < NUMBER_OF_OBSERVATIONS; j++)
 		{
-			permutedRow(j) = row(perm[j]);
+			permutedCol(j) = col(perm[j]);
 		}		
 
-		shuffledWhitenedData.row(i) = permutedRow;		
+		shuffledWhitenedData.col(i) = permutedCol;		
 	}
 
 	//PermutationMatrix<Dynamic,Dynamic> perm(size);
