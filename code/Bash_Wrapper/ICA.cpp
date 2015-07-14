@@ -1,5 +1,6 @@
 /*
- * BROCCOLI: An open source multi-platform software for parallel analysis of fMRI data on many core CPUs and GPUS
+    BROCCOLI: Software for Fast fMRI Analysis on Many-Core CPUs and GPUs
+    
  * Copyright (C) <2013>  Anders Eklund, andek034@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
@@ -82,7 +83,7 @@ int main(int argc, char ** argv)
 	// Settings
 	
     float           EPI_SMOOTHING_AMOUNT = 6.0f;
-	int				NUMBER_OF_ICA_COMPONENTS = 15;
+	int				NUMBER_OF_ICA_COMPONENTS = 25;
 
     //-----------------------
     // Output parameters
@@ -263,6 +264,11 @@ int main(int argc, char ** argv)
     DATA_H = inputData->ny;
     DATA_D = inputData->nz;
     DATA_T = inputData->nt;
+
+	// Get voxel sizes
+	EPI_VOXEL_SIZE_X = inputData->dx;
+	EPI_VOXEL_SIZE_Y = inputData->dy;
+	EPI_VOXEL_SIZE_Z = inputData->dz;
 
 	// Check if data has more than one time point
 	if (DATA_T <= 1)

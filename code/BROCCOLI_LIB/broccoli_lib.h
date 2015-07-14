@@ -504,10 +504,15 @@ class BROCCOLI_LIB
 
 		void CalculatePermutationPValues(cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
 
+		void ResetMatrix(Eigen::MatrixXd &);
+		void IdentityMatrix(Eigen::MatrixXd &);
+		void LogitMatrix(Eigen::MatrixXd &);
+		void SetVectorValues(Eigen::VectorXd &, double);
+
 		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		void PCADimensionalityReduction(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		void InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix);
-
+		int UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate);
 
 		//------------------------------------------------
 		// Convolution functions
