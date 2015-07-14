@@ -16526,7 +16526,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 		weights = weights + updateRate * tempI * weights;
 
 	    // Update the bias
-		bias = updateRate * *unmLogit * *ones;
+		bias += updateRate * *unmLogit * *ones;
 
 	    // Check if blows up
 	    double max = weights.maxCoeff();
@@ -16626,7 +16626,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 		{
 			dWeights = weights;	
 			dWeights -= oldWeights;
-		    change = dWeights.norm();
+		    change = dWeights.squaredNorm();
 	
 			if (step > 2)
 			{
@@ -16639,7 +16639,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 				printf("d weights norm is %f\n",(float)dWeights.norm());
 				printf("old d weights norm is %f\n",(float)oldDWeights.norm());
 
-		        angleDelta = acos(temp.sum() / sqrt(dWeights.norm() * oldDWeights.norm()));
+				angleDelta = acos(temp.sum() / (dWeights.norm() * oldDWeights.norm()));
 
 				printf("angle delta is %f\n",(float)angleDelta);
 
