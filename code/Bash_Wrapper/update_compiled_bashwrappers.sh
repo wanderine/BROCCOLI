@@ -29,6 +29,7 @@ git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Debug/SliceTimingCorrection
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Debug/TransformVolume
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Debug/GetOpenCLInfo
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Debug/Smoothing
+git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Debug/ICA
 
 
 cd $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB
@@ -59,5 +60,6 @@ git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Release/SliceTimingCorrectio
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Release/TransformVolume
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Release/GetOpenCLInfo
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Release/Smoothing
+git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Linux/Release/ICA
 
 
