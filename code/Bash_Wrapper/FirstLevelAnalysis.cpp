@@ -88,7 +88,7 @@ int main(int argc, char **argv)
     //-----------------------
     // Input pointers
     
-    float           *h_fMRI_Volumes, *h_T1_Volume, *h_Interpolated_T1_Volume, *h_Aligned_T1_Volume_Linear, *h_Aligned_T1_Volume_NonLinear, *h_MNI_Volume, *h_MNI_Brain_Volume, *h_MNI_Brain_Mask, *h_Aligned_EPI_Volume_T1, *h_Aligned_EPI_Volume_MNI; 
+    float           *h_fMRI_Volumes, *h_fMRI_Volumes_MNI, *h_T1_Volume, *h_Interpolated_T1_Volume, *h_Aligned_T1_Volume_Linear, *h_Aligned_T1_Volume_NonLinear, *h_MNI_Volume, *h_MNI_Brain_Volume, *h_MNI_Brain_Mask, *h_Aligned_EPI_Volume_T1, *h_Aligned_EPI_Volume_MNI; 
   
     float           *h_Quadrature_Filter_1_Linear_Registration_Real, *h_Quadrature_Filter_2_Linear_Registration_Real, *h_Quadrature_Filter_3_Linear_Registration_Real, *h_Quadrature_Filter_1_Linear_Registration_Imag, *h_Quadrature_Filter_2_Linear_Registration_Imag, *h_Quadrature_Filter_3_Linear_Registration_Imag;
     float           *h_Quadrature_Filter_1_NonLinear_Registration_Real, *h_Quadrature_Filter_2_NonLinear_Registration_Real, *h_Quadrature_Filter_3_NonLinear_Registration_Real, *h_Quadrature_Filter_1_NonLinear_Registration_Imag, *h_Quadrature_Filter_2_NonLinear_Registration_Imag, *h_Quadrature_Filter_3_NonLinear_Registration_Imag;
@@ -207,6 +207,7 @@ int main(int argc, char **argv)
     float           AR_SMOOTHING_AMOUNT = 6.0f;
 	bool			BETAS_ONLY = false;
 	bool			REGRESS_ONLY = false;
+	bool			PREPROCESSING_ONLY = false;
     
     int             USE_TEMPORAL_DERIVATIVES = 0;
     bool            PERMUTE = false;
@@ -261,6 +262,9 @@ int main(int argc, char **argv)
 
         printf("Usage, preprocessing + regress nuisance variables (no GLM):\n\n");
         printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii -regressonly [options]\n\n");
+
+        printf("Usage, preprocessing only (no GLM):\n\n");
+        printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii -preprocessingonly [options]\n\n");
         
         printf("OpenCL options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
@@ -347,16 +351,20 @@ int main(int argc, char **argv)
     }
 	*/    
 
-	// Check if 4'th argument is -regressonly
+	// Check if 4'th argument is -regressonly or -preprocessingonly
 	char *temp = argv[4];
     if (strcmp(temp,"-regressonly") == 0)
     {
         REGRESS_ONLY = true;
     }
+	else if (strcmp(temp,"-preprocessingonly") == 0)
+	{
+        PREPROCESSING_ONLY = true;
+	}
 
 	int i;
 	// Try to open all files
-	if (REGRESS_ONLY)
+	if (REGRESS_ONLY || PREPROCESSING_ONLY)
 	{
         for (int j = 1; j <= 3; j++)
         {
@@ -1047,7 +1055,7 @@ int main(int argc, char **argv)
     int tempNumber;
     std::string NR("NumRegressors");
 
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 	    design.open(argv[4]);
     
@@ -1096,7 +1104,7 @@ int main(int argc, char **argv)
     // Read contrasts
    	std::ifstream contrasts;    
 
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 		if (!BAYESIAN)
 		{
@@ -1506,7 +1514,7 @@ int main(int argc, char **argv)
 		printf("T1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);
 	    printf("MNI data size: %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		printf("MNI voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);
-		if (!REGRESS_ONLY)
+		if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 		{
 		    printf("Number of original GLM regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
 		}
@@ -1514,8 +1522,11 @@ int main(int argc, char **argv)
 		{
 	    	printf("Number of confound regressors: %i \n",  NUMBER_OF_CONFOUND_REGRESSORS);
 		}
-  	    printf("Number of total GLM regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
-		if (!REGRESS_ONLY)
+		if (!PREPROCESSING_ONLY)
+		{
+	  	    printf("Number of total GLM regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		}
+		if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 		{
 		    printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
 		}
@@ -1617,7 +1628,7 @@ int main(int argc, char **argv)
 
 
 
-	if (!REGRESS_ONLY && !BETAS_ONLY)
+	if (!REGRESS_ONLY && !BETAS_ONLY && !PREPROCESSING_ONLY)
 	{
 	    AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_MNI");
 		AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_MNI");
@@ -1680,7 +1691,7 @@ int main(int argc, char **argv)
 			AllocateMemory(h_Residuals_EPI, RESIDUALS_DATA_SIZE_EPI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "RESIDUALS_EPI");  
 		}
 	}
-	else if (!REGRESS_ONLY && BETAS_ONLY)
+	else if (!REGRESS_ONLY && BETAS_ONLY && !PREPROCESSING_ONLY)
 	{
 		AllocateMemory(h_Beta_Volumes_MNI, BETA_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES_MNI");
 		AllocateMemory(h_Contrast_Volumes_MNI, STATISTICAL_MAPS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_MNI");    
@@ -1697,6 +1708,10 @@ int main(int argc, char **argv)
 	        AllocateMemory(h_Contrast_Volumes_T1, STATISTICAL_MAPS_DATA_SIZE_T1, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES_T1");
 		}
 	}
+	else if (PREPROCESSING_ONLY)
+	{
+		AllocateMemory(h_fMRI_Volumes_MNI, RESIDUALS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "fMRI_VOLUMES_MNI");             
+	}
 	else
 	{
 		AllocateMemory(h_Residuals_MNI, RESIDUALS_DATA_SIZE_MNI, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "RESIDUALS_MNI");             
@@ -1707,19 +1722,25 @@ int main(int argc, char **argv)
 		}
 	}
     
-    AllocateMemory(h_X_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX");
-    AllocateMemory(h_Highres_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "HIGHRES_REGRESSOR");
-    AllocateMemory(h_LowpassFiltered_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "LOWPASSFILTERED_REGRESSOR");
-    AllocateMemory(h_xtxxt_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX_INVERSE");
-    AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRASTS");
-    AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_SCALARS");
-    AllocateMemory(h_Design_Matrix, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "TOTAL_DESIGN_MATRIX");
-    AllocateMemory(h_Design_Matrix2, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "TOTAL_DESIGN_MATRIX2");
+	if (!PREPROCESSING_ONLY)
+	{
+	    AllocateMemory(h_X_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX");
+	    AllocateMemory(h_Highres_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "HIGHRES_REGRESSOR");
+	    AllocateMemory(h_LowpassFiltered_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "LOWPASSFILTERED_REGRESSOR");
+	    AllocateMemory(h_xtxxt_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX_INVERSE");
+	    AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRASTS");
+	    AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_SCALARS");
+	    AllocateMemory(h_Design_Matrix, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "TOTAL_DESIGN_MATRIX");
+    	AllocateMemory(h_Design_Matrix2, DESIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "TOTAL_DESIGN_MATRIX2");
+	}
 
-    AllocateMemory(h_AR1_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR1_ESTIMATES");
-    AllocateMemory(h_AR2_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR2_ESTIMATES");
-    AllocateMemory(h_AR3_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR3_ESTIMATES");
-    AllocateMemory(h_AR4_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR4_ESTIMATES");
+	if (!PREPROCESSING_ONLY)
+	{
+	    AllocateMemory(h_AR1_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR1_ESTIMATES");
+	    AllocateMemory(h_AR2_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR2_ESTIMATES");
+	    AllocateMemory(h_AR3_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR3_ESTIMATES");
+	    AllocateMemory(h_AR4_Estimates_EPI, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "AR4_ESTIMATES");
+	}
 
     if (WRITE_AR_ESTIMATES_MNI)
     {
@@ -1747,7 +1768,7 @@ int main(int argc, char **argv)
     // ------------------------------------------------
 	// Read events for each regressor    	
 
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 		startTime = GetWallTime();
 
@@ -1937,7 +1958,7 @@ int main(int argc, char **argv)
     	design.close();
 	}
 
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
     	if (!BAYESIAN)
 		{
@@ -1976,7 +1997,7 @@ int main(int argc, char **argv)
 		}
 	}
     
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 		// Write original design matrix to file
 		if (WRITE_ORIGINAL_DESIGNMATRIX)
@@ -2526,9 +2547,11 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputStatisticalMapsNoWhiteningMNI(h_Statistical_Maps_No_Whitening_MNI);
 
 		BROCCOLI.SetBayesian(BAYESIAN);
+		BROCCOLI.SetPreprocessingOnly(PREPROCESSING_ONLY);
 		BROCCOLI.SetRegressOnly(REGRESS_ONLY);
 		BROCCOLI.SetBetasOnly(BETAS_ONLY);
         BROCCOLI.SetOutputResidualsMNI(h_Residuals_MNI);
+		BROCCOLI.SetOutputfMRIVolumesMNI(h_fMRI_Volumes_MNI);
         BROCCOLI.SetOutputResidualsEPI(h_Residuals_EPI);
 
         //BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);
@@ -2708,7 +2731,7 @@ int main(int argc, char **argv)
     std::string epi = "_EPI";
     std::string t1 = "_T1";    
 
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 	    if (!BAYESIAN)
 	    {
@@ -2948,7 +2971,7 @@ int main(int argc, char **argv)
 	        WriteNifti(outputNiftiStatisticsMNI,h_AR1_Estimates_MNI,"_ar1_estimates_MNI",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		}		
 	}
-	else if (!BETAS_ONLY)
+	else if (!BETAS_ONLY && REGRESS_ONLY)
 	{		
 		outputNiftiStatisticsMNI->nt = EPI_DATA_T;
 		outputNiftiStatisticsMNI->ndim = 4;
@@ -2961,6 +2984,20 @@ int main(int argc, char **argv)
 	    
 		WriteNifti(outputNiftiStatisticsMNI,h_Residuals_MNI,"_residuals_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
+	else if (PREPROCESSING_ONLY)
+	{		
+		outputNiftiStatisticsMNI->nt = EPI_DATA_T;
+		outputNiftiStatisticsMNI->ndim = 4;
+		outputNiftiStatisticsMNI->dim[0] = 4;
+	    outputNiftiStatisticsMNI->dim[4] = EPI_DATA_T;
+	    outputNiftiStatisticsMNI->pixdim[6] = inputfMRI->pixdim[6];
+	    outputNiftiStatisticsMNI->pixdim[7] = inputfMRI->pixdim[7];
+	    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * EPI_DATA_T;
+		outputNiftiStatisticsMNI->dt = TR;		
+	    
+		WriteNifti(outputNiftiStatisticsMNI,h_fMRI_Volumes_MNI,"_preprocessed_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+
 
     //------------------------------------------
     // Write statistical results, EPI space
@@ -2978,7 +3015,7 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsEPI;
     numberOfNiftiImages++;
     
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 	    if (WRITE_ACTIVITY_EPI)
 	    {
@@ -3234,7 +3271,7 @@ int main(int argc, char **argv)
 			WriteNifti(outputNiftiStatisticsEPI,h_Residuals_EPI,"_residuals",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		}
 	}
-	else
+	else if (REGRESS_ONLY)
 	{
 		if (WRITE_ACTIVITY_EPI)
 	    {
@@ -3244,6 +3281,17 @@ int main(int argc, char **argv)
 			WriteNifti(outputNiftiStatisticsEPI,h_Residuals_EPI,"_residuals",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		}
 	}
+	else if (PREPROCESSING_ONLY)
+	{
+		if (WRITE_ACTIVITY_EPI)
+	    {
+	    	outputNiftiStatisticsEPI->nt = EPI_DATA_T;
+	    	outputNiftiStatisticsEPI->dim[4] = EPI_DATA_T;
+	    	outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T;
+			WriteNifti(outputNiftiStatisticsEPI,h_fMRI_Volumes,"_preprocessed",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+	}
+
 
 
     //------------------------------------------
@@ -3262,7 +3310,7 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsT1;
     numberOfNiftiImages++;
 
-	if (!REGRESS_ONLY)
+	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{  
 	    if (WRITE_ACTIVITY_T1)
 	    {

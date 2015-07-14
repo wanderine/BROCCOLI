@@ -132,6 +132,7 @@ class BROCCOLI_LIB
 		void SetTemporalDerivatives(int TD);
 		void SetBayesian(bool B);
 		void SetRegressOnly(int R);
+		void SetPreprocessingOnly(bool B);
 		void SetBetasOnly(int B);
 		void SetRegressMotion(int R);
 		void SetRegressGlobalMean(int R);
@@ -158,6 +159,7 @@ class BROCCOLI_LIB
 		void SetRawRegressors(bool);
 		void SetCustomReferenceSlice(int);
 		void SetNumberOfICAComponents(int);
+		void SetVarianceToSaveBeforeICA(double);
 
 		// Smoothing
 		void SetSmoothingFilters(float* smoothing_filter_x,float* smoothing_filter_y,float* smoothing_filter_z);
@@ -258,6 +260,7 @@ class BROCCOLI_LIB
 		void SetOutputStatisticalMapsNoWhiteningMNI(float* output);
 		void SetOutputResidualsEPI(float* output);
 		void SetOutputResidualsMNI(float* output);
+		void SetOutputfMRIVolumesMNI(float* output);
 		void SetOutputResidualVariances(float* output);
 		void SetOutputPValuesEPI(float* output);
 		void SetOutputPValuesT1(float* output);
@@ -350,6 +353,8 @@ class BROCCOLI_LIB
 
 		int GetNumberOfSignificantlyActiveVoxels();
 		int GetNumberOfSignificantlyActiveClusters();
+
+		int GetNumberOfICAComponents();
 
 		// OpenCL
 
@@ -510,6 +515,7 @@ class BROCCOLI_LIB
 		void SetVectorValues(Eigen::VectorXd &, double);
 
 		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
+		Eigen::MatrixXd PCAWhiten(Eigen::MatrixXd &, bool);
 		void PCADimensionalityReduction(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		void InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix);
 		int UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate);
@@ -551,6 +557,7 @@ class BROCCOLI_LIB
 		void TransformVolumesNonLinear(cl_mem d_Volumes, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_VOLUMES, int INTERPOLATION_MODE);
 		void TransformFirstLevelResultsToMNI(bool WHITENED);
 		void TransformResidualsToMNI();
+		void TransformfMRIVolumesToMNI();
 		void TransformFirstLevelResultsToT1(bool WHITENED);
 		void TransformBayesianFirstLevelResultsToMNI();
 		void TransformPValuesToMNI();
@@ -1110,6 +1117,7 @@ class BROCCOLI_LIB
 		bool RAW_REGRESSORS;
 		bool BAYESIAN;
 		bool REGRESS_ONLY;
+		bool PREPROCESSING_ONLY;
 		bool BETAS_ONLY;
 		int REGRESS_MOTION;
 		int REGRESS_GLOBALMEAN;
@@ -1128,6 +1136,7 @@ class BROCCOLI_LIB
 		bool USE_PERMUTATION_FILE;
 
 		int NUMBER_OF_ICA_COMPONENTS;
+		double PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA;
 
 		// Random permutation variables
 		int NUMBER_OF_PERMUTATIONS;
@@ -1143,6 +1152,7 @@ class BROCCOLI_LIB
 
 		// Data pointers
 		float		*h_fMRI_Volumes;
+		float		*h_fMRI_Volumes_MNI;
 		float		*h_MNI_Brain_Mask;
 		float		*h_Mask;
 		float		*h_EPI_Mask;

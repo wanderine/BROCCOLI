@@ -297,12 +297,14 @@ void BROCCOLI_LIB::SetStartValues()
 
 	BAYESIAN = false;
 	REGRESS_ONLY = false;
+	PREPROCESSING_ONLY = false;
 	BETAS_ONLY = false;
 	REGRESS_MOTION = 0;
 	REGRESS_GLOBALMEAN = 0;
 	REGRESS_CONFOUNDS = 0;
 	PERMUTE_FIRST_LEVEL = false;
 
+	PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA = 80.0f;
 
 	NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS = 12;
 
@@ -3191,6 +3193,11 @@ void BROCCOLI_LIB::SetRegressOnly(int R)
 	REGRESS_ONLY = R;
 }
 
+void BROCCOLI_LIB::SetPreprocessingOnly(bool P)
+{
+	PREPROCESSING_ONLY = P;
+}
+
 void BROCCOLI_LIB::SetBetasOnly(int R)
 {
 	BETAS_ONLY = R;
@@ -3229,6 +3236,11 @@ void BROCCOLI_LIB::SetNumberOfContrasts(int N)
 void BROCCOLI_LIB::SetNumberOfICAComponents(int N)
 {
 	NUMBER_OF_ICA_COMPONENTS = N;
+}
+
+void BROCCOLI_LIB::SetVarianceToSaveBeforeICA(double p)
+{
+	PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA = p;
 }
 
 void BROCCOLI_LIB::SetDesignMatrix(float* data1, float* data2)
@@ -3802,6 +3814,11 @@ void BROCCOLI_LIB::SetOutputResidualsEPI(float* data)
 void BROCCOLI_LIB::SetOutputResidualsMNI(float* data)
 {
 	h_Residuals_MNI = data;
+}
+
+void BROCCOLI_LIB::SetOutputfMRIVolumesMNI(float* data)
+{
+	h_fMRI_Volumes_MNI = data;
 }
 
 void BROCCOLI_LIB::SetOutputResidualVariances(float* data)
@@ -4475,6 +4492,10 @@ int BROCCOLI_LIB::GetNumberOfSignificantlyActiveClusters()
 	return NUMBER_OF_SIGNIFICANTLY_ACTIVE_CLUSTERS;
 }
 
+int BROCCOLI_LIB::GetNumberOfICAComponents()
+{
+	return NUMBER_OF_ICA_COMPONENTS;
+}
 
 
 
@@ -7855,7 +7876,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	// GLM
 	//---------------------------------------------------------------------------------------------------------------------------------------
 
-	if (!REGRESS_ONLY && !BAYESIAN && !BETAS_ONLY)
+	if (!REGRESS_ONLY && !BAYESIAN && !BETAS_ONLY && !PREPROCESSING_ONLY)
 	{
 		if ((WRAPPER == BASH) && PRINT)
 		{
@@ -8157,6 +8178,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 		PrintMemoryStatus("After GLM");
 	}
+	// Only transform the preprocessed fMRI data to MNI space
+	else if (PREPROCESSING_ONLY)
+	{
+		TransformfMRIVolumesToMNI();
+	}
 	// Only estimate beta values, no t- or F-scores
 	else if (!REGRESS_ONLY && !BAYESIAN && BETAS_ONLY)
 	{
@@ -8388,7 +8414,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		PrintMemoryStatus("After Bayesian GLM");
 	}
 	// Only regression
-	else
+	else if (REGRESS_ONLY)
 	{
 		if ((WRAPPER == BASH) && PRINT)
 		{
@@ -8504,6 +8530,39 @@ void BROCCOLI_LIB::TransformResidualsToMNI()
 	clReleaseMemObject(d_Data);
 }
 
+
+void BROCCOLI_LIB::TransformfMRIVolumesToMNI()
+{
+	// Allocate temporary memory
+	cl_mem d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Loop over time points
+	for (int i = 0; i < EPI_DATA_T; i++)
+	{
+		// Copy current volume to temp
+		clEnqueueWriteBuffer(commandQueue, d_Temp, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_fMRI_Volumes[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
+
+		// First apply initial translation before changing resolution and size 
+		TransformVolumesLinear(d_Temp, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, INTERPOLATION_MODE);
+
+		// Change resolution and size of volume
+		ChangeVolumesResolutionAndSize(d_Data, d_Temp, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, 0);
+
+		// Now apply the same translation as applied before the EPI-T1 registration
+		TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+		// Apply transformation
+		TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		TransformVolumesNonLinear(d_Data, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+
+		// Write transformed volume to host
+		clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), &h_fMRI_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D], 0, NULL, NULL);
+	}
+
+	clReleaseMemObject(d_Data);
+	clReleaseMemObject(d_Temp);
+}
 
 
 // New version which uses less memory
@@ -12004,7 +12063,7 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 	float* h_xtxxt_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
 
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), d_Voxel_Numbers, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
 
 	// Copy AR parameters to host
 	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
@@ -16171,9 +16230,6 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 	int NUMBER_OF_VOXELS = inputData.cols();
 	int NUMBER_OF_OBSERVATIONS = inputData.rows();
 
-	printf("Number of voxels are %i \n",NUMBER_OF_VOXELS);
-	printf("Number of observations are %i \n",NUMBER_OF_OBSERVATIONS);
-
 	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
 
 	if (WRAPPER == BASH)
@@ -16182,6 +16238,7 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 	}
 	if (demean)
 	{
+		#pragma omp parallel for
 		for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
 		{
 			//printf("Demeaning data for voxel %i\n",voxel);
@@ -16198,17 +16255,13 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 	{
 		printf("Estimating the covariance matrix\n");
 	}
+
 	for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
 	{
-		//printf("Estimating the covariance matrix for voxel %i \n",voxel);
-		//Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
 		Eigen::VectorXd values = inputData.col(voxel);
 		covarianceMatrix += values * values.transpose();
 	}
 	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);
-	//printf("Covariance matrix size is %i x %i \n",covarianceMatrix.rows(),covarianceMatrix.cols());
-	
-	//std::cout << covarianceMatrix << std::endl;
 	
 	// Calculate eigen values of covariance matrix	
 	if (WRAPPER == BASH)
@@ -16218,10 +16271,7 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(covarianceMatrix);
 	Eigen::VectorXd eigenValues = es.eigenvalues();
 	Eigen::MatrixXd eigenVectors = es.eigenvectors();
-
-	//printf("Eigen values matrix size is %i x %i \n",eigenValues.rows(),eigenValues.cols());
-	//printf("Eigen vectors matrix size is %i x %i \n",eigenVectors.rows(),eigenVectors.cols());
-
+	
 	Eigen::VectorXd savedEigenValues(NUMBER_OF_COMPONENTS);
 	Eigen::MatrixXd savedEigenVectors(NUMBER_OF_COMPONENTS,NUMBER_OF_OBSERVATIONS);
 	
@@ -16266,7 +16316,6 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 
 	// Calculate whitening matrix
 	Eigen::MatrixXd whiteningMatrix = scaledEigenValues.asDiagonal() * savedEigenVectors;
-	//printf("Whitening matrix size is %i x %i \n",whiteningMatrix.rows(),whiteningMatrix.cols());
 
 	// Perform the actual whitening
 	if (WRAPPER == BASH)
@@ -16274,49 +16323,125 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 		printf("Applying dimensionality reduction and whitening\n");
 	}
 	whitenedData = whiteningMatrix * inputData;
+}
+
+// Saves a certain percentage of the variance, instead of a fix number of components
+Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean)
+{
+	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
+	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
+
+	int NUMBER_OF_VOXELS = inputData.cols();
+	int NUMBER_OF_OBSERVATIONS = inputData.rows();
+
+	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+
+	if (demean)
+	{
+		if (WRAPPER == BASH)
+		{	
+			printf("Demeaning data\n");
+		}
+		#pragma omp parallel for
+		for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+		{
+			//printf("Demeaning data for voxel %i\n",voxel);
+			Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+			DemeanRegressor(values,NUMBER_OF_OBSERVATIONS);
+			inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1) = values;
+		}
+	}
+
+	// Calculate covariance Matrix
+	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
+	ResetMatrix(covarianceMatrix);
+	if (WRAPPER == BASH)
+	{
+		printf("Estimating the covariance matrix\n");
+	}
+
+	for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+	{
+		//printf("Estimating the covariance matrix for voxel %i \n",voxel);
+		//Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+		Eigen::VectorXd values = inputData.col(voxel);
+		covarianceMatrix += values * values.transpose();
+	}
+	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);
 	
-	// Set up eigen decomposition
-	//gsl_vector *eval = gsl_vector_alloc(cov->size1); //eigen values
-	//gsl_matrix *evec = gsl_matrix_alloc(cov->size1, cov->size2); //eigen vector
-  
-	//Compute eigen values with GSL
-	//gsl_eigen_symmv_workspace *w = gsl_eigen_symmv_alloc (cov->size1 );
-	//gsl_eigen_symmv(cov, eval, evec, w);
-	//gsl_matrix_free(cov);
-	//gsl_eigen_symmv_free(w);
+	// Calculate eigen values of covariance matrix	
+	if (WRAPPER == BASH)
+	{
+		printf("Calculating eigen values\n");
+	}
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(covarianceMatrix);
+	Eigen::VectorXd eigenValues = es.eigenvalues();
+	Eigen::MatrixXd eigenVectors = es.eigenvectors();
+	
+	double totalVariance = 0.0;
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	{
+		totalVariance += eigenValues(i);
+	}
 
-  // sort eigen values
-  //gsl_eigen_symmv_sort (eval, evec, GSL_EIGEN_SORT_ABS_DESC);
-  // reduce number of components
-  //Computing whitening matrix
-  //gsl_matrix_view temp = gsl_matrix_submatrix(evec, 0,0 , NSUB, NCOMP);
-  //gsl_matrix_transpose_memcpy(white, &temp.matrix);
-  //gsl_vector_view v;
-  //double e;
-  //size_t i;
-  // eval^{-1/2} evec^T
-  //for (i = 0; i < NCOMP; i++) {
-  //  e = gsl_vector_get(eval,i);
-  //  v = gsl_matrix_row(white,i);
-  //  gsl_blas_dscal(1/sqrt(e), &v.vector);
- // }
-  // Computing dewhitening matrix
-  //gsl_matrix_memcpy(dewhite, &temp.matrix);
+	// Calculate number of components to save
+	double savedVariance = 0.0;
+	Eigen::VectorXd temp = eigenValues;
+	NUMBER_OF_ICA_COMPONENTS = 0;
+	while (savedVariance/totalVariance*100.0 < (double)PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA )
+	{
+		NUMBER_OF_ICA_COMPONENTS++;
+		int index = 0;
+		double largestEigenValue = temp.maxCoeff(&index);
+		savedVariance += largestEigenValue;
+		temp(index) = 0.0;
+	}
 
-  // evec eval^{1/2}
- // for (i = 0; i < NCOMP; i++) {
-  //  e = gsl_vector_get(eval,i);
-  //  v = gsl_matrix_column(dewhite,i);
-  //  gsl_blas_dscal(sqrt(e), &v.vector);
-  //}
-  // whitening data (white x Input)
+	Eigen::VectorXd savedEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXd savedEigenVectors(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_OBSERVATIONS);
 
-  //gsl_blas_dgemm(CblasNoTrans,CblasNoTrans,1.0,
-  //  white, input, 0.0, x_white);
+	// Get a sub matrix of all the eigen vectors, to remove the smallest ones
+	// Get a sub vector of the eigen values, to remove the smallest eigen values
+	for (int i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{	
+		// Find largest eigen value for current component, and it's location
+		int index = 0; 
+		double largestEigenValue = eigenValues.maxCoeff(&index);
+		savedEigenValues(i) = largestEigenValue;
 
-  //gsl_matrix_free(evec);
-  //gsl_vector_free(eval);
+		printf("Largest eigen value is %f \n",(float)largestEigenValue);
 
+		// Get the corresponding eigen vector
+		savedEigenVectors.row(i) = eigenVectors.col(index).transpose();
+
+		// Set the previous largest eigen value to 0
+		eigenValues(index) = 0.0;
+	}
+
+	if ((WRAPPER == BASH) && VERBOSE)
+	{
+		printf("Saved %f %% of the total variance during the dimensionality reduction, using %i components\n",(float)savedVariance/(float)totalVariance*100.0,NUMBER_OF_ICA_COMPONENTS);
+	}
+
+	// Calculate  ^(-1/2) for all saved eigen values
+	Eigen::VectorXd scaledEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	for (int i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{	
+		double eigenValue = savedEigenValues(i);
+		scaledEigenValues(i) = 1.0/sqrt(eigenValue);
+	}
+
+	// Calculate whitening matrix
+	Eigen::MatrixXd whiteningMatrix = scaledEigenValues.asDiagonal() * savedEigenVectors;
+
+	// Perform the actual whitening
+	if (WRAPPER == BASH)
+	{
+		printf("Applying dimensionality reduction and whitening\n");
+	}
+	Eigen::MatrixXd whitenedData = whiteningMatrix * inputData;
+	
+	return whitenedData;
 }
 
 
@@ -16332,6 +16457,7 @@ void BROCCOLI_LIB::PCADimensionalityReduction(Eigen::MatrixXd & reducedData,  Ei
 
 	if (demean)
 	{
+		#pragma omp parallel for
 		for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
 		{
 			Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
@@ -16350,7 +16476,7 @@ void BROCCOLI_LIB::PCADimensionalityReduction(Eigen::MatrixXd & reducedData,  Ei
 		Eigen::VectorXd values = inputData.col(voxel);
 		covarianceMatrix += values * values.transpose();
 	}
-	//covarianceMatrix = inputData.transpose() * inputData;
+	//covarianceMatrix = inputData.adjoint() * inputData;
 	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);
 	printf("Covariance matrix size is %i x %i \n",covarianceMatrix.rows(),covarianceMatrix.cols());
 	
@@ -16450,24 +16576,24 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 
 	// Create random permutation vector
 	std::vector<int> perm;
-	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++) 
+	for (int i = 0; i < NUMBER_OF_VOXELS; i++) 
 	{
 	    perm.push_back(i);
 	}
 	std::random_shuffle(perm.begin(), perm.end());
 
 	// Loop over voxels, randomly permute each column
-	for (int i = 0; i < NUMBER_OF_VOXELS; i++)
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
 	{
-		Eigen::VectorXd col = shuffledWhitenedData.col(i);
-		Eigen::VectorXd permutedCol = col;
+		Eigen::VectorXd row = shuffledWhitenedData.row(i);
+		Eigen::VectorXd permutedRow = row;
 
-		for (int j = 0; j < NUMBER_OF_OBSERVATIONS; j++)
+		for (int j = 0; j < NUMBER_OF_VOXELS; j++)
 		{
-			permutedCol(j) = col(perm[j]);
+			permutedRow(j) = row(perm[j]);
 		}		
 
-		shuffledWhitenedData.col(i) = permutedCol;		
+		shuffledWhitenedData.row(i) = permutedRow;		
 	}
 
 	//PermutationMatrix<Dynamic,Dynamic> perm(size);
@@ -16506,7 +16632,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 			SetVectorValues(*ones,1.0);
 		}	
 
-		Eigen::MatrixXd subWhitenedData = whitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+		Eigen::MatrixXd subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
 
 		// Compute unmixed = weights . sub_x_white + bias . ib
 		
@@ -16523,10 +16649,10 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 		tempI = block * tempI + *unmLogit * (*unmixed).transpose();
 		
 	    // (2) weights = weights + lrate*temp_I*weights
-		weights = weights + updateRate * tempI * weights;
+		weights += updateRate * tempI * weights;
 
 	    // Update the bias
-		bias = updateRate * *unmLogit * *ones;
+		bias += updateRate * *unmLogit * *ones;
 
 	    // Check if blows up
 	    double max = weights.maxCoeff();
@@ -16626,7 +16752,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 		{
 			dWeights = weights;	
 			dWeights -= oldWeights;
-		    change = dWeights.norm();
+		    change = dWeights.squaredNorm();
 	
 			if (step > 2)
 			{
@@ -16635,14 +16761,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 				// Pointwise multiplication
 				temp = temp.array() * oldDWeights.array();
 
-				printf("temp sum is %f\n",(float)temp.sum());
-				printf("d weights norm is %f\n",(float)dWeights.norm());
-				printf("old d weights norm is %f\n",(float)oldDWeights.norm());
-
-		        angleDelta = acos(temp.sum() / sqrt(dWeights.norm() * oldDWeights.norm()));
-
-				printf("angle delta is %f\n",(float)angleDelta);
-
+		        angleDelta = acos(temp.sum() / (dWeights.norm() * oldDWeights.norm()) );
         		angleDelta *= (180.0 / M_PI);
 			}
 
@@ -16673,31 +16792,148 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 
 void BROCCOLI_LIB::PerformICACPUWrapper()
 {
+	// Make a mask
+	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	SegmentEPIData();
+	// Copy mask to host
+	clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+
+	//--------------------------
+	// Motion correction
+	//--------------------------
+
+	if (APPLY_MOTION_CORRECTION)
+	{
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing motion correction");
+			if (!VERBOS)
+			{
+				printf("\n");	
+			}
+		}
+
+		PrintMemoryStatus("Before motion correction");
+
+		PerformMotionCorrectionHost(h_fMRI_Volumes);
+
+		if ((WRAPPER == BASH) && VERBOS)
+		{
+			printf("\n");
+		}
+
+		PrintMemoryStatus("After motion correction");
+	}
 
 
+	//--------------------------
+	// Smoothing
+	//--------------------------
 
-	int NUMBER_OF_VOXELS = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
+	if (APPLY_SMOOTHING)
+	{
+		d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+		deviceMemoryAllocations += 1;
+		allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+		PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing smoothing\n");
+		}
+	
+		PrintMemoryStatus("Before smoothing");
+
+		PerformSmoothingNormalizedHost(h_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+		clReleaseMemObject(d_Smoothed_EPI_Mask);
+		deviceMemoryDeallocations += 1;
+		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
+		PrintMemoryStatus("After smoothing");
+	}
+
+	//--------------------------
+
+	// Loop through mask to get number of voxels
+	int NUMBER_OF_VOXELS = 0;
+	for (int v = 0; v < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D; v++)
+	{
+		if (h_EPI_Mask[v] == 1.0f)
+		{
+			NUMBER_OF_VOXELS++;		
+		}
+	}
+
+	//int NUMBER_OF_VOXELS = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
 	int NUMBER_OF_OBSERVATIONS = EPI_DATA_T;
 
 	Eigen::MatrixXd inputData(NUMBER_OF_OBSERVATIONS,NUMBER_OF_VOXELS);
-	Eigen::MatrixXd whitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_VOXELS);
 
-	for (int t = 0; t < EPI_DATA_T; t++)
+	if (WRAPPER == BASH)
 	{
-		for (int z = 0; z < EPI_DATA_D; z++)
+		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_VOXELS);
+	}
+
+	// Put data into Eigen object
+	int v = 0;
+	for (int z = 0; z < EPI_DATA_D; z++)
+	{
+		for (int y = 0; y < EPI_DATA_H; y++)
 		{
-			for (int y = 0; y < EPI_DATA_H; y++)
+			for (int x = 0; x < EPI_DATA_W; x++)
 			{
-				for (int x = 0; x < EPI_DATA_W; x++)
+				if (h_EPI_Mask[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H] == 1.0f)
 				{
-					inputData(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H) = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
-				}
+					// Estimate mean
+					float sum = 0.0f;
+					for (int t = 0; t < EPI_DATA_T; t++)
+					{
+						sum += h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+					}
+					float mean = sum/(float)EPI_DATA_T;
+
+					// Remove mean
+					for (int t = 0; t < EPI_DATA_T; t++)
+					{
+						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] -= mean;
+					}				
+
+					// Estimate variance					
+					sum = 0.0f;
+					for (int t = 0; t < EPI_DATA_T; t++)
+					{
+						float value = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+						sum += value * value;
+					}
+					float variance = sum/(float)(EPI_DATA_T-1);
+					float std = sqrt(variance);
+
+					for (int t = 0; t < EPI_DATA_T; t++)
+					{
+						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] / std;
+					}
+
+
+					for (int t = 0; t < EPI_DATA_T; t++)
+					{
+						inputData(t,v) = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+					}
+					v++;
+				}				
 			}
 		}
 	}
 
+	//Eigen::MatrixXd whitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_VOXELS);
+
+
 	// First whiten the data and reduce the number of dimensions
-	PCAWhiten(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
+	Eigen::MatrixXd whitenedData = PCAWhiten(inputData, true);
+	//PCAWhiten(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 	//PCADimensionalityReduction(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 
 	Eigen::MatrixXd weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
@@ -16708,23 +16944,35 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 
 	//Eigen::MatrixXd inverseWeights = weights.inverse();
 
-	for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)
+	// Put components back into fMRI volumes
+	v = 0;
+	for (int z = 0; z < EPI_DATA_D; z++)
 	{
-		for (int z = 0; z < EPI_DATA_D; z++)
+		for (int y = 0; y < EPI_DATA_H; y++)
 		{
-			for (int y = 0; y < EPI_DATA_H; y++)
+			for (int x = 0; x < EPI_DATA_W; x++)
 			{
-				for (int x = 0; x < EPI_DATA_W; x++)
+				if (h_EPI_Mask[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H] == 1.0f)
 				{
-					//h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = whitenedData(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H);
-					h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = sourceMatrix(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H);
+					for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)
+					{
+						//h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = whitenedData(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H);
+						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = sourceMatrix(t,v);
+					}
+					v++;
+				}
+				else
+				{
+					for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)				
+					{
+						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = 0.0f;
+					}
 				}
 			}
 		}
 	}
 
-
-
+	clReleaseMemObject(d_EPI_Mask);
 }
 
 
