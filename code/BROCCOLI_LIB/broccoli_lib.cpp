@@ -3142,6 +3142,16 @@ void BROCCOLI_LIB::SetNumberOfSubjects(int N)
 	NUMBER_OF_SUBJECTS = N;
 }
 
+void BROCCOLI_LIB::SetNumberOfSubjectsGroup1(int N)
+{
+	NUMBER_OF_SUBJECTS_IN_GROUP1 = N;
+}
+
+void BROCCOLI_LIB::SetNumberOfSubjectsGroup2(int N)
+{
+	NUMBER_OF_SUBJECTS_IN_GROUP2 = N;
+}
+
 void BROCCOLI_LIB::SetMask(float* data)
 {
 	h_Mask = data;
@@ -14381,7 +14391,7 @@ void BROCCOLI_LIB::SetupPermutationTestSecondLevel(cl_mem d_Volumes, cl_mem d_Ma
 		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 11, sizeof(int),   &MNI_DATA_D);
 		clSetKernelArg(CalculateStatisticalMapsMeanSecondLevelPermutationKernel, 12, sizeof(int),   &NUMBER_OF_SUBJECTS);
 	}
-	else if (STATISTICAL_TEST == TTEST)
+	else if ((STATISTICAL_TEST == TTEST) || (STATISTICAL_TEST == CORRELATION))
 	{
 		// Reset all statistical maps
 		SetMemory(d_Statistical_Maps, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS);
@@ -14548,7 +14558,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsSecondLevelPermutation(int p, int con
 	   	clEnqueueWriteBuffer(commandQueue, c_Sign_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(float), &h_Sign_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 		CalculateStatisticalMapsMeanSecondLevelPermutation();
 	}
-   	else if (STATISTICAL_TEST == TTEST)
+   	else if ((STATISTICAL_TEST == TTEST) || (STATISTICAL_TEST == CORRELATION))
 	{
    		// Copy a new permutation vector to constant memory
 	   	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
@@ -14823,7 +14833,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
     {
         NUMBER_OF_STATISTICAL_MAPS = 1;
     }
-    else if (STATISTICAL_TEST == TTEST)
+    else if ((STATISTICAL_TEST == TTEST) || (STATISTICAL_TEST == CORRELATION))
     {
         NUMBER_OF_STATISTICAL_MAPS = NUMBER_OF_CONTRASTS;
     }
@@ -14843,7 +14853,14 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
     // Generate a random permutation matrix, unless one is provided
     else if (!USE_PERMUTATION_FILE)
     {
-        GeneratePermutationMatrixSecondLevel();
+		if (STATISTICAL_TEST == TTEST)
+		{
+	        GeneratePermutationMatrixSecondLevelTtest();
+		}
+		else if (STATISTICAL_TEST == CORRELATION)
+		{
+	        GeneratePermutationMatrixSecondLevelCorrelation();
+		}
     }
 
     // Copy design matrix to matrix object
@@ -14869,7 +14886,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
     // Loop over t-contrasts
     for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
     {
-		if (STATISTICAL_TEST == TTEST)
+		if ((STATISTICAL_TEST == TTEST) || (STATISTICAL_TEST == CORRELATION))
 		{
 			clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results , 0, NULL, NULL);
 			clFinish(commandQueue);
@@ -14917,7 +14934,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
         // Loop over all the permutations, save the maximum test value from each permutation
         for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
         {
-            if ((WRAPPER == BASH) && PRINT)
+            if ((WRAPPER == BASH) && PRINT && (p%100 == 0))
             {
                 printf("Starting permutation %i \n",p+1);
             }
@@ -15015,79 +15032,169 @@ void BROCCOLI_LIB::CalculatePermutationPValues(cl_mem d_Mask, int DATA_W, int DA
 // Generates a permutation matrix for a single subject
 void BROCCOLI_LIB::GeneratePermutationMatrixFirstLevel()
 {
+	// Create random permutation vector
+	std::vector<unsigned short int> perm;
+	for (int i = 0; i < EPI_DATA_T; i++) 
+	{
+	    perm.push_back((unsigned short int)i);
+	}
+	std::vector< std::vector<unsigned short int> > allPermutations;
+	allPermutations.push_back(perm);
+
     for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
     {
-		// Generate numbers from 0 to number of timepoints
-        for (int i = 0; i < EPI_DATA_T; i++)
-        {
-            h_Permutation_Matrix[i + p * EPI_DATA_T] = (unsigned short int)i;
-        }
+		while(true)
+		{
+			// Make random permutation
+			std::random_shuffle(perm.begin(), perm.end());			
 
-		// Generate a random number and switch position of two existing numbers
+			// Check for repetitions
+			bool unique = true;
+			for (int r = 0; r < (p+1); r++)
+			{
+				// Same permutation found, break
+				if (allPermutations[r] == perm)
+				{
+					unique = false;
+					break;
+				}
+			} 
+				
+			// Break while loop when we have found a new unique permutation
+			if (unique)
+			{
+				allPermutations.push_back(perm);
+				break;
+			}
+		}
+	
+		// Put permutation vector into matrix,
         // all permutations are valid since we have whitened the data
         for (int i = 0; i < EPI_DATA_T; i++)
-        {
-            int j = i + rand() / (RAND_MAX / (EPI_DATA_T-i)+1);
-            unsigned short int temp = h_Permutation_Matrix[j + p * EPI_DATA_T];
-            h_Permutation_Matrix[j + p * EPI_DATA_T] = h_Permutation_Matrix[i + p * EPI_DATA_T];
-            h_Permutation_Matrix[i + p * EPI_DATA_T] = temp;
+        {            
+            h_Permutation_Matrix[i + p * EPI_DATA_T] = perm[i];
         }
     }
 }
 
-// Generates a permutation matrix for several subjects
-void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevel()
+// Generates a permutation matrix for group analysis, two sample t-test
+void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelTtest()
 {
-	// Do all the possible permutations
-	if (DO_ALL_PERMUTATIONS)
+	// Create random permutation vector
+	std::vector<unsigned short int> group1Subjects;
+	std::vector<unsigned short int> group2Subjects;
+	std::vector<int> groups;
+	for (int i = 0; i < NUMBER_OF_SUBJECTS_IN_GROUP1; i++) 
 	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+	    groups.push_back(1);
+		group1Subjects.push_back((unsigned short int)i);
+	}
+	for (int i = 0; i < NUMBER_OF_SUBJECTS_IN_GROUP2; i++) 
+	{
+	    groups.push_back(-1);
+		group2Subjects.push_back((unsigned short int)(i+NUMBER_OF_SUBJECTS_IN_GROUP1));
+	}
+
+	std::vector<std::vector<int> >allPermutations;
+	allPermutations.push_back(groups);
+
+	// Loop over all permutations
+	for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+	{
+		while(true)
 		{
-			// Generate numbers from 0 to number of subjects
-			for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+			// Make random permutation
+			std::random_shuffle(groups.begin(), groups.end());			
+
+			// Check for repetitions
+			bool unique = true;
+			for (int r = 0; r < (p+1); r++)
 			{
-				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = (unsigned short int)i;
-			}
-
-			// Generate a random number and switch position of two existing numbers
-			for (int i = 0; i < NUMBER_OF_SUBJECTS - 1; i++)
+				// Same permutation found, break
+				if (allPermutations[r] == groups)
+				{
+					unique = false;
+					break;
+				}
+			} 
+				
+			// Break while loop when we have found a new unique permutation
+			if (unique)
 			{
-				int j = i + rand() / (RAND_MAX / (NUMBER_OF_SUBJECTS-i)+1);
-
-				// Check if random permutation is valid?!
-
-				unsigned short int temp = h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS];
-				h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS] = h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS];
-				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = temp;
+				allPermutations.push_back(groups);
+				break;
 			}
 		}
-	}
-	else
-	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+
+		// Save permutation vector in big array
+		int group1Subject = 0; int group2Subject = 0;
+		for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
 		{
-			// Generate numbers from 0 to number of subjects
-			for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+			// Pick any subject from the first group
+			if (groups[i] == 1)
 			{
-				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = (unsigned short int)i;
+            	h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = group1Subjects[group1Subject];
+				group1Subject++;
 			}
-
-			// Generate a random number and switch position of two existing numbers
-			for (int i = 0; i < NUMBER_OF_SUBJECTS - 1; i++)
+			// Pick any subject from second group
+			else if (groups[i] == -1)
 			{
-				int j = i + rand() / (RAND_MAX / (NUMBER_OF_SUBJECTS-i)+1);
-
-				// Check if random permutation is valid?!
-
-				unsigned short int temp = h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS];
-				h_Permutation_Matrix[j + p * NUMBER_OF_SUBJECTS] = h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS];
-				h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = temp;
-			}
+            	h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = group2Subjects[group2Subject];
+				group2Subject++;
+			}			
 		}
 	}
 }
 
-// Generates a sign flipping matrix for several subjects
+// Generates a permutation matrix for group analysis, correlation
+void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelCorrelation()
+{
+	// Create random permutation vector
+	std::vector<unsigned short int> perm;
+	for (int i = 0; i < NUMBER_OF_SUBJECTS; i++) 
+	{
+	    perm.push_back((unsigned short int)i);
+	}
+	std::vector< std::vector<unsigned short int> > allPermutations;
+	allPermutations.push_back(perm);
+
+    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+    {
+		while(true)
+		{
+			// Make random permutation
+			std::random_shuffle(perm.begin(), perm.end());			
+
+			// Check for repetitions
+			bool unique = true;
+			for (int r = 0; r < (p+1); r++)
+			{
+				// Same permutation found, break
+				if (allPermutations[r] == perm)
+				{
+					unique = false;
+					break;
+				}
+			} 
+				
+			// Break while loop when we have found a new unique permutation
+			if (unique)
+			{
+				allPermutations.push_back(perm);
+				break;
+			}
+		}
+	
+		// Put permutation vector into matrix,
+        // all permutations are valid since we have whitened the data
+        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+        {            
+            h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = perm[i];
+        }
+    }
+}
+
+// Generates a sign flipping matrix for group analysis, one sample t-test
 void BROCCOLI_LIB::GenerateSignMatrixSecondLevel()
 {
 	// Do all the possible sign flips

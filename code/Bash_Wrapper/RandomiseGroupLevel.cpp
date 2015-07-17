@@ -24,6 +24,7 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <math.h>
 
 #include "HelpFunctions.cpp"
 
@@ -107,6 +108,8 @@ int main(int argc, char **argv)
 	bool FOUND_DESIGN = false;
 	bool FOUND_CONTRASTS = false;
 	bool ANALYZE_GROUP_MEAN = false;
+	bool ANALYZE_TTEST = false;
+	bool ANALYZE_CORRELATION = false;
 	bool USE_PERMUTATION_FILE = false;
 	bool WRITE_PERMUTATION_VALUES = false;
 	bool WRITE_PERMUTATION_VECTORS = false;
@@ -115,7 +118,7 @@ int main(int argc, char **argv)
 	const char*		outputFilename;
 
     // Size parameters
-    int             DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS;
+    int  DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS, NUMBER_OF_SUBJECTS_IN_GROUP1, NUMBER_OF_SUBJECTS_IN_GROUP2;
         
     //---------------------    
     
@@ -469,7 +472,7 @@ int main(int argc, char **argv)
 	}
 	else
 	{
-       	printf("Warning: No mask being used, doing permutations for all voxels.\n");
+       	printf("\nWarning: No mask being used, doing permutations for all voxels.\n\n");
 	}
     	
 	double endTime = GetWallTime();
@@ -491,40 +494,6 @@ int main(int argc, char **argv)
 		printf("Input data is a single volume, nothing to permute! \n");
 		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 		return EXIT_FAILURE;	
-	}
-
-	
-
-	// Check if requested number of permutations is larger than number of possible sign flips, for group mean only
-	if (ANALYZE_GROUP_MEAN)
-	{
-		// Calculate maximum number of sign flips
-		unsigned long int SIGN_FLIPS = (unsigned long int)pow(2.0, (double)NUMBER_OF_SUBJECTS);
-		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > SIGN_FLIPS)
-		{
-			printf("Warning: Number of possible sign flips for group mean is %lu, but %i permutations were requested. Lowering number of permutations to number of possible sign flips. \n",SIGN_FLIPS,NUMBER_OF_PERMUTATIONS);
-			NUMBER_OF_PERMUTATIONS = (int)SIGN_FLIPS;
-			DO_ALL_PERMUTATIONS = true;
-		}
-		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == SIGN_FLIPS)
-		{
-			DO_ALL_PERMUTATIONS = true;
-		}
-	}
-	// Check if requested number of permutations is larger than number of possible permutations
-	else
-	{
-		unsigned long int MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
-		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
-		{
-			printf("Warning: Number of possible permutations for your design is %lu, but %i permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
-			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
-			DO_ALL_PERMUTATIONS = true;
-		}
-		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
-		{
-			DO_ALL_PERMUTATIONS = true;
-		}
 	}
     	
 	// Check if mask volume has the same dimensions as the data
@@ -689,7 +658,6 @@ int main(int argc, char **argv)
 		printf("Using a cluster defining threshold of %f \n",CLUSTER_DEFINING_THRESHOLD);
 	}
 	
-
     // ------------------------------------------------
 
     // Calculate size, in bytes 
@@ -698,9 +666,6 @@ int main(int argc, char **argv)
   	size_t GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     size_t CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
-	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
-    size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
     size_t STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
             
     // ------------------------------------------------
@@ -715,9 +680,6 @@ int main(int argc, char **argv)
 	AllocateMemory(h_xtxxt_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX_PSEUDO_INVERSE");
 	AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRASTS");
 	AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_SCALARS");
-	AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages,allocatedHostMemory, "PERMUTATION_MATRIX");
-	AllocateMemory(h_Sign_Matrix, SIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "SIGN_MATRIX");
-	AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_DISTRIBUTION");             
 	AllocateMemory(h_Statistical_Maps, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICAL_MAPS");             
 	AllocateMemory(h_P_Values, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_PVALUES");             
 
@@ -773,6 +735,49 @@ int main(int argc, char **argv)
 		}
 	}
 
+	// Check if design matrix is two sample t-test or correlation
+	if (!ANALYZE_GROUP_MEAN)
+	{
+		// Check abs sum of first regressor and sum of 2 first regressors
+		float sum1 = 0.0f; float sum2 = 0.0f;
+		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		{
+			sum1 += abs(X(s,0));
+			for (int r = 0; r < 2; r++)
+			{
+				sum2 += X(s,r);
+			}
+		}
+
+		if ( (sum1 == (float)NUMBER_OF_SUBJECTS) || (sum2 == (float)NUMBER_OF_SUBJECTS) )
+		{
+			ANALYZE_TTEST = true;
+		}
+		else
+		{
+			ANALYZE_CORRELATION = true;
+		}
+
+		if (ANALYZE_TTEST)
+		{
+			NUMBER_OF_SUBJECTS_IN_GROUP1 = 0;
+			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			{
+				if (X(s,0) == 1.0f)
+				{
+					NUMBER_OF_SUBJECTS_IN_GROUP1++;
+				}
+			}
+			NUMBER_OF_SUBJECTS_IN_GROUP2 = NUMBER_OF_SUBJECTS - NUMBER_OF_SUBJECTS_IN_GROUP1;
+	        printf("\nTwo sample t-test design detected, %i subjects in group 1 and %i subjects in group 2\n\n",NUMBER_OF_SUBJECTS_IN_GROUP1,NUMBER_OF_SUBJECTS_IN_GROUP2);
+		}
+		else if (ANALYZE_CORRELATION)
+		{
+		   printf("\nCorrelation design detected\n\n");
+		}
+	}
+
+
 	// Calculate pseudo inverse
 	Eigen::MatrixXd xtx(NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_GLM_REGRESSORS);
 	xtx = X.transpose() * X;
@@ -787,9 +792,6 @@ int main(int argc, char **argv)
 			h_xtxxt_GLM[s + r * NUMBER_OF_SUBJECTS] = (float)xtxxt(r,s);
 		}
 	}
-
-
-
 
 	// Print design matrix
 	if (VERBOS)
@@ -859,6 +861,77 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+
+    // ------------------------------------------------
+
+	// Check if requested number of permutations is larger than number of possible sign flips, for group mean only
+	if (ANALYZE_GROUP_MEAN)
+	{
+		// Calculate maximum number of sign flips
+		unsigned long int SIGN_FLIPS = (unsigned long int)pow(2.0, (double)NUMBER_OF_SUBJECTS);
+		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > SIGN_FLIPS)
+		{
+			printf("Warning: Number of possible sign flips for group mean is %lu, but %i permutations were requested. Lowering number of permutations to number of possible sign flips. \n",SIGN_FLIPS,NUMBER_OF_PERMUTATIONS);
+			NUMBER_OF_PERMUTATIONS = (int)SIGN_FLIPS;
+			DO_ALL_PERMUTATIONS = true;
+		}
+		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == SIGN_FLIPS)
+		{
+			DO_ALL_PERMUTATIONS = true;
+			printf("Max number of sign flips is %lu \n",SIGN_FLIPS);
+		}
+		else
+		{
+			printf("Max number of sign flips is %lu \n",SIGN_FLIPS);
+		}
+	}
+	else if (ANALYZE_TTEST)
+	{
+		unsigned long int MAX_PERMS = round(exp(lgamma(NUMBER_OF_SUBJECTS+1)-lgamma(NUMBER_OF_SUBJECTS-NUMBER_OF_SUBJECTS_IN_GROUP2+1)-lgamma(NUMBER_OF_SUBJECTS_IN_GROUP2+1)));
+		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
+		{
+			printf("Warning: Number of possible permutations for your design is %lu, but %i permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
+			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
+			DO_ALL_PERMUTATIONS = true;
+		}
+		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
+		{
+			DO_ALL_PERMUTATIONS = true;
+			printf("Max number of permutations is %lu \n",MAX_PERMS);
+		}
+		else
+		{
+			printf("Max number of permutations is %lu \n",MAX_PERMS);
+		}
+	}
+	else if (ANALYZE_CORRELATION)
+	{
+		unsigned long int MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
+		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
+		{
+			printf("Warning: Number of possible permutations for your design is %lu, but %i permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
+			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
+			DO_ALL_PERMUTATIONS = true;
+		}
+		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
+		{
+			DO_ALL_PERMUTATIONS = true;
+			printf("Max number of permutations is %lu \n",MAX_PERMS);
+		}
+		else
+		{
+			printf("Max number of permutations is %lu \n",MAX_PERMS);
+		}
+	}
+	
+
+	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
+    size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
+	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
+
+	AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages,allocatedHostMemory, "PERMUTATION_MATRIX");
+	AllocateMemory(h_Sign_Matrix, SIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "SIGN_MATRIX");
+	AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_DISTRIBUTION");             
 
     // ------------------------------------------------
 
@@ -1144,6 +1217,8 @@ int main(int argc, char **argv)
         BROCCOLI.SetClusterDefiningThreshold(CLUSTER_DEFINING_THRESHOLD);
         BROCCOLI.SetSignificanceLevel(SIGNIFICANCE_LEVEL);		
         BROCCOLI.SetNumberOfSubjects(NUMBER_OF_SUBJECTS);
+        BROCCOLI.SetNumberOfSubjectsGroup1(NUMBER_OF_SUBJECTS_IN_GROUP1);
+        BROCCOLI.SetNumberOfSubjectsGroup2(NUMBER_OF_SUBJECTS_IN_GROUP2);
         BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
         BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
         BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
@@ -1174,12 +1249,19 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetStatisticalTest(2); // Group mean
 			BROCCOLI.PerformMeanSecondLevelPermutationWrapper();                            
 		}
-		else
+		else if (ANALYZE_TTEST)
 		{
 	        BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
 	        BROCCOLI.SetStatisticalTest(0); // t-test
 	        BROCCOLI.PerformGLMTTestSecondLevelPermutationWrapper();                            
 		}
+		else if (ANALYZE_CORRELATION)
+		{
+	        BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
+	        BROCCOLI.SetStatisticalTest(3); // correlation
+	        BROCCOLI.PerformGLMTTestSecondLevelPermutationWrapper();                            
+		}
+
 		endTime = GetWallTime();
 
 		if (VERBOS)

@@ -238,6 +238,8 @@ class BROCCOLI_LIB
 		void SetInputMNIBrainMask(float* input);
 		void SetInputFirstLevelResults(float* input);
 		void SetNumberOfSubjects(int N);
+		void SetNumberOfSubjectsGroup1(int N);
+		void SetNumberOfSubjectsGroup2(int N);
 
 		// Output statistics
 		void SetOutputBetaVolumesEPI(float* output);
@@ -504,7 +506,8 @@ class BROCCOLI_LIB
 		// Permutation second level
 		void SetupPermutationTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 		void CleanupPermutationTestSecondLevel();
-		void GeneratePermutationMatrixSecondLevel();
+		void GeneratePermutationMatrixSecondLevelTtest();
+		void GeneratePermutationMatrixSecondLevelCorrelation();
 		void GenerateSignMatrixSecondLevel();
 		void CalculateStatisticalMapsSecondLevelPermutation(int permutation, int contrast);
 		void CalculateStatisticalMapsMeanSecondLevelPermutation();
@@ -1109,6 +1112,8 @@ class BROCCOLI_LIB
 
 		// Statistical analysis variables
 		int NUMBER_OF_SUBJECTS;
+		int NUMBER_OF_SUBJECTS_IN_GROUP1;
+		int NUMBER_OF_SUBJECTS_IN_GROUP2;
 		int NUMBER_OF_CONTRASTS;
 		int NUMBER_OF_STATISTICAL_MAPS;
 		int NUMBER_OF_GLM_REGRESSORS;

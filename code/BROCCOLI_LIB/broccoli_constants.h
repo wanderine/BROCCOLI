@@ -78,6 +78,7 @@
 #define TTEST 0
 #define FTEST 1
 #define GROUP_MEAN 2
+#define CORRELATION 3
 
 #define UP 0
 #define DOWN 1
