@@ -1370,6 +1370,7 @@ int main(int argc, char **argv)
 
     // Create new nifti image
 	nifti_image *outputNifti = nifti_copy_nim_info(inputData);      
+	nifti_free_extensions(outputNifti);
 	// Change number of output volumes
 	outputNifti->nt = NUMBER_OF_CONTRASTS;
 	outputNifti->dim[4] = NUMBER_OF_CONTRASTS;
