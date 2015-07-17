@@ -35,9 +35,10 @@
 #define DONT_CHECK_EXISTING_FILE false
 
 
-unsigned long int factorial(unsigned long int n)
+double factorial(unsigned long int n)
 {
-  return (n == 1 || n == 0) ? 1 : factorial(n - 1) * n;
+    // Stirling approximation
+    return (n == 1 || n == 0) ? 1.0 : round( sqrt(2.0*3.14*(double)n) * pow( ((double)n / 2.7183), double(n) ) );
 }
 
 int main(int argc, char **argv)
@@ -879,63 +880,62 @@ int main(int argc, char **argv)
 	if (ANALYZE_GROUP_MEAN)
 	{
 		// Calculate maximum number of sign flips
-		unsigned long int SIGN_FLIPS = (unsigned long int)pow(2.0, (double)NUMBER_OF_SUBJECTS);
-		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > SIGN_FLIPS)
+		double SIGN_FLIPS = pow(2.0, (double)NUMBER_OF_SUBJECTS);
+		if ((double)NUMBER_OF_PERMUTATIONS > SIGN_FLIPS)
 		{
-			printf("Warning: Number of possible sign flips for group mean is %lu, but %i permutations were requested. Lowering number of permutations to number of possible sign flips. \n",SIGN_FLIPS,NUMBER_OF_PERMUTATIONS);
+			printf("Warning: Number of possible sign flips for group mean is %g, but %g permutations were requested. Lowering number of permutations to number of possible sign flips. \n",SIGN_FLIPS,NUMBER_OF_PERMUTATIONS);
 			NUMBER_OF_PERMUTATIONS = (int)SIGN_FLIPS;
 			DO_ALL_PERMUTATIONS = true;
 		}
-		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == SIGN_FLIPS)
+		else if ((double)NUMBER_OF_PERMUTATIONS == SIGN_FLIPS)
 		{
 			DO_ALL_PERMUTATIONS = true;
-			printf("Max number of sign flips is %lu \n",SIGN_FLIPS);
+			printf("Max number of sign flips is %g \n",SIGN_FLIPS);
 		}
 		else
 		{
-			printf("Max number of sign flips is %lu \n",SIGN_FLIPS);
+			printf("Max number of sign flips is %g \n",SIGN_FLIPS);
 		}
 	}
 	else if (ANALYZE_TTEST)
 	{
-		unsigned long int MAX_PERMS = round(exp(lgamma(NUMBER_OF_SUBJECTS+1)-lgamma(NUMBER_OF_SUBJECTS-NUMBER_OF_SUBJECTS_IN_GROUP2+1)-lgamma(NUMBER_OF_SUBJECTS_IN_GROUP2+1)));
-		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
+        double MAX_PERMS = round(exp(lgamma(NUMBER_OF_SUBJECTS+1)-lgamma(NUMBER_OF_SUBJECTS-NUMBER_OF_SUBJECTS_IN_GROUP2+1)-lgamma(NUMBER_OF_SUBJECTS_IN_GROUP2+1)));
+		if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
 		{
-			printf("Warning: Number of possible permutations for your design is %lu, but %i permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
+			printf("Warning: Number of possible permutations for your design is %g, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
 			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
 			DO_ALL_PERMUTATIONS = true;
 		}
-		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
+		else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
 		{
 			DO_ALL_PERMUTATIONS = true;
-			printf("Max number of permutations is %lu \n",MAX_PERMS);
+			printf("Max number of permutations is %g \n",MAX_PERMS);
 		}
 		else
 		{
-			printf("Max number of permutations is %lu \n",MAX_PERMS);
+			printf("Max number of permutations is %g \n",MAX_PERMS);
 		}
 	}
 	else if (ANALYZE_CORRELATION)
 	{
-		unsigned long int MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
-		if ((unsigned long int)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
+		double MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
+		if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
 		{
-			printf("Warning: Number of possible permutations for your design is %lu, but %i permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
+			printf("Warning: Number of possible permutations for your design is %g, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
 			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
 			DO_ALL_PERMUTATIONS = true;
 		}
-		else if ((unsigned long int)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
+		else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
 		{
 			DO_ALL_PERMUTATIONS = true;
-			printf("Max number of permutations is %lu \n",MAX_PERMS);
+			printf("Max number of permutations is %g \n",MAX_PERMS);
 		}
 		else
 		{
-			printf("Max number of permutations is %lu \n",MAX_PERMS);
+			printf("Max number of permutations is %g \n",MAX_PERMS);
 		}
 	}
 	
-
 	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
     size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
 	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);

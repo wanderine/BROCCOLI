@@ -15185,8 +15185,7 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelCorrelation()
 			}
 		}
 	
-		// Put permutation vector into matrix,
-        // all permutations are valid since we have whitened the data
+		// Put permutation vector into matrix
         for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
         {            
             h_Permutation_Matrix[i + p * NUMBER_OF_SUBJECTS] = perm[i];
@@ -15197,52 +15196,51 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelCorrelation()
 // Generates a sign flipping matrix for group analysis, one sample t-test
 void BROCCOLI_LIB::GenerateSignMatrixSecondLevel()
 {
-	// Do all the possible sign flips
-	if (DO_ALL_PERMUTATIONS)
-	{
-		unsigned long int p = 0;
-		while (p < NUMBER_OF_PERMUTATIONS)
-		{
-			// Create a new set of flips
-			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-			{
-				// Check if we should flip this subject or not
-				if (p & (unsigned long int)(pow(2.0,(double)s)))
-				{
-					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = -1.0f;
-				}
-				else
-				{
-					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = 1.0f;
-				}
-			}
-			p++;
-		}
-	}
-	// Generate "more random" sign flips, compared to simply looping through 0001, 0010, 0011, 0100, 0101 etc
-	else
-	{
-		unsigned long int p = 0;
-		while (p < NUMBER_OF_PERMUTATIONS)
-		{
-			// Create a new set of flips
-			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-			{
-				unsigned long int randNumber = rand() % 2; // Random number, 0 or 1
-
-				// Check if we should flip this subject or not
-				if (randNumber)
-				{
-					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = -1.0f;
-				}
-				else
-				{
-					h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] = 1.0f;
-				}
-			}
-			p++;
-		}
-	}
+    std::vector<int> flips;
+    for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+    {
+        flips.push_back(1);
+    }
+    std::vector< std::vector<int> > allSignFlips;
+    allSignFlips.push_back(flips);
+    
+    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+    {
+        while(true)
+        {
+            // Make random sign flips
+            for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+            {
+                // Multiply with 1 or -1
+                flips[i] *= (2*(int)(rand() % 2) - 1);
+            }
+         
+            // Check for repetitions
+            bool unique = true;
+            for (int r = 0; r < (p+1); r++)
+            {
+                // Same flips found, break
+                if (allSignFlips[r] == flips)
+                {
+                    unique = false;
+                    break;
+                }
+            }
+        
+            // Break while loop when we have found a new unique permutation
+            if (unique)
+            {
+                allSignFlips.push_back(flips);
+                break;
+            }
+        }
+            
+        // Put sign vector into matrix
+        for (int i = 0; i < NUMBER_OF_SUBJECTS; i++)
+        {
+            h_Sign_Matrix[i + p * NUMBER_OF_SUBJECTS] = flips[i];
+        }
+    }
 }
 
 // Generates new fMRI volumes for first level analysis, by inverse whitening and permutation at the same time
