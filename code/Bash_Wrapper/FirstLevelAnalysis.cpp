@@ -260,7 +260,7 @@ int main(int argc, char **argv)
         printf("Usage, preprocessing + GLM:\n\n");
         printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii regressors.txt contrasts.txt [options]\n\n");
 
-        printf("Usage, preprocessing + regress nuisance variables (no GLM):\n\n");
+        printf("Usage, preprocessing + regress nuisance variables (mean, trends, (motion), (global mean)):\n\n");
         printf("FirstLevelAnalysis fMRI_data.nii T1_volume.nii MNI_volume.nii -regressonly [options]\n\n");
 
         printf("Usage, preprocessing only (no GLM):\n\n");
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
         printf(" -mask                      Apply a mask to the statistical maps after the statistical analysis, in MNI space (default none) \n\n");
 
         printf("Misc options:\n\n");
-        printf(" -savecompact	        	Save beta values, contrast results and t-/F-scores as single files, instead of one per regressor/contrast (default no)\n");
+        //printf(" -savecompact               Save beta values, contrast results and t-/F-scores as single files, instead of one per regressor/contrast (default no)\n");
         printf(" -savet1interpolated        Save T1 volume after resampling to MNI voxel size and resizing to MNI size (default no) \n");
         printf(" -savet1alignedlinear       Save T1 volume linearly aligned to the MNI volume (default no) \n");
         printf(" -savet1alignednonlinear    Save T1 volume non-linearly aligned to the MNI volume (default no) \n");
@@ -2742,7 +2742,22 @@ int main(int argc, char **argv)
 		        {
 		            std::string temp = beta;
 		            std::stringstream ss;
-		            ss << "_regressor";
+					if ((i+1) < 10)
+					{
+    		            ss << "_regressor000";
+					}
+					else if ((i+1) < 100)
+					{
+						ss << "_regressor00";
+					}
+					else if ((i+1) < 1000)
+					{
+						ss << "_regressor0";
+					}
+					else
+					{
+						ss << "_regressor";
+					}						
 		            ss << i + 1;
 		            temp.append(ss.str());
 		            temp.append(mni);
@@ -2753,7 +2768,22 @@ int main(int argc, char **argv)
 		        {
 		            std::string temp = cope;
 		            std::stringstream ss;
-		            ss << "_contrast";
+					if ((i+1) < 10)
+					{
+    		            ss << "_contrast000";
+					}
+					else if ((i+1) < 100)
+					{
+						ss << "_contrast00";
+					}
+					else if ((i+1) < 1000)
+					{
+						ss << "_contrast0";
+					}
+					else
+					{
+						ss << "_contrast";
+					}						
 		            ss << i + 1;
 		            temp.append(ss.str());
 		            temp.append(mni);
@@ -2769,7 +2799,22 @@ int main(int argc, char **argv)
 		
 			            std::string temp = tscores;
 			            std::stringstream ss;
-			            ss << "_contrast";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_contrast000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_contrast00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_contrast0";
+						}
+						else
+						{
+							ss << "_contrast";
+						}						
 			            ss << i + 1;
 			            temp.append(ss.str());
 			            temp.append(mni);
@@ -2829,7 +2874,22 @@ int main(int argc, char **argv)
 			        {
 			            std::string temp = betaNoWhitening;
 			            std::stringstream ss;
-			            ss << "_regressor";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_regressor000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_regressor00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_regressor0";
+						}
+						else
+						{
+							ss << "_regressor";
+						}						
 			            ss << i + 1;
 			            temp.append(ss.str());
 			            temp.append(mni);
@@ -2840,7 +2900,22 @@ int main(int argc, char **argv)
 			        {
 			            std::string temp = copeNoWhitening;
 			            std::stringstream ss;
-			            ss << "_contrast";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_contrast000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_contrast00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_contrast0";
+						}
+						else
+						{
+							ss << "_contrast";
+						}						
 			            ss << i + 1;
 			            temp.append(ss.str());
 			            temp.append(mni);
@@ -2851,7 +2926,22 @@ int main(int argc, char **argv)
 			        {
 			            std::string temp = tscoresNoWhitening;
 			            std::stringstream ss;
-			            ss << "_contrast";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_contrast000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_contrast00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_contrast0";
+						}
+						else
+						{
+							ss << "_contrast";
+						}						
 			            ss << i + 1;
 			            temp.append(ss.str());
 			            temp.append(mni);
@@ -2911,7 +3001,22 @@ int main(int argc, char **argv)
 		            {
 		                std::string temp = pvalues;
 				        std::stringstream ss;
-		                ss << "_contrast";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_contrast000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_contrast00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_contrast0";
+						}
+						else
+						{
+							ss << "_contrast";
+						}						
 		                ss << i + 1;
 		                temp.append(ss.str());
 		                temp.append(mni);
@@ -2940,7 +3045,22 @@ int main(int argc, char **argv)
 	        {
 	            std::string temp = beta;
 	            std::stringstream ss;
-	            ss << "_regressor";
+				if ((i+1) < 10)
+				{
+   		            ss << "_regressor000";
+				}
+				else if ((i+1) < 100)
+				{
+					ss << "_regressor00";
+				}
+				else if ((i+1) < 1000)
+				{
+					ss << "_regressor0";
+				}
+				else
+				{
+					ss << "_regressor";
+				}						
 	            ss << i + 1;
 	            temp.append(ss.str());
 	            temp.append(mni);
@@ -2951,7 +3071,22 @@ int main(int argc, char **argv)
 	        {
 	            std::string temp = PPM;
 	            std::stringstream ss;
-	            ss << "_contrast";
+				if ((i+1) < 10)
+				{
+   		            ss << "_contrast000";
+				}
+				else if ((i+1) < 100)
+				{
+					ss << "_contrast00";
+				}
+				else if ((i+1) < 1000)
+				{
+					ss << "_contrast0";
+				}
+				else
+				{
+					ss << "_contrast";
+				}						
 	            ss << i + 1;
 	            temp.append(ss.str());
 	            temp.append(mni);
@@ -3028,7 +3163,23 @@ int main(int argc, char **argv)
 	    	        {
     		            std::string temp = beta;
     		            std::stringstream ss;
-    		            ss << "_regressor";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_regressor000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_regressor00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_regressor0";
+						}
+						else
+						{
+							ss << "_regressor";
+						}									
+
 						ss << i + 1;
     		            temp.append(ss.str());
     		            temp.append(epi);
@@ -3039,7 +3190,22 @@ int main(int argc, char **argv)
     		        {
     		            std::string temp = cope;
     		            std::stringstream ss;
-    		            ss << "_contrast";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_contrast000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_contrast00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_contrast0";
+						}
+						else
+						{
+							ss << "_contrast";
+						}						
     		            ss << i + 1;
     		            temp.append(ss.str());
     		            temp.append(epi);
@@ -3055,8 +3221,23 @@ int main(int argc, char **argv)
 	
     			            std::string temp = tscores;
     			            std::stringstream ss;
-    			            ss << "_contrast";
-    			            ss << i + 1;
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						 
+	   			            ss << i + 1;
     			            temp.append(ss.str());
     			            temp.append(epi);
     			            WriteNifti(outputNiftiStatisticsEPI,&h_Statistical_Maps_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -3115,7 +3296,22 @@ int main(int argc, char **argv)
 			            {
 			                std::string temp = betaNoWhitening;
 			                std::stringstream ss;
-			                ss << "_regressor";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_regressor000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_regressor00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_regressor0";
+							}
+							else
+							{
+								ss << "_regressor";
+							}						
 							ss << i + 1;
 			                temp.append(ss.str());
 			                temp.append(epi);
@@ -3126,7 +3322,22 @@ int main(int argc, char **argv)
 			            {
 			                std::string temp = copeNoWhitening;
 			                std::stringstream ss;
-			                ss << "_contrast";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						
 			                ss << i + 1;
 			                temp.append(ss.str());
 			                temp.append(epi);
@@ -3137,7 +3348,22 @@ int main(int argc, char **argv)
 			            {
 			                std::string temp = tscoresNoWhitening;
 			                std::stringstream ss;
-			                ss << "_contrast";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						
 			                ss << i + 1;
 			                temp.append(ss.str());
 			                temp.append(epi);
@@ -3198,7 +3424,22 @@ int main(int argc, char **argv)
 			            {
 			                std::string temp = pvalues;
 					        std::stringstream ss;
-			                ss << "_contrast";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						
 			                ss << i + 1;
 			                temp.append(ss.str());
 			                temp.append(epi);
@@ -3227,7 +3468,22 @@ int main(int argc, char **argv)
     	        {
     	            std::string temp = beta;
     	            std::stringstream ss;
-    	            ss << "_regressor";
+					if ((i+1) < 10)
+					{
+    		            ss << "_regressor000";
+					}
+					else if ((i+1) < 100)
+					{
+						ss << "_regressor00";
+					}
+					else if ((i+1) < 1000)
+					{
+						ss << "_regressor0";
+					}
+					else
+					{
+						ss << "_regressor";
+					}						
 					ss << i + 1;
     	            temp.append(ss.str());
     	            temp.append(epi);
@@ -3238,7 +3494,22 @@ int main(int argc, char **argv)
     	        {
     	            std::string temp = PPM;
     	            std::stringstream ss;
-    	            ss << "_contrast";
+					if ((i+1) < 10)
+					{
+    		            ss << "_contrast000";
+					}
+					else if ((i+1) < 100)
+					{
+						ss << "_contrast00";
+					}
+					else if ((i+1) < 1000)
+					{
+						ss << "_contrast0";
+					}
+					else
+					{
+						ss << "_contrast";
+					}						
     	            ss << i + 1;
     	            temp.append(ss.str());
     	            temp.append(epi);
@@ -3323,7 +3594,22 @@ int main(int argc, char **argv)
     		        {
     		            std::string temp = beta;
     		            std::stringstream ss;
-    		            ss << "_regressor";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_regressor000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_regressor00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_regressor0";
+						}
+						else
+						{
+							ss << "_regressor";
+						}						
 						ss << i + 1;
     		            temp.append(ss.str());
     		            temp.append(t1);
@@ -3334,7 +3620,22 @@ int main(int argc, char **argv)
     		        {
     		            std::string temp = cope;
     		            std::stringstream ss;
-    		            ss << "_contrast";
+						if ((i+1) < 10)
+						{
+	    		            ss << "_contrast000";
+						}
+						else if ((i+1) < 100)
+						{
+							ss << "_contrast00";
+						}
+						else if ((i+1) < 1000)
+						{
+							ss << "_contrast0";
+						}
+						else
+						{
+							ss << "_contrast";
+						}						
     		            ss << i + 1;
     		            temp.append(ss.str());
     		            temp.append(t1);
@@ -3347,7 +3648,22 @@ int main(int argc, char **argv)
 		    	        {
 		    	            std::string temp = tscores;
 		    	            std::stringstream ss;
-		    	            ss << "_contrast";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						
 		    	            ss << i + 1;
 		    	            temp.append(ss.str());
 		    	            temp.append(t1);
@@ -3415,7 +3731,22 @@ int main(int argc, char **argv)
 			            {
 			                std::string temp = betaNoWhitening;
 			                std::stringstream ss;
-			                ss << "_regressor";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_regressor000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_regressor00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_regressor0";
+							}
+							else
+							{
+								ss << "_regressor";
+							}						
 							ss << i + 1;
 			                temp.append(ss.str());
 			                temp.append(t1);
@@ -3426,7 +3757,22 @@ int main(int argc, char **argv)
 			            {
 			                std::string temp = copeNoWhitening;
 			                std::stringstream ss;
-			                ss << "_contrast";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						
 			                ss << i + 1;
 			                temp.append(ss.str());
 			                temp.append(t1);
@@ -3437,7 +3783,22 @@ int main(int argc, char **argv)
 			            {
 			                std::string temp = tscoresNoWhitening;
 			                std::stringstream ss;
-			                ss << "_contrast";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						
 			                ss << i + 1;
 			                temp.append(ss.str());
 			                temp.append(t1);
@@ -3495,7 +3856,22 @@ int main(int argc, char **argv)
     		            {
     		                std::string temp = pvalues;
     		                std::stringstream ss;
-			                ss << "_contrast";
+							if ((i+1) < 10)
+							{
+		    		            ss << "_contrast000";
+							}
+							else if ((i+1) < 100)
+							{
+								ss << "_contrast00";
+							}
+							else if ((i+1) < 1000)
+							{
+								ss << "_contrast0";
+							}
+							else
+							{
+								ss << "_contrast";
+							}						
     		                ss << i + 1;
     		                temp.append(ss.str());
     		                temp.append(t1);
@@ -3524,7 +3900,22 @@ int main(int argc, char **argv)
     	        {
     	            std::string temp = beta;
     	            std::stringstream ss;
-    	            ss << "_regressor";
+					if ((i+1) < 10)
+					{
+    		            ss << "_regressor000";
+					}
+					else if ((i+1) < 100)
+					{
+						ss << "_regressor00";
+					}
+					else if ((i+1) < 1000)
+					{
+						ss << "_regressor0";
+					}
+					else
+					{
+						ss << "_regressor";
+					}						
 					ss << i + 1;
     	            temp.append(ss.str());
     	            temp.append(t1);
@@ -3535,7 +3926,22 @@ int main(int argc, char **argv)
     	        {
     	            std::string temp = PPM;
     	            std::stringstream ss;
-    	            ss << "_contrast";
+					if ((i+1) < 10)
+					{
+    		            ss << "_contrast000";
+					}
+					else if ((i+1) < 100)
+					{
+						ss << "_contrast00";
+					}
+					else if ((i+1) < 1000)
+					{
+						ss << "_contrast0";
+					}
+					else
+					{
+						ss << "_contrast";
+					}						
     	            ss << i + 1;
     	            temp.append(ss.str());
     	            temp.append(t1);

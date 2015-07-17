@@ -8456,9 +8456,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			}
 		}
 
-		PerformRegression(d_Residuals, d_Smoothed_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		// Copy data to device
+		d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
+		clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes, 0, NULL, NULL);
+		PerformRegression(d_Residuals, d_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 		
-
 		if (WRITE_ACTIVITY_EPI)
 		{
 			clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals_EPI, 0, NULL, NULL);
@@ -8476,6 +8478,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 		clReleaseMemObject(d_Beta_Volumes);
 		clReleaseMemObject(d_Residuals);
+		clReleaseMemObject(d_fMRI_Volumes);
 	}
 
 
@@ -16888,6 +16891,8 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 			{
 				if (h_EPI_Mask[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H] == 1.0f)
 				{
+					// z-score each time series
+
 					// Estimate mean
 					float sum = 0.0f;
 					for (int t = 0; t < EPI_DATA_T; t++)
@@ -16912,11 +16917,11 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 					float variance = sum/(float)(EPI_DATA_T-1);
 					float std = sqrt(variance);
 
+					// Divide by standard deviation
 					for (int t = 0; t < EPI_DATA_T; t++)
 					{
-						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] / std;
+						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] /= std;
 					}
-
 
 					for (int t = 0; t < EPI_DATA_T; t++)
 					{
@@ -16953,7 +16958,7 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 			for (int x = 0; x < EPI_DATA_W; x++)
 			{
 				if (h_EPI_Mask[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H] == 1.0f)
-				{
+				{					
 					for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)
 					{
 						//h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = whitenedData(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H);
