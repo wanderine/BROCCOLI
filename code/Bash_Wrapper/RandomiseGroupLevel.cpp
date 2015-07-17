@@ -738,17 +738,28 @@ int main(int argc, char **argv)
 	// Check if design matrix is two sample t-test or correlation
 	if (!ANALYZE_GROUP_MEAN)
 	{
+        
 		// Check abs sum of first regressor and sum of 2 first regressors
 		float sum1 = 0.0f; float sum2 = 0.0f;
-		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-		{
-			sum1 += abs(X(s,0));
-			for (int r = 0; r < 2; r++)
-			{
-				sum2 += X(s,r);
-			}
+        
+        if (NUMBER_OF_GLM_REGRESSORS >= 2)
+        {
+            for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+            {
+                sum1 += std::abs(X(s,0));
+                
+                sum2 += X(s,0);
+                sum2 += X(s,1);
+            }
 		}
-
+        else
+        {
+            for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+            {
+                sum1 += std::abs(X(s,0));
+            }
+        }
+    
 		if ( (sum1 == (float)NUMBER_OF_SUBJECTS) || (sum2 == (float)NUMBER_OF_SUBJECTS) )
 		{
 			ANALYZE_TTEST = true;
