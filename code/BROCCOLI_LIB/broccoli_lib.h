@@ -411,9 +411,6 @@ class BROCCOLI_LIB
 		void TransformVolumesNonLinearWrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
-		void PerformRegression(cl_mem, cl_mem, int, int, int, int);
-		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
-		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int, int);
 		void PerformSmoothingWrapper();
 		void PerformSmoothingNormalizedWrapper();
 		void PerformSmoothingNormalizedHostWrapper();
@@ -461,6 +458,13 @@ class BROCCOLI_LIB
 		void PerformSliceTimingCorrectionHost(float* h_Volumes);
 		void PerformMotionCorrection(cl_mem Volumes);
 		void PerformMotionCorrectionHost(float* h_Volumes);
+
+		void PerformRegression(cl_mem, cl_mem, int, int, int, int);
+		void PerformRegressionSlice(cl_mem, cl_mem, int, int, int, int, int);
+		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
+		void PerformDetrendingSlice(cl_mem, cl_mem, int, int, int, int, int);
+		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
+		void PerformDetrendingAndMotionRegressionSlice(cl_mem, cl_mem, int, int, int, int, int);
 
 		void CalculateBetaWeightsAndContrastsFirstLevelSlices(float* h_Volumes);
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);

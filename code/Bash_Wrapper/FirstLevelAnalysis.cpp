@@ -605,6 +605,13 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-nomotioncorrection") == 0)
         {
 			APPLY_MOTION_CORRECTION = false;
+
+			if (REGRESS_MOTION == 1)
+			{
+                printf("Nice try! Cannot regress motion if you skip motion correction!\n");
+                return EXIT_FAILURE;
+			}
+
 			i += 1;
 		}
         else if (strcmp(input,"-nosmoothing") == 0)
@@ -3546,7 +3553,9 @@ int main(int argc, char **argv)
 	{
 		if (WRITE_ACTIVITY_EPI)
 	    {
+			outputNiftiStatisticsEPI->ndim = 4;
 	    	outputNiftiStatisticsEPI->nt = EPI_DATA_T;
+			outputNiftiStatisticsEPI->dim[0] = 4;
 	    	outputNiftiStatisticsEPI->dim[4] = EPI_DATA_T;
 	    	outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T;
 			WriteNifti(outputNiftiStatisticsEPI,h_Residuals_EPI,"_residuals",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -3556,7 +3565,9 @@ int main(int argc, char **argv)
 	{
 		if (WRITE_ACTIVITY_EPI)
 	    {
+			outputNiftiStatisticsEPI->ndim = 4;
 	    	outputNiftiStatisticsEPI->nt = EPI_DATA_T;
+			outputNiftiStatisticsEPI->dim[0] = 4;
 	    	outputNiftiStatisticsEPI->dim[4] = EPI_DATA_T;
 	    	outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T;
 			WriteNifti(outputNiftiStatisticsEPI,h_fMRI_Volumes,"_preprocessed",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);

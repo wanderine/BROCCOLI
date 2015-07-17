@@ -8426,15 +8426,23 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 		c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 
+		// Allocate memory for one slice
+		d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+		d_Residuals = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
 		d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
-		d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 		
+		deviceMemoryAllocations += 3;
+		allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * 2 * sizeof(float);
+		allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+
+		PrintMemoryStatus("Before regression");
+
 		h_X_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
 		h_xtxxt_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
+		h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
 
 		if (REGRESS_GLOBALMEAN)
 		{
-			h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
 			CalculateGlobalMeans(h_fMRI_Volumes);
 		}
 
@@ -8456,21 +8464,29 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			}
 		}
 
-		// Copy data to device
-		d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
-		clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes, 0, NULL, NULL);
-		PerformRegression(d_Residuals, d_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-		
-		if (WRITE_ACTIVITY_EPI)
+		// Loop over slices, to save memory
+		for (int slice = 0; slice < EPI_DATA_D; slice++)
 		{
-			clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals_EPI, 0, NULL, NULL);
-		}
+			// Copy fMRI data to the device, for the current slice
+			CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+			// Perform the regression
+			PerformRegressionSlice(d_Residuals, d_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+			// Copy back the current slice
+			CopyCurrentfMRISliceToHost(h_fMRI_Volumes, d_Residuals, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+			if (WRITE_ACTIVITY_EPI)
+			{
+				// Copy residuals to the host, for the current slice			
+				CopyCurrentfMRISliceToHost(h_Residuals_EPI, d_Residuals, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+			}
+		}	
 
 		TransformResidualsToMNI();
 
 		// Cleanup host memory
 		free(h_X_GLM);
 		free(h_xtxxt_GLM);
+		free(h_Global_Mean);
 
 		// Cleanup device memory
 		clReleaseMemObject(c_X_GLM);
@@ -8479,6 +8495,12 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		clReleaseMemObject(d_Beta_Volumes);
 		clReleaseMemObject(d_Residuals);
 		clReleaseMemObject(d_fMRI_Volumes);
+
+		deviceMemoryDeallocations += 3;
+		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * 2 * sizeof(float);
+		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+
+		PrintMemoryStatus("After regression");
 	}
 
 
@@ -8509,15 +8531,19 @@ void BROCCOLI_LIB::TransformResidualsToMNI()
 {
 	// Allocate temporary memory
 	cl_mem d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-
-	// First apply initial translation before changing resolution and size 
-	TransformVolumesLinear(d_Residuals, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, INTERPOLATION_MODE);
+	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Loop over time points
 	for (int i = 0; i < EPI_DATA_T; i++)
 	{
+		// Copy current volume to temp
+		clEnqueueWriteBuffer(commandQueue, d_Temp, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_fMRI_Volumes[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
+
+		// First apply initial translation before changing resolution and size 
+		TransformVolumesLinear(d_Temp, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, INTERPOLATION_MODE);
+
 		// Change resolution and size of volume
-		ChangeVolumesResolutionAndSize(d_Data, d_Residuals, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, i);
+		ChangeVolumesResolutionAndSize(d_Data, d_Temp, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, INTERPOLATION_MODE, 0);
 
 		// Now apply the same translation as applied before the EPI-T1 registration
 		TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
@@ -8531,6 +8557,7 @@ void BROCCOLI_LIB::TransformResidualsToMNI()
 	}
 
 	clReleaseMemObject(d_Data);
+	clReleaseMemObject(d_Temp);
 }
 
 
@@ -10731,8 +10758,152 @@ void BROCCOLI_LIB::PerformDetrending(cl_mem d_Detrended_Volumes, cl_mem d_Volume
 	clReleaseMemObject(c_xtxxt_Detrend);
 }
 
+
+// Performs detrending of an fMRI dataset (removes mean, linear trend, quadratic trend, cubic trend), for one slice
+void BROCCOLI_LIB::PerformDetrendingSlice(cl_mem d_Detrended_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+{
+	// Allocate host memory
+	h_X_Detrend = (float*)malloc(NUMBER_OF_DETRENDING_REGRESSORS * DATA_T * sizeof(float));
+	h_xtxxt_Detrend = (float*)malloc(NUMBER_OF_DETRENDING_REGRESSORS * DATA_T * sizeof(float));
+
+	// Setup regressors for mean, linear, quadratic and cubic trends
+	SetupDetrendingRegressors(DATA_T);
+
+	// Allocate constant memory on device
+	c_X_Detrend = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_DETRENDING_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);
+	c_xtxxt_Detrend = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_DETRENDING_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy data to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_X_Detrend, CL_TRUE, 0, NUMBER_OF_DETRENDING_REGRESSORS * DATA_T * sizeof(float), h_X_Detrend , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_Detrend, CL_TRUE, 0, NUMBER_OF_DETRENDING_REGRESSORS * DATA_T * sizeof(float), h_xtxxt_Detrend , 0, NULL, NULL);
+
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(DATA_W, DATA_H, 1);
+
+	h_Censored_Timepoints = (float*)malloc(DATA_T * sizeof(float));
+	c_Censored_Timepoints = clCreateBuffer(context, CL_MEM_READ_ONLY, DATA_T * sizeof(float), NULL, NULL);
+
+	for (int t = 0; t < DATA_T; t++)
+	{
+		h_Censored_Timepoints[t] = 1.0f;
+	}
+	clEnqueueWriteBuffer(commandQueue, c_Censored_Timepoints, CL_TRUE, 0, EPI_DATA_T * sizeof(float), h_Censored_Timepoints , 0, NULL, NULL);
+
+	// Estimate beta weights
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 3, sizeof(cl_mem), &c_xtxxt_Detrend);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 4, sizeof(cl_mem), &c_Censored_Timepoints);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 5, sizeof(int),    &DATA_W);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 6, sizeof(int),    &DATA_H);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 7, sizeof(int),    &DATA_D);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 8, sizeof(int),    &DATA_T);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 9, sizeof(int),    &NUMBER_OF_DETRENDING_REGRESSORS);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 10, sizeof(int),   &slice);
+
+	runKernelErrorCalculateBetaWeightsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMSliceKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Remove linear fit
+	clSetKernelArg(RemoveLinearFitSliceKernel, 0, sizeof(cl_mem), &d_Detrended_Volumes);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 2, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 4, sizeof(cl_mem), &c_X_Detrend);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 5, sizeof(int),    &DATA_W);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 6, sizeof(int),    &DATA_H);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 7, sizeof(int),    &DATA_D);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 8, sizeof(int),    &DATA_T);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 9, sizeof(int),    &NUMBER_OF_DETRENDING_REGRESSORS);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 10, sizeof(int),   &slice);
+
+	runKernelErrorRemoveLinearFit = clEnqueueNDRangeKernel(commandQueue, RemoveLinearFitSliceKernel, 3, NULL, globalWorkSizeRemoveLinearFit, localWorkSizeRemoveLinearFit, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Free host memory
+	free(h_Censored_Timepoints);
+	free(h_X_Detrend);
+	free(h_xtxxt_Detrend);
+
+	// Free memory
+	clReleaseMemObject(c_Censored_Timepoints);
+	clReleaseMemObject(c_X_Detrend);
+	clReleaseMemObject(c_xtxxt_Detrend);
+}
+
+// Removes the linear fit between detrending regressors (mean, linear trend, quadratic trend, cubic trend) and motion regressors
+void BROCCOLI_LIB::PerformDetrendingAndMotionRegression(cl_mem d_Regressed_Volumes, cl_mem d_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+{
+	int NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS = 10;
+
+	// Allocate host memory
+	h_X_Detrend = (float*)malloc(NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float));
+	h_xtxxt_Detrend = (float*)malloc(NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float));
+
+	// Setup regressors for mean, linear, quadratic and cubic trends
+	SetupDetrendingAndMotionRegressors(DATA_T);
+
+	// Allocate constant memory on device
+	c_X_Detrend = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);
+	c_xtxxt_Detrend = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy data to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_X_Detrend, CL_TRUE, 0, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), h_X_Detrend , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_Detrend, CL_TRUE, 0, NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS * DATA_T * sizeof(float), h_xtxxt_Detrend , 0, NULL, NULL);
+
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(DATA_W, DATA_H, DATA_D);
+
+	h_Censored_Timepoints = (float*)malloc(EPI_DATA_T * sizeof(float));
+	c_Censored_Timepoints = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	for (int t = 0; t < EPI_DATA_T; t++)
+	{
+		h_Censored_Timepoints[t] = 1.0f;
+	}
+	clEnqueueWriteBuffer(commandQueue, c_Censored_Timepoints, CL_TRUE, 0, EPI_DATA_T * sizeof(float), h_Censored_Timepoints , 0, NULL, NULL);
+
+	// Estimate beta weights
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_Detrend);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 4, sizeof(cl_mem), &c_Censored_Timepoints);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 8, sizeof(int), &DATA_T);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 9, sizeof(int), &NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS);
+	runKernelErrorCalculateBetaWeightsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Remove linear fit
+	clSetKernelArg(RemoveLinearFitKernel, 0, sizeof(cl_mem), &d_Regressed_Volumes);
+	clSetKernelArg(RemoveLinearFitKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(RemoveLinearFitKernel, 2, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(RemoveLinearFitKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(RemoveLinearFitKernel, 4, sizeof(cl_mem), &c_X_Detrend);
+	clSetKernelArg(RemoveLinearFitKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(RemoveLinearFitKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(RemoveLinearFitKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(RemoveLinearFitKernel, 8, sizeof(int), &DATA_T);
+	clSetKernelArg(RemoveLinearFitKernel, 9, sizeof(int), &NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS);
+	runKernelErrorRemoveLinearFitSlice = clEnqueueNDRangeKernel(commandQueue, RemoveLinearFitKernel, 3, NULL, globalWorkSizeRemoveLinearFit, localWorkSizeRemoveLinearFit, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Free host memory
+	free(h_Censored_Timepoints);
+	free(h_X_Detrend);
+	free(h_xtxxt_Detrend);
+
+	// Free constant memory
+	clReleaseMemObject(c_Censored_Timepoints);
+	clReleaseMemObject(c_X_Detrend);
+	clReleaseMemObject(c_xtxxt_Detrend);
+}
+
+
 // Removes the linear fit between detrending regressors (mean, linear trend, quadratic trend, cubic trend) and motion regressors, for one slice
-void BROCCOLI_LIB::PerformDetrendingAndMotionRegression(cl_mem d_Regressed_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+void BROCCOLI_LIB::PerformDetrendingAndMotionRegressionSlice(cl_mem d_Regressed_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
 {
 	int NUMBER_OF_DETRENDING_AND_MOTION_REGRESSORS = 10;
 
@@ -10845,6 +11016,61 @@ void BROCCOLI_LIB::PerformRegression(cl_mem d_Regressed_Volumes, cl_mem d_Volume
 	clSetKernelArg(RemoveLinearFitKernel, 9, sizeof(int), &NUMBER_OF_TOTAL_GLM_REGRESSORS);
 
 	runKernelErrorRemoveLinearFit = clEnqueueNDRangeKernel(commandQueue, RemoveLinearFitKernel, 3, NULL, globalWorkSizeRemoveLinearFit, localWorkSizeRemoveLinearFit, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Free host memory
+	free(h_Censored_Timepoints);
+
+	// Free constant memory
+	clReleaseMemObject(c_Censored_Timepoints);
+}
+
+
+
+// Removes the linear fit between regressors and data, regressors have already been setup, for one slice
+void BROCCOLI_LIB::PerformRegressionSlice(cl_mem d_Regressed_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T)
+{
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(DATA_W, DATA_H, 1);
+
+	h_Censored_Timepoints = (float*)malloc(DATA_T * sizeof(float));
+	c_Censored_Timepoints = clCreateBuffer(context, CL_MEM_READ_ONLY, DATA_T * sizeof(float), NULL, NULL);
+
+	for (int t = 0; t < DATA_T; t++)
+	{
+		h_Censored_Timepoints[t] = 1.0f;
+	}
+	clEnqueueWriteBuffer(commandQueue, c_Censored_Timepoints, CL_TRUE, 0, DATA_T * sizeof(float), h_Censored_Timepoints , 0, NULL, NULL);
+
+	// Estimate beta weights
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 3, sizeof(cl_mem), &c_xtxxt_GLM);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 4, sizeof(cl_mem), &c_Censored_Timepoints);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 5, sizeof(int), &DATA_W);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 6, sizeof(int), &DATA_H);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 7, sizeof(int), &DATA_D);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 8, sizeof(int), &DATA_T);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 9, sizeof(int), &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(CalculateBetaWeightsGLMSliceKernel, 10, sizeof(int), &slice);
+
+	runKernelErrorCalculateBetaWeightsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMSliceKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Remove linear fit
+	clSetKernelArg(RemoveLinearFitSliceKernel, 0, sizeof(cl_mem), &d_Regressed_Volumes);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 1, sizeof(cl_mem), &d_Volumes);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 2, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 4, sizeof(cl_mem), &c_X_GLM);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 5, sizeof(int),  &DATA_W);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 6, sizeof(int),  &DATA_H);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 7, sizeof(int),  &DATA_D);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 8, sizeof(int),  &DATA_T);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 9, sizeof(int),  &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(RemoveLinearFitSliceKernel, 10, sizeof(int), &slice);
+
+	runKernelErrorRemoveLinearFit = clEnqueueNDRangeKernel(commandQueue, RemoveLinearFitSliceKernel, 3, NULL, globalWorkSizeRemoveLinearFit, localWorkSizeRemoveLinearFit, 0, NULL, NULL);
 	clFinish(commandQueue);
 
 	// Free host memory
@@ -11647,34 +11873,6 @@ void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
 
 
-
-	float maxP = 0.0f;
-	bool significant = false;
-	// Check if any p-value is larger than 0.95
-	for (int z = 0; z < MNI_DATA_D; z++)
-	{
-		for (int y = 0; y < MNI_DATA_H; y++)
-		{
-			for (int x = 0; x < MNI_DATA_W; x++)
-			{
-				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > 0.95f)
-				{
-					significant = true;
-				}
-				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > maxP) 
-				{
-					maxP = h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H];
-				}
-			}
-		}
-	}
-	if (significant)
-		printf("Significant group activation detected!\n");
-
-	printf("Max p value is %f \n",maxP);
-
-
-
 	// Release memory
 	clReleaseMemObject(d_First_Level_Results);
 	clReleaseMemObject(d_MNI_Brain_Mask);
@@ -11750,31 +11948,6 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	// Copy results to  host
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_P_Values, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_P_Values_MNI, 0, NULL, NULL);
-
-	float maxP = 0.0f;
-	bool significant = false;
-	// Check if any p-value is larger than 0.95
-	for (int z = 0; z < MNI_DATA_D; z++)
-	{
-		for (int y = 0; y < MNI_DATA_H; y++)
-		{
-			for (int x = 0; x < MNI_DATA_W; x++)
-			{
-				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > 0.95f)
-				{
-					significant = true;
-				}
-				if (h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H] > maxP) 
-				{
-					maxP = h_P_Values_MNI[x + y * MNI_DATA_W + z * MNI_DATA_W * MNI_DATA_H];
-				}
-			}
-		}
-	}
-	if (significant)
-		printf("Significant group difference detected!\n");
-
-	printf("Max p value is %f \n",maxP);	
 
 	// Release memory
 	clReleaseMemObject(d_First_Level_Results);
@@ -13537,7 +13710,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volume
 		//CopyCurrentfMRISliceToDevice(d_Regressed_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_T);
 
 		// Remove linear fit of detrending regressors and motion regressors
-		PerformDetrendingAndMotionRegression(d_Regressed_Volumes, d_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		PerformDetrendingAndMotionRegressionSlice(d_Regressed_Volumes, d_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 
 		// Calculate PPM(s)
 		clSetKernelArg(CalculateStatisticalMapsGLMBayesianKernel, 0, sizeof(cl_mem), &d_Statistical_Maps);
