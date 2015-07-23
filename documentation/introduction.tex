@@ -22,7 +22,7 @@ To check the installation of the OpenCL driver(s) on Linux and Mac computers, th
 
 \begin{verbatim}
 
-[andek@localhost]$ ./GetOpenCLInfo 
+[andek@localhost]$ GetOpenCLInfo 
 Device info 
  
 ---------------------------------------------
@@ -178,7 +178,7 @@ to run 4 threads in parallel. If this variable is not defined, the default is to
 As mentioned previously, it is easy to select which OpenCL platform and device to use for each BROCCOLI function (the default platform and device is 0). For each bash function, the option -platform sets the OpenCL platform to use, and the option -device sets the device to use. The first level analysis can, for example, be performed using platform 1 and device 1 by using the command
 
 \begin{verbatim}
-./FirstLevelAnalysis fMRI.nii T1.nii BrainTemplate.nii ...
+FirstLevelAnalysis fMRI.nii T1.nii BrainTemplate.nii ...
  regressors.txt contrasts.txt -platform 1 -device 1
 \end{verbatim}
 For the test computer used in the introduction, this means that the analysis runs on the Intel CPU using the AMD platform. By changing the device to 0, the AMD graphics card will instead be used. 

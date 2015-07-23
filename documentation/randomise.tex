@@ -3,9 +3,8 @@
 BROCCOLI provides a function for permutation testing at the group level, similar to the FSL function randomise. In its simplest form, a permutation test can with the bash wrapper be performed as
 
 \begin{verbatim}
-./RandomiseGroupLevel volumes.nii -design design.mat -contrasts design.con 
+RandomiseGroupLevel volumes.nii -design design.mat -contrasts design.con 
 \end{verbatim}
-
 where volumes.nii is a 4D file with data from all subjects in the group(s). The design.mat file can for example be defined as
 
 \begin{verbatim}

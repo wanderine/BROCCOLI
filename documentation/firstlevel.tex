@@ -3,7 +3,7 @@
 BROCCOLI performs first level fMRI analysis using a single command. The analysis involves registering the anatomical volume to a brain template (using linear as well as non-linear registration), registering one fMRI volume to the anatomical volume, slice timing correction, motion correction, smoothing and statistical analysis. In contrast to other software packages, it is up to the user to decide which intermediate results to save. In its simplest form, a first level analysis can with the bash wrapper be performed as
 
 \begin{verbatim}
-./FirstLevelAnalysis fMRI.nii T1_brain.nii BrainTemplate.nii ... 
+FirstLevelAnalysis fMRI.nii T1_brain.nii BrainTemplate.nii ... 
   regressors.txt contrasts.txt 
 \end{verbatim}
 fMRI.nii is here the 4D fMRI data, T1\_brain.nii is the skullstripped anatomical volume of the subject and BrainTemplate.nii is for example the MNI template in the FSL software (without skull). Currently it is necessary that all the NIfTI files are stored in the same orientation (e.g. RPI). The orientation can for example be checked with the AFNI function 3dinfo, and the orientation can be changed using the function 3dresample (e.g. 3dresample -orient RPI -input volume.nii -prefix volume\_RPI.nii). \\ \\ regressors.txt is a text file that contains the number of regressors to use, and the filename of each regressor. It can for example look like
@@ -54,9 +54,7 @@ NumRegressors 3
 1.0 -0.4336  0.7172
 1.0 0.3426  1.6302
 \end{verbatim}
-Note that it is necessary to include one regressor with only ones, to pick up the mean value of each time series. BROCCOLI will NOT remove the mean of the other regressors!
-
-contrasts.txt contains a list of all the contrasts for which BROCCOLI will calculate a volume with t-scores. An example is given by
+Note that it is necessary to include one regressor with only ones, to pick up the mean value of each time series. BROCCOLI will NOT remove the mean of the other regressors! \newline \newline contrasts.txt contains a list of all the contrasts for which BROCCOLI will calculate a volume with t-scores. An example is given by
 
 \begin{verbatim}
 NumRegressors 3
@@ -91,6 +89,7 @@ The following OpenCL options are available
 
 Several options can be used to control the image registration, see the chapter about image registration for further information.
 
+\newpage
 \section{Preprocessing options}
 
 The following preprocessing options are available
@@ -164,7 +163,6 @@ A text file with slice timing information can for example look like
   485.0000
   667.5000
 \end{verbatim}
-
 which means that the first slice was collected at time 0, the second slice was collected after 180 milli seconds, the third slice was collected after 362.5 milli seconds, and so on.
 
 \newpage
@@ -206,8 +204,6 @@ The following statistical options are available
 \item -inferencemode 
 \newline \newline Set if voxel-wise or cluster-wise p-values should be calculated for the permutation test, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = threshold free cluster enhancement (TFCE) (default 1)
 
-\newpage 
-
 \item -cdt 
 \newline \newline Cluster defining threshold for permutation based cluster inference (default 2.5). 
 
@@ -234,7 +230,6 @@ fMRI_beta_regressor004_MNI.nii
 fMRI_beta_regressor005_MNI.nii 
 fMRI_beta_regressor006_MNI.nii 
 \end{verbatim}
-
 For each contrast, BROCCOLI will also store the contrast of parameter estimate (COPE) and the corresponding t-scores, e.g.
 
 \begin{verbatim}
