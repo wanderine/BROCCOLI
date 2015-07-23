@@ -200,6 +200,7 @@ int main(int argc, char **argv)
 	bool			FOUND_REGRESSORS = false;
 
 	bool			RAW_REGRESSORS = false;
+	bool			RAW_DESIGNMATRIX = false;
     int             REGRESS_MOTION = 0;
     int             REGRESS_GLOBALMEAN = 0;
 	int				REGRESS_CONFOUNDS = 0;
@@ -293,10 +294,12 @@ int main(int argc, char **argv)
         printf(" -smoothing                 Amount of smoothing to apply to the fMRI data (default 6.0 mm) \n\n");
         
         printf("Statistical options:\n\n");
+        printf(" -preprocessingonly         Only perform preprocessing, no GLM or regression is performed (default no). \n");
         printf(" -betasonly                 Only perform preprocessing and calculate beta values and contrasts, no t- or F-scores are calculated (default no). \n");
-        printf(" -regressonly               Only perform preprocessing and regress nuisance variables, no GLM is performed (default no). \n");
+        printf(" -regressonly               Only perform preprocessing and regress nuisance variables, no beta values or contrasts are calculated (default no). \n");
 		printf("                            Regressor and contrast file not needed. \n");
-        printf(" -rawregressors             Use raw regressors (FSL format, one value per TR) (default no) \n");
+        printf(" -rawregressors             Use raw regressors (FSL format, one row per TR) (default no) \n");
+        printf(" -rawdesignmatrix           Provide the design matrix in a single text file (FSL format, one regressor per column, one value per TR) (default no) \n");
         printf(" -regressmotion             Include motion parameters in design matrix (default no) \n");
         printf(" -regressglobalmean         Include global mean in design matrix (default no) \n");
         printf(" -temporalderivatives       Use temporal derivatives for the activity regressors (default no) \n");
@@ -605,13 +608,6 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-nomotioncorrection") == 0)
         {
 			APPLY_MOTION_CORRECTION = false;
-
-			if (REGRESS_MOTION == 1)
-			{
-                printf("Nice try! Cannot regress motion if you skip motion correction!\n");
-                return EXIT_FAILURE;
-			}
-
 			i += 1;
 		}
         else if (strcmp(input,"-nosmoothing") == 0)
@@ -741,16 +737,14 @@ int main(int argc, char **argv)
             RAW_REGRESSORS = true;
             i += 1;
         }
+        else if (strcmp(input,"-rawdesignmatrix") == 0)
+        {
+            RAW_DESIGNMATRIX = true;
+            i += 1;
+        }
         else if (strcmp(input,"-regressmotion") == 0)
         {
             REGRESS_MOTION = 1;
-
-			if (APPLY_MOTION_CORRECTION == false)
-			{
-                printf("Nice try! Cannot regress motion if you skip motion correction!\n");
-                return EXIT_FAILURE;
-			}
-
             i += 1;
         }
         else if (strcmp(input,"-regressglobalmean") == 0)
@@ -1045,12 +1039,99 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
 	}
 
+    //------------------------------------------
+	// Check for invalid parameter combinations
+
     if (BAYESIAN && PERMUTE)
     {
         printf("Cannot do both Bayesian and non-parametric fMRI analysis, pick one!\n");
         return EXIT_FAILURE;
     }
-
+	if (WRITE_UNWHITENED_RESULTS && (REGRESS_ONLY || PREPROCESSING_ONLY))
+	{
+        printf("Cannot write unwhitened resuls if you only do regression or preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (!APPLY_MOTION_CORRECTION && REGRESS_MOTION)
+	{
+		printf("Nice try! Cannot regress motion if you skip motion correction!\n");
+		return EXIT_FAILURE;
+	}
+	if (RAW_DESIGNMATRIX && USE_TEMPORAL_DERIVATIVES)
+	{
+		printf("Cannot use temporal derivatives for raw design matrix!\n");
+		return EXIT_FAILURE;
+	}
+	if (!APPLY_MOTION_CORRECTION && WRITE_MOTION_CORRECTED)
+	{
+		printf("Nice try! Cannot save motion corrected data if you skip motion correction!\n");
+		return EXIT_FAILURE;
+	}
+	if (!APPLY_SMOOTHING && WRITE_SMOOTHED)
+	{
+		printf("Nice try! Cannot save smoothed data if you skip smoothing!\n");
+		return EXIT_FAILURE;
+	}
+	if (!APPLY_SLICE_TIMING_CORRECTION && WRITE_SLICETIMING_CORRECTED)
+	{
+		printf("Nice try! Cannot save slice timing corrected data if you skip slice timing correction!\n");
+		return EXIT_FAILURE;
+	}
+	if ((WRITE_AR_ESTIMATES_EPI || WRITE_AR_ESTIMATES_T1 || WRITE_AR_ESTIMATES_MNI) && (REGRESS_ONLY || PREPROCESSING_ONLY))
+	{
+        printf("Cannot write AR parameters if you only do regression or preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if ((WRITE_RESIDUALS_EPI || WRITE_RESIDUALS_MNI) && PREPROCESSING_ONLY)
+	{
+        printf("Cannot write residuals if you only do preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (REGRESS_GLOBALMEAN && PREPROCESSING_ONLY)
+	{
+        printf("Cannot regress global mean if you only do preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (REGRESS_MOTION && PREPROCESSING_ONLY)
+	{
+        printf("Cannot regress global mean if you only do preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (RAW_REGRESSORS && PREPROCESSING_ONLY)
+	{
+        printf("Raw regressors does not have any meaning if you only do preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (RAW_DESIGNMATRIX && PREPROCESSING_ONLY)
+	{
+        printf("Raw design matrix does not have any meaning if you only do preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (PERMUTE && PREPROCESSING_ONLY)
+	{
+        printf("Permute does not have any meaning if you only do preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (BAYESIAN && PREPROCESSING_ONLY)
+	{
+        printf("Bayesian does not have any meaning if you only do preprocessing!\n");
+        return EXIT_FAILURE;
+	}
+	if (PERMUTE && REGRESS_ONLY)
+	{
+        printf("Permute does not have any meaning if you only do regression!\n");
+        return EXIT_FAILURE;
+	}
+	if (BAYESIAN && REGRESS_ONLY)
+	{
+        printf("Bayesian does not have any meaning if you only do regression!\n");
+        return EXIT_FAILURE;
+	}
+	if (PERMUTE && BETAS_ONLY)
+	{
+        printf("Permute does not have any meaning if you only calculate betas and contrasts!\n");
+        return EXIT_FAILURE;
+	}
 
 
     //------------------------------------------
@@ -1775,7 +1856,32 @@ int main(int argc, char **argv)
     // ------------------------------------------------
 	// Read events for each regressor    	
 
-	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
+	if (RAW_DESIGNMATRIX)
+	{
+	    // Open design file again
+	    design.open(argv[4]);
+	    // Read first two values again
+	    design >> tempString; // NumRegressors as string
+	    design >> NUMBER_OF_GLM_REGRESSORS;
+
+		float tempFloat;	
+		for (int t = 0; t < EPI_DATA_T; t++)
+		{
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				if (! (design >> h_X_GLM[t + r * EPI_DATA_T]) )
+				{
+					design.close();
+			        printf("Could not read all values of the design file %s, aborting! Stopped reading at time point %i for regressor %i. Please check if the number of regressors and time points are correct. \n",argv[4],t,r);      
+			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			        return EXIT_FAILURE;
+				}
+			}
+		}	
+		design.close();
+	}
+	else if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 		startTime = GetWallTime();
 
@@ -2487,6 +2593,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
 
         BROCCOLI.SetRawRegressors(RAW_REGRESSORS);
+        BROCCOLI.SetRawDesignMatrix(RAW_DESIGNMATRIX);
         BROCCOLI.SetRegressMotion(REGRESS_MOTION);
         BROCCOLI.SetRegressGlobalMean(REGRESS_GLOBALMEAN);
         BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);

@@ -91,6 +91,11 @@ int main(int argc, char ** argv)
 	bool			CHANGE_OUTPUT_FILENAME = false;
 
 	// Settings
+	bool			AUTO_MASK = true;
+	bool			MASK = false;
+	const char*		MASK_NAME;
+	bool			Z_SCORE = false;
+
 	bool			APPLY_SMOOTHING = false;
 	bool			APPLY_MOTION_CORRECTION = false;
 	
@@ -121,6 +126,8 @@ int main(int argc, char ** argv)
         printf(" -smoothing          Smooth data before ICA, give smoothing amount in mm (default false) \n");
         printf(" -motioncorrection   Apply motion correction before ICA (default false) \n");
         printf(" -var                Proportion of variance to save before ICA (default 80 %%) \n");
+		printf(" -mask               Provide a spatial mask (default false) \n");
+		printf(" -zscore             Z-score each time series before ICA (default false) \n");
         printf(" -output             Set output filename (default input_ica.nii) \n");
         printf(" -quiet              Don't print anything to the terminal (default false) \n");
         printf(" -verbose            Print extra stuff (default false) \n");
@@ -247,6 +254,24 @@ int main(int argc, char ** argv)
 
             i += 2;
         }        
+        else if (strcmp(input,"-mask") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read name after -mask !\n");
+                return EXIT_FAILURE;
+			}
+            
+			AUTO_MASK = false;
+			MASK = true;
+            MASK_NAME = argv[i+1];
+            i += 2;
+        }
+        else if (strcmp(input,"-zscore") == 0)
+        {
+            Z_SCORE = true;
+            i += 1;
+        }
         else if (strcmp(input,"-debug") == 0)
         {
             DEBUG = true;
@@ -304,6 +329,23 @@ int main(int argc, char ** argv)
     allNiftiImages[numberOfNiftiImages] = inputData;
 	numberOfNiftiImages++;
 
+	// -----------------------    
+    // Read mask
+	// -----------------------
+
+    nifti_image *inputMask;
+    if (MASK)
+    {
+        inputMask = nifti_image_read(MASK_NAME,1);
+        if (inputMask == NULL)
+        {
+            printf("Could not open mask volume!\n");
+            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+            return EXIT_FAILURE;
+        }
+        allNiftiImages[numberOfNiftiImages] = inputMask;
+        numberOfNiftiImages++;
+    }
 	double endTime = GetWallTime();
 
 	if (VERBOS)
@@ -316,6 +358,21 @@ int main(int argc, char ** argv)
     DATA_H = inputData->ny;
     DATA_D = inputData->nz;
     DATA_T = inputData->nt;
+
+	// Check if mask volume has the same dimensions as the data
+	if (MASK)
+	{
+		int TEMP_DATA_W = inputMask->nx;
+		int TEMP_DATA_H = inputMask->ny;
+		int TEMP_DATA_D = inputMask->nz;
+
+		if ( (TEMP_DATA_W != DATA_W) || (TEMP_DATA_H != DATA_H) || (TEMP_DATA_D != DATA_D) )
+		{
+			printf("Input data has the dimensions %i x %i x %i, while the mask volume has the dimensions %i x %i x %i. Aborting! \n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+	}
 
 	// Get voxel sizes
 	EPI_VOXEL_SIZE_X = inputData->dx;
@@ -446,6 +503,55 @@ int main(int argc, char ** argv)
 	}
     
 
+	// Mask is provided by user
+	if (MASK)
+	{
+	    if ( inputMask->datatype == DT_SIGNED_SHORT )
+	    {
+	        short int *p = (short int*)inputMask->data;
+    
+	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        {
+	            h_EPI_Mask[i] = (float)p[i];
+	        }
+	    }
+	    else if ( inputMask->datatype == DT_UINT16 )
+	    {
+	        unsigned short int *p = (unsigned short int*)inputMask->data;
+    
+	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        	{
+	            h_EPI_Mask[i] = (float)p[i];
+	        }
+	    }
+	    else if ( inputMask->datatype == DT_FLOAT )
+	    {
+	        float *p = (float*)inputMask->data;
+    
+	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        	{
+	            h_EPI_Mask[i] = p[i];
+	        }
+	    }
+	    else if ( inputMask->datatype == DT_UINT8 )
+	    {
+    	    unsigned char *p = (unsigned char*)inputMask->data;
+    
+	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        {
+	            h_EPI_Mask[i] = (float)p[i];
+	        }
+	    }
+	    else
+	    {
+	        printf("Unknown data type in mask volume, aborting!\n");
+	        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+	    }
+	}
+
+
 	endTime = GetWallTime();
 
 	if (VERBOS)
@@ -573,6 +679,8 @@ int main(int argc, char ** argv)
         BROCCOLI.SetEPIDepth(DATA_D);
         BROCCOLI.SetEPITimepoints(DATA_T);  
 
+		BROCCOLI.SetAutoMask(AUTO_MASK);
+		BROCCOLI.SetZScore(Z_SCORE);
 
 		BROCCOLI.SetApplyMotionCorrection(APPLY_MOTION_CORRECTION);
 		BROCCOLI.SetImageRegistrationFilterSize(MOTION_CORRECTION_FILTER_SIZE);
@@ -588,11 +696,12 @@ int main(int argc, char ** argv)
 		BROCCOLI.SetAllocatedHostMemory(allocatedHostMemory);
           
 		BROCCOLI.SetVarianceToSaveBeforeICA(PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA);                  
-		//BROCCOLI.SetNumberOfICAComponents(NUMBER_OF_ICA_COMPONENTS);
+		BROCCOLI.SetNumberOfICAComponents(NUMBER_OF_ICA_COMPONENTS);
    
         // Run the actual ICA
 		startTime = GetWallTime();        
 		BROCCOLI.PerformICACPUWrapper();
+		//BROCCOLI.PerformICAWrapper();
 		endTime = GetWallTime();
 
 		if (VERBOS)

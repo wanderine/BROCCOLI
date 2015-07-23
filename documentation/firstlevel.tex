@@ -29,6 +29,33 @@ NumEvents 8
 280.457018      1.367038        1
 308.66593       2.084071        1
 \end{verbatim}
+The regressors can also be raw, in the sense that you instead directly provide the value for each volume / time point in the fMRI data. A regressor file for an fMRI dataset with 8 volumes should then look like
+
+\begin{verbatim}
+0.3
+0.5
+1.0
+1.0
+1.0
+2.0
+3.1
+2.2
+\end{verbatim}
+where each row represents the value of the regressor for that volume / time point. The number of rows must therefore be equal to the number of volumes / time points. It is also possible to give the whole design matrix as a single text file, it can for example look like
+\begin{verbatim}
+NumRegressors 3
+
+1.0 0.5377  -0.1241	
+1.0 1.8339  1.4897
+1.0 -2.2588 1.4090
+1.0 0.8622  1.4172
+1.0 0.3188  0.6715
+1.0 -1.3077 -1.2075	
+1.0 -0.4336  0.7172
+1.0 0.3426  1.6302
+\end{verbatim}
+Note that it is necessary to include one regressor with only ones, to pick up the mean value of each time series. BROCCOLI will NOT remove the mean of the other regressors!
+
 contrasts.txt contains a list of all the contrasts for which BROCCOLI will calculate a volume with t-scores. An example is given by
 
 \begin{verbatim}
@@ -149,8 +176,20 @@ The following statistical options are available
 
 \begin{itemize}
 
+\item -preprocessingonly
+\newline \newline Only perform preprocessing, no GLM or regression is performed.
+
+\item -betasonly
+\newline \newline Only perform preprocessing and calculate beta values and contrasts, no t- or F-scores are calculated. Possible to use the options -regressmotion and -regressglobalmean.
+
+\item -regressonly
+\newline \newline Only perform preprocessing and regress nuisance variables, no beta values or contrasts are calculated. Regressor and contrast files are not needed. Possible to use the options -regressmotion and -regressglobalmean.
+
 \item -rawregressors
 \newline \newline Use raw regressors (FSL format, one line per volume/TR). These regressors will not be convolved with any hemodynamic response function.
+
+\item -rawdesignmatrix 
+\newline \newline Provide the design matrix in a single text file (FSL format, one regressor per column, one value per TR). These regressors will not be convolved with any hemodynamic response function. It is still possible to use the options -regressmotion and -regressglobalmean.
 
 \item -regressmotion 
 \newline \newline Add the 6 estimated motion parameters (3 for translation and 3 for rotation) to the design matrix, to further suppress the effect of head motion. The contrast vectors are automatically extended with zeros for these additional regressors. 
@@ -159,7 +198,7 @@ The following statistical options are available
 \newline \newline Include a regressor for the global mean in the design matrix. The contrast vectors are automatically extended with one zero for this additional regressor. 
  
 \item -temporalderivatives 
-\newline \newline Add one additional regressor for each original regressor; the temporal derivative of each regressor. This makes it possible to adjust for a small time difference between the original regressor and the time series in each voxel. The contrast vectors are automatically extended with zeros for these additional regressors.
+\newline \newline Add one additional regressor for each original regressor; the temporal derivative of each regressor. This makes it possible to adjust for a small time difference between the original regressor and the time series in each voxel. The contrast vectors are automatically extended with zeros for these additional regressors. Not possible to use for -rawdesignmatrix.
 
 \item -permute
 \newline \newline Run a permutation test after the conventional first level analysis. In each permutation, a random reshuffling of the fMRI volumes is performed to create a new set of null data. The statistical analysis is performed in each permutation, to empirically estimate the null distribution. 
@@ -188,22 +227,22 @@ The following statistical options are available
 The first level analysis results in beta weights, contrast estimates, t-scores and p-values (if the option -permute is used). For an analysis with 2 regressors, a total of 6 regressors will be used (the 2 original regressors and 4 detrending regressors). The beta weights for these regressors will be saved in the brain template space as
 
 \begin{verbatim}
-fMRI_beta_regressor1_MNI.nii 
-fMRI_beta_regressor2_MNI.nii 
-fMRI_beta_regressor3_MNI.nii 
-fMRI_beta_regressor4_MNI.nii 
-fMRI_beta_regressor5_MNI.nii 
-fMRI_beta_regressor6_MNI.nii 
+fMRI_beta_regressor001_MNI.nii 
+fMRI_beta_regressor002_MNI.nii 
+fMRI_beta_regressor003_MNI.nii 
+fMRI_beta_regressor004_MNI.nii 
+fMRI_beta_regressor005_MNI.nii 
+fMRI_beta_regressor006_MNI.nii 
 \end{verbatim}
 
 For each contrast, BROCCOLI will also store the contrast of parameter estimate (COPE) and the corresponding t-scores, e.g.
 
 \begin{verbatim}
-fMRI_cope_contrast1_MNI.nii  
-fMRI_cope_contrast2_MNI.nii  
+fMRI_cope_contrast001_MNI.nii  
+fMRI_cope_contrast002_MNI.nii  
 
-fMRI_tscores_contrast1_MNI.nii
-fMRI_tscores_contrast2_MNI.nii
+fMRI_tscores_contrast001_MNI.nii
+fMRI_tscores_contrast002_MNI.nii
 \end{verbatim}
 
 \section{Output options}

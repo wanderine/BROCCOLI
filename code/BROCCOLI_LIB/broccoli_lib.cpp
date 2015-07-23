@@ -44,6 +44,8 @@
 
 #include <opencl.h>
 
+#include <clBLAS.h>
+
 #include "broccoli_lib.h"
 
 #include <cstdlib>
@@ -169,6 +171,11 @@ void BROCCOLI_LIB::SetRawRegressors(bool raw)
 	RAW_REGRESSORS = raw;
 }
 
+void BROCCOLI_LIB::SetRawDesignMatrix(bool raw)
+{
+	RAW_DESIGNMATRIX = raw;
+}
+
 void BROCCOLI_LIB::SetCustomReferenceSlice(int slice)
 {
 	SLICE_CUSTOM_REF = slice;
@@ -225,6 +232,8 @@ void BROCCOLI_LIB::SetStartValues()
 	maxThreadsPerDimension[0] = 0;
 	maxThreadsPerDimension[1] = 0;
 	maxThreadsPerDimension[2] = 0;
+
+	
 
 	DEBUG = false;
 	WRAPPER = -1;
@@ -304,6 +313,7 @@ void BROCCOLI_LIB::SetStartValues()
 	REGRESS_CONFOUNDS = 0;
 	PERMUTE_FIRST_LEVEL = false;
 
+	Z_SCORE = false;
 	PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA = 80.0f;
 
 	NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS = 12;
@@ -316,7 +326,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	error = 0;
 
-	NUMBER_OF_OPENCL_KERNELS = 82;
+	NUMBER_OF_OPENCL_KERNELS = 87;
 
 	commandQueue = NULL;
 	program = NULL;
@@ -416,6 +426,8 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorAddVolume = 0;
 	createKernelErrorAddVolumes = 0;
 	createKernelErrorAddVolumesOverwrite = 0;
+	createKernelErrorSubtractVolumes = 0;
+	createKernelErrorSubtractVolumesOverwrite = 0;
 	createKernelErrorRemoveMean = 0;
 	createKernelErrorSetStartClusterIndices = 0;
 	createKernelErrorClusterizeScan = 0;
@@ -425,6 +437,9 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorCalculateLargestCluster = 0;
 	createKernelErrorCalculateTFCEValues = 0;
 	createKernelErrorTransformData = 0;
+	createKernelErrorGetSubMatrix = 0;
+	createKernelErrorPermuteMatrix = 0;
+	createKernelErrorIdentityMatrix = 0;
 	createKernelErrorCalculateBetaWeightsGLM = 0;
 	createKernelErrorCalculateBetaWeightsGLMSlice = 0;
 	createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice = 0;
@@ -499,6 +514,8 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorAddVolume = 0;
 	runKernelErrorAddVolumes = 0;
 	runKernelErrorAddVolumesOverwrite = 0;
+	runKernelErrorSubtractVolumes = 0;
+	runKernelErrorSubtractVolumesOverwrite = 0;
 	runKernelErrorRemoveMean = 0;
 	runKernelErrorSetStartClusterIndices = 0;
 	runKernelErrorClusterizeScan = 0;
@@ -508,6 +525,9 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorCalculateLargestCluster = 0;
 	runKernelErrorCalculateTFCEValues = 0;
 	runKernelErrorTransformData = 0;
+	runKernelErrorGetSubMatrix = 0;
+	runKernelErrorPermuteMatrix = 0;
+	runKernelErrorIdentityMatrix = 0;
 	runKernelErrorCalculateBetaWeightsGLM = 0;
 	runKernelErrorCalculateBetaWeightsGLMSlice = 0;
 	runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice = 0;
@@ -1497,12 +1517,17 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	MemsetKernel = clCreateKernel(OpenCLPrograms[3],"Memset",&createKernelErrorMemset);
 	MemsetIntKernel = clCreateKernel(OpenCLPrograms[3],"MemsetInt",&createKernelErrorMemsetInt);
 	MemsetFloat2Kernel = clCreateKernel(OpenCLPrograms[3],"MemsetFloat2",&createKernelErrorMemsetFloat2);
+	IdentityMatrixKernel = clCreateKernel(OpenCLPrograms[3],"IdentityMatrix",&createKernelErrorIdentityMatrix);
+	GetSubMatrixKernel = clCreateKernel(OpenCLPrograms[3],"GetSubMatrix",&createKernelErrorGetSubMatrix);
+	PermuteMatrixKernel = clCreateKernel(OpenCLPrograms[3],"PermuteMatrix",&createKernelErrorPermuteMatrix);
 	MultiplyVolumeKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolume",&createKernelErrorMultiplyVolume);
 	MultiplyVolumesKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
 	MultiplyVolumesOverwriteKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
 	AddVolumeKernel = clCreateKernel(OpenCLPrograms[3],"AddVolume",&createKernelErrorAddVolume);
 	AddVolumesKernel = clCreateKernel(OpenCLPrograms[3],"AddVolumes",&createKernelErrorAddVolumes);
 	AddVolumesOverwriteKernel = clCreateKernel(OpenCLPrograms[3],"AddVolumesOverwrite",&createKernelErrorAddVolumesOverwrite);
+	SubtractVolumesKernel = clCreateKernel(OpenCLPrograms[3],"SubtractVolumes",&createKernelErrorSubtractVolumes);
+	SubtractVolumesOverwriteKernel = clCreateKernel(OpenCLPrograms[3],"SubtractVolumesOverwrite",&createKernelErrorSubtractVolumesOverwrite);
 	RemoveMeanKernel = clCreateKernel(OpenCLPrograms[3],"RemoveMean",&createKernelErrorRemoveMean);
 
 	OpenCLKernels[21] = CalculateMagnitudesKernel;
@@ -1515,13 +1540,18 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[28] = MemsetKernel;
 	OpenCLKernels[29] = MemsetIntKernel;
 	OpenCLKernels[30] = MemsetFloat2Kernel;
-	OpenCLKernels[31] = MultiplyVolumeKernel;
-	OpenCLKernels[32] = MultiplyVolumesKernel;
-	OpenCLKernels[33] = MultiplyVolumesOverwriteKernel;
-	OpenCLKernels[34] = AddVolumeKernel;
-	OpenCLKernels[35] = AddVolumesKernel;
-	OpenCLKernels[36] = AddVolumesOverwriteKernel;
-	OpenCLKernels[37] = RemoveMeanKernel;
+	OpenCLKernels[31] = IdentityMatrixKernel;
+	OpenCLKernels[32] = GetSubMatrixKernel;
+	OpenCLKernels[33] = PermuteMatrixKernel;
+	OpenCLKernels[34] = MultiplyVolumeKernel;
+	OpenCLKernels[35] = MultiplyVolumesKernel;
+	OpenCLKernels[36] = MultiplyVolumesOverwriteKernel;
+	OpenCLKernels[37] = AddVolumeKernel;
+	OpenCLKernels[38] = AddVolumesKernel;
+	OpenCLKernels[39] = AddVolumesOverwriteKernel;
+	OpenCLKernels[40] = SubtractVolumesKernel;
+	OpenCLKernels[41] = SubtractVolumesOverwriteKernel;
+	OpenCLKernels[42] = RemoveMeanKernel;
 
 	// Interpolation kernels
 	InterpolateVolumeNearestLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeNearestLinear",&createKernelErrorInterpolateVolumeNearestLinear);
@@ -1531,28 +1561,28 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	InterpolateVolumeLinearNonLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeLinearNonLinear",&createKernelErrorInterpolateVolumeLinearNonLinear);
 	InterpolateVolumeCubicNonLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeCubicNonLinear",&createKernelErrorInterpolateVolumeCubicNonLinear);
 
-	OpenCLKernels[38] = InterpolateVolumeNearestLinearKernel;
-	OpenCLKernels[39] = InterpolateVolumeLinearLinearKernel;
-	OpenCLKernels[40] = InterpolateVolumeCubicLinearKernel;
-	OpenCLKernels[41] = InterpolateVolumeNearestNonLinearKernel;
-	OpenCLKernels[42] = InterpolateVolumeLinearNonLinearKernel;
-	OpenCLKernels[43] = InterpolateVolumeCubicNonLinearKernel;
+	OpenCLKernels[43] = InterpolateVolumeNearestLinearKernel;
+	OpenCLKernels[44] = InterpolateVolumeLinearLinearKernel;
+	OpenCLKernels[45] = InterpolateVolumeCubicLinearKernel;
+	OpenCLKernels[46] = InterpolateVolumeNearestNonLinearKernel;
+	OpenCLKernels[47] = InterpolateVolumeLinearNonLinearKernel;
+	OpenCLKernels[48] = InterpolateVolumeCubicNonLinearKernel;
 
 	RescaleVolumeLinearKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
 	RescaleVolumeCubicKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
 	RescaleVolumeNearestKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeNearest",&createKernelErrorRescaleVolumeNearest);
 
-	OpenCLKernels[44] = RescaleVolumeLinearKernel;
-	OpenCLKernels[45] = RescaleVolumeCubicKernel;
-	OpenCLKernels[46] = RescaleVolumeNearestKernel;
+	OpenCLKernels[49] = RescaleVolumeLinearKernel;
+	OpenCLKernels[50] = RescaleVolumeCubicKernel;
+	OpenCLKernels[51] = RescaleVolumeNearestKernel;
 
 	CopyT1VolumeToMNIKernel = clCreateKernel(OpenCLPrograms[1],"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
 	CopyEPIVolumeToT1Kernel = clCreateKernel(OpenCLPrograms[1],"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
 	CopyVolumeToNewKernel = clCreateKernel(OpenCLPrograms[1],"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
 
-	OpenCLKernels[47] = CopyT1VolumeToMNIKernel;
-	OpenCLKernels[48] = CopyEPIVolumeToT1Kernel;
-	OpenCLKernels[49] = CopyVolumeToNewKernel;
+	OpenCLKernels[52] = CopyT1VolumeToMNIKernel;
+	OpenCLKernels[53] = CopyEPIVolumeToT1Kernel;
+	OpenCLKernels[54] = CopyVolumeToNewKernel;
 
 	// Clusterize kernels	
 	SetStartClusterIndicesKernel = clCreateKernel(OpenCLPrograms[2],"SetStartClusterIndicesKernel",&createKernelErrorSetStartClusterIndices);
@@ -1565,15 +1595,15 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	CalculatePermutationPValuesVoxelLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesVoxelLevelInference",&createKernelErrorCalculatePermutationPValuesVoxelLevelInference);
 	CalculatePermutationPValuesClusterLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesClusterLevelInference",&createKernelErrorCalculatePermutationPValuesClusterLevelInference);
 
-	OpenCLKernels[50] = SetStartClusterIndicesKernel;
-	OpenCLKernels[51] = ClusterizeScanKernel;
-	OpenCLKernels[52] = ClusterizeRelabelKernel;
-	OpenCLKernels[53] = CalculateClusterSizesKernel;
-	OpenCLKernels[54] = CalculateClusterMassesKernel;
-	OpenCLKernels[55] = CalculateLargestClusterKernel;
-	OpenCLKernels[56] = CalculateTFCEValuesKernel;
-	OpenCLKernels[57] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
-	OpenCLKernels[58] = CalculatePermutationPValuesClusterLevelInferenceKernel;
+	OpenCLKernels[55] = SetStartClusterIndicesKernel;
+	OpenCLKernels[56] = ClusterizeScanKernel;
+	OpenCLKernels[57] = ClusterizeRelabelKernel;
+	OpenCLKernels[58] = CalculateClusterSizesKernel;
+	OpenCLKernels[59] = CalculateClusterMassesKernel;
+	OpenCLKernels[60] = CalculateLargestClusterKernel;
+	OpenCLKernels[61] = CalculateTFCEValuesKernel;
+	OpenCLKernels[62] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
+	OpenCLKernels[63] = CalculatePermutationPValuesClusterLevelInferenceKernel;
 
 	// Statistical kernels
 	CalculateBetaWeightsGLMKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
@@ -1594,28 +1624,28 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	RemoveLinearFitKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
 	RemoveLinearFitSliceKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFitSlice",&createKernelErrorRemoveLinearFitSlice);
 
-	OpenCLKernels[59] = CalculateBetaWeightsGLMKernel;
-	OpenCLKernels[60] = CalculateBetaWeightsGLMSliceKernel;
-	OpenCLKernels[61] = CalculateBetaWeightsAndContrastsGLMSliceKernel;
-	OpenCLKernels[62] = CalculateBetaWeightsGLMFirstLevelKernel;
-	OpenCLKernels[63] = CalculateGLMResidualsKernel;
-	OpenCLKernels[64] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-	OpenCLKernels[65] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-	OpenCLKernels[66] = CalculateStatisticalMapsGLMTTestKernel;
-	OpenCLKernels[67] = CalculateStatisticalMapsGLMFTestKernel;
-	OpenCLKernels[68] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
-	OpenCLKernels[69] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
-	OpenCLKernels[70] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
-	OpenCLKernels[71] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-	OpenCLKernels[72] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
-	OpenCLKernels[73] = TransformDataKernel;
-	OpenCLKernels[74] = RemoveLinearFitKernel;
-	OpenCLKernels[75] = RemoveLinearFitSliceKernel;
+	OpenCLKernels[64] = CalculateBetaWeightsGLMKernel;
+	OpenCLKernels[65] = CalculateBetaWeightsGLMSliceKernel;
+	OpenCLKernels[66] = CalculateBetaWeightsAndContrastsGLMSliceKernel;
+	OpenCLKernels[67] = CalculateBetaWeightsGLMFirstLevelKernel;
+	OpenCLKernels[68] = CalculateGLMResidualsKernel;
+	OpenCLKernels[69] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+	OpenCLKernels[70] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+	OpenCLKernels[71] = CalculateStatisticalMapsGLMTTestKernel;
+	OpenCLKernels[72] = CalculateStatisticalMapsGLMFTestKernel;
+	OpenCLKernels[73] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
+	OpenCLKernels[74] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+	OpenCLKernels[75] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
+	OpenCLKernels[76] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+	OpenCLKernels[77] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
+	OpenCLKernels[78] = TransformDataKernel;
+	OpenCLKernels[79] = RemoveLinearFitKernel;
+	OpenCLKernels[80] = RemoveLinearFitSliceKernel;
 
 	// Bayesian kernels
 	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(OpenCLPrograms[7],"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
 
-	OpenCLKernels[76] = CalculateStatisticalMapsGLMBayesianKernel;
+	OpenCLKernels[81] = CalculateStatisticalMapsGLMBayesianKernel;
 
 	// Whitening kernels	
 	EstimateAR4ModelsKernel = clCreateKernel(OpenCLPrograms[6],"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
@@ -1624,11 +1654,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	ApplyWhiteningAR4SliceKernel = clCreateKernel(OpenCLPrograms[6],"ApplyWhiteningAR4Slice",&createKernelErrorApplyWhiteningAR4Slice);
 	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(OpenCLPrograms[6],"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
 
-	OpenCLKernels[77] = EstimateAR4ModelsKernel;
-	OpenCLKernels[78] = EstimateAR4ModelsSliceKernel;
-	OpenCLKernels[79] = ApplyWhiteningAR4Kernel;
-	OpenCLKernels[80] = ApplyWhiteningAR4SliceKernel;
-	OpenCLKernels[81] = GeneratePermutedVolumesFirstLevelKernel;
+	OpenCLKernels[82] = EstimateAR4ModelsKernel;
+	OpenCLKernels[83] = EstimateAR4ModelsSliceKernel;
+	OpenCLKernels[84] = ApplyWhiteningAR4Kernel;
+	OpenCLKernels[85] = ApplyWhiteningAR4SliceKernel;
+	OpenCLKernels[86] = GeneratePermutedVolumesFirstLevelKernel;
 
 	OPENCL_INITIATED = true;
 
@@ -1761,161 +1791,175 @@ const char* BROCCOLI_LIB::GetOpenCLKernelName(int kernel)
 			return "MemsetFloat2";
 			break;
 		case 31:
-			return "MultiplyVolume";
+			return "IdentityMatrix";
 			break;
 		case 32:
-			return "MultiplyVolumes";
+			return "GetSubMatrix";
 			break;
 		case 33:
-			return "MultiplyVolumesOverwrite";
+			return "PermuteMatrix";
 			break;
 		case 34:
-			return "AddVolume";
+			return "MultiplyVolume";
 			break;
 		case 35:
-			return "AddVolumes";
+			return "MultiplyVolumes";
 			break;
 		case 36:
-			return "AddVolumesOverwrite";
+			return "MultiplyVolumesOverwrite";
 			break;
 		case 37:
+			return "AddVolume";
+			break;
+		case 38:
+			return "AddVolumes";
+			break;
+		case 39:
+			return "AddVolumesOverwrite";
+			break;
+		case 40:
+			return "SubtractVolumes";
+			break;
+		case 41:
+			return "SubtractVolumesOverwrite";
+			break;
+		case 42:
 			return "RemoveMean";
 			break;
 
-		case 38:
+		case 43:
 			return "InterpolateVolumeNearestLinear";
 			break;
-		case 39:
+		case 44:
 			return "InterpolateVolumeLinearLinear";
 			break;
-		case 40:
+		case 45:
 			return "InterpolateVolumeCubicLinear";
 			break;
-		case 41:
+		case 46:
 			return "InterpolateVolumeNearestNonLinear";
 			break;
-		case 42:
+		case 47:
 			return "InterpolateVolumeLinearNonLinear";
 			break;
-		case 43:
+		case 48:
 			return "InterpolateVolumeCubicNonLinear";
 			break;
-		case 44:
+		case 49:
 			return "RescaleVolumeLinear";
 			break;
-		case 45:
+		case 50:
 			return "RescaleVolumeCubic";
 			break;
-		case 46:
+		case 51:
 			return "RescaleVolumeNearest";
 			break;
-		case 47:
+		case 52:
 			return "CopyT1VolumeToMNI";
 			break;
-		case 48:
+		case 53:
 			return "CopyEPIVolumeToT1";
 			break;
-		case 49:
+		case 54:
 			return "CopyVolumeToNew";
 			break;
 		
-		case 50:
+		case 55:
 			return "SetStartClusterIndices";
 			break;
-		case 51:
+		case 56:
 			return "ClusterizeScan";
 			break;
-		case 52:
+		case 57:
 			return "ClusterizeRelabel";
 			break;
-		case 53:
+		case 58:
 			return "CalculateClusterSizes";
 			break;
-		case 54:
+		case 59:
 			return "CalculateClusterMasses";
 			break;
-		case 55:
+		case 60:
 			return "CalculateLargestCluster";
 			break;
-		case 56:
+		case 61:
 			return "CalculateTFCEValues";
 			break;
-		case 57:
+		case 62:
 			return "CalculatePermutationPValuesVoxelLevelInference";
 			break;
-		case 58:
+		case 63:
 			return "CalculatePermutationPValuesClusterLevelInference";
 			break;
 
-		case 59:
+		case 64:
 			return "CalculateBetaWeightsGLM";
 			break;
-		case 60:
+		case 65:
 			return "CalculateBetaWeightsGLMSlice";
 			break;
-		case 61:
+		case 66:
 			return "CalculateBetaWeightsAndContrastsGLMSlice";
 			break;
-		case 62:
+		case 67:
 			return "CalculateBetaWeightsGLMFirstLevel";
 			break;
-		case 63:
+		case 68:
 			return "CalculateGLMResiduals";
 			break;
-		case 64:
+		case 69:
 			return "CalculateStatisticalMapsGLMTTestFirstLevel";
 			break;
-		case 65:
+		case 70:
 			return "CalculateStatisticalMapsGLMFTestFirstLevel";
 			break;
-		case 66:
+		case 71:
 			return "CalculateStatisticalMapsGLMTTest";
 			break;
-		case 67:
+		case 72:
 			return "CalculateStatisticalMapsGLMFTest";
 			break;
-		case 68:
+		case 73:
 			return "CalculateStatisticalMapsGLMTTestFirstLevelPermutation";
 			break;
-		case 69:
+		case 74:
 			return "CalculateStatisticalMapsGLMFTestFirstLevelPermutation";
 			break;
-		case 70:
+		case 75:
 			return "CalculateStatisticalMapsGLMTTestSecondLevelPermutation";
 			break;
-		case 71:
+		case 76:
 			return "CalculateStatisticalMapsGLMFTestSecondLevelPermutation";
 			break;
-		case 72:
+		case 77:
 			return "CalculateStatisticalMapsMeanSecondLevelPermutation";
 			break;
-		case 73:
+		case 78:
 			return "TransformData";
 			break;
-		case 74:
+		case 79:
 			return "RemoveLinearFit";
 			break;
-		case 75:
+		case 80:
 			return "RemoveLinearFitSlice";
 			break;
 
-
-		case 76:
+		case 81:
 			return "CalculateStatisticalMapsGLMBayesian";
 			break;
-		case 77:
+		case 82:
 			return "EstimateAR4Models";
 			break;
-		case 78:
+		case 83:
 			return "EstimateAR4ModelsSlice";
 			break;
-		case 79:
+		case 84:
 			return "ApplyWhiteningAR4";
 			break;
-		case 80:
+		case 85:
 			return "ApplyWhiteningAR4Slice";
 			break;
-		case 81:
+		case 86:
 			return "GeneratePermutedVolumesFirstLevel";
 			break;
 
@@ -1960,62 +2004,67 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 	OpenCLCreateKernelErrors[28] = createKernelErrorMemset;
 	OpenCLCreateKernelErrors[29] = createKernelErrorMemsetInt;
 	OpenCLCreateKernelErrors[30] = createKernelErrorMemsetFloat2;
-	OpenCLCreateKernelErrors[31] = createKernelErrorMultiplyVolume;
-	OpenCLCreateKernelErrors[32] = createKernelErrorMultiplyVolumes;
-	OpenCLCreateKernelErrors[33] = createKernelErrorMultiplyVolumesOverwrite;
-	OpenCLCreateKernelErrors[34] = createKernelErrorAddVolume;
-	OpenCLCreateKernelErrors[35] = createKernelErrorAddVolumes;
-	OpenCLCreateKernelErrors[36] = createKernelErrorAddVolumesOverwrite;
-	OpenCLCreateKernelErrors[37] = createKernelErrorRemoveMean;
+	OpenCLCreateKernelErrors[31] = createKernelErrorIdentityMatrix;
+	OpenCLCreateKernelErrors[32] = createKernelErrorGetSubMatrix;
+	OpenCLCreateKernelErrors[33] = createKernelErrorPermuteMatrix;
+	OpenCLCreateKernelErrors[34] = createKernelErrorMultiplyVolume;
+	OpenCLCreateKernelErrors[35] = createKernelErrorMultiplyVolumes;
+	OpenCLCreateKernelErrors[36] = createKernelErrorMultiplyVolumesOverwrite;
+	OpenCLCreateKernelErrors[37] = createKernelErrorAddVolume;
+	OpenCLCreateKernelErrors[38] = createKernelErrorAddVolumes;
+	OpenCLCreateKernelErrors[39] = createKernelErrorAddVolumesOverwrite;
+	OpenCLCreateKernelErrors[40] = createKernelErrorSubtractVolumes;
+	OpenCLCreateKernelErrors[41] = createKernelErrorSubtractVolumesOverwrite;
+	OpenCLCreateKernelErrors[42] = createKernelErrorRemoveMean;
 
-	OpenCLCreateKernelErrors[38] = createKernelErrorInterpolateVolumeNearestLinear;
-	OpenCLCreateKernelErrors[39] = createKernelErrorInterpolateVolumeLinearLinear;
-	OpenCLCreateKernelErrors[40] = createKernelErrorInterpolateVolumeCubicLinear;
-	OpenCLCreateKernelErrors[41] = createKernelErrorInterpolateVolumeNearestNonLinear;
-	OpenCLCreateKernelErrors[42] = createKernelErrorInterpolateVolumeLinearNonLinear;
-	OpenCLCreateKernelErrors[43] = createKernelErrorInterpolateVolumeCubicNonLinear;
-	OpenCLCreateKernelErrors[44] = createKernelErrorRescaleVolumeLinear;
-	OpenCLCreateKernelErrors[45] = createKernelErrorRescaleVolumeCubic;
-	OpenCLCreateKernelErrors[46] = createKernelErrorRescaleVolumeNearest;
-	OpenCLCreateKernelErrors[47] = createKernelErrorCopyT1VolumeToMNI;
-	OpenCLCreateKernelErrors[48] = createKernelErrorCopyEPIVolumeToT1;
-	OpenCLCreateKernelErrors[49] = createKernelErrorCopyVolumeToNew;
+	OpenCLCreateKernelErrors[43] = createKernelErrorInterpolateVolumeNearestLinear;
+	OpenCLCreateKernelErrors[44] = createKernelErrorInterpolateVolumeLinearLinear;
+	OpenCLCreateKernelErrors[45] = createKernelErrorInterpolateVolumeCubicLinear;
+	OpenCLCreateKernelErrors[46] = createKernelErrorInterpolateVolumeNearestNonLinear;
+	OpenCLCreateKernelErrors[47] = createKernelErrorInterpolateVolumeLinearNonLinear;
+	OpenCLCreateKernelErrors[48] = createKernelErrorInterpolateVolumeCubicNonLinear;
+	OpenCLCreateKernelErrors[49] = createKernelErrorRescaleVolumeLinear;
+	OpenCLCreateKernelErrors[50] = createKernelErrorRescaleVolumeCubic;
+	OpenCLCreateKernelErrors[51] = createKernelErrorRescaleVolumeNearest;
+	OpenCLCreateKernelErrors[52] = createKernelErrorCopyT1VolumeToMNI;
+	OpenCLCreateKernelErrors[53] = createKernelErrorCopyEPIVolumeToT1;
+	OpenCLCreateKernelErrors[54] = createKernelErrorCopyVolumeToNew;
 
-	OpenCLCreateKernelErrors[50] = createKernelErrorSetStartClusterIndices;
-	OpenCLCreateKernelErrors[51] = createKernelErrorClusterizeScan;
-	OpenCLCreateKernelErrors[52] = createKernelErrorClusterizeRelabel;
-	OpenCLCreateKernelErrors[53] = createKernelErrorCalculateClusterSizes;
-	OpenCLCreateKernelErrors[54] = createKernelErrorCalculateClusterMasses;
-	OpenCLCreateKernelErrors[55] = createKernelErrorCalculateLargestCluster;
-	OpenCLCreateKernelErrors[56] = createKernelErrorCalculateTFCEValues;
-	OpenCLCreateKernelErrors[57] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLCreateKernelErrors[58] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLCreateKernelErrors[55] = createKernelErrorSetStartClusterIndices;
+	OpenCLCreateKernelErrors[56] = createKernelErrorClusterizeScan;
+	OpenCLCreateKernelErrors[57] = createKernelErrorClusterizeRelabel;
+	OpenCLCreateKernelErrors[58] = createKernelErrorCalculateClusterSizes;
+	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateClusterMasses;
+	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateLargestCluster;
+	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateTFCEValues;
+	OpenCLCreateKernelErrors[62] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLCreateKernelErrors[63] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
-	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateBetaWeightsGLM;
-	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
-	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLCreateKernelErrors[63] = createKernelErrorCalculateGLMResiduals;
-	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[71] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[72] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLCreateKernelErrors[73] = createKernelErrorTransformData;
-	OpenCLCreateKernelErrors[74] = createKernelErrorRemoveLinearFit;
-	OpenCLCreateKernelErrors[75] = createKernelErrorRemoveLinearFitSlice;
+	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateBetaWeightsGLM;
+	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateBetaWeightsGLMSlice;
+	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateGLMResiduals;
+	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLCreateKernelErrors[71] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[72] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[73] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[74] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[75] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[76] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[77] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLCreateKernelErrors[78] = createKernelErrorTransformData;
+	OpenCLCreateKernelErrors[79] = createKernelErrorRemoveLinearFit;
+	OpenCLCreateKernelErrors[80] = createKernelErrorRemoveLinearFitSlice;
 
-	OpenCLCreateKernelErrors[76] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLCreateKernelErrors[81] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLCreateKernelErrors[77] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[78] = createKernelErrorEstimateAR4ModelsSlice;
-	OpenCLCreateKernelErrors[79] = createKernelErrorApplyWhiteningAR4;
-	OpenCLCreateKernelErrors[80] = createKernelErrorApplyWhiteningAR4Slice;
-	OpenCLCreateKernelErrors[81] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLCreateKernelErrors[82] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[83] = createKernelErrorEstimateAR4ModelsSlice;
+	OpenCLCreateKernelErrors[84] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[85] = createKernelErrorApplyWhiteningAR4Slice;
+	OpenCLCreateKernelErrors[86] = createKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLCreateKernelErrors;
 }
@@ -2056,62 +2105,67 @@ int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
 	OpenCLRunKernelErrors[28] = runKernelErrorMemset;
 	OpenCLRunKernelErrors[29] = runKernelErrorMemsetInt;
 	OpenCLRunKernelErrors[30] = runKernelErrorMemsetFloat2;
-	OpenCLRunKernelErrors[31] = runKernelErrorMultiplyVolume;
-	OpenCLRunKernelErrors[32] = runKernelErrorMultiplyVolumes;
-	OpenCLRunKernelErrors[33] = runKernelErrorMultiplyVolumesOverwrite;
-	OpenCLRunKernelErrors[34] = runKernelErrorAddVolume;
-	OpenCLRunKernelErrors[35] = runKernelErrorAddVolumes;
-	OpenCLRunKernelErrors[36] = runKernelErrorAddVolumesOverwrite;
-	OpenCLRunKernelErrors[37] = runKernelErrorRemoveMean;
+	OpenCLRunKernelErrors[31] = runKernelErrorIdentityMatrix;
+	OpenCLRunKernelErrors[32] = runKernelErrorGetSubMatrix;
+	OpenCLRunKernelErrors[33] = runKernelErrorPermuteMatrix;
+	OpenCLRunKernelErrors[34] = runKernelErrorMultiplyVolume;
+	OpenCLRunKernelErrors[35] = runKernelErrorMultiplyVolumes;
+	OpenCLRunKernelErrors[36] = runKernelErrorMultiplyVolumesOverwrite;
+	OpenCLRunKernelErrors[37] = runKernelErrorAddVolume;
+	OpenCLRunKernelErrors[38] = runKernelErrorAddVolumes;
+	OpenCLRunKernelErrors[39] = runKernelErrorAddVolumesOverwrite;
+	OpenCLRunKernelErrors[40] = runKernelErrorSubtractVolumes;
+	OpenCLRunKernelErrors[41] = runKernelErrorSubtractVolumesOverwrite;
+	OpenCLRunKernelErrors[42] = runKernelErrorRemoveMean;
 
-	OpenCLRunKernelErrors[38] = runKernelErrorInterpolateVolumeNearestLinear;
-	OpenCLRunKernelErrors[39] = runKernelErrorInterpolateVolumeLinearLinear;
-	OpenCLRunKernelErrors[40] = runKernelErrorInterpolateVolumeCubicLinear;
-	OpenCLRunKernelErrors[41] = runKernelErrorInterpolateVolumeNearestNonLinear;
-	OpenCLRunKernelErrors[42] = runKernelErrorInterpolateVolumeLinearNonLinear;
-	OpenCLRunKernelErrors[43] = runKernelErrorInterpolateVolumeCubicNonLinear;
-	OpenCLRunKernelErrors[44] = runKernelErrorRescaleVolumeLinear;
-	OpenCLRunKernelErrors[45] = runKernelErrorRescaleVolumeCubic;
-	OpenCLRunKernelErrors[46] = runKernelErrorRescaleVolumeNearest;
-	OpenCLRunKernelErrors[47] = runKernelErrorCopyT1VolumeToMNI;
-	OpenCLRunKernelErrors[48] = runKernelErrorCopyEPIVolumeToT1;
-	OpenCLRunKernelErrors[49] = runKernelErrorCopyVolumeToNew;
+	OpenCLRunKernelErrors[43] = runKernelErrorInterpolateVolumeNearestLinear;
+	OpenCLRunKernelErrors[44] = runKernelErrorInterpolateVolumeLinearLinear;
+	OpenCLRunKernelErrors[45] = runKernelErrorInterpolateVolumeCubicLinear;
+	OpenCLRunKernelErrors[46] = runKernelErrorInterpolateVolumeNearestNonLinear;
+	OpenCLRunKernelErrors[47] = runKernelErrorInterpolateVolumeLinearNonLinear;
+	OpenCLRunKernelErrors[48] = runKernelErrorInterpolateVolumeCubicNonLinear;
+	OpenCLRunKernelErrors[49] = runKernelErrorRescaleVolumeLinear;
+	OpenCLRunKernelErrors[50] = runKernelErrorRescaleVolumeCubic;
+	OpenCLRunKernelErrors[51] = runKernelErrorRescaleVolumeNearest;
+	OpenCLRunKernelErrors[52] = runKernelErrorCopyT1VolumeToMNI;
+	OpenCLRunKernelErrors[53] = runKernelErrorCopyEPIVolumeToT1;
+	OpenCLRunKernelErrors[54] = runKernelErrorCopyVolumeToNew;
 
-	OpenCLRunKernelErrors[50] = runKernelErrorSetStartClusterIndices;
-	OpenCLRunKernelErrors[51] = runKernelErrorClusterizeScan;
-	OpenCLRunKernelErrors[52] = runKernelErrorClusterizeRelabel;
-	OpenCLRunKernelErrors[53] = runKernelErrorCalculateClusterSizes;
-	OpenCLRunKernelErrors[54] = runKernelErrorCalculateClusterMasses;
-	OpenCLRunKernelErrors[55] = runKernelErrorCalculateLargestCluster;
-	OpenCLRunKernelErrors[56] = runKernelErrorCalculateTFCEValues;
-	OpenCLRunKernelErrors[57] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLRunKernelErrors[58] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLRunKernelErrors[55] = runKernelErrorSetStartClusterIndices;
+	OpenCLRunKernelErrors[56] = runKernelErrorClusterizeScan;
+	OpenCLRunKernelErrors[57] = runKernelErrorClusterizeRelabel;
+	OpenCLRunKernelErrors[58] = runKernelErrorCalculateClusterSizes;
+	OpenCLRunKernelErrors[59] = runKernelErrorCalculateClusterMasses;
+	OpenCLRunKernelErrors[60] = runKernelErrorCalculateLargestCluster;
+	OpenCLRunKernelErrors[61] = runKernelErrorCalculateTFCEValues;
+	OpenCLRunKernelErrors[62] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLRunKernelErrors[63] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
-	OpenCLRunKernelErrors[59] = runKernelErrorCalculateBetaWeightsGLM;
-	OpenCLRunKernelErrors[60] = runKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLRunKernelErrors[61] = runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
-	OpenCLRunKernelErrors[62] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLRunKernelErrors[63] = runKernelErrorCalculateGLMResiduals;
-	OpenCLRunKernelErrors[64] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLRunKernelErrors[65] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLRunKernelErrors[66] = runKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLRunKernelErrors[67] = runKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLRunKernelErrors[68] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[71] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[72] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLRunKernelErrors[73] = runKernelErrorTransformData;
-	OpenCLRunKernelErrors[74] = runKernelErrorRemoveLinearFit;
-	OpenCLRunKernelErrors[75] = runKernelErrorRemoveLinearFitSlice;
+	OpenCLRunKernelErrors[64] = runKernelErrorCalculateBetaWeightsGLM;
+	OpenCLRunKernelErrors[65] = runKernelErrorCalculateBetaWeightsGLMSlice;
+	OpenCLRunKernelErrors[66] = runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLRunKernelErrors[67] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLRunKernelErrors[68] = runKernelErrorCalculateGLMResiduals;
+	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLRunKernelErrors[71] = runKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLRunKernelErrors[72] = runKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLRunKernelErrors[73] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[74] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[75] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[76] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[77] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLRunKernelErrors[78] = runKernelErrorTransformData;
+	OpenCLRunKernelErrors[79] = runKernelErrorRemoveLinearFit;
+	OpenCLRunKernelErrors[80] = runKernelErrorRemoveLinearFitSlice;
 
-	OpenCLRunKernelErrors[76] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLRunKernelErrors[81] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLRunKernelErrors[77] = runKernelErrorEstimateAR4Models;
-	OpenCLRunKernelErrors[78] = runKernelErrorEstimateAR4ModelsSlice;
-	OpenCLRunKernelErrors[79] = runKernelErrorApplyWhiteningAR4;
-	OpenCLRunKernelErrors[80] = runKernelErrorApplyWhiteningAR4Slice;
-	OpenCLRunKernelErrors[81] = runKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLRunKernelErrors[82] = runKernelErrorEstimateAR4Models;
+	OpenCLRunKernelErrors[83] = runKernelErrorEstimateAR4ModelsSlice;
+	OpenCLRunKernelErrors[84] = runKernelErrorApplyWhiteningAR4;
+	OpenCLRunKernelErrors[85] = runKernelErrorApplyWhiteningAR4Slice;
+	OpenCLRunKernelErrors[86] = runKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLRunKernelErrors;
 }
@@ -3165,6 +3219,11 @@ void BROCCOLI_LIB::SetEPIMask(float* data)
 void BROCCOLI_LIB::SetAutoMask(bool mask)
 {
 	AUTO_MASK = mask;
+}
+
+void BROCCOLI_LIB::SetZScore(bool value)
+{
+	Z_SCORE = value;
 }
 
 void BROCCOLI_LIB::SetSmoothedEPIMask(float* data)
@@ -7006,6 +7065,22 @@ void BROCCOLI_LIB::MultiplyVolume(cl_mem d_Volume, float factor, int DATA_W, int
 	clFinish(commandQueue);
 }
 
+// Multiplies all values in an array with a factor
+void BROCCOLI_LIB::MultiplyArray(cl_mem d_Array, float factor, int N)
+{
+	SetGlobalAndLocalWorkSizesMultiplyVolumes(N, 1, 1);
+
+	int one = 1;
+	clSetKernelArg(MultiplyVolumeKernel, 0, sizeof(cl_mem), &d_Array);
+	clSetKernelArg(MultiplyVolumeKernel, 1, sizeof(float), &factor);
+	clSetKernelArg(MultiplyVolumeKernel, 2, sizeof(int), &N);
+	clSetKernelArg(MultiplyVolumeKernel, 3, sizeof(int), &one);
+	clSetKernelArg(MultiplyVolumeKernel, 4, sizeof(int), &one);
+
+	runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumeKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
+
 // Multiplies two volumes and saves result in a third volume
 void BROCCOLI_LIB::MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D)
 {
@@ -7019,6 +7094,24 @@ void BROCCOLI_LIB::MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_
 	clSetKernelArg(MultiplyVolumesKernel, 5, sizeof(int), &DATA_D);
 
 	runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
+
+// Multiplies two arrays and overwrites first array
+void BROCCOLI_LIB::MultiplyArrays(cl_mem d_Array_1, cl_mem d_Array_2, int N)
+{
+	SetGlobalAndLocalWorkSizesMultiplyVolumes(N, 1, 1);
+
+	int zero = 0;
+	int one = 1;
+	clSetKernelArg(MultiplyVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Array_1);
+	clSetKernelArg(MultiplyVolumesOverwriteKernel, 1, sizeof(cl_mem), &d_Array_2);
+	clSetKernelArg(MultiplyVolumesOverwriteKernel, 2, sizeof(int), &N);
+	clSetKernelArg(MultiplyVolumesOverwriteKernel, 3, sizeof(int), &one);
+	clSetKernelArg(MultiplyVolumesOverwriteKernel, 4, sizeof(int), &one);
+	clSetKernelArg(MultiplyVolumesOverwriteKernel, 5, sizeof(int), &zero);
+
+	runKernelErrorMultiplyVolumes = clEnqueueNDRangeKernel(commandQueue, MultiplyVolumesOverwriteKernel, 3, NULL, globalWorkSizeMultiplyVolumes, localWorkSizeMultiplyVolumes, 0, NULL, NULL);
 	clFinish(commandQueue);
 }
 
@@ -7100,10 +7193,68 @@ void BROCCOLI_LIB::AddVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, 
 	clSetKernelArg(AddVolumesOverwriteKernel, 3, sizeof(int), &DATA_H);
 	clSetKernelArg(AddVolumesOverwriteKernel, 4, sizeof(int), &DATA_D);
 
-	runKernelErrorAddVolumes = clEnqueueNDRangeKernel(commandQueue, AddVolumesOverwriteKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	runKernelErrorAddVolumesOverwrite = clEnqueueNDRangeKernel(commandQueue, AddVolumesOverwriteKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
 	clFinish(commandQueue);
 }
 
+// Subtract values in second array, overwrites the first array
+void BROCCOLI_LIB::SubtractArrays(cl_mem d_Array_1, cl_mem d_Array_2, int N)
+{
+	SetGlobalAndLocalWorkSizesAddVolumes(N, 1, 1);
+	int one = 1;
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Array_1);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 1, sizeof(cl_mem), &d_Array_2);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 2, sizeof(int), &N);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 3, sizeof(int), &one);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 4, sizeof(int), &one);
+
+	runKernelErrorSubtractVolumes = clEnqueueNDRangeKernel(commandQueue, SubtractVolumesOverwriteKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
+
+
+// Subtracts two volumes and saves as a third volume
+void BROCCOLI_LIB::SubtractVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D)
+{
+	SetGlobalAndLocalWorkSizesAddVolumes(DATA_W, DATA_H, DATA_D);
+
+	clSetKernelArg(SubtractVolumesKernel, 0, sizeof(cl_mem), &d_Result);
+	clSetKernelArg(SubtractVolumesKernel, 1, sizeof(cl_mem), &d_Volume_1);
+	clSetKernelArg(SubtractVolumesKernel, 2, sizeof(cl_mem), &d_Volume_2);
+	clSetKernelArg(SubtractVolumesKernel, 3, sizeof(int), &DATA_W);
+	clSetKernelArg(SubtractVolumesKernel, 4, sizeof(int), &DATA_H);
+	clSetKernelArg(SubtractVolumesKernel, 5, sizeof(int), &DATA_D);
+
+	runKernelErrorSubtractVolumes = clEnqueueNDRangeKernel(commandQueue, SubtractVolumesKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
+
+// Subtracts two volumes and overwrites the first volume
+void BROCCOLI_LIB::SubtractVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D)
+{
+	SetGlobalAndLocalWorkSizesAddVolumes(DATA_W, DATA_H, DATA_D);
+
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 0, sizeof(cl_mem), &d_Volume_1);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 1, sizeof(cl_mem), &d_Volume_2);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 2, sizeof(int), &DATA_W);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 3, sizeof(int), &DATA_H);
+	clSetKernelArg(SubtractVolumesOverwriteKernel, 4, sizeof(int), &DATA_D);
+
+	runKernelErrorSubtractVolumesOverwrite = clEnqueueNDRangeKernel(commandQueue, SubtractVolumesOverwriteKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
+
+
+void BROCCOLI_LIB::IdentityMatrix(cl_mem d_Matrix, int N)
+{
+	SetGlobalAndLocalWorkSizesAddVolumes(N, N, 1);
+
+	clSetKernelArg(IdentityMatrixKernel, 0, sizeof(cl_mem), &d_Matrix);
+	clSetKernelArg(IdentityMatrixKernel, 1, sizeof(int), &N);
+
+	runKernelErrorIdentityMatrix = clEnqueueNDRangeKernel(commandQueue, IdentityMatrixKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
 
 
 // Not fully optimized, T1 is of MNI size
@@ -8497,6 +8648,33 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			}
 		}	
 
+		// Normalize residuals to have unit variance (the mean has already been removed)
+		for (int x = 0; x < EPI_DATA_W; x++)
+		{
+			for (int y = 0; y < EPI_DATA_H; y++)
+			{
+				for (int z = 0; z < EPI_DATA_D; z++)
+				{
+					float var = 0.0f;
+					for (int t = 0; t < EPI_DATA_T; t++)
+					{
+						float value = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+						var += value * value;
+					}
+					var = var /(float)(EPI_DATA_T-1);
+					float std = sqrt(var);
+
+					if (var != 0.0f)
+					{
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] /= std;
+						}
+					}
+				}
+			}
+		}
+
 		TransformResidualsToMNI();
 
 		// Cleanup host memory
@@ -9853,6 +10031,37 @@ float BROCCOLI_LIB::CalculateMax(cl_mem d_Volume, int DATA_W, int DATA_H, int DA
 }
 
 
+
+// Ugly way of calculating max of floats, since there is no atomic function for floats
+float BROCCOLI_LIB::CalculateMaxAtomic(cl_mem d_Array, int N)
+{
+	SetGlobalAndLocalWorkSizesCalculateMax(N, 1, 1);
+
+	cl_mem d_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, N * sizeof(float), NULL, NULL);
+	SetMemory(d_Mask, 0.0f, N);
+
+	cl_mem d_Max_Value = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(int), NULL, NULL);
+	SetMemory(d_Max_Value, -1000000, 1);
+
+	int one = 1;
+	clSetKernelArg(CalculateMaxAtomicKernel, 0, sizeof(cl_mem), &d_Max_Value);
+	clSetKernelArg(CalculateMaxAtomicKernel, 1, sizeof(cl_mem), &d_Array);
+	clSetKernelArg(CalculateMaxAtomicKernel, 2, sizeof(cl_mem), &d_Mask);
+	clSetKernelArg(CalculateMaxAtomicKernel, 3, sizeof(int), &N);
+	clSetKernelArg(CalculateMaxAtomicKernel, 4, sizeof(int), &one);
+	clSetKernelArg(CalculateMaxAtomicKernel, 5, sizeof(int), &one);
+
+	runKernelErrorCalculateMaxAtomic = clEnqueueNDRangeKernel(commandQueue, CalculateMaxAtomicKernel, 3, NULL, globalWorkSizeCalculateMaxAtomic, localWorkSizeCalculateMaxAtomic, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	int max;
+	clEnqueueReadBuffer(commandQueue, d_Max_Value, CL_TRUE, 0, sizeof(int), &max, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Mask);
+	clReleaseMemObject(d_Max_Value);
+
+	return (float)((float)max/10000.0f);
+}
 
 
 // Ugly way of calculating max of floats, since there is no atomic function for floats
@@ -15497,7 +15706,14 @@ void BROCCOLI_LIB::DemeanRegressor(Eigen::VectorXd& Regressor, int N)
 Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 {
 	// Calculate total number of regressors
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	if (!RAW_DESIGNMATRIX)
+	{
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+	}
+	else
+	{
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN;
+	}
 
 	// Create detrending regressors
 	Eigen::VectorXd Ones(N,1);
@@ -15535,18 +15751,18 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 	if (!REGRESS_ONLY)
 	{
 		// Create temporal derivatives if requested and then convolve all regressors with HRF
-		if (USE_TEMPORAL_DERIVATIVES && !RAW_REGRESSORS)
+		if (USE_TEMPORAL_DERIVATIVES && !RAW_REGRESSORS && !RAW_DESIGNMATRIX)
 		{
 			GenerateRegressorTemporalDerivatives(h_X_GLM_With_Temporal_Derivatives, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
 			ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_With_Temporal_Derivatives, N, NUMBER_OF_GLM_REGRESSORS*2);
 		}
 		// Convolve regressors with HRF
-		else if (!RAW_REGRESSORS)
+		else if (!RAW_REGRESSORS && !RAW_DESIGNMATRIX)
 		{
 			ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
 		}
 		// Just copy raw regressors
-		else if (RAW_REGRESSORS)
+		else if (RAW_REGRESSORS || RAW_DESIGNMATRIX)
 		{
 			// Loop over samples
 			for (int i = 0; i < N; i++)
@@ -15573,12 +15789,15 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 		}
 
 		// Detrending regressors
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) = Ones(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) = Linear(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) = Quadratic(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) = Cubic(i);
+		if (!RAW_DESIGNMATRIX)
+		{
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) = Ones(i);
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) = Linear(i);
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) = Quadratic(i);
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) = Cubic(i);
+		}
 
-		if (REGRESS_MOTION)
+		if (REGRESS_MOTION && !RAW_DESIGNMATRIX)
 		{
 			// Motion regressors
 			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) = h_Motion_Parameters[i + 0 * N];
@@ -15588,13 +15807,27 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) = h_Motion_Parameters[i + 4 * N];
 			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) = h_Motion_Parameters[i + 5 * N];
 		}
+		else if (REGRESS_MOTION && RAW_DESIGNMATRIX)
+		{
+			// Motion regressors
+			X(i,NUMBER_OF_GLM_REGRESSORS + 0) = h_Motion_Parameters[i + 0 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS + 1) = h_Motion_Parameters[i + 1 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS + 2) = h_Motion_Parameters[i + 2 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS + 3) = h_Motion_Parameters[i + 3 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS + 4) = h_Motion_Parameters[i + 4 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS + 5) = h_Motion_Parameters[i + 5 * N];
+		}
 
-		if (REGRESS_GLOBALMEAN)
+		if (REGRESS_GLOBALMEAN && !RAW_DESIGNMATRIX)
 		{
 			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) = (double)h_Global_Mean[i];
 		}
+		else if (REGRESS_GLOBALMEAN && RAW_DESIGNMATRIX)
+		{
+			X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) = (double)h_Global_Mean[i];
+		}
 
-		if (REGRESS_CONFOUNDS)
+		if (REGRESS_CONFOUNDS && !RAW_DESIGNMATRIX)
 		{
 			// Confounding regressors
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
@@ -15605,12 +15838,26 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 	}
 
 	// Calculate which regressor contains only ones
-	int MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1);
-
-	// Demean regressors
-	for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+	if (!RAW_DESIGNMATRIX)
 	{
-		if (r != MEAN_REGRESSOR)
+		int MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1);
+
+		// Demean regressors
+		for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+		{
+			if (r != MEAN_REGRESSOR)
+			{
+				Eigen::VectorXd regressor = X.block(0,r,N,1);
+				DemeanRegressor(regressor,N);
+				X.block(0,r,N,1) = regressor;
+			}
+		}
+	}
+	// Remove mean from motion regressors and global mean
+	else
+	{
+		// Demean regressors
+		for (int r = NUMBER_OF_GLM_REGRESSORS; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
 		{
 			Eigen::VectorXd regressor = X.block(0,r,N,1);
 			DemeanRegressor(regressor,N);
@@ -15633,13 +15880,16 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			h_X_GLM[i + r * N] = X(i,r);
 		}
 
-		// Detrending regressors
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3);
+		if (!RAW_DESIGNMATRIX)
+		{
+			// Detrending regressors
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3);
+		}
 
-		if (REGRESS_MOTION)
+		if (REGRESS_MOTION && !RAW_DESIGNMATRIX)
 		{
 			// Motion regressors
 			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0);
@@ -15649,13 +15899,28 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4);
 			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5);
 		}
+		else if (REGRESS_MOTION && RAW_DESIGNMATRIX)
+		{
+			// Motion regressors
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 0);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 1);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 2);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 3);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 4) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 4);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + 5);
+		}
 
-		if (REGRESS_GLOBALMEAN)
+
+		if (REGRESS_GLOBALMEAN && !RAW_DESIGNMATRIX)
 		{
 			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION);
 		}
+		else if (REGRESS_GLOBALMEAN && RAW_DESIGNMATRIX)
+		{
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION);
+		}
 
-		if (REGRESS_CONFOUNDS)
+		if (REGRESS_CONFOUNDS && !RAW_DESIGNMATRIX)
 		{
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
 			{
@@ -15669,13 +15934,16 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			h_xtxxt_GLM[i + r * N] = (float)xtxxt(r,i);
 		}
 
-		// Detrending regressors
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3,i);
+		if (!RAW_DESIGNMATRIX)
+		{
+			// Detrending regressors
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3,i);
+		}
 
-		if (REGRESS_MOTION)
+		if (REGRESS_MOTION && !RAW_DESIGNMATRIX)
 		{
 			// Motion regressors
 			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0,i);
@@ -15685,13 +15953,28 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4,i);
 			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5,i);
 		}
+		else if (REGRESS_MOTION && RAW_DESIGNMATRIX)
+		{
+			// Motion regressors
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 0,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 1,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 2,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 3,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 4) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 4,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + 5,i);
+		}
 
-		if (REGRESS_GLOBALMEAN)
+		if (REGRESS_GLOBALMEAN && !RAW_DESIGNMATRIX)
 		{
 			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION,i);
 		}
+		else if (REGRESS_GLOBALMEAN && RAW_DESIGNMATRIX)
+		{
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION,i);
+		}
 
-		if (REGRESS_CONFOUNDS)
+
+		if (REGRESS_CONFOUNDS && !RAW_DESIGNMATRIX)
 		{
 			// Confounding regressors
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
@@ -16518,7 +16801,7 @@ float BROCCOLI_LIB::CalculateMin(float *data, int N)
 	return min;
 }
 
-void BROCCOLI_LIB::ResetMatrix(Eigen::MatrixXd & matrix)
+void BROCCOLI_LIB::ResetEigenMatrix(Eigen::MatrixXd & matrix)
 {
 	int NUMBER_OF_COLUMNS = matrix.cols();
 	int NUMBER_OF_ROWS = matrix.rows();
@@ -16532,7 +16815,7 @@ void BROCCOLI_LIB::ResetMatrix(Eigen::MatrixXd & matrix)
 	}
 }
 
-void BROCCOLI_LIB::IdentityMatrix(Eigen::MatrixXd & matrix)
+void BROCCOLI_LIB::IdentityEigenMatrix(Eigen::MatrixXd & matrix)
 {
 	int NUMBER_OF_COLUMNS = matrix.cols();
 	int NUMBER_OF_ROWS = matrix.rows();
@@ -16553,7 +16836,7 @@ void BROCCOLI_LIB::IdentityMatrix(Eigen::MatrixXd & matrix)
 	}
 }
 
-void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & inputData, int NUMBER_OF_COMPONENTS, bool demean)
+void BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & inputData, int NUMBER_OF_COMPONENTS, bool demean)
 {
 	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
 	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
@@ -16567,6 +16850,7 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 	{
 		printf("Demeaning data\n");
 	}
+
 	if (demean)
 	{
 		#pragma omp parallel for
@@ -16581,19 +16865,22 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 
 	// Calculate covariance Matrix
 	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
-	ResetMatrix(covarianceMatrix);
+	ResetEigenMatrix(covarianceMatrix);
 	if (WRAPPER == BASH)
 	{
 		printf("Estimating the covariance matrix\n");
 	}
 
-	for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
-	{
-		Eigen::VectorXd values = inputData.col(voxel);
-		covarianceMatrix += values * values.transpose();
-	}
+	//for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+	//{
+	//	Eigen::VectorXd values = inputData.col(voxel);
+	//	covarianceMatrix += values * values.transpose();
+	//}
+	covarianceMatrix = inputData * inputData.transpose();
 	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);
 	
+	//std::cout << covarianceMatrix << std::endl;
+
 	// Calculate eigen values of covariance matrix	
 	if (WRAPPER == BASH)
 	{
@@ -16609,6 +16896,7 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 	double totalVariance = 0.0;
 	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
 	{
+		printf("Eigen value %i is %f\n",i,(float)eigenValues(i));
 		totalVariance += eigenValues(i);
 	}
 
@@ -16657,7 +16945,7 @@ void BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & whitenedData,  Eigen::MatrixXd & 
 }
 
 // Saves a certain percentage of the variance, instead of a fix number of components
-Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean)
+Eigen::MatrixXd BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & inputData, bool demean)
 {
 	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
 	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
@@ -16685,19 +16973,20 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean
 
 	// Calculate covariance Matrix
 	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
-	ResetMatrix(covarianceMatrix);
+	ResetEigenMatrix(covarianceMatrix);
 	if (WRAPPER == BASH)
 	{
 		printf("Estimating the covariance matrix\n");
 	}
 
-	for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
-	{
+	//for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+	//{
 		//printf("Estimating the covariance matrix for voxel %i \n",voxel);
 		//Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
-		Eigen::VectorXd values = inputData.col(voxel);
-		covarianceMatrix += values * values.transpose();
-	}
+	//	Eigen::VectorXd values = inputData.col(voxel);
+	//	covarianceMatrix += values * values.transpose();
+	//}
+	covarianceMatrix = inputData * inputData.transpose();
 	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);
 	
 	// Calculate eigen values of covariance matrix	
@@ -16776,7 +17065,7 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean
 }
 
 
-void BROCCOLI_LIB::PCADimensionalityReduction(Eigen::MatrixXd & reducedData,  Eigen::MatrixXd & inputData, int NUMBER_OF_COMPONENTS, bool demean)
+void BROCCOLI_LIB::PCADimensionalityReductionEigen(Eigen::MatrixXd & reducedData,  Eigen::MatrixXd & inputData, int NUMBER_OF_COMPONENTS, bool demean)
 {
 	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
 	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
@@ -16799,7 +17088,7 @@ void BROCCOLI_LIB::PCADimensionalityReduction(Eigen::MatrixXd & reducedData,  Ei
 
 	// Calculate covariance Matrix
 	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
-	ResetMatrix(covarianceMatrix);
+	ResetEigenMatrix(covarianceMatrix);
 
 	for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
 	{
@@ -16857,7 +17146,145 @@ void BROCCOLI_LIB::PCADimensionalityReduction(Eigen::MatrixXd & reducedData,  Ei
 	reducedData = savedEigenVectors * inputData;
 }
 
-void BROCCOLI_LIB::LogitMatrix(Eigen::MatrixXd & matrix)
+
+
+// Saves a certain percentage of the variance, instead of a fix number of components
+Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean)
+{
+	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
+	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
+
+	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+
+	if (demean)
+	{
+		if (WRAPPER == BASH)
+		{	
+			printf("Demeaning data\n");
+		}
+		#pragma omp parallel for
+		for (int voxel = 0; voxel < NUMBER_OF_ICA_VARIABLES; voxel++)
+		{
+			//printf("Demeaning data for voxel %i\n",voxel);
+			Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_ICA_OBSERVATIONS,1);
+			DemeanRegressor(values,NUMBER_OF_ICA_OBSERVATIONS);
+			inputData.block(0,voxel,NUMBER_OF_ICA_OBSERVATIONS,1) = values;
+		}
+	}
+
+	// Calculate covariance Matrix
+	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_OBSERVATIONS);
+	ResetEigenMatrix(covarianceMatrix);
+	if (WRAPPER == BASH)
+	{
+		printf("Estimating the covariance matrix\n");
+	}
+
+	cl_mem d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_OBSERVATIONS *  NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+	cl_mem d_Covariance_Matrix = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_OBSERVATIONS *  NUMBER_OF_ICA_OBSERVATIONS * sizeof(float), NULL, NULL);
+	cl_mem d_Vector = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_OBSERVATIONS * sizeof(float), NULL, NULL);
+	
+	SetMemory(d_Covariance_Matrix, 0.0f, NUMBER_OF_ICA_OBSERVATIONS *  NUMBER_OF_ICA_OBSERVATIONS);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Data, CL_TRUE, 0, NUMBER_OF_ICA_OBSERVATIONS * NUMBER_OF_ICA_VARIABLES * sizeof(float), inputData.data(), 0, NULL, NULL);
+
+//	for (int variable = 0; variable < NUMBER_OF_ICA_VARIABLES; variable++)
+//	{
+		// Copy a new vector
+		
+		// Calculate outer product and increment
+
+//	}
+	//covarianceMatrix *= 1.0/(double)(NUMBER_OF_ICA_VARIABLES - 1);
+
+// C = alpha * A * B  + beta * C                                            rows in d_Data             columns in d_Data          columns in d_Data       alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
+ 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_OBSERVATIONS,   NUMBER_OF_ICA_VARIABLES,    NUMBER_OF_ICA_VARIABLES, 1.0f,  d_Data, 0,   NUMBER_OF_ICA_OBSERVATIONS,       d_Data, 0,      NUMBER_OF_ICA_OBSERVATIONS,    0.0f,   d_Covariance_Matrix, 0, NUMBER_OF_ICA_OBSERVATIONS, 1, &commandQueue, 0, NULL, NULL);
+
+
+	clReleaseMemObject(d_Data);
+	clReleaseMemObject(d_Covariance_Matrix);
+	clReleaseMemObject(d_Vector);
+	
+	// Calculate eigen values of covariance matrix	
+	if (WRAPPER == BASH)
+	{
+		printf("Calculating eigen values\n");
+	}
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(covarianceMatrix);
+	Eigen::VectorXd eigenValues = es.eigenvalues();
+	Eigen::MatrixXd eigenVectors = es.eigenvectors();
+	
+	double totalVariance = 0.0;
+	for (int i = 0; i < NUMBER_OF_ICA_OBSERVATIONS; i++)
+	{
+		totalVariance += eigenValues(i);
+	}
+
+	// Calculate number of components to save
+	double savedVariance = 0.0;
+	Eigen::VectorXd temp = eigenValues;
+	NUMBER_OF_ICA_COMPONENTS = 0;
+	while (savedVariance/totalVariance*100.0 < (double)PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA )
+	{
+		NUMBER_OF_ICA_COMPONENTS++;
+		int index = 0;
+		double largestEigenValue = temp.maxCoeff(&index);
+		savedVariance += largestEigenValue;
+		temp(index) = 0.0;
+	}
+
+	Eigen::VectorXd savedEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXd savedEigenVectors(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_OBSERVATIONS);
+
+	// Get a sub matrix of all the eigen vectors, to remove the smallest ones
+	// Get a sub vector of the eigen values, to remove the smallest eigen values
+	for (int i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{	
+		// Find largest eigen value for current component, and it's location
+		int index = 0; 
+		double largestEigenValue = eigenValues.maxCoeff(&index);
+		savedEigenValues(i) = largestEigenValue;
+
+		printf("Largest eigen value is %f \n",(float)largestEigenValue);
+
+		// Get the corresponding eigen vector
+		savedEigenVectors.row(i) = eigenVectors.col(index).transpose();
+
+		// Set the previous largest eigen value to 0
+		eigenValues(index) = 0.0;
+	}
+
+	if ((WRAPPER == BASH) && VERBOSE)
+	{
+		printf("Saved %f %% of the total variance during the dimensionality reduction, using %i components\n",(float)savedVariance/(float)totalVariance*100.0,NUMBER_OF_ICA_COMPONENTS);
+	}
+
+	// Calculate  ^(-1/2) for all saved eigen values
+	Eigen::VectorXd scaledEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	for (int i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{	
+		double eigenValue = savedEigenValues(i);
+		scaledEigenValues(i) = 1.0/sqrt(eigenValue);
+	}
+
+	// Calculate whitening matrix
+	Eigen::MatrixXd whiteningMatrix = scaledEigenValues.asDiagonal() * savedEigenVectors;
+
+	// Perform the actual whitening
+	if (WRAPPER == BASH)
+	{
+		printf("Applying dimensionality reduction and whitening\n");
+	}
+	Eigen::MatrixXd whitenedData = whiteningMatrix * inputData;
+	
+	return whitenedData;
+}
+
+
+
+
+void BROCCOLI_LIB::LogitEigenMatrix(Eigen::MatrixXd & matrix)
 {
 	int ROWS = matrix.rows();
 	int COLUMNS = matrix.cols();
@@ -16866,14 +17293,14 @@ void BROCCOLI_LIB::LogitMatrix(Eigen::MatrixXd & matrix)
 	{
 		for (int c = 0; c < COLUMNS; c++)
 		{
-			matrix(r,c) = 1.0-(2.0 / (1.0 + exp(- matrix(r,c) )) );
+			matrix(r,c) = 1.0-(2.0 / (1.0 + exp(-matrix(r,c) )) );
 		}
 	}
 	// NOTE: gsl_expm1 computes exp(x)-1, hence the 2 + in denominator
     // return 1.0 - (2.0 / (2.0 + gsl_expm1(-in)));
 }
 
-void BROCCOLI_LIB::SetVectorValues(Eigen::VectorXd & vector, double value)
+void BROCCOLI_LIB::SetEigenVectorValues(Eigen::VectorXd & vector, double value)
 {
 	int N = 0;
 
@@ -16892,10 +17319,23 @@ void BROCCOLI_LIB::SetVectorValues(Eigen::VectorXd & vector, double value)
 	}
 }
 
+void BROCCOLI_LIB::SetEigenMatrixValues(Eigen::MatrixXd & matrix, double value)
+{
+	int ROWS = matrix.rows();
+	int COLUMNS = matrix.cols();
+
+	for (int r = 0; r < ROWS; r++)
+	{
+		for (int c = 0; c < COLUMNS; c++)
+		{
+			matrix(r,c) = value;
+		}
+	}
+}
 
 
 
-int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate)
+int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate)
 {
 	int NUMBER_OF_OBSERVATIONS = whitenedData.rows();
 	int NUMBER_OF_VOXELS = whitenedData.cols();
@@ -16924,25 +17364,19 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 			permutedRow(j) = row(perm[j]);
 		}		
 
-		shuffledWhitenedData.row(i) = permutedRow;		
+		shuffledWhitenedData.row(i) = permutedRow.transpose();		
 	}
-
-	//PermutationMatrix<Dynamic,Dynamic> perm(size);
-	//perm.setIdentity();
-	//std::random_shuffle(perm.indices().data(), perm.indices().data()+perm.indices().size());
-	//A_perm = A * perm; // permute columns
-	//A_perm = perm * A; // permute rows
 
 	size_t start;
 	Eigen::MatrixXd tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
 
-	Eigen::VectorXd *ib =  new Eigen::VectorXd(block);
-	SetVectorValues(*ib,1.0);	
+	Eigen::MatrixXd *ib =  new Eigen::MatrixXd(1,block);
+	SetEigenMatrixValues(*ib,1.0);	
 
 	Eigen::MatrixXd * unmixed = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
 	Eigen::MatrixXd * unmLogit = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
-	Eigen::VectorXd * ones = new Eigen::VectorXd(block);
-	SetVectorValues(*ones,1.0);
+	Eigen::MatrixXd * ones = new Eigen::MatrixXd(block,1);
+	SetEigenMatrixValues(*ones,1.0);
 
 	for (start = 0; start < NUMBER_OF_VOXELS; start = start + block) 
 	{
@@ -16955,12 +17389,12 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 			delete unmLogit;
 			delete ones;
 
-			ib = new Eigen::VectorXd(block);
-			SetVectorValues(*ib,1.0);	
+			ib =  new Eigen::MatrixXd(1,block);
+			SetEigenMatrixValues(*ib,1.0);	
 			unmixed = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
 			unmLogit = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
-			ones = new Eigen::VectorXd(block);
-			SetVectorValues(*ones,1.0);
+			ones = new Eigen::MatrixXd(block,1);
+			SetEigenMatrixValues(*ones,1.0);
 		}	
 
 		Eigen::MatrixXd subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
@@ -16971,13 +17405,13 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 
 		*unmLogit = *unmixed;
 	    // Compute 1-2*logit
-		LogitMatrix(*unmLogit);
+		LogitEigenMatrix(*unmLogit);
 		
-		IdentityMatrix(tempI);
+		IdentityEigenMatrix(tempI);
 	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
 
 	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
-		tempI = block * tempI + *unmLogit * (*unmixed).transpose();
+		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
 		
 	    // (2) weights = weights + lrate*temp_I*weights
 		weights += updateRate * tempI * weights;
@@ -17010,7 +17444,117 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(Eigen::MatrixXd & weights, Eigen::MatrixX
 }
 
 
-void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix)
+
+int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Shuffled_Whitened_Data, double updateRate)
+{
+	double MAX_W = 1.0e8;
+	int error = 0;
+	size_t i;
+	size_t block = (size_t)floor(sqrt(NUMBER_OF_ICA_VARIABLES/3.0));
+
+	// Create random permutation vector
+	std::vector<int> perm;
+	for (int i = 0; i < NUMBER_OF_ICA_VARIABLES; i++) 
+	{
+	    perm.push_back(i);
+	}
+	std::random_shuffle(perm.begin(), perm.end());
+
+	// Loop over voxels, randomly permute each column
+	//PermuteMatrix();
+
+
+	size_t start;
+	cl_mem d_TempI = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_ib = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+	cl_mem d_unmixed = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+	cl_mem d_unmLogit = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+	cl_mem d_ones = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+	cl_mem d_Sub_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+
+	SetMemory(d_ib, 1.0f, block);
+	SetMemory(d_ones, 1.0f, block);
+
+	for (start = 0; start < NUMBER_OF_ICA_VARIABLES; start = start + block) 
+	{
+		if (start + block > (NUMBER_OF_ICA_VARIABLES-1))
+		{
+			block = NUMBER_OF_ICA_VARIABLES - start;
+
+			clReleaseMemObject(d_ib);
+			clReleaseMemObject(d_unmixed);
+			clReleaseMemObject(d_unmLogit);
+			clReleaseMemObject(d_ones);
+			clReleaseMemObject(d_Sub_Whitened_Data);
+
+			d_ib = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+			d_unmixed = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+			d_unmLogit = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+			d_ones = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+			d_Sub_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+
+			SetMemory(d_ib, 1.0f, block);
+			SetMemory(d_ones, 1.0f, block);		
+		}	
+
+		//Eigen::MatrixXd subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+		//GetSubMatrix(d_Sub_Whitened_Data, d_Shuffled_Whitened_Data, 0, start, NUMBER_OF_ICA_COMPONENTS, block);
+
+		// Compute unmixed = weights * subWhitenedData + bias * ib
+		// First unmixed = weights * subWhitenedData 
+		// C = alpha * A * B  + beta * C                                            rows in d_Weights  columns in d_Sub_Whitened_Data   columns in d_Weights     alpha   A matrix     leading dimension of A-matrix      B matrix                        leading dimension of B-matrix    beta     C matrix
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		// Then C = bias * ib + C
+		// C = alpha * A * B  + beta * C                                            rows in d_Bias       columns in ib    columns in d_Bias     alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       block,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+		
+		//unmLogit = unmixed;
+		clEnqueueCopyBuffer(commandQueue, d_unmixed, d_unmLogit, 0, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), 0, NULL, NULL);
+
+	    // Compute 1-2*logit
+		//LogitArray(d_unmLogit,NUMBER_OF_ICA_COMPONENTS * block);
+		
+		IdentityMatrix(d_TempI,NUMBER_OF_ICA_COMPONENTS);
+	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
+
+	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
+		//tempI = block * tempI + *unmLogit * (*unmixed).transpose();
+		
+	    // (2) weights = weights + lrate*temp_I*weights
+		//weights += updateRate * tempI * weights;
+
+	    // Update the bias
+		//bias += updateRate * *unmLogit * *ones;
+
+	    // Check if blows up
+	    double max = CalculateMaxAtomic(d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+		if (max > MAX_W)
+	    {
+			if (updateRate < 1e-6) 
+			{
+				printf("\nERROR: Weight matrix may not be invertible\n");
+				error = 2;
+				break;
+			}
+			error = 1;
+			break;
+		}
+	}
+
+	clReleaseMemObject(d_ib);
+	clReleaseMemObject(d_unmixed);
+	clReleaseMemObject(d_unmLogit);
+	clReleaseMemObject(d_ones);
+	clReleaseMemObject(d_Sub_Whitened_Data);
+
+	return(error);
+}
+
+
+void BROCCOLI_LIB::InfomaxICAEigen(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix)
 {
   	// Computes ICA infomax in whitened data
     //	Decomposes x_white as x_white=AS
@@ -17024,7 +17568,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 	double MAX_W = 1.0e8;
 	double ANNEAL = 0.9;
 	double MIN_LRATE = 1e-6;
-	double W_STOP = 1e-6;
+	double W_STOP = 1e-10;
 	size_t MAX_STEP= 512;
 
 	Eigen::MatrixXd bias(NUMBER_OF_ICA_COMPONENTS,1);
@@ -17037,13 +17581,13 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 
 	shuffledWhitenedData = whitenedData;
 
-	IdentityMatrix(weights);
-	IdentityMatrix(oldWeights);
+	IdentityEigenMatrix(weights);
+	IdentityEigenMatrix(oldWeights);
 
-	ResetMatrix(bias);
-	ResetMatrix(dWeights);
-	ResetMatrix(oldDWeights);
-	ResetMatrix(temp);
+	ResetEigenMatrix(bias);
+	ResetEigenMatrix(dWeights);
+	ResetEigenMatrix(oldDWeights);
+	ResetEigenMatrix(temp);
 
 	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
 	double change = 1.0;
@@ -17053,7 +17597,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 
 	while( (step < MAX_STEP) && (change > W_STOP))
 	{
-	    error = UpdateInfomaxWeights(weights, whitenedData, bias, shuffledWhitenedData, lrate);
+	    error = UpdateInfomaxWeightsEigen(weights, whitenedData, bias, shuffledWhitenedData, lrate);
 
 		if (error == 1 || error == 2)
 		{
@@ -17063,12 +17607,12 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
     	  	error = 0;
     	 	lrate *= ANNEAL;
 		
-			IdentityMatrix(weights);
-			IdentityMatrix(oldWeights);
+			IdentityEigenMatrix(weights);
+			IdentityEigenMatrix(oldWeights);
 
-			ResetMatrix(dWeights);
-			ResetMatrix(oldDWeights);
-			ResetMatrix(bias);
+			ResetEigenMatrix(dWeights);
+			ResetEigenMatrix(oldDWeights);
+			ResetEigenMatrix(bias);
 			
 			if (lrate > MIN_LRATE)
 			{
@@ -17121,8 +17665,380 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & 
 }
 
 
+
+
+void BROCCOLI_LIB::InfomaxICA(cl_mem d_Whitened_Data, cl_mem d_Weights, cl_mem d_Source_Matrix)
+{
+  	// Computes ICA infomax in whitened data
+    //	Decomposes x_white as x_white=AS
+    //	*Input
+    //	x_white: whitened data (Use PCAwhiten)
+    //	*Output
+    //	A : mixing matrix
+    //	S : source matrix
+  	
+	double EPS = 1e-18;
+	double MAX_W = 1.0e8;
+	double ANNEAL = 0.9;
+	double MIN_LRATE = 1e-6;
+	double W_STOP = 1e-6;
+	size_t MAX_STEP= 512;
+
+	cl_mem d_Bias = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Old_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Old_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Shuffled_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+
+	cl_mem d_Scratch = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * 2 * sizeof(float), NULL, NULL);
+	cl_mem d_Float = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
+	cl_mem d_Ones = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	clEnqueueCopyBuffer(commandQueue, d_Whitened_Data, d_Shuffled_Whitened_Data, 0, 0, NUMBER_OF_ICA_OBSERVATIONS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+	IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+	IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+	// Set all values to 0
+	SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Temp, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	SetMemory(d_Ones, 1.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
+	float change = 1.0f;
+	double angleDelta = 0.0;
+    size_t step = 1;
+	int error = 0;
+
+	float tempsum, dweightsnorm, olddweightsnorm;
+
+	while( (step < MAX_STEP) && (change > W_STOP))
+	{
+	    error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);
+
+		if (error == 1 || error == 2)
+		{
+			// It blowed up! RESTART!
+    	  	step = 1;
+    	  	// change = 1;
+    	  	error = 0;
+    	 	lrate *= ANNEAL;
+		
+			IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+			IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+			SetMemory(d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+			
+			if (lrate > MIN_LRATE)
+			{
+    	    	printf("\nLowering learning rate to %g and starting again.\n",lrate);
+    	  	}
+    	  	else
+			{
+		        printf("\nMatrix may not be invertible");
+			}
+    	}
+    	else if (error == 0)
+		{
+			// dWeights = weights;	
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+	
+			//dWeights -= oldWeights;
+			SubtractArrays(d_d_Weights, d_Old_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+		    //change = dWeights.squaredNorm();
+			error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+			clFinish(commandQueue);
+			clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &change, 0, NULL, NULL);
+			dweightsnorm = change;
+			change = change * change;
+				
+			if (step > 2)
+			{
+		        // Compute angle delta
+				// temp = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Temp, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+				// Pointwise multiplication
+				// temp = temp.array() * oldDWeights.array();
+				MultiplyArrays(d_Temp, d_Old_d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+				// Calculate sum of temp as a dot product with ones
+				error = clblasSdot(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Temp, 0, 1, d_Ones, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				clFinish(commandQueue);
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &tempsum, 0, NULL, NULL);						
+
+				// Calculate norm of old d weights
+				error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Old_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				clFinish(commandQueue);
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &olddweightsnorm, 0, NULL, NULL);				
+
+		        angleDelta = acos(tempsum / (dweightsnorm * olddweightsnorm) );
+        		angleDelta *= (180.0 / M_PI);
+			}
+
+			//oldWeights = weights;
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_Old_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+			if (angleDelta > 60)
+			{
+        		lrate *= ANNEAL;
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			} 
+			else if (step == 1) 
+			{
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			}
+
+			if (( VERBOS && (step % 10) == 0) || change < W_STOP)
+			{
+				printf("\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n", step, lrate, change, angleDelta);
+      		}
+
+			step++;
+    	}
+  	}
+
+	//sourceMatrix = weights * whitenedData
+   	// C = alpha * A * B  + beta * C                                           rows in d_Weights  columns in d_Whitened_Data   columns in d_Weights   alpha   A matrix                                  B matrix                                   beta     C matrix
+ 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Bias);
+	clReleaseMemObject(d_Old_Weights);
+	clReleaseMemObject(d_d_Weights);
+	clReleaseMemObject(d_Old_d_Weights);
+	clReleaseMemObject(d_Temp);
+	clReleaseMemObject(d_Shuffled_Whitened_Data);
+	clReleaseMemObject(d_Scratch);
+	clReleaseMemObject(d_Float);
+	clReleaseMemObject(d_Ones);
+}
+
+
 void BROCCOLI_LIB::PerformICACPUWrapper()
 {
+	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	if (!AUTO_MASK)
+	{
+		// Copy mask from host
+		clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+	}
+	else
+	{
+		// Make a mask
+		SegmentEPIData();
+		// Copy mask to host
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+	}
+
+	//--------------------------
+	// Motion correction
+	//--------------------------
+
+	if (APPLY_MOTION_CORRECTION)
+	{
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing motion correction");
+			if (!VERBOS)
+			{
+				printf("\n");	
+			}
+		}
+
+		PrintMemoryStatus("Before motion correction");
+
+		PerformMotionCorrectionHost(h_fMRI_Volumes);
+
+		if ((WRAPPER == BASH) && VERBOS)
+		{
+			printf("\n");
+		}
+
+		PrintMemoryStatus("After motion correction");
+	}
+
+
+	//--------------------------
+	// Smoothing
+	//--------------------------
+
+	if (APPLY_SMOOTHING)
+	{
+		d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+		deviceMemoryAllocations += 1;
+		allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
+		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+		PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+		if ((WRAPPER == BASH) && PRINT)
+		{
+			printf("Performing smoothing\n");
+		}
+	
+		PrintMemoryStatus("Before smoothing");
+
+		PerformSmoothingNormalizedHost(h_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+		clReleaseMemObject(d_Smoothed_EPI_Mask);
+		deviceMemoryDeallocations += 1;
+		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
+		PrintMemoryStatus("After smoothing");
+	}
+
+	//--------------------------
+
+	// Loop through mask to get number of voxels
+	int NUMBER_OF_ICA_VARIABLES = 0;
+	for (int v = 0; v < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D; v++)
+	{
+		if (h_EPI_Mask[v] == 1.0f)
+		{
+			NUMBER_OF_ICA_VARIABLES++;		
+		}
+	}
+
+	int NUMBER_OF_ICA_OBSERVATIONS = EPI_DATA_T;
+
+	Eigen::MatrixXd inputData(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_VARIABLES);
+
+	if (WRAPPER == BASH)
+	{
+		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
+	}
+
+	// Put data into Eigen object
+	int v = 0;
+	for (int z = 0; z < EPI_DATA_D; z++)
+	{
+		for (int y = 0; y < EPI_DATA_H; y++)
+		{
+			for (int x = 0; x < EPI_DATA_W; x++)
+			{
+				if (h_EPI_Mask[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H] == 1.0f)
+				{
+					if (Z_SCORE)
+					{
+						// z-score each time series
+
+						// Estimate mean
+						float sum = 0.0f;
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							sum += h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+						}
+						float mean = sum/(float)EPI_DATA_T;
+
+						// Remove mean
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] -= mean;
+						}				
+
+						// Estimate variance					
+						sum = 0.0f;
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							float value = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+							sum += value * value;
+						}
+						float variance = sum/(float)(EPI_DATA_T-1);
+						float std = sqrt(variance);
+
+						// Divide by standard deviation
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] /= std;
+						}
+					}
+	
+					for (int t = 0; t < EPI_DATA_T; t++)
+					{
+						inputData(t,v) = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+					}
+					
+					v++;
+				}				
+			}
+		}
+	}
+
+
+
+
+	// First whiten the data and reduce the number of dimensions
+	Eigen::MatrixXd whitenedData = PCAWhitenEigen(inputData, true);
+	
+	//Eigen::MatrixXd whitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+	//PCAWhitenEigen(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
+	//PCADimensionalityReduction(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
+
+	Eigen::MatrixXd weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXd sourceMatrix(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+
+	// Run the actual ICA algorithm
+	InfomaxICAEigen(whitenedData, weights, sourceMatrix);
+
+	//Eigen::MatrixXd inverseWeights = weights.inverse();
+
+	// Put components back into fMRI volumes
+	v = 0;
+	for (int z = 0; z < EPI_DATA_D; z++)
+	{
+		for (int y = 0; y < EPI_DATA_H; y++)
+		{
+			for (int x = 0; x < EPI_DATA_W; x++)
+			{
+				if (h_EPI_Mask[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H] == 1.0f)
+				{					
+					for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)
+					{
+						//h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = whitenedData(t,x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H);
+						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = sourceMatrix(t,v);
+					}
+					v++;
+				}
+				else
+				{
+					for (int t = 0; t < NUMBER_OF_ICA_COMPONENTS; t++)				
+					{
+						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] = 0.0f;
+					}
+				}
+			}
+		}
+	}
+
+	clReleaseMemObject(d_EPI_Mask);
+}
+
+
+
+
+void BROCCOLI_LIB::PerformICAWrapper()
+{
+	// Initiate clBLAS
+	error = clblasSetup();
+    if (error != CL_SUCCESS) 
+	{
+        printf("clblasSetup() failed with %s\n", GetOpenCLErrorMessage(error));
+    }
+
+	//--------------------------
+
 	// Make a mask
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	SegmentEPIData();
@@ -17190,23 +18106,22 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	//--------------------------
 
 	// Loop through mask to get number of voxels
-	int NUMBER_OF_VOXELS = 0;
+	NUMBER_OF_ICA_VARIABLES = 0;
 	for (int v = 0; v < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D; v++)
 	{
 		if (h_EPI_Mask[v] == 1.0f)
 		{
-			NUMBER_OF_VOXELS++;		
+			NUMBER_OF_ICA_VARIABLES++;		
 		}
 	}
 
-	//int NUMBER_OF_VOXELS = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
-	int NUMBER_OF_OBSERVATIONS = EPI_DATA_T;
+	NUMBER_OF_ICA_OBSERVATIONS = EPI_DATA_T;
 
-	Eigen::MatrixXd inputData(NUMBER_OF_OBSERVATIONS,NUMBER_OF_VOXELS);
+	Eigen::MatrixXd inputData(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_VARIABLES);
 
 	if (WRAPPER == BASH)
 	{
-		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_VOXELS);
+		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
 	}
 
 	// Put data into Eigen object
@@ -17220,41 +18135,45 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 				if (h_EPI_Mask[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H] == 1.0f)
 				{
 					// z-score each time series
-
-					// Estimate mean
-					float sum = 0.0f;
-					for (int t = 0; t < EPI_DATA_T; t++)
+					if (Z_SCORE)
 					{
-						sum += h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
-					}
-					float mean = sum/(float)EPI_DATA_T;
 
-					// Remove mean
-					for (int t = 0; t < EPI_DATA_T; t++)
-					{
-						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] -= mean;
-					}				
+						// Estimate mean
+						float sum = 0.0f;
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							sum += h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+						}
+						float mean = sum/(float)EPI_DATA_T;
+	
+						// Remove mean
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] -= mean;
+						}				
 
-					// Estimate variance					
-					sum = 0.0f;
-					for (int t = 0; t < EPI_DATA_T; t++)
-					{
-						float value = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
-						sum += value * value;
-					}
-					float variance = sum/(float)(EPI_DATA_T-1);
-					float std = sqrt(variance);
+						// Estimate variance					
+						sum = 0.0f;
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							float value = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
+							sum += value * value;
+						}
+						float variance = sum/(float)(EPI_DATA_T-1);
+						float std = sqrt(variance);
 
-					// Divide by standard deviation
-					for (int t = 0; t < EPI_DATA_T; t++)
-					{
-						h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] /= std;
+						// Divide by standard deviation
+						for (int t = 0; t < EPI_DATA_T; t++)
+						{
+							h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D] /= std;
+						}	
 					}
 
 					for (int t = 0; t < EPI_DATA_T; t++)
 					{
 						inputData(t,v) = h_fMRI_Volumes[x + y * EPI_DATA_W + z * EPI_DATA_W * EPI_DATA_H + t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D];
 					}
+
 					v++;
 				}				
 			}
@@ -17270,10 +18189,10 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	//PCADimensionalityReduction(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 
 	Eigen::MatrixXd weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
-	Eigen::MatrixXd sourceMatrix(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_VOXELS);
+	Eigen::MatrixXd sourceMatrix(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
 
 	// Run the actual ICA algorithm
-	InfomaxICA(whitenedData, weights, sourceMatrix);
+	//InfomaxICA(whitenedData, weights, sourceMatrix);
 
 	//Eigen::MatrixXd inverseWeights = weights.inverse();
 
@@ -17306,6 +18225,9 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	}
 
 	clReleaseMemObject(d_EPI_Mask);
+
+	// Stop clBLAS
+	clblasTeardown();
 }
 
 

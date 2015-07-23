@@ -40,6 +40,54 @@ int Calculate4DIndex(int x, int y, int z, int t, int DATA_W, int DATA_H, int DAT
 }
 
 
+__kernel void IdentityMatrix(__global float* Matrix, 
+  			     			 __private int N)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+
+	if (x >= N || y >= N)
+		return;
+
+	if (x == y)
+	{
+		Matrix[Calculate2DIndex(x,y,N)] = 1.0f;
+	}
+	else
+	{
+		Matrix[Calculate2DIndex(x,y,N)] = 0.0f;
+	}
+}
+
+__kernel void GetSubMatrix(__global float* Small_Matrix, 
+                           __global const float* Matrix, 
+  			     		   __private int rows)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+
+	if (x >= rows || y >= rows)
+		return;
+
+	Small_Matrix[x] = Matrix[x];
+}
+
+
+__kernel void PermuteMatrix(__global float* Small_Matrix, 
+                           __global const float* Matrix, 
+  			     		   __private int rows)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+
+	if (x >= rows || y >= rows)
+		return;
+
+	Small_Matrix[x] = Matrix[x];
+
+}
+
+
 __kernel void CalculateColumnSums(__global float* Sums, 
 	                              __global const float* Volume, 
 								  __private int DATA_W, 
@@ -249,6 +297,26 @@ __kernel void AddVolumes(__global float* Result,
 	Result[idx] = Volume1[idx] + Volume2[idx];
 }
 
+__kernel void SubtractVolumes(__global float* Result, 
+	                     	  __global const float* Volume1, 
+						      __global const float* Volume2, 
+						      __private int DATA_W, 
+						      __private int DATA_H, 
+						      __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+
+	Result[idx] = Volume1[idx] - Volume2[idx];
+}
+
+
 __kernel void AddVolumesOverwrite(__global float* Volume1, 
 	                              __global const float* Volume2, 
 								  __private int DATA_W, 
@@ -265,6 +333,25 @@ __kernel void AddVolumesOverwrite(__global float* Volume1,
 	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
 
 	Volume1[idx] = Volume1[idx] + Volume2[idx];
+}
+
+
+__kernel void SubtractVolumesOverwrite(__global float* Volume1, 
+	                              	   __global const float* Volume2, 
+								  	   __private int DATA_W, 
+								       __private int DATA_H, 
+								       __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+
+	Volume1[idx] = Volume1[idx] - Volume2[idx];
 }
 
 __kernel void MultiplyVolume(__global float* Volume, 
@@ -324,7 +411,8 @@ __kernel void MultiplyVolumesOverwrite(__global float* Volume1,
 	Volume1[idx4D] = Volume1[idx4D] * Volume2[idx3D];
 }
 
-__kernel void MemsetInt(__global int *Data,
+
+__kernel void MemsetInt(__global int *Data,
 	                    __private int value,
 					    __private int N)
 {
