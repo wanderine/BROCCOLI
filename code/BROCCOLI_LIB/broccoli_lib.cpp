@@ -304,6 +304,8 @@ void BROCCOLI_LIB::SetStartValues()
 	NUMBER_OF_DETRENDING_REGRESSORS = 4;
 	NUMBER_OF_MOTION_REGRESSORS = 6;
 
+    RAW_REGRESSORS = false;
+    RAW_DESIGNMATRIX = false;
 	BAYESIAN = false;
 	REGRESS_ONLY = false;
 	PREPROCESSING_ONLY = false;
@@ -17199,7 +17201,7 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean
 	//covarianceMatrix *= 1.0/(double)(NUMBER_OF_ICA_VARIABLES - 1);
 
 // C = alpha * A * B  + beta * C                                            rows in d_Data             columns in d_Data          columns in d_Data       alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
- 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_OBSERVATIONS,   NUMBER_OF_ICA_VARIABLES,    NUMBER_OF_ICA_VARIABLES, 1.0f,  d_Data, 0,   NUMBER_OF_ICA_OBSERVATIONS,       d_Data, 0,      NUMBER_OF_ICA_OBSERVATIONS,    0.0f,   d_Covariance_Matrix, 0, NUMBER_OF_ICA_OBSERVATIONS, 1, &commandQueue, 0, NULL, NULL);
+ 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_OBSERVATIONS,   NUMBER_OF_ICA_VARIABLES,    NUMBER_OF_ICA_VARIABLES, 1.0f,  d_Data, 0,   NUMBER_OF_ICA_OBSERVATIONS,       d_Data, 0,      NUMBER_OF_ICA_OBSERVATIONS,    0.0f,   d_Covariance_Matrix, 0, NUMBER_OF_ICA_OBSERVATIONS, 1, &commandQueue, 0, NULL, NULL);
 
 
 	clReleaseMemObject(d_Data);
@@ -17504,11 +17506,11 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 		// Compute unmixed = weights * subWhitenedData + bias * ib
 		// First unmixed = weights * subWhitenedData 
 		// C = alpha * A * B  + beta * C                                            rows in d_Weights  columns in d_Sub_Whitened_Data   columns in d_Weights     alpha   A matrix     leading dimension of A-matrix      B matrix                        leading dimension of B-matrix    beta     C matrix
-	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+	 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 
 		// Then C = bias * ib + C
 		// C = alpha * A * B  + beta * C                                            rows in d_Bias       columns in ib    columns in d_Bias     alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
-	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       block,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+	 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       block,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 		
 		//unmLogit = unmixed;
 		clEnqueueCopyBuffer(commandQueue, d_unmixed, d_unmLogit, 0, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), 0, NULL, NULL);
@@ -17754,7 +17756,7 @@ void BROCCOLI_LIB::InfomaxICA(cl_mem d_Whitened_Data, cl_mem d_Weights, cl_mem d
 			SubtractArrays(d_d_Weights, d_Old_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
 
 		    //change = dWeights.squaredNorm();
-			error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+			//error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
 			clFinish(commandQueue);
 			clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &change, 0, NULL, NULL);
 			dweightsnorm = change;
@@ -17771,12 +17773,12 @@ void BROCCOLI_LIB::InfomaxICA(cl_mem d_Whitened_Data, cl_mem d_Weights, cl_mem d
 				MultiplyArrays(d_Temp, d_Old_d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
 
 				// Calculate sum of temp as a dot product with ones
-				error = clblasSdot(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Temp, 0, 1, d_Ones, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//error = clblasSdot(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Temp, 0, 1, d_Ones, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
 				clFinish(commandQueue);
 				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &tempsum, 0, NULL, NULL);						
 
 				// Calculate norm of old d weights
-				error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Old_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Old_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
 				clFinish(commandQueue);
 				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &olddweightsnorm, 0, NULL, NULL);				
 
@@ -17810,7 +17812,7 @@ void BROCCOLI_LIB::InfomaxICA(cl_mem d_Whitened_Data, cl_mem d_Weights, cl_mem d
 
 	//sourceMatrix = weights * whitenedData
    	// C = alpha * A * B  + beta * C                                           rows in d_Weights  columns in d_Whitened_Data   columns in d_Weights   alpha   A matrix                                  B matrix                                   beta     C matrix
- 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+ 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 
 	clReleaseMemObject(d_Bias);
 	clReleaseMemObject(d_Old_Weights);
@@ -18031,7 +18033,7 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 void BROCCOLI_LIB::PerformICAWrapper()
 {
 	// Initiate clBLAS
-	error = clblasSetup();
+	//error = clblasSetup();
     if (error != CL_SUCCESS) 
 	{
         printf("clblasSetup() failed with %s\n", GetOpenCLErrorMessage(error));
@@ -18227,7 +18229,7 @@ void BROCCOLI_LIB::PerformICAWrapper()
 	clReleaseMemObject(d_EPI_Mask);
 
 	// Stop clBLAS
-	clblasTeardown();
+	//clblasTeardown();
 }
 
 

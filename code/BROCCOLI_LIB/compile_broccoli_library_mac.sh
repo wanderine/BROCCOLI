@@ -22,7 +22,7 @@ fi
 
 
 # Using g++
-g++ -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -m64 -fPIC -c -o broccoli_lib.o broccoli_lib.cpp -Wall
+g++ -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/clBLASLinux ${FLAGS} -m64 -fPIC -c -o broccoli_lib.o broccoli_lib.cpp -Wall
 
 # Make a library
 ar rcs libBROCCOLI_LIB.a broccoli_lib.o
