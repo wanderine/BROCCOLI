@@ -919,6 +919,7 @@ int main(int argc, char **argv)
 			else if ( allUniqueValues.size() == 1 )
 			{
 				MEAN_DESIGN[c] = true;
+				GROUP_DESIGNS[c] = 2;
 			}
 
 			if (TWOSAMPLE_DESIGN[c])
@@ -989,6 +990,7 @@ int main(int argc, char **argv)
 		else if ( allUniqueValues.size() == 1 )
 		{
 			MEAN_DESIGN[0] = true;
+			GROUP_DESIGNS[0] = 2;
 		}
 		
 
@@ -1022,6 +1024,7 @@ int main(int argc, char **argv)
 		if ((double)NUMBER_OF_PERMUTATIONS > MAX_SIGN_FLIPS)
 		{
 			printf("Warning: Number of possible sign flips for group mean is %g, but %g permutations were requested. Lowering number of permutations to number of possible sign flips. \n",MAX_SIGN_FLIPS,(double)NUMBER_OF_PERMUTATIONS);
+			NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0] = (int)MAX_SIGN_FLIPS;
 			DO_ALL_PERMUTATIONS = true;
 		}
 		else if ((double)NUMBER_OF_PERMUTATIONS == MAX_SIGN_FLIPS)
@@ -1242,8 +1245,6 @@ int main(int argc, char **argv)
 	// Read sign flipping file
 	else if (USE_PERMUTATION_FILE && ANALYZE_GROUP_MEAN)
 	{
-		h_Permutation_Matrix = h_Permutation_Matrices[0];
-
 		std::ifstream permutations;
     	permutations.open(PERMUTATION_INPUT_FILE); 
 

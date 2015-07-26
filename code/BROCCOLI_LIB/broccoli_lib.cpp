@@ -315,6 +315,7 @@ void BROCCOLI_LIB::SetStartValues()
 	REGRESS_GLOBALMEAN = 0;
 	REGRESS_CONFOUNDS = 0;
 	PERMUTE_FIRST_LEVEL = false;
+	USE_PERMUTATION_FILE = false;
 
 	Z_SCORE = false;
 	PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA = 80.0f;
@@ -14788,8 +14789,6 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevelPermutation()
 // A small wrapper function that simply calls functions for different tests
 void BROCCOLI_LIB::CalculateStatisticalMapsSecondLevelPermutation(int p, int contrast)
 {
-	h_Permutation_Matrix = h_Permutation_Matrices[contrast];
-
    	if (STATISTICAL_TEST == GROUP_MEAN)
 	{
    		// Copy a new sign vector to constant memory
@@ -14798,6 +14797,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsSecondLevelPermutation(int p, int con
 	}
    	else if (STATISTICAL_TEST == TTEST)
 	{
+		h_Permutation_Matrix = h_Permutation_Matrices[contrast];
    		// Copy a new permutation vector to constant memory
 	   	clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 		// Set current contrast
@@ -14806,6 +14806,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsSecondLevelPermutation(int p, int con
 	}
 	else if (STATISTICAL_TEST == FTEST)
 	{
+		h_Permutation_Matrix = h_Permutation_Matrices[contrast];
 		// Copy a new permutation vector to constant memory
 		clEnqueueWriteBuffer(commandQueue, c_Permutation_Vector, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), &h_Permutation_Matrix[p * NUMBER_OF_SUBJECTS], 0, NULL, NULL);
 		CalculateStatisticalMapsGLMFTestSecondLevelPermutation();
@@ -15125,8 +15126,6 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 			}
 	    }
 
-		h_Permutation_Distribution = h_Permutation_Distributions[c];
-
 		if (STATISTICAL_TEST == TTEST)
 		{
 			clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results , 0, NULL, NULL);
@@ -15208,6 +15207,8 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 			}					
 		}
         
+		h_Permutation_Distribution = h_Permutation_Distributions[c];
+
         // Loop over all the permutations, save the maximum test value from each permutation
         for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c]; p++)
         {
@@ -15257,6 +15258,11 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
 			{
 	            printf("Permutation threshold for F-test for a significance level of %f is %f \n",c+1,SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
 			}
+			else if (STATISTICAL_TEST == GROUP_MEAN)
+			{
+	            printf("Permutation threshold for group mean for a significance level of %f is %f \n",SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
+			}
+
         }
     }
 
@@ -15396,6 +15402,7 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelTwoSample(int contrast)
 	    groups.push_back(-1);
 		group2Subjects.push_back((unsigned short int)(i+NUMBER_OF_SUBJECTS_IN_GROUP1[contrast]));
 	}
+
 	std::vector<std::vector<int> >allPermutations;
 	allPermutations.push_back(groups);
 
@@ -15416,6 +15423,8 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelTwoSample(int contrast)
 			group2Subject++;
 		}			
 	}
+
+	printf("Number of permutations is %i \n",NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
 
 	// Loop over all remaining permutations
 	for (int p = 1; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]; p++)
@@ -15539,8 +15548,6 @@ void BROCCOLI_LIB::GenerateSignMatrixSecondLevel()
     
     for (int p = 1; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
     {
-		printf("Generating permutation %g !\n",(double)p);
-
         while(true)
         {
             // Make random sign flips
