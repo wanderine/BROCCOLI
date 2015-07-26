@@ -611,6 +611,13 @@ int main(int argc, char **argv)
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
+		else if (NUMBER_OF_GLM_REGRESSORS > NUMBER_OF_SUBJECTS)
+		{
+			design.close();
+			printf("Number of regressors must be smaller or equal to the number of subjects! You provided %i regressors in the design file and there are %i subjects. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_SUBJECTS);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
 
 		// Get number of subjects
 		design >> tempString; // NumSubjects as string
