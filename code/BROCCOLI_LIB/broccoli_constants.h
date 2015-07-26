@@ -78,7 +78,9 @@
 #define TTEST 0
 #define FTEST 1
 #define GROUP_MEAN 2
-#define CORRELATION 3
+
+#define TWOSAMPLE 0
+#define CORRELATION 1
 
 #define UP 0
 #define DOWN 1
@@ -163,3 +165,4 @@
 #define CL_INVALID_BUFFER_SIZE -61
 #define CL_INVALID_MIP_LEVEL -62
 #define CL_INVALID_GLOBAL_WORK_SIZE -63
+

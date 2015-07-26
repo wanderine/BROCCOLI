@@ -512,10 +512,11 @@ __kernel void CalculateTFCEValues(__global float* TFCE_Values,
 
 
 
-__kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_Values,
+
+__kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_Values,
 							   	   	   	   	   	  	  	  	 __global const float* Test_Values,
 							   	   	   	   	   	  	  	  	 __global const float* Mask,
-							   	   	   	   	   	  	  	  	 __constant float* c_Max_Values,
+							   	   	   	   	   	  	  	  	 __global const float* c_Max_Values,
 							   	   	   	   	   	  	  	  	 __private int contrast,
 							   	   	   	   	   	  	  	  	 __private int DATA_W,
 							   	   	   	   	   	  	  	  	 __private int DATA_H,
@@ -555,7 +556,7 @@ __kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P
 															   __global const unsigned int* Cluster_Indices,
 															   __global const unsigned int* Cluster_Sizes,
 							   	   	   	   	   	  	  	  	   __global const float* Mask,
-							   	   	   	   	   	  	  	  	   __constant float* c_Max_Values,
+							   	   	   	   	   	  	  	  	   __global const float* c_Max_Values,
 							   	   	   	   	   	  	  	  	   __private float threshold,
 							   	   	   	   	   	  	  	  	   __private int contrast,
 							   	   	   	   	   	  	  	  	   __private int DATA_W,

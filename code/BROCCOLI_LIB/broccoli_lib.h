@@ -147,12 +147,15 @@ class BROCCOLI_LIB
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
 		void SetNumberOfPermutations(int);
+		void SetNumberOfGroupPermutations(int*);
 		void SetNumberOfMCMCIterations(int);
 		void SetBetaSpace(int space);
 		void SetStatisticalTest(int test);
+		void SetGroupDesigns(int *designs);
 		void SetInferenceMode(int mode);
 		void SetClusterDefiningThreshold(float threshold);
 		void SetPermutationMatrix(unsigned short int*);
+		void SetPermutationMatrices(unsigned short int**);
 		void SetSignMatrix(float*);
 		void SetPermutationFileUsage(bool);
 		void SetDoAllPermutations(bool);
@@ -240,8 +243,8 @@ class BROCCOLI_LIB
 		void SetInputMNIBrainMask(float* input);
 		void SetInputFirstLevelResults(float* input);
 		void SetNumberOfSubjects(int N);
-		void SetNumberOfSubjectsGroup1(int N);
-		void SetNumberOfSubjectsGroup2(int N);
+		void SetNumberOfSubjectsGroup1(int *N);
+		void SetNumberOfSubjectsGroup2(int *N);
 
 		// Output statistics
 		void SetOutputBetaVolumesEPI(float* output);
@@ -309,6 +312,7 @@ class BROCCOLI_LIB
 		void SetOutputSliceSums(float*);
 		void SetOutputTopSlice(float*);
 		void SetOutputPermutationDistribution(float*);
+		void SetOutputPermutationDistributions(float**);
 		void SetOutputAMatrix(float*);
 		void SetOutputHVector(float*);
 
@@ -509,8 +513,8 @@ class BROCCOLI_LIB
 		// Permutation second level
 		void SetupPermutationTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 		void CleanupPermutationTestSecondLevel();
-		void GeneratePermutationMatrixSecondLevelTtest();
-		void GeneratePermutationMatrixSecondLevelCorrelation();
+		void GeneratePermutationMatrixSecondLevelTwoSample(int c);
+		void GeneratePermutationMatrixSecondLevelCorrelation(int c);
 		void GenerateSignMatrixSecondLevel();
 		void CalculateStatisticalMapsSecondLevelPermutation(int permutation, int contrast);
 		void CalculateStatisticalMapsMeanSecondLevelPermutation();
@@ -1144,8 +1148,8 @@ class BROCCOLI_LIB
 
 		// Statistical analysis variables
 		int NUMBER_OF_SUBJECTS;
-		int NUMBER_OF_SUBJECTS_IN_GROUP1;
-		int NUMBER_OF_SUBJECTS_IN_GROUP2;
+		int *NUMBER_OF_SUBJECTS_IN_GROUP1;
+		int *NUMBER_OF_SUBJECTS_IN_GROUP2;
 		int NUMBER_OF_CONTRASTS;
 		int NUMBER_OF_STATISTICAL_MAPS;
 		int NUMBER_OF_GLM_REGRESSORS;
@@ -1173,6 +1177,7 @@ class BROCCOLI_LIB
 		float SIGNIFICANCE_LEVEL;
 		float SIGNIFICANCE_THRESHOLD;
 		int STATISTICAL_TEST;
+		int *GROUP_DESIGNS;
 		int NUMBER_OF_BRAIN_VOXELS;
 		int NUMBER_OF_INVALID_TIMEPOINTS;
 		bool USE_PERMUTATION_FILE;
@@ -1186,6 +1191,7 @@ class BROCCOLI_LIB
 
 		// Random permutation variables
 		int NUMBER_OF_PERMUTATIONS;
+		int *NUMBER_OF_PERMUTATIONS_PER_CONTRAST;
 		int NUMBER_OF_SIGNIFICANTLY_ACTIVE_VOXELS;
 		int NUMBER_OF_SIGNIFICANTLY_ACTIVE_CLUSTERS;
 
@@ -1308,8 +1314,10 @@ class BROCCOLI_LIB
 
 		// Random permutation pointers
 		uint16		*h_Permutation_Matrix;
+		uint16		**h_Permutation_Matrices;
 		float		*h_Sign_Matrix;
 		float		*h_Permutation_Distribution;
+		float		**h_Permutation_Distributions;
 		float		*h_Maximum_Test_Values;
 
 		//--------------------------------------------------

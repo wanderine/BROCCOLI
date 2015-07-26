@@ -2674,6 +2674,7 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 	}
 
 	// Calculate the mean and variance of the error eps
+	/*
 	meaneps = 0.0f;
 	vareps = 0.0f;
 	float n = 0.0f;
@@ -2690,6 +2691,20 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 		vareps += delta * (eps - meaneps);
 	}
 	vareps = vareps / (n - 1.0f);
+	*/
+
+	vareps = 0.0f;
+	float n = 0.0f;
+	for (int v = 0; v < NUMBER_OF_VOLUMES; v++)
+	{
+		eps = Volumes[Calculate4DIndex(x,y,z,v,DATA_W,DATA_H,DATA_D)];
+
+		// Loop over regressors using unrolled code for performance
+		eps = CalculateEpsSecondLevel(eps, beta, c_X_GLM, v, c_Permutation_Vector, NUMBER_OF_VOLUMES, NUMBER_OF_REGRESSORS);
+
+		vareps += eps * eps;
+	}
+	vareps = vareps / ((float)NUMBER_OF_VOLUMES - NUMBER_OF_REGRESSORS);
 
 	//-------------------------
 
@@ -2708,3 +2723,5 @@ __kernel void CalculateStatisticalMapsGLMFTestSecondLevelPermutation(__global fl
 	// Save F-value
 	Statistical_Maps[Calculate3DIndex(x,y,z,DATA_W,DATA_H)] = scalar/(float)NUMBER_OF_CONTRASTS;
 }
+
+

@@ -48,7 +48,7 @@ int main(int argc, char **argv)
     
     float           *h_First_Level_Results, *h_Mask; 
 
-    unsigned short int        *h_Permutation_Matrix;
+    unsigned short int        **h_Permutation_Matrices, *h_Permutation_Matrix;
 	float			*h_Sign_Matrix;
     
     float           *h_X_GLM, *h_xtxxt_GLM, *h_Contrasts, *h_ctxtxc_GLM;  
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     // Output
     
     int             *h_Cluster_Indices, *h_Cluster_Indices_Out;
-    float           *h_Permutation_Distribution;
+    float           **h_Permutation_Distributions, *h_Permutation_Distribution;
     float           *h_Beta_Volumes, *h_Residuals, *h_Residual_Variances, *h_Statistical_Maps, *h_P_Values;        
     float           *h_Permuted_First_Level_Results;
 
@@ -94,9 +94,10 @@ int main(int argc, char **argv)
     int             NUMBER_OF_GLM_REGRESSORS = 1;
 	int				NUMBER_OF_CONTRASTS = 1; 
     float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
-	int				NUMBER_OF_PERMUTATIONS = 10000;
+	int				NUMBER_OF_PERMUTATIONS;
+	int				NUMBER_OF_PERMUTATIONS_PER_CONTRAST[1000];
 	float			SIGNIFICANCE_LEVEL = 0.05f;
-	int				TEST_STATISTICS = 0;
+	int				STATISTICAL_TEST = 0;
 	int				INFERENCE_MODE = 1;
 	bool			MASK = false;
 	const char*		MASK_NAME;
@@ -110,16 +111,30 @@ int main(int argc, char **argv)
 	bool FOUND_CONTRASTS = false;
 	bool ANALYZE_GROUP_MEAN = false;
 	bool ANALYZE_TTEST = false;
-	bool ANALYZE_CORRELATION = false;
+	bool ANALYZE_FTEST = false;
+	bool CORRELATION_DESIGN[1000];
+	bool TWOSAMPLE_DESIGN[1000];
+	bool MEAN_DESIGN[1000];
+	int  GROUP_DESIGNS[1000];
 	bool USE_PERMUTATION_FILE = false;
 	bool WRITE_PERMUTATION_VALUES = false;
 	bool WRITE_PERMUTATION_VECTORS = false;
 	bool DO_ALL_PERMUTATIONS = false;
+	int	 NUMBER_OF_STATISTICAL_MAPS = 1;
+
+	for (int i = 0; i < 1000; i++)
+	{
+		TWOSAMPLE_DESIGN[i] = false;
+		CORRELATION_DESIGN[i] = false;
+		MEAN_DESIGN[i] = false;
+		GROUP_DESIGNS[i] = 100;
+		NUMBER_OF_PERMUTATIONS_PER_CONTRAST[i] = 5000;
+	}
 
 	const char*		outputFilename;
 
     // Size parameters
-    int  DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS, NUMBER_OF_SUBJECTS_IN_GROUP1, NUMBER_OF_SUBJECTS_IN_GROUP2;
+    int  DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS, NUMBER_OF_SUBJECTS_IN_GROUP1[1000], NUMBER_OF_SUBJECTS_IN_GROUP2[1000];
         
     //---------------------    
     
@@ -141,8 +156,8 @@ int main(int argc, char **argv)
         printf(" -contrasts                 The contrast vector(s) to apply to the estimated beta values \n");
 	    printf(" -groupmean                 Test for group mean, using sign flipping (design and contrast not needed) \n");
         printf(" -mask                      A mask that defines which voxels to permute (default none) \n");
-        printf(" -permutations              Number of permutations to use (default 10,000) \n");
-        //printf(" -teststatistics            Test statistics to use, 0 = GLM t-test, 1 = GLM F-test, 2 = CCA, 3 = Searchlight (default 0) \n");
+        printf(" -permutations              Number of permutations to use (default 5,000) \n");
+        printf(" -teststatistics            Test statistics to use, 0 = GLM t-test, 1 = GLM F-test  (default 0) \n");
         printf(" -inferencemode             Inference mode to use, 0 = voxel, 1 = cluster extent, 2 = cluster mass, 3 = TFCE (default 1) \n");
         printf(" -cdt                       Cluster defining threshold for cluster inference (default 2.5) \n");
         printf(" -significance              The significance level to calculate the threshold for (default 0.05) \n");		
@@ -268,6 +283,28 @@ int main(int argc, char **argv)
             else if (NUMBER_OF_PERMUTATIONS <= 0)
             {
                 printf("Number of permutations must be > 0!\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
+        else if (strcmp(input,"-teststatistics") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -teststatistics !\n");
+                return EXIT_FAILURE;
+			}
+
+            STATISTICAL_TEST = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Test statistics must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            if ((STATISTICAL_TEST != 0) && (STATISTICAL_TEST != 1))
+            {
+                printf("Test statistics must be 0 or 1!\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -435,6 +472,12 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
 	}
 
+	if (ANALYZE_GROUP_MEAN && (STATISTICAL_TEST == 1))
+	{
+    	printf("Cannot use F-test for group mean, aborting! \n");
+        return EXIT_FAILURE;
+	}
+
 	// Check if BROCCOLI_DIR variable is set
 	if (getenv("BROCCOLI_DIR") == NULL)
 	{
@@ -442,7 +485,16 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
 	}
 
-	//CLUSTER_DEFINING_THRESHOLD = 2.3f;
+	if (STATISTICAL_TEST == 0)
+	{
+		ANALYZE_TTEST = true;
+	}
+	else if (STATISTICAL_TEST == 1)
+	{
+		ANALYZE_FTEST = true;
+	}
+
+	//-------------------------------
 
 	double startTime = GetWallTime();
     
@@ -641,6 +693,13 @@ int main(int argc, char **argv)
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
+		if ((STATISTICAL_TEST == 1) && (NUMBER_OF_CONTRASTS > 10))
+		{
+			contrasts.close();
+			printf("Number of contrasts must currently be <= 10 for F-test! You provided %i contrasts in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
 	}
 		
     // ------------------------------------------------
@@ -653,6 +712,14 @@ int main(int argc, char **argv)
         printf("Number of permutations: %i \n",  NUMBER_OF_PERMUTATIONS);
         printf("Number of regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
         printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
+		if (ANALYZE_TTEST)
+		{
+			printf("Performing %i t-tests \n",  NUMBER_OF_CONTRASTS);
+		}
+		else if (ANALYZE_FTEST)
+		{
+			printf("Performing one F-test \n");
+		}
     }
 	if (VERBOS)
 	{
@@ -666,8 +733,18 @@ int main(int argc, char **argv)
     size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
   	size_t GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+
+    size_t STATISTICAL_MAPS_SIZE, CONTRAST_SCALAR_SIZE;
+	if (ANALYZE_TTEST)
+	{
+		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
+		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+	}
+	else if (ANALYZE_FTEST)
+	{
+		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float);
+		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+	}
             
     // ------------------------------------------------
 
@@ -684,6 +761,9 @@ int main(int argc, char **argv)
 	AllocateMemory(h_Statistical_Maps, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICAL_MAPS");             
 	AllocateMemory(h_P_Values, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_PVALUES");             
 
+	h_Permutation_Distributions = (float**)malloc(NUMBER_OF_CONTRASTS * sizeof(float*));
+	h_Permutation_Matrices = (unsigned short int**)malloc(NUMBER_OF_CONTRASTS * sizeof(unsigned short int*));
+
 	endTime = GetWallTime();
     
 	if (VERBOS)
@@ -693,6 +773,8 @@ int main(int argc, char **argv)
 
 	startTime = GetWallTime();
 
+    // ------------------------------------------------
+	// Read design matrix from file
     // ------------------------------------------------
 
 	Eigen::MatrixXd X(NUMBER_OF_SUBJECTS,NUMBER_OF_GLM_REGRESSORS);
@@ -736,56 +818,285 @@ int main(int argc, char **argv)
 		}
 	}
 
-	// Check if design matrix is two sample t-test or correlation
+    // ------------------------------------------------
+	// Read contrasts from file
+    // ------------------------------------------------
+
 	if (!ANALYZE_GROUP_MEAN)
 	{
-        
-		// Check abs sum of first regressor and sum of 2 first regressors
-		float sum1 = 0.0f; float sum2 = 0.0f;
-        
-        if (NUMBER_OF_GLM_REGRESSORS >= 2)
-        {
-            for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-            {
-                sum1 += std::abs(X(s,0));
-                
-                sum2 += X(s,0);
-                sum2 += X(s,1);
-            }
-		}
-        else
-        {
-            for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-            {
-                sum1 += std::abs(X(s,0));
-            }
-        }
-    
-		if ( (sum1 == (float)NUMBER_OF_SUBJECTS) || (sum2 == (float)NUMBER_OF_SUBJECTS) )
+		// Read contrasts from file, should check for errors
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			ANALYZE_TTEST = true;
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
+				{
+					contrasts.close();
+			        printf("Could not read all values of the contrasts file %s, aborting! Please check if the number of regressors and contrasts are correct. \n",CONTRASTS_FILE);      
+			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			        return EXIT_FAILURE;			
+				}
+			}
+		}
+		contrasts.close();
+	}
+	else if (ANALYZE_GROUP_MEAN)
+	{
+		h_Contrasts[0] = 1.0f;
+	}
+
+    // ------------------------------------------------
+	// Check if design matrix is two sample test or correlation, for each contrast
+    // ------------------------------------------------
+
+	Eigen::MatrixXd Contrasts(NUMBER_OF_CONTRASTS,NUMBER_OF_GLM_REGRESSORS);
+
+	// Put contrast vectors into eigen object
+	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	{
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		{
+			Contrasts(c,r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
+		}
+	}
+
+	if (ANALYZE_FTEST)
+	{
+		// Check if contrast matrix has full rank
+		Eigen::FullPivLU<Eigen::MatrixXd> luA(Contrasts);
+		int rank = luA.rank();
+		if (rank < NUMBER_OF_CONTRASTS)
+		{
+	        printf("Contrast matrix does not have full rank, at least one contrast can be written as a linear combination of other contrasts, not OK for F-test, aborting!\n");      
+	        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+	        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;	
+		}
+	}
+
+	if (ANALYZE_TTEST)
+	{    
+		// Calculate current contrast
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			Eigen::MatrixXd currentContrast = Contrasts.row(c);
+			Eigen::MatrixXd currentVector = X * currentContrast.transpose();
+
+			// Check how many unique values there are
+			std::vector<float> allUniqueValues;        
+
+	        for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+	        {
+				float value = currentVector(s);
+				bool unique = true;
+				// Check if value is in list of unique values
+				for (int i = 0; i < allUniqueValues.size(); i++)
+				{
+					if (value == allUniqueValues[i])
+					{
+						unique = false;
+						break;
+					}
+				}
+
+				if (unique)
+				{
+					allUniqueValues.push_back(value);
+				}
+	 		}
+    
+			if ( allUniqueValues.size() == 2 )
+			{
+				TWOSAMPLE_DESIGN[c] = true;
+				GROUP_DESIGNS[c] = 0;
+			}
+			else if ( allUniqueValues.size() > 2 )
+			{
+				CORRELATION_DESIGN[c] = true;
+				GROUP_DESIGNS[c] = 1;
+			}
+			else if ( allUniqueValues.size() == 1 )
+			{
+				MEAN_DESIGN[c] = true;
+			}
+
+			if (TWOSAMPLE_DESIGN[c])
+			{
+				NUMBER_OF_SUBJECTS_IN_GROUP1[c] = 0;
+				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+				{
+					if (currentVector(s) == allUniqueValues[0])
+					{
+						NUMBER_OF_SUBJECTS_IN_GROUP1[c]++;
+					}
+				}
+				NUMBER_OF_SUBJECTS_IN_GROUP2[c] = NUMBER_OF_SUBJECTS - NUMBER_OF_SUBJECTS_IN_GROUP1[c];
+		        printf("Two sample t-test design detected for t-contrast %i, %i subjects in group 1 and %i subjects in group 2\n",c+1,NUMBER_OF_SUBJECTS_IN_GROUP1[c],NUMBER_OF_SUBJECTS_IN_GROUP2[c]);
+			}
+			else if (CORRELATION_DESIGN[c])
+			{
+			   printf("Correlation design detected for t-contrast %i\n",c+1);
+			}	
+			else if (MEAN_DESIGN[c])
+			{
+			   printf("Mean design detected for t-contrast %i\n",c+1);
+			}	
+
+		}
+	}
+	else if (ANALYZE_FTEST)
+	{
+		// Calculate design matrix * contrast
+		Eigen::MatrixXd temp = X * Contrasts.transpose();
+		
+		// Check how many unique values there are
+		std::vector<float> allUniqueValues;        
+
+        for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+        {
+	        for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+    	    {
+				float value = temp(s,c);
+				bool unique = true;
+				// Check if value is in list of unique values
+				for (int i = 0; i < allUniqueValues.size(); i++)
+				{
+					if (value == allUniqueValues[i])
+					{
+						unique = false;
+						break;
+					}
+				}
+
+				if (unique)
+				{
+					allUniqueValues.push_back(value);
+				}
+	 		}
+		}
+    
+		if ( allUniqueValues.size() == 2 )
+		{
+			TWOSAMPLE_DESIGN[0] = true;
+			GROUP_DESIGNS[0] = 0;
+		}
+		else if ( allUniqueValues.size() > 2 )
+		{
+			CORRELATION_DESIGN[0] = true;
+			GROUP_DESIGNS[0] = 1;
+		}
+		else if ( allUniqueValues.size() == 1 )
+		{
+			MEAN_DESIGN[0] = true;
+		}
+		
+
+		if (TWOSAMPLE_DESIGN[0])
+		{
+			NUMBER_OF_SUBJECTS_IN_GROUP1[0] = 0;
+			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			{
+				if (temp(s,0) == allUniqueValues[0])
+				{
+					NUMBER_OF_SUBJECTS_IN_GROUP1[0]++;
+				}
+			}
+			NUMBER_OF_SUBJECTS_IN_GROUP2[0] = NUMBER_OF_SUBJECTS - NUMBER_OF_SUBJECTS_IN_GROUP1[0];
+	        printf("\nTwo sample t-test design detected for F-test, %i subjects in group 1 and %i subjects in group 2\n\n",NUMBER_OF_SUBJECTS_IN_GROUP1[0],NUMBER_OF_SUBJECTS_IN_GROUP2[0]);
+		}
+		else if (CORRELATION_DESIGN[0])
+		{
+		   printf("\nCorrelation design detected for F-test\n\n");
+		}
+	}
+
+
+	// Check if requested number of permutations is larger than number of possible sign flips
+	if (ANALYZE_GROUP_MEAN)
+	{
+		NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0] = NUMBER_OF_PERMUTATIONS;
+
+		// Calculate maximum number of sign flips
+		double MAX_SIGN_FLIPS = pow(2.0, (double)NUMBER_OF_SUBJECTS);
+		if ((double)NUMBER_OF_PERMUTATIONS > MAX_SIGN_FLIPS)
+		{
+			printf("Warning: Number of possible sign flips for group mean is %g, but %g permutations were requested. Lowering number of permutations to number of possible sign flips. \n",MAX_SIGN_FLIPS,(double)NUMBER_OF_PERMUTATIONS);
+			DO_ALL_PERMUTATIONS = true;
+		}
+		else if ((double)NUMBER_OF_PERMUTATIONS == MAX_SIGN_FLIPS)
+		{
+			DO_ALL_PERMUTATIONS = true;
+			printf("Max number of sign flips is %g \n",MAX_SIGN_FLIPS);
 		}
 		else
 		{
-			ANALYZE_CORRELATION = true;
+			printf("Max number of sign flips is %g \n",MAX_SIGN_FLIPS);
 		}
+	}
 
-		if (ANALYZE_TTEST)
+	if (ANALYZE_GROUP_MEAN)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = 1;
+	}
+	if (ANALYZE_TTEST)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = NUMBER_OF_CONTRASTS;
+	}
+	else if (ANALYZE_FTEST)
+	{
+		NUMBER_OF_STATISTICAL_MAPS = 1;
+	}
+
+	if (!ANALYZE_GROUP_MEAN)
+	{
+		for (int c = 0; c < NUMBER_OF_STATISTICAL_MAPS; c++)
 		{
-			NUMBER_OF_SUBJECTS_IN_GROUP1 = 0;
-			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = NUMBER_OF_PERMUTATIONS;
+
+			if (TWOSAMPLE_DESIGN[c])
 			{
-				if (X(s,0) == 1.0f)
+		       	double MAX_PERMS = round(exp(lgamma(NUMBER_OF_SUBJECTS+1)-lgamma(NUMBER_OF_SUBJECTS-NUMBER_OF_SUBJECTS_IN_GROUP2[c]+1)-lgamma(NUMBER_OF_SUBJECTS_IN_GROUP2[c]+1)));
+				if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
 				{
-					NUMBER_OF_SUBJECTS_IN_GROUP1++;
+					printf("Warning: Number of possible permutations for your design is %g for contrast %i, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,c+1,(double)NUMBER_OF_PERMUTATIONS);
+					NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = (int)MAX_PERMS; 
+					DO_ALL_PERMUTATIONS = true;
+				}
+				else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
+				{
+					DO_ALL_PERMUTATIONS = true;
+					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
+				}
+				else
+				{
+					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
 				}
 			}
-			NUMBER_OF_SUBJECTS_IN_GROUP2 = NUMBER_OF_SUBJECTS - NUMBER_OF_SUBJECTS_IN_GROUP1;
-	        printf("\nTwo sample t-test design detected, %i subjects in group 1 and %i subjects in group 2\n\n",NUMBER_OF_SUBJECTS_IN_GROUP1,NUMBER_OF_SUBJECTS_IN_GROUP2);
-		}
-		else if (ANALYZE_CORRELATION)
-		{
-		   printf("\nCorrelation design detected\n\n");
+			else if (CORRELATION_DESIGN[c])
+			{
+				double MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
+				if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
+				{
+					printf("Warning: Number of possible permutations for your design is %g for contrast %i, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,c+1,(double)NUMBER_OF_PERMUTATIONS);
+					NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = (int)MAX_PERMS; 
+					DO_ALL_PERMUTATIONS = true;
+				}
+				else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
+				{
+					DO_ALL_PERMUTATIONS = true;
+					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
+				}
+				else
+				{
+					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
+				}
+			}
+			else if (MEAN_DESIGN[c])
+			{
+				printf("Warning: Contrast %i leads to a simple mean value, only doing 1 permutation!\n",c+1);
+				NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = 1; 
+			}
 		}
 	}
 
@@ -819,42 +1130,34 @@ int main(int argc, char **argv)
 		}
 	}
 
-	if (!ANALYZE_GROUP_MEAN)
+	// Calculate contrast scalars
+	if (ANALYZE_TTEST)
 	{
-		// Read contrasts from file, should check for errors
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
+			// Put contrast vector into eigen object
+			Eigen::VectorXd Contrast(NUMBER_OF_GLM_REGRESSORS);
 			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
-				if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
-				{
-					contrasts.close();
-			        printf("Could not read all values of the contrasts file %s, aborting! Please check if the number of regressors and contrasts are correct. \n",CONTRASTS_FILE);      
-			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-			        return EXIT_FAILURE;			
-				}
+				Contrast(r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
+			}
+	
+			Eigen::VectorXd scalar = Contrast.transpose() * inv_xtx * Contrast;
+			h_ctxtxc_GLM[c] = scalar(0);
+		}
+	}
+	else if (ANALYZE_FTEST)
+	{
+		Eigen::MatrixXd temp = Contrasts * inv_xtx * Contrasts.transpose();
+		Eigen::MatrixXd ctxtxc = temp.inverse();
+
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+			{
+				h_ctxtxc_GLM[c + cc  * NUMBER_OF_CONTRASTS] = ctxtxc(c,cc);
 			}
 		}
-		contrasts.close();
-	}
-	else if (ANALYZE_GROUP_MEAN)
-	{
-		h_Contrasts[0] = 1.0f;
-	}
-
-	// Calculate contrast scalars
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
-	{
-		// Put contrast vector into eigen object
-		Eigen::VectorXd Contrast(NUMBER_OF_GLM_REGRESSORS);
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-		{
-			Contrast(r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
-		}
-
-		Eigen::VectorXd scalar = Contrast.transpose() * inv_xtx * Contrast;
-		h_ctxtxc_GLM[c] = scalar(0);
 	}
 
 	if (!ANALYZE_GROUP_MEAN)
@@ -875,80 +1178,29 @@ int main(int argc, char **argv)
 	}
 
     // ------------------------------------------------
+		
+	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0] * NUMBER_OF_SUBJECTS * sizeof(float);
 
-	// Check if requested number of permutations is larger than number of possible sign flips, for group mean only
-	if (ANALYZE_GROUP_MEAN)
-	{
-		// Calculate maximum number of sign flips
-		double SIGN_FLIPS = pow(2.0, (double)NUMBER_OF_SUBJECTS);
-		if ((double)NUMBER_OF_PERMUTATIONS > SIGN_FLIPS)
-		{
-			printf("Warning: Number of possible sign flips for group mean is %g, but %g permutations were requested. Lowering number of permutations to number of possible sign flips. \n",SIGN_FLIPS,NUMBER_OF_PERMUTATIONS);
-			NUMBER_OF_PERMUTATIONS = (int)SIGN_FLIPS;
-			DO_ALL_PERMUTATIONS = true;
-		}
-		else if ((double)NUMBER_OF_PERMUTATIONS == SIGN_FLIPS)
-		{
-			DO_ALL_PERMUTATIONS = true;
-			printf("Max number of sign flips is %g \n",SIGN_FLIPS);
-		}
-		else
-		{
-			printf("Max number of sign flips is %g \n",SIGN_FLIPS);
-		}
-	}
-	else if (ANALYZE_TTEST)
-	{
-        double MAX_PERMS = round(exp(lgamma(NUMBER_OF_SUBJECTS+1)-lgamma(NUMBER_OF_SUBJECTS-NUMBER_OF_SUBJECTS_IN_GROUP2+1)-lgamma(NUMBER_OF_SUBJECTS_IN_GROUP2+1)));
-		if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
-		{
-			printf("Warning: Number of possible permutations for your design is %g, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
-			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
-			DO_ALL_PERMUTATIONS = true;
-		}
-		else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
-		{
-			DO_ALL_PERMUTATIONS = true;
-			printf("Max number of permutations is %g \n",MAX_PERMS);
-		}
-		else
-		{
-			printf("Max number of permutations is %g \n",MAX_PERMS);
-		}
-	}
-	else if (ANALYZE_CORRELATION)
-	{
-		double MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
-		if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
-		{
-			printf("Warning: Number of possible permutations for your design is %g, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,NUMBER_OF_PERMUTATIONS);
-			NUMBER_OF_PERMUTATIONS = (int)MAX_PERMS;
-			DO_ALL_PERMUTATIONS = true;
-		}
-		else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
-		{
-			DO_ALL_PERMUTATIONS = true;
-			printf("Max number of permutations is %g \n",MAX_PERMS);
-		}
-		else
-		{
-			printf("Max number of permutations is %g \n",MAX_PERMS);
-		}
-	}
-	
-	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(float);
-    size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
-	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
-
-	AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages,allocatedHostMemory, "PERMUTATION_MATRIX");
 	AllocateMemory(h_Sign_Matrix, SIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "SIGN_MATRIX");
-	AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_DISTRIBUTION");             
+
+	for (int c = 0; c < NUMBER_OF_STATISTICAL_MAPS; c++)
+	{ 
+	    size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * sizeof(float);
+		size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
+
+		AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages,allocatedHostMemory, "PERMUTATION_MATRIX");
+		AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_DISTRIBUTION");             
+		h_Permutation_Matrices[c] = h_Permutation_Matrix;
+		h_Permutation_Distributions[c] = h_Permutation_Distribution;
+	}
 
     // ------------------------------------------------
 
 	// Read permutation file
 	if (USE_PERMUTATION_FILE && (!ANALYZE_GROUP_MEAN))
 	{
+		h_Permutation_Matrix = h_Permutation_Matrices[0];
+
 		std::ifstream permutations;
     	permutations.open(PERMUTATION_INPUT_FILE); 
 
@@ -956,7 +1208,7 @@ int main(int argc, char **argv)
 
 		if (permutations.good())
 		{
-			for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+			for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 			{
 				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
 				{
@@ -990,6 +1242,8 @@ int main(int argc, char **argv)
 	// Read sign flipping file
 	else if (USE_PERMUTATION_FILE && ANALYZE_GROUP_MEAN)
 	{
+		h_Permutation_Matrix = h_Permutation_Matrices[0];
+
 		std::ifstream permutations;
     	permutations.open(PERMUTATION_INPUT_FILE); 
 
@@ -997,7 +1251,7 @@ int main(int argc, char **argv)
 
 		if (permutations.good())
 		{
-			for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+			for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 			{
 				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
 				{
@@ -1017,22 +1271,6 @@ int main(int argc, char **argv)
 	        return EXIT_FAILURE;
 		}	
 	}
-
-	/*
-	if (VERBOS)
-	{
-		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
-		{
-			printf("Permutation matrix for permutation %i",p);
-			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
-			{
-				printf(" %i ",h_Permutation_Matrix[s + p * NUMBER_OF_SUBJECTS]);
-			}
-			printf("\n ");
-		}	
-	}
-	*/	
-
 
     // ------------------------------------------------
 
@@ -1231,6 +1469,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetNumberOfSubjectsGroup1(NUMBER_OF_SUBJECTS_IN_GROUP1);
         BROCCOLI.SetNumberOfSubjectsGroup2(NUMBER_OF_SUBJECTS_IN_GROUP2);
         BROCCOLI.SetNumberOfPermutations(NUMBER_OF_PERMUTATIONS);
+        BROCCOLI.SetNumberOfGroupPermutations(NUMBER_OF_PERMUTATIONS_PER_CONTRAST);
         BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
         BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
         BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
@@ -1242,7 +1481,7 @@ int main(int argc, char **argv)
         //BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
         BROCCOLI.SetOutputStatisticalMapsMNI(h_Statistical_Maps);        
         //BROCCOLI.SetOutputClusterIndices(h_Cluster_Indices);
-        BROCCOLI.SetOutputPermutationDistribution(h_Permutation_Distribution);
+        BROCCOLI.SetOutputPermutationDistributions(h_Permutation_Distributions);
         //BROCCOLI.SetOutputPermutedFirstLevelResults(h_Permuted_First_Level_Results);       
         BROCCOLI.SetOutputPValuesMNI(h_P_Values);        
 
@@ -1250,6 +1489,8 @@ int main(int argc, char **argv)
 
 		BROCCOLI.SetPermutationFileUsage(USE_PERMUTATION_FILE);
 		BROCCOLI.SetPrint(PRINT);
+
+		BROCCOLI.SetGroupDesigns(GROUP_DESIGNS);
 
         // Run the permutation test
 
@@ -1262,15 +1503,15 @@ int main(int argc, char **argv)
 		}
 		else if (ANALYZE_TTEST)
 		{
-	        BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
+	        BROCCOLI.SetPermutationMatrices(h_Permutation_Matrices);        
 	        BROCCOLI.SetStatisticalTest(0); // t-test
 	        BROCCOLI.PerformGLMTTestSecondLevelPermutationWrapper();                            
 		}
-		else if (ANALYZE_CORRELATION)
+		else if (ANALYZE_FTEST)
 		{
-	        BROCCOLI.SetPermutationMatrix(h_Permutation_Matrix);        
-	        BROCCOLI.SetStatisticalTest(3); // correlation
-	        BROCCOLI.PerformGLMTTestSecondLevelPermutationWrapper();                            
+	        BROCCOLI.SetPermutationMatrices(h_Permutation_Matrices);        
+	        BROCCOLI.SetStatisticalTest(1); // F-test
+	        BROCCOLI.PerformGLMFTestSecondLevelPermutationWrapper();                            
 		}
 
 		endTime = GetWallTime();
@@ -1316,9 +1557,11 @@ int main(int argc, char **argv)
 	{
 		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
+			h_Permutation_Distribution = h_Permutation_Distributions[c];
+
 			std::ofstream permutationValues;
 			std::string permValues(PERMUTATION_VALUES_FILE);
-			char tmp[100];
+			char tmp[1000];
 			sprintf(tmp, "%d", c+1);
 			permValues.insert(permValues.find("."),std::string(tmp));
 
@@ -1326,9 +1569,9 @@ int main(int argc, char **argv)
 
 		    if ( permutationValues.good() )
 		    {
-    		    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+    		    for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c]; p++)
 		        {
-    	        	permutationValues << std::setprecision(6) << std::fixed << (double)h_Permutation_Distribution[p + c * NUMBER_OF_PERMUTATIONS] << " " << std::endl;
+    	        	permutationValues << std::setprecision(6) << std::fixed << (double)h_Permutation_Distribution[p] << " " << std::endl;
 				}
 			    permutationValues.close();
     	    } 	
@@ -1346,11 +1589,13 @@ int main(int argc, char **argv)
 		std::ofstream permutationVectors;
 	    permutationVectors.open(PERMUTATION_VECTORS_FILE);      
 
+		h_Permutation_Matrix = h_Permutation_Matrices[0];
+
 	    if ( permutationVectors.good() )
 	    {
 			if (ANALYZE_GROUP_MEAN)
 			{
-	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 		        {
 		    	    for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
 			        {
@@ -1361,7 +1606,7 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 		        {
 		    	    for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
 			        {
@@ -1382,13 +1627,23 @@ int main(int argc, char **argv)
     // Create new nifti image
 	nifti_image *outputNifti = nifti_copy_nim_info(inputData);      
 	nifti_free_extensions(outputNifti);
-	// Change number of output volumes
-	outputNifti->nt = NUMBER_OF_CONTRASTS;
-	outputNifti->dim[4] = NUMBER_OF_CONTRASTS;
-	outputNifti->nvox = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS;
+
+	if (ANALYZE_TTEST)
+	{
+		// Change number of output volumes
+		outputNifti->nt = NUMBER_OF_CONTRASTS;
+		outputNifti->dim[4] = NUMBER_OF_CONTRASTS;
+		outputNifti->nvox = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS;
+	}
+	else if (ANALYZE_FTEST)
+	{
+		// Change number of output volumes
+		outputNifti->nt = 1;
+		outputNifti->dim[4] = 1;
+		outputNifti->nvox = DATA_W * DATA_H * DATA_D;
+	}
 	allNiftiImages[numberOfNiftiImages] = outputNifti;
 	numberOfNiftiImages++;    
-
 
 	if (!CHANGE_OUTPUT_NAME)
 	{
@@ -1401,7 +1656,14 @@ int main(int argc, char **argv)
 
     startTime = GetWallTime(); 
         
-    WriteNifti(outputNifti,h_Statistical_Maps,"_perm_tvalues",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	if (!ANALYZE_FTEST)
+	{
+	    WriteNifti(outputNifti,h_Statistical_Maps,"_perm_tvalues",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+	else
+	{
+	    WriteNifti(outputNifti,h_Statistical_Maps,"_perm_fvalues",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
     WriteNifti(outputNifti,h_P_Values,"_perm_pvalues",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 
 	endTime = GetWallTime();
@@ -1414,6 +1676,9 @@ int main(int argc, char **argv)
     // Free all memory
     FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
     FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+
+	free(h_Permutation_Distributions);
+	free(h_Permutation_Matrices);
         
     return EXIT_SUCCESS;
 }
