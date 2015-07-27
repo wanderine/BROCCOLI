@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     int             NUMBER_OF_GLM_REGRESSORS = 1;
 	int				NUMBER_OF_CONTRASTS = 1; 
     float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
-	int				NUMBER_OF_PERMUTATIONS;
+	int				NUMBER_OF_PERMUTATIONS = 5000;
 	int				NUMBER_OF_PERMUTATIONS_PER_CONTRAST[1000];
 	float			SIGNIFICANCE_LEVEL = 0.05f;
 	int				STATISTICAL_TEST = 0;
