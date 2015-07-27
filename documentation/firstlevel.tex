@@ -41,20 +41,20 @@ The regressors can also be raw, in the sense that you instead directly provide t
 3.1
 2.2
 \end{verbatim}
-where each row represents the value of the regressor for that volume / time point. The number of rows must therefore be equal to the number of volumes / time points. It is also possible to give the whole design matrix as a single text file, it can for example look like
+where each row represents the value of the regressor for that volume. The number of rows must be equal to the number of volumes. It is also possible to give the whole design matrix as a single text file, it can for example look like
 \begin{verbatim}
-NumRegressors 3
+NumRegressors 2
 
-1.0 0.5377  -0.1241	
-1.0 1.8339  1.4897
-1.0 -2.2588 1.4090
-1.0 0.8622  1.4172
-1.0 0.3188  0.6715
-1.0 -1.3077 -1.2075	
-1.0 -0.4336  0.7172
-1.0 0.3426  1.6302
+0.5377  -0.1241	
+1.8339  1.4897
+-2.2588 1.4090
+0.8622  1.4172
+0.3188  0.6715
+-1.3077 -1.2075	
+-0.4336  0.7172
+0.3426  1.6302
 \end{verbatim}
-Note that it is necessary to include one regressor with only ones, to pick up the mean value of each time series. BROCCOLI will NOT remove the mean of the other regressors! \newline \newline contrasts.txt contains a list of all the contrasts for which BROCCOLI will calculate a volume with t-scores. An example is given by
+In all cases, BROCCOLI will automatically add detrending regressors and remove the mean of all the activity regressors. \newline \newline contrasts.txt contains a list of all the contrasts for which BROCCOLI will calculate a volume with t-scores. An example is given by
 
 \begin{verbatim}
 NumRegressors 3
@@ -70,6 +70,7 @@ NumContrasts 9
 -1.0 0.0 1.0
 0.0 -1.0 1.0
 \end{verbatim}
+The user only has to define the contrast values for the original activity regressors. BROCCOLI will automatically add additional zeros for nuisance regressors (motion, global mean) and temporal derivatives.
 
 \section{OpenCL options}
 
@@ -187,7 +188,7 @@ The following statistical options are available
 \newline \newline Use raw regressors (FSL format, one line per volume/TR). These regressors will not be convolved with any hemodynamic response function.
 
 \item -rawdesignmatrix 
-\newline \newline Provide the design matrix in a single text file (FSL format, one regressor per column, one value per TR). These regressors will not be convolved with any hemodynamic response function. It is still possible to use the options -regressmotion and -regressglobalmean.
+\newline \newline Provide the design matrix in a single text file (FSL format, one regressor per column, one value per volume/TR). These regressors will not be convolved with any hemodynamic response function. It is still possible to use the options -regressmotion and -regressglobalmean.
 
 \item -regressmotion 
 \newline \newline Add the 6 estimated motion parameters (3 for translation and 3 for rotation) to the design matrix, to further suppress the effect of head motion. The contrast vectors are automatically extended with zeros for these additional regressors. 
