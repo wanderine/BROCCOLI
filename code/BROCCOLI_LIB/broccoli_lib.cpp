@@ -3793,6 +3793,11 @@ void BROCCOLI_LIB::SetSaveResidualsEPI(bool value)
 	WRITE_RESIDUALS_EPI = value;
 }
 
+void BROCCOLI_LIB::SetSaveResidualVariances(bool value)
+{
+	WRITE_RESIDUAL_VARIANCES = value;
+}
+
 void BROCCOLI_LIB::SetSmoothingType(int type)
 {
 	SMOOTHING_TYPE = type;
@@ -11476,7 +11481,7 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 	{
 		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
 	}
-	
+
 	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
 	
 	if (WRITE_AR_ESTIMATES_EPI)
@@ -11534,235 +11539,131 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 // Used for testing of F-test only
 void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 {
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN;
 
-	// Allocate memory for volumes
-	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
-	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-
-	// Allocate memory for model
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-	c_Censored_Timepoints = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(float), NULL, NULL);
 
-	// Allocate memory for results
+	// Allocate memory for one slice for all time points, loop over slices to save memory
+	d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+	d_Whitened_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+	d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+	deviceMemoryAllocations += 3;
+	allocatedDeviceMemory += 3 * EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float);
+
+	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
-	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-	d_Residuals = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
-	d_Residual_Variances = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	deviceMemoryAllocations += 5;
+	allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(2 + NUMBER_OF_TOTAL_GLM_REGRESSORS + 1 + 1) * sizeof(float);
 
 	d_AR1_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_AR2_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_AR3_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_AR4_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-	d_Whitened_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), NULL, NULL);
 
-	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, d_Smoothed_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Smoothed_EPI_Mask , 0, NULL, NULL);
+	deviceMemoryAllocations += 4;
+	allocatedDeviceMemory += 4 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 
-	// Copy model to constant memory
-	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM_In , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_xtxxt_GLM_In , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts_In , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In , 0, NULL, NULL);
-	clFinish(commandQueue);
+	PrintMemoryStatus("Before GLM");
 
-	// Setup work sizes
-	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	h_X_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
+	h_xtxxt_GLM = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float));
+	h_Contrasts = (float*)malloc(NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float));
+	h_ctxtxc_GLM = (float*)malloc(NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float));
+	h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
+	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
+	h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
 
-	// Create a mapping between voxel coordinates and brain voxel number, since we cannot store the modified GLM design matrix for all voxels, only for the brain voxels
-	cl_mem d_Voxel_Numbers = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-	//CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-
-	// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
-	cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
-
-	// Allocate memory for voxel specific GLM scalars
-	cl_mem d_GLM_Scalars = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-
-	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, AR_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
-
-	// All timepoints are valid the first run
-	NUMBER_OF_INVALID_TIMEPOINTS = 0;
-	SetMemory(c_Censored_Timepoints, 1.0f, EPI_DATA_T);
-
-	// Reset all AR parameters
-	SetMemory(d_AR1_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
-	SetMemory(d_AR2_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
-	SetMemory(d_AR3_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
-	SetMemory(d_AR4_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
-
-	// Apply whitening to model (no whitening first time, so just copy regressors)
-	//WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM_In, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
-
-	// Set whitened volumes to original volumes
-	clEnqueueCopyBuffer(commandQueue, d_fMRI_Volumes, d_Whitened_fMRI_Volumes, 0, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), 0, NULL, NULL);
-
-	// Cochrane-Orcutt procedure, iterate
-	for (int it = 0; it < 1; it++)
+	if (REGRESS_GLOBALMEAN)
 	{
-		// Calculate beta values, using whitened data and the whitened voxel-specific models
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1, sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3, sizeof(cl_mem), &d_xtxxt_GLM);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4, sizeof(cl_mem), &d_Voxel_Numbers);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5, sizeof(cl_mem), &c_Censored_Timepoints);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6, sizeof(int),    &EPI_DATA_W);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7, sizeof(int),    &EPI_DATA_H);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8, sizeof(int),    &EPI_DATA_D);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9, sizeof(int),    &EPI_DATA_T);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int),   &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int),   &NUMBER_OF_INVALID_TIMEPOINTS);
-		runKernelErrorCalculateBetaWeightsGLMFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMFirstLevelKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		// Calculate residuals, using original data and the original model
-		clSetKernelArg(CalculateGLMResidualsKernel, 0, sizeof(cl_mem), &d_Residuals);
-		clSetKernelArg(CalculateGLMResidualsKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
-		clSetKernelArg(CalculateGLMResidualsKernel, 2, sizeof(cl_mem), &d_Beta_Volumes);
-		clSetKernelArg(CalculateGLMResidualsKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
-		clSetKernelArg(CalculateGLMResidualsKernel, 4, sizeof(cl_mem), &c_X_GLM);
-		clSetKernelArg(CalculateGLMResidualsKernel, 5, sizeof(int),    &EPI_DATA_W);
-		clSetKernelArg(CalculateGLMResidualsKernel, 6, sizeof(int),    &EPI_DATA_H);
-		clSetKernelArg(CalculateGLMResidualsKernel, 7, sizeof(int),    &EPI_DATA_D);
-		clSetKernelArg(CalculateGLMResidualsKernel, 8, sizeof(int),    &EPI_DATA_T);
-		clSetKernelArg(CalculateGLMResidualsKernel, 9, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-		runKernelErrorCalculateGLMResiduals = clEnqueueNDRangeKernel(commandQueue, CalculateGLMResidualsKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
-		clFinish(commandQueue);
-
-		// Estimate auto correlation from residuals
-		clSetKernelArg(EstimateAR4ModelsKernel, 0, sizeof(cl_mem), &d_AR1_Estimates);
-		clSetKernelArg(EstimateAR4ModelsKernel, 1, sizeof(cl_mem), &d_AR2_Estimates);
-		clSetKernelArg(EstimateAR4ModelsKernel, 2, sizeof(cl_mem), &d_AR3_Estimates);
-		clSetKernelArg(EstimateAR4ModelsKernel, 3, sizeof(cl_mem), &d_AR4_Estimates);
-		clSetKernelArg(EstimateAR4ModelsKernel, 4, sizeof(cl_mem), &d_Residuals);
-		clSetKernelArg(EstimateAR4ModelsKernel, 5, sizeof(cl_mem), &d_EPI_Mask);
-		clSetKernelArg(EstimateAR4ModelsKernel, 6, sizeof(int),    &EPI_DATA_W);
-		clSetKernelArg(EstimateAR4ModelsKernel, 7, sizeof(int),    &EPI_DATA_H);
-		clSetKernelArg(EstimateAR4ModelsKernel, 8, sizeof(int),    &EPI_DATA_D);
-		clSetKernelArg(EstimateAR4ModelsKernel, 9, sizeof(int),    &EPI_DATA_T);
-		clSetKernelArg(EstimateAR4ModelsKernel, 10, sizeof(int),   &NUMBER_OF_INVALID_TIMEPOINTS);
-		runKernelErrorEstimateAR4Models = clEnqueueNDRangeKernel(commandQueue, EstimateAR4ModelsKernel, 3, NULL, globalWorkSizeEstimateAR4Models, localWorkSizeEstimateAR4Models, 0, NULL, NULL);
-
-		// Smooth auto correlation estimates
-		PerformSmoothingNormalized(d_AR1_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
-		PerformSmoothingNormalized(d_AR2_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
-		PerformSmoothingNormalized(d_AR3_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
-		PerformSmoothingNormalized(d_AR4_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
-
-		// Apply whitening to data
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 0,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 1,  sizeof(cl_mem), &d_fMRI_Volumes);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 2,  sizeof(cl_mem), &d_AR1_Estimates);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 3,  sizeof(cl_mem), &d_AR2_Estimates);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 4,  sizeof(cl_mem), &d_AR3_Estimates);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 5,  sizeof(cl_mem), &d_AR4_Estimates);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 6,  sizeof(cl_mem), &d_EPI_Mask);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 7,  sizeof(int),    &EPI_DATA_W);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 8,  sizeof(int),    &EPI_DATA_H);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 9,  sizeof(int),    &EPI_DATA_D);
-		clSetKernelArg(ApplyWhiteningAR4Kernel, 10, sizeof(int),    &EPI_DATA_T);
-		runKernelErrorApplyWhiteningAR4 = clEnqueueNDRangeKernel(commandQueue, ApplyWhiteningAR4Kernel, 3, NULL, globalWorkSizeApplyWhiteningAR4, localWorkSizeApplyWhiteningAR4, 0, NULL, NULL);
-
-		// First four timepoints are now invalid
-		SetMemory(c_Censored_Timepoints, 0.0f, 4);
-		NUMBER_OF_INVALID_TIMEPOINTS = 4;
-
-		// Apply whitening to model and create voxel-specific models
-		//WhitenDesignMatricesInverse(d_xtxxt_GLM, h_X_GLM_In, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
+		CalculateGlobalMeans(h_fMRI_Volumes);
 	}
 
-	// Calculate beta values, using whitened data and the whitened voxel-specific models
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1, sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2, sizeof(cl_mem), &d_EPI_Mask);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3, sizeof(cl_mem), &d_xtxxt_GLM);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4, sizeof(cl_mem), &d_Voxel_Numbers);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5, sizeof(cl_mem), &c_Censored_Timepoints);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6, sizeof(int), &EPI_DATA_W);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7, sizeof(int), &EPI_DATA_H);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8, sizeof(int), &EPI_DATA_D);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9, sizeof(int), &EPI_DATA_T);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int), &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int), &NUMBER_OF_INVALID_TIMEPOINTS);
-	runKernelErrorCalculateBetaWeightsGLMFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMFirstLevelKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
-	clFinish(commandQueue);
+	SetupFTestFirstLevel(EPI_DATA_T);
 
-	// d_xtxxt_GLM now contains X_GLM and not xtxxt_GLM ...
-	WhitenDesignMatricesFTest(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM_In, h_Contrasts_In, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
+	// Copy mask to device
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
 
-	// Finally calculate statistical maps using whitened model and whitened data
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 1, sizeof(cl_mem),  &d_Residuals);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 2, sizeof(cl_mem),  &d_Residual_Variances);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 3, sizeof(cl_mem),  &d_Whitened_fMRI_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 4, sizeof(cl_mem),  &d_Beta_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 5, sizeof(cl_mem),  &d_EPI_Mask);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 6, sizeof(cl_mem),  &d_xtxxt_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 7, sizeof(cl_mem),  &d_GLM_Scalars);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 8, sizeof(cl_mem),  &d_Voxel_Numbers);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 9, sizeof(cl_mem),  &c_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 10, sizeof(cl_mem), &c_Censored_Timepoints);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 11, sizeof(int),    &EPI_DATA_W);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 12, sizeof(int),    &EPI_DATA_H);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 13, sizeof(int),    &EPI_DATA_D);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 14, sizeof(int),    &EPI_DATA_T);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 15, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 16, sizeof(int),    &NUMBER_OF_CONTRASTS);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 17, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
-	runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMFTestFirstLevelKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
-	clFinish(commandQueue);
+	// Copy model to device
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM , 0, NULL, NULL);
+	
+	if (WRITE_DESIGNMATRIX)
+	{
+		for (int t = 0; t < EPI_DATA_T; t++)
+		{
+			for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+			{
+				h_X_GLM_Out[t + r * EPI_DATA_T] = h_X_GLM[t + r * EPI_DATA_T];
+				h_xtxxt_GLM_Out[t + r * EPI_DATA_T] = h_xtxxt_GLM[t + r * EPI_DATA_T];
+			}
+		}
+	}
 
-	MultiplyVolumes(d_AR1_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-	MultiplyVolumes(d_AR2_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-	MultiplyVolumes(d_AR3_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-	MultiplyVolumes(d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	// Run the actual GLM
+	CalculateStatisticalMapsGLMFTestFirstLevelSlices(h_fMRI_Volumes,3);
 
-	PutWhitenedModelsIntoVolumes2(d_EPI_Mask, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, h_X_GLM_In, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS);
-
-	// Copy results to  host
 	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Statistical_Maps_EPI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	
+	if (WRITE_AR_ESTIMATES_EPI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
+	}		
 
-	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
+	// Cleanup host memory
+	free(h_X_GLM);
+	free(h_xtxxt_GLM);
+	free(h_Contrasts);
+	free(h_ctxtxc_GLM);
+	free(h_X_GLM_With_Temporal_Derivatives);
+	free(h_X_GLM_Convolved);
+	free(h_Global_Mean);
 
-
-	// Release memory
-	clReleaseMemObject(d_xtxxt_GLM);
-	clReleaseMemObject(d_Voxel_Numbers);
-	clReleaseMemObject(d_GLM_Scalars);
-
-	clReleaseMemObject(d_fMRI_Volumes);
-	clReleaseMemObject(d_EPI_Mask);
-	clReleaseMemObject(d_Smoothed_EPI_Mask);
-
+	// Cleanup device memory
 	clReleaseMemObject(c_X_GLM);
 	clReleaseMemObject(c_xtxxt_GLM);
 	clReleaseMemObject(c_Contrasts);
 	clReleaseMemObject(c_ctxtxc_GLM);
-	clReleaseMemObject(c_Censored_Timepoints);
+	
+	clReleaseMemObject(d_fMRI_Volumes);
+	clReleaseMemObject(d_Whitened_fMRI_Volumes);
+	clReleaseMemObject(d_Residuals);
 
+	allocatedDeviceMemory -= 3 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_T * sizeof(float);
+	deviceMemoryDeallocations += 3;
+
+	clReleaseMemObject(d_EPI_Mask);
+	clReleaseMemObject(d_Smoothed_EPI_Mask);
 	clReleaseMemObject(d_Beta_Volumes);
 	clReleaseMemObject(d_Statistical_Maps);
-	clReleaseMemObject(d_Residuals);
 	clReleaseMemObject(d_Residual_Variances);
+
+	allocatedDeviceMemory -= (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(2 + NUMBER_OF_TOTAL_GLM_REGRESSORS + 1 + 1) * sizeof(float);
+	deviceMemoryDeallocations += 5;
 
 	clReleaseMemObject(d_AR1_Estimates);
 	clReleaseMemObject(d_AR2_Estimates);
 	clReleaseMemObject(d_AR3_Estimates);
 	clReleaseMemObject(d_AR4_Estimates);
-	clReleaseMemObject(d_Whitened_fMRI_Volumes);
+
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * 4 * sizeof(float);
+	deviceMemoryDeallocations += 4;
+
+	PrintMemoryStatus("After GLM");
 }
 
 void BROCCOLI_LIB::PerformGLMTTestFirstLevelPermutationWrapper()
@@ -12007,9 +11908,19 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelWrapper()
 
 	// Copy results to  host
 	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals_MNI, 0, NULL, NULL);
+
+	if (!BETAS_ONLY && !CONTRASTS_ONLY && !BETAS_AND_CONTRASTS_ONLY)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
+	}
+	if (WRITE_RESIDUAL_VARIANCES)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	}
+	if (WRITE_RESIDUALS_MNI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals_MNI, 0, NULL, NULL);
+	}
 
 	// Release memory
 	clReleaseMemObject(d_First_Level_Results);
@@ -12026,6 +11937,115 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelWrapper()
 	clReleaseMemObject(d_Residuals);
 	clReleaseMemObject(d_Residual_Variances);
 }
+
+
+// Used for testing of F-test only
+void BROCCOLI_LIB::PerformGLMFTestSecondLevelWrapper()
+{
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS;
+
+	// Allocate memory for volumes
+	d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Allocate memory for model
+	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+	c_Censored_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+
+	// Allocate memory for results
+	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
+	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	d_Residuals = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+	d_Residual_Variances = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
+
+	// Copy model to constant memory
+	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_X_GLM_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_xtxxt_GLM_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts_In , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In , 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+	int NUMBER_OF_INVALID_VOLUMES = 0;
+	SetMemory(c_Censored_Volumes, 1.0f, NUMBER_OF_SUBJECTS);
+
+	// Calculate beta weights
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 1, sizeof(cl_mem), &d_First_Level_Results);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 2, sizeof(cl_mem), &d_MNI_Brain_Mask);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_GLM);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 4, sizeof(cl_mem), &c_Censored_Volumes);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 5, sizeof(int),    &MNI_DATA_W);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 6, sizeof(int),    &MNI_DATA_H);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 7, sizeof(int),    &MNI_DATA_D);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 8, sizeof(int),    &NUMBER_OF_SUBJECTS);
+	clSetKernelArg(CalculateBetaWeightsGLMKernel, 9, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	runKernelErrorCalculateBetaWeightsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Calculate F-values and residuals
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 1, sizeof(cl_mem),  &d_Residuals);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 2, sizeof(cl_mem),  &d_Residual_Variances);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 3, sizeof(cl_mem),  &d_First_Level_Results);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 4, sizeof(cl_mem),  &d_Beta_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 5, sizeof(cl_mem),  &d_MNI_Brain_Mask);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 6, sizeof(cl_mem),  &c_X_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 7, sizeof(cl_mem),  &c_Contrasts);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 8, sizeof(cl_mem),  &c_ctxtxc_GLM);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 9, sizeof(cl_mem),  &c_Censored_Volumes);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 10, sizeof(int),    &MNI_DATA_W);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 11, sizeof(int),    &MNI_DATA_H);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 12, sizeof(int),    &MNI_DATA_D);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 13, sizeof(int),    &NUMBER_OF_SUBJECTS);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 14, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 15, sizeof(int),    &NUMBER_OF_CONTRASTS);
+	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 16, sizeof(int),    &NUMBER_OF_INVALID_VOLUMES);
+	runKernelErrorCalculateStatisticalMapsGLMFTest = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMFTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+	clFinish(commandQueue);
+
+	// Copy results to  host
+	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
+
+	if (!BETAS_ONLY && !CONTRASTS_ONLY && !BETAS_AND_CONTRASTS_ONLY)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
+	}
+
+	if (WRITE_RESIDUAL_VARIANCES)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
+	}
+
+	if (WRITE_RESIDUALS_MNI)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals_MNI, 0, NULL, NULL);
+	}
+
+	// Release memory
+	clReleaseMemObject(d_First_Level_Results);
+	clReleaseMemObject(d_MNI_Brain_Mask);
+
+	clReleaseMemObject(c_X_GLM);
+	clReleaseMemObject(c_xtxxt_GLM);
+	clReleaseMemObject(c_Contrasts);
+	clReleaseMemObject(c_ctxtxc_GLM);
+	clReleaseMemObject(c_Censored_Volumes);
+
+	clReleaseMemObject(d_Beta_Volumes);
+	clReleaseMemObject(d_Statistical_Maps);
+	clReleaseMemObject(d_Residuals);
+	clReleaseMemObject(d_Residual_Variances);
+}
+
 
 void BROCCOLI_LIB::PerformMeanSecondLevelPermutationWrapper()
 {
@@ -12258,101 +12278,6 @@ void BROCCOLI_LIB::PerformGLMFTestSecondLevelPermutationWrapper()
 }
 
 
-// Used for testing of F-test only
-void BROCCOLI_LIB::PerformGLMFTestSecondLevelWrapper()
-{
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS;
-
-	// Allocate memory for volumes
-	d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-
-	// Allocate memory for model
-	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-	c_Censored_Volumes = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-
-	// Allocate memory for results
-	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
-	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-	d_Residuals = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
-	d_Residual_Variances = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-
-	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
-
-	// Copy model to constant memory
-	clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_X_GLM_In , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_SUBJECTS * sizeof(float), h_xtxxt_GLM_In , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_Contrasts, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), h_Contrasts_In , 0, NULL, NULL);
-	clEnqueueWriteBuffer(commandQueue, c_ctxtxc_GLM, CL_TRUE, 0, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), h_ctxtxc_GLM_In , 0, NULL, NULL);
-	clFinish(commandQueue);
-
-	SetGlobalAndLocalWorkSizesStatisticalCalculations(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
-
-	int NUMBER_OF_INVALID_VOLUMES = 0;
-	SetMemory(c_Censored_Volumes, 1.0f, NUMBER_OF_SUBJECTS);
-
-	// Calculate beta weights
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 0, sizeof(cl_mem), &d_Beta_Volumes);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 1, sizeof(cl_mem), &d_First_Level_Results);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 2, sizeof(cl_mem), &d_MNI_Brain_Mask);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 3, sizeof(cl_mem), &c_xtxxt_GLM);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 4, sizeof(cl_mem), &c_Censored_Volumes);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 5, sizeof(int),    &MNI_DATA_W);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 6, sizeof(int),    &MNI_DATA_H);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 7, sizeof(int),    &MNI_DATA_D);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 8, sizeof(int),    &NUMBER_OF_SUBJECTS);
-	clSetKernelArg(CalculateBetaWeightsGLMKernel, 9, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	runKernelErrorCalculateBetaWeightsGLM = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
-	clFinish(commandQueue);
-
-	// Calculate F-values and residuals
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 1, sizeof(cl_mem),  &d_Residuals);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 2, sizeof(cl_mem),  &d_Residual_Variances);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 3, sizeof(cl_mem),  &d_First_Level_Results);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 4, sizeof(cl_mem),  &d_Beta_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 5, sizeof(cl_mem),  &d_MNI_Brain_Mask);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 6, sizeof(cl_mem),  &c_X_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 7, sizeof(cl_mem),  &c_Contrasts);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 8, sizeof(cl_mem),  &c_ctxtxc_GLM);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 9, sizeof(cl_mem),  &c_Censored_Volumes);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 10, sizeof(int),    &MNI_DATA_W);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 11, sizeof(int),    &MNI_DATA_H);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 12, sizeof(int),    &MNI_DATA_D);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 13, sizeof(int),    &NUMBER_OF_SUBJECTS);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 14, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 15, sizeof(int),    &NUMBER_OF_CONTRASTS);
-	clSetKernelArg(CalculateStatisticalMapsGLMFTestKernel, 16, sizeof(int),    &NUMBER_OF_INVALID_VOLUMES);
-	runKernelErrorCalculateStatisticalMapsGLMFTest = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMFTestKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
-	clFinish(commandQueue);
-
-	// Copy results to  host
-	clEnqueueReadBuffer(commandQueue, d_Beta_Volumes, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), h_Beta_Volumes_MNI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Residual_Variances, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Residual_Variances, 0, NULL, NULL);
-	clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_Residuals_MNI, 0, NULL, NULL);
-
-	// Release memory
-	clReleaseMemObject(d_First_Level_Results);
-	clReleaseMemObject(d_MNI_Brain_Mask);
-
-	clReleaseMemObject(c_X_GLM);
-	clReleaseMemObject(c_xtxxt_GLM);
-	clReleaseMemObject(c_Contrasts);
-	clReleaseMemObject(c_ctxtxc_GLM);
-	clReleaseMemObject(c_Censored_Volumes);
-
-	clReleaseMemObject(d_Beta_Volumes);
-	clReleaseMemObject(d_Statistical_Maps);
-	clReleaseMemObject(d_Residuals);
-	clReleaseMemObject(d_Residual_Variances);
-}
-
 // Generates a number (index) for each brain voxel, for storing design matrices for brain voxels only
 void BROCCOLI_LIB::CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D)
 {
@@ -12450,9 +12375,8 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
 	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
 
-	//float* h_xtxxt_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
-
 	// Map buffer to host memory, to for example avoid double the memory when using the CPU as device
+	//float* h_xtxxt_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 	float* h_xtxxt_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
 
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
@@ -12464,7 +12388,6 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM,
 	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
 	
-
 	// Loop over voxels
 	#pragma omp parallel for
 	for (int z = 0; z < DATA_D; z++)
@@ -12571,14 +12494,13 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverseSlice(cl_mem d_xtxxt_GLM,
 		                                       int NUMBER_OF_INVALID_TIMEPOINTS)
 {
 	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * sizeof(float));
-	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
-
 	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
-	//float* h_xtxxt_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 
 	// Map buffer to host memory, to for example avoid double the memory when using the CPU as device
+	//float* h_xtxxt_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 	float* h_xtxxt_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_xtxxt_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
 
+	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
 
 	// Copy AR parameters to host
@@ -12586,7 +12508,6 @@ void BROCCOLI_LIB::WhitenDesignMatricesInverseSlice(cl_mem d_xtxxt_GLM,
 	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
-
 
 	// Loop over voxels
 	#pragma omp parallel for
@@ -12693,13 +12614,13 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 		                                	 int NUMBER_OF_CONTRASTS)
 {
 	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
-	//float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 	float* h_GLM_Scalars = (float*)malloc(DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float));
 	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
 
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
 
+	//float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 	float* h_X_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_X_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
 
 	// Copy AR parameters to host
@@ -12707,7 +12628,6 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
 	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
-
 
 	// Loop over voxels	
 	#pragma omp parallel for
@@ -12798,7 +12718,7 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTest(cl_mem d_X_GLM,
 	}
 
 	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_X_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_X_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_GLM_Scalars, CL_TRUE, 0, DATA_W * DATA_H * NUMBER_OF_CONTRASTS * sizeof(float), h_GLM_Scalars, 0, NULL, NULL);
 
 	free(h_Mask);
@@ -12834,10 +12754,10 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTestSlice(cl_mem d_X_GLM,
 		                                	 int NUMBER_OF_CONTRASTS)
 {
 	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
-	//float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 	float* h_GLM_Scalars = (float*)malloc(DATA_W * DATA_H * NUMBER_OF_CONTRASTS * sizeof(float));
 	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * sizeof(float));
 
+	//float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
 	float* h_X_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_X_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
 
 	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
@@ -12935,7 +12855,7 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTestSlice(cl_mem d_X_GLM,
 	}
 
 	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_X_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_X_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_GLM_Scalars, CL_TRUE, 0, DATA_W * DATA_H * NUMBER_OF_CONTRASTS * sizeof(float), h_GLM_Scalars, 0, NULL, NULL);
 
 	// Unmap buffer
@@ -12947,6 +12867,148 @@ void BROCCOLI_LIB::WhitenDesignMatricesTTestSlice(cl_mem d_X_GLM,
 	free(h_Voxel_Numbers);
 }
 
+
+void BROCCOLI_LIB::WhitenDesignMatricesFTestSlice(cl_mem d_X_GLM,
+		                                	 cl_mem d_GLM_Scalars,
+		                                	 float* h_X_GLM,
+		                                	 float* h_Contrasts,
+		                                	 cl_mem d_AR1_Estimates,
+		                                	 cl_mem d_AR2_Estimates,
+		                                	 cl_mem d_AR3_Estimates,
+		                                	 cl_mem d_AR4_Estimates,
+		                                	 cl_mem d_Mask,
+											 cl_mem d_Voxel_Numbers,
+		                                	 int slice,
+		                                	 int DATA_W,
+		                                	 int DATA_H,
+		                                	 int DATA_D,
+		                                	 int DATA_T,
+		                                	 int NUMBER_OF_REGRESSORS,
+		                                	 int NUMBER_OF_INVALID_TIMEPOINTS,
+		                                	 int NUMBER_OF_CONTRASTS)
+{
+	float* h_Mask = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
+	float* h_GLM_Scalars = (float*)malloc(DATA_W * DATA_H * NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float));
+	float* h_Voxel_Numbers = (float*)malloc(DATA_W * DATA_H * sizeof(float));
+
+	//float* h_X_GLM_ = (float*)malloc(NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float));
+	float* h_X_GLM_ = (float*) clEnqueueMapBuffer(commandQueue, d_X_GLM, CL_TRUE, CL_MAP_WRITE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float),0,NULL,NULL,NULL); 
+
+	clEnqueueReadBuffer(commandQueue, d_Mask, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_Mask, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Voxel_Numbers, CL_TRUE, 0, DATA_W * DATA_H * sizeof(float), h_Voxel_Numbers, 0, NULL, NULL);
+
+	// Copy AR parameters to host
+	clEnqueueReadBuffer(commandQueue, d_AR1_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR1_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR2_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR2_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR3_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR3_Estimates_EPI, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_AR4_Estimates, CL_TRUE, 0, DATA_W * DATA_H * DATA_D * sizeof(float), h_AR4_Estimates_EPI, 0, NULL, NULL);
+
+	// Loop over voxels
+	#pragma omp parallel for
+	for (int y = 0; y < DATA_H; y++)
+	{
+		for (int x = 0; x < DATA_W; x++)
+		{
+			if ( h_Mask[x + y * DATA_W + slice * DATA_W * DATA_H] == 1.0f )
+			{
+				// Insert contrast into eigen variable
+				Eigen::MatrixXd Contrasts(NUMBER_OF_CONTRASTS,NUMBER_OF_REGRESSORS);
+
+				for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+				{
+					for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+					{
+						Contrasts(c,r) = (double)h_Contrasts[NUMBER_OF_REGRESSORS * c + r];
+					}
+				}
+
+				Eigen::MatrixXd X(DATA_T,NUMBER_OF_REGRESSORS);
+
+				// Get AR parameters for current voxel
+				float AR1 = h_AR1_Estimates_EPI[x + y * DATA_W + slice * DATA_W * DATA_H];
+				float AR2 = h_AR2_Estimates_EPI[x + y * DATA_W + slice * DATA_W * DATA_H];
+				float AR3 = h_AR3_Estimates_EPI[x + y * DATA_W + slice * DATA_W * DATA_H];
+				float AR4 = h_AR4_Estimates_EPI[x + y * DATA_W + slice * DATA_W * DATA_H];
+
+				float old_value_1, old_value_2, old_value_3, old_value_4, old_value_5;
+
+				// Whiten original regressors
+				for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+				{
+				    old_value_1 = h_X_GLM[0 + r * DATA_T];
+					X(0,r) = old_value_1;
+					old_value_2 = h_X_GLM[1 + r * DATA_T];
+					X(1,r) = old_value_2  - AR1 * old_value_1;
+					old_value_3 = h_X_GLM[2 + r * DATA_T];
+					X(2,r) = old_value_3 - AR1 * old_value_2 - AR2 * old_value_1;
+					old_value_4 = h_X_GLM[3 + r * DATA_T];
+					X(3,r) = old_value_4 - AR1 * old_value_3 - AR2 * old_value_2 - AR3 * old_value_1;
+
+					for (int t = 4; t < DATA_T; t++)
+					{
+						old_value_5 = h_X_GLM[t + r * DATA_T];
+						X(t,r) = old_value_5 - AR1 * old_value_4 - AR2 * old_value_3 - AR3 * old_value_2 - AR4 * old_value_1;
+
+						// Save old values
+						old_value_1 = old_value_2;
+						old_value_2 = old_value_3;
+						old_value_3 = old_value_4;
+						old_value_4 = old_value_5;
+					}
+				}
+
+				// Set invalid timepoints to 0 in the design matrix
+				for (int t = 0; t < NUMBER_OF_INVALID_TIMEPOINTS; t++)
+				{
+					for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+					{
+						X(t,r) = 0.0;
+					}
+				}
+
+				// Calculate contrast values
+
+				Eigen::MatrixXd xtx(NUMBER_OF_REGRESSORS,NUMBER_OF_REGRESSORS);
+				xtx = X.transpose() * X;
+				Eigen::MatrixXd inv_xtx = xtx.inverse();
+
+				Eigen::MatrixXd temp = Contrasts * inv_xtx * Contrasts.transpose();
+				Eigen::MatrixXd ctxtxc = temp.inverse();
+
+				for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+				{
+					for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+					{
+						h_GLM_Scalars[x + y * DATA_W + (cc + c * NUMBER_OF_CONTRASTS) * DATA_W * DATA_H] = (float)ctxtxc(c,cc);
+					}
+				}
+
+				int voxel_number = h_Voxel_Numbers[x + y * DATA_W];
+
+				// Put whitened regressors into specific format, to copy to GPU
+				// (takes too much memory to store regressors for all voxels, so only store for brain voxels)
+				for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+				{
+					for (int t = 0; t < DATA_T; t++)
+					{
+						h_X_GLM_[voxel_number * NUMBER_OF_REGRESSORS * DATA_T + r * DATA_T + t] = X(t,r);
+					}
+				}
+			}
+		}
+	}
+
+	// Copy data to device
+	//clEnqueueWriteBuffer(commandQueue, d_X_GLM, CL_TRUE, 0, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_REGRESSORS * DATA_T * sizeof(float), h_X_GLM_, 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_GLM_Scalars, CL_TRUE, 0, DATA_W * DATA_H * NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), h_GLM_Scalars, 0, NULL, NULL);
+
+	// Unmap buffer
+	clEnqueueUnmapMemObject(commandQueue, d_X_GLM, h_X_GLM_, 0, NULL, NULL);
+
+	free(h_Mask);
+	//free(h_X_GLM_);
+	free(h_GLM_Scalars);
+}
 
 // Applies whitening to design matrix, different for each voxel, saves the whitened matrix
 void BROCCOLI_LIB::WhitenDesignMatricesFTest(cl_mem d_X_GLM,
@@ -13084,6 +13146,7 @@ void BROCCOLI_LIB::WhitenDesignMatricesFTest(cl_mem d_X_GLM,
 	free(h_X_GLM_);
 	free(h_GLM_Scalars);
 }
+
 
 
 
@@ -13818,6 +13881,235 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem d_Volumes, 
 	clReleaseMemObject(d_GLM_Scalars);
 	clReleaseMemObject(c_Censored_Timepoints);
 	clReleaseMemObject(d_Voxel_Numbers);
+}
+
+void BROCCOLI_LIB::CalculateStatisticalMapsGLMFTestFirstLevelSlices(float* h_Volumes, int iterations)
+{
+	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, 1);
+
+	// Allocate memory for voxel numbers
+	cl_mem d_Voxel_Numbers = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * sizeof(float), NULL, NULL);
+
+	// Allocate memory for voxel specific GLM scalars
+	cl_mem d_GLM_Scalars = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * sizeof(float);
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float);
+
+	CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, AR_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
+	PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+	// All timepoints are valid the first run
+	NUMBER_OF_INVALID_TIMEPOINTS = 0;
+	c_Censored_Timepoints = clCreateBuffer(context, CL_MEM_READ_ONLY, EPI_DATA_T * sizeof(float), NULL, NULL);
+	SetMemory(c_Censored_Timepoints, 1.0f, EPI_DATA_T);
+
+	// Reset all AR parameters
+	SetMemory(d_AR1_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
+	SetMemory(d_AR2_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
+	SetMemory(d_AR3_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
+	SetMemory(d_AR4_Estimates, 0.0f, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D);
+	
+	// Flip the fMRI data from x,y,z,t to x,y,t,z, to be able to copy all time points for one slice
+	//FlipVolumesXYZTtoXYTZ(h_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	h_Whitened_fMRI_Volumes = (float*)malloc(EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));
+	memcpy(h_Whitened_fMRI_Volumes, h_Volumes, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float));	
+	allocatedHostMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+
+	int one = 1;
+
+	// Cochrane-Orcutt procedure, iterate
+	for (int it = 0; it < iterations; it++)
+	{
+		for (int slice = 0; slice < EPI_DATA_D; slice++)
+		{
+			// Create a mapping between voxel coordinates and brain voxel number, since we cannot store the modified GLM design matrix for all voxels, only for the brain voxels
+			CreateVoxelNumbersSlice(d_Voxel_Numbers, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+			// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
+			// Only store for brain voxels, which differs for each slice
+			cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+			allocatedDeviceMemory += NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
+			PrintMemoryStatus("Inside GLM");
+			
+			// Apply whitening to model and create voxel-specific models
+			WhitenDesignMatricesInverseSlice(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
+
+			// Copy fMRI data to the device, for the current slice
+			CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+			// Calculate beta values, using whitened data and the whitened voxel-specific models
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0,  sizeof(cl_mem), &d_Beta_Volumes);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2,  sizeof(cl_mem), &d_EPI_Mask);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3,  sizeof(cl_mem), &d_xtxxt_GLM);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4,  sizeof(cl_mem), &d_Voxel_Numbers);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5,  sizeof(cl_mem), &c_Censored_Timepoints);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6,  sizeof(int),    &EPI_DATA_W);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7,  sizeof(int),    &EPI_DATA_H);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8,  sizeof(int),    &EPI_DATA_D);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9,  sizeof(int),    &EPI_DATA_T);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
+			clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 12, sizeof(int),    &slice);
+			runKernelErrorCalculateBetaWeightsGLMFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMFirstLevelKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+			clFinish(commandQueue);
+
+			// Copy fMRI data to the device, for the current slice
+			CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+			// Calculate residuals, using original data and the original model
+			clSetKernelArg(CalculateGLMResidualsKernel, 0, sizeof(cl_mem), &d_Residuals);
+			clSetKernelArg(CalculateGLMResidualsKernel, 1, sizeof(cl_mem), &d_fMRI_Volumes);
+			clSetKernelArg(CalculateGLMResidualsKernel, 2, sizeof(cl_mem), &d_Beta_Volumes);
+			clSetKernelArg(CalculateGLMResidualsKernel, 3, sizeof(cl_mem), &d_EPI_Mask);
+			clSetKernelArg(CalculateGLMResidualsKernel, 4, sizeof(cl_mem), &c_X_GLM);
+			clSetKernelArg(CalculateGLMResidualsKernel, 5, sizeof(int),    &EPI_DATA_W);
+			clSetKernelArg(CalculateGLMResidualsKernel, 6, sizeof(int),    &EPI_DATA_H);
+			clSetKernelArg(CalculateGLMResidualsKernel, 7, sizeof(int),    &EPI_DATA_D);
+			clSetKernelArg(CalculateGLMResidualsKernel, 8, sizeof(int),    &EPI_DATA_T);
+			clSetKernelArg(CalculateGLMResidualsKernel, 9, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+			clSetKernelArg(CalculateGLMResidualsKernel, 10, sizeof(int),   &slice);
+			runKernelErrorCalculateGLMResiduals = clEnqueueNDRangeKernel(commandQueue, CalculateGLMResidualsKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+			clFinish(commandQueue);
+
+			// Estimate auto correlation from residuals
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 0, sizeof(cl_mem), &d_AR1_Estimates);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 1, sizeof(cl_mem), &d_AR2_Estimates);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 2, sizeof(cl_mem), &d_AR3_Estimates);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 3, sizeof(cl_mem), &d_AR4_Estimates);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 4, sizeof(cl_mem), &d_Residuals);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 5, sizeof(cl_mem), &d_EPI_Mask);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 6, sizeof(int),    &EPI_DATA_W);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 7, sizeof(int),    &EPI_DATA_H);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 8, sizeof(int),    &EPI_DATA_D);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 9, sizeof(int),    &EPI_DATA_T);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 10, sizeof(int),   &NUMBER_OF_INVALID_TIMEPOINTS);
+			clSetKernelArg(EstimateAR4ModelsSliceKernel, 11, sizeof(int),   &slice);
+			runKernelErrorEstimateAR4ModelsSlice = clEnqueueNDRangeKernel(commandQueue, EstimateAR4ModelsSliceKernel, 3, NULL, globalWorkSizeEstimateAR4Models, localWorkSizeEstimateAR4Models, 0, NULL, NULL);
+
+			clReleaseMemObject(d_xtxxt_GLM);
+			allocatedDeviceMemory -= NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
+		}
+
+		// Smooth auto correlation estimates
+		PerformSmoothingNormalized(d_AR1_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+		PerformSmoothingNormalized(d_AR2_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+		PerformSmoothingNormalized(d_AR3_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+		PerformSmoothingNormalized(d_AR4_Estimates, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
+
+		for (int slice = 0; slice < EPI_DATA_D; slice++)
+		{
+			// Copy fMRI data to the device, for the current slice
+			CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+			// Apply whitening to data
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 0,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 1,  sizeof(cl_mem), &d_fMRI_Volumes);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 2,  sizeof(cl_mem), &d_AR1_Estimates);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 3,  sizeof(cl_mem), &d_AR2_Estimates);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 4,  sizeof(cl_mem), &d_AR3_Estimates);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 5,  sizeof(cl_mem), &d_AR4_Estimates);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 6,  sizeof(cl_mem), &d_EPI_Mask);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 7,  sizeof(int),    &EPI_DATA_W);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 8,  sizeof(int),    &EPI_DATA_H);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 9,  sizeof(int),    &one);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 10, sizeof(int),    &EPI_DATA_T);
+			clSetKernelArg(ApplyWhiteningAR4SliceKernel, 11, sizeof(int),    &slice);
+			runKernelErrorApplyWhiteningAR4Slice = clEnqueueNDRangeKernel(commandQueue, ApplyWhiteningAR4SliceKernel, 3, NULL, globalWorkSizeApplyWhiteningAR4, localWorkSizeApplyWhiteningAR4, 0, NULL, NULL);
+
+			// Copy fMRI data to the host, for the current slice
+			CopyCurrentfMRISliceToHost(h_Whitened_fMRI_Volumes, d_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		}
+
+		// First four timepoints are now invalid
+		SetMemory(c_Censored_Timepoints, 0.0f, 4);
+		NUMBER_OF_INVALID_TIMEPOINTS = 4;
+	}
+
+	for (int slice = 0; slice < EPI_DATA_D; slice++)
+	{
+		// Create a mapping between voxel coordinates and brain voxel number, since we cannot store the modified GLM design matrix for all voxels, only for the brain voxels
+		CreateVoxelNumbersSlice(d_Voxel_Numbers, d_EPI_Mask, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+		// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
+		// Only store for brain voxels, which differs for each slice
+		cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+
+		// Apply whitening to model and create voxel-specific models
+		WhitenDesignMatricesInverseSlice(d_xtxxt_GLM, h_X_GLM, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS);
+
+		// Copy fMRI data to the device, for the current slice
+		CopyCurrentfMRISliceToDevice(d_Whitened_fMRI_Volumes, h_Whitened_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+
+		// Calculate beta values, using whitened data and the whitened voxel-specific models
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 0,  sizeof(cl_mem), &d_Beta_Volumes);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 1,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 2,  sizeof(cl_mem), &d_EPI_Mask);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 3,  sizeof(cl_mem), &d_xtxxt_GLM);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 4,  sizeof(cl_mem), &d_Voxel_Numbers);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 5,  sizeof(cl_mem), &c_Censored_Timepoints);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 6,  sizeof(int),    &EPI_DATA_W);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 7,  sizeof(int),    &EPI_DATA_H);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 8,  sizeof(int),    &EPI_DATA_D);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 9,  sizeof(int),    &EPI_DATA_T);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 10, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 11, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
+		clSetKernelArg(CalculateBetaWeightsGLMFirstLevelKernel, 12, sizeof(int),    &slice);
+		runKernelErrorCalculateBetaWeightsGLMFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateBetaWeightsGLMFirstLevelKernel, 3, NULL, globalWorkSizeCalculateBetaWeightsGLM, localWorkSizeCalculateBetaWeightsGLM, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		// d_xtxxt_GLM now contains X_GLM and not xtxxt_GLM ...
+		WhitenDesignMatricesFTestSlice(d_xtxxt_GLM, d_GLM_Scalars, h_X_GLM, h_Contrasts, d_AR1_Estimates, d_AR2_Estimates, d_AR3_Estimates, d_AR4_Estimates, d_EPI_Mask, d_Voxel_Numbers, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_INVALID_TIMEPOINTS, NUMBER_OF_CONTRASTS);
+
+		// Finally calculate statistical maps using whitened model and whitened data
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 0,  sizeof(cl_mem), &d_Statistical_Maps);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 1,  sizeof(cl_mem), &d_Residuals);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 2,  sizeof(cl_mem), &d_Residual_Variances);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 3,  sizeof(cl_mem), &d_Whitened_fMRI_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 4,  sizeof(cl_mem), &d_Beta_Volumes);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 5,  sizeof(cl_mem), &d_EPI_Mask);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 6,  sizeof(cl_mem), &d_xtxxt_GLM);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 7,  sizeof(cl_mem), &d_GLM_Scalars);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 8,  sizeof(cl_mem), &d_Voxel_Numbers);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 9,  sizeof(cl_mem), &c_Contrasts);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 10, sizeof(cl_mem), &c_Censored_Timepoints);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 11, sizeof(int),    &EPI_DATA_W);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 12, sizeof(int),    &EPI_DATA_H);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 13, sizeof(int),    &EPI_DATA_D);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 14, sizeof(int),    &EPI_DATA_T);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 15, sizeof(int),    &NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 16, sizeof(int),    &NUMBER_OF_CONTRASTS);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 17, sizeof(int),    &NUMBER_OF_INVALID_TIMEPOINTS);
+		clSetKernelArg(CalculateStatisticalMapsGLMFTestFirstLevelKernel, 18, sizeof(int),    &slice);
+		runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapsGLMFTestFirstLevelKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapsGLM, localWorkSizeCalculateStatisticalMapsGLM, 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		if (WRITE_RESIDUALS_EPI)
+		{
+			// Copy residuals to the host, for the current slice			
+			CopyCurrentfMRISliceToHost(h_Residuals_EPI, d_Residuals, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+		}
+
+		clReleaseMemObject(d_xtxxt_GLM);
+	}
+
+	MultiplyVolumes(d_AR1_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	MultiplyVolumes(d_AR2_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	MultiplyVolumes(d_AR3_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	MultiplyVolumes(d_AR4_Estimates, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+
+	clReleaseMemObject(d_GLM_Scalars);
+	clReleaseMemObject(d_Voxel_Numbers);
+	clReleaseMemObject(c_Censored_Timepoints);
+
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * sizeof(float);
+	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float);
+
+	free(h_Whitened_fMRI_Volumes);
+
+	allocatedHostMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
 }
 
 // This function currently only works for 2 regressors
@@ -16060,7 +16352,7 @@ void BROCCOLI_LIB::SetupFTestFirstLevel(int N)
 			int rr = 0;
 			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
-				Contrasts(c,rr) = (double)h_Contrasts_In[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r];
+				Contrasts(c,rr) = (double)h_Contrasts_In[NUMBER_OF_GLM_REGRESSORS * c + r];
 				h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + rr] = (float)Contrasts(c,rr);
 
 				Contrasts(c,rr+1) = 0.0;
@@ -16082,7 +16374,7 @@ void BROCCOLI_LIB::SetupFTestFirstLevel(int N)
 			// Copy contrasts for paradigm regressors
 			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
-				Contrasts(c,r) = (double)h_Contrasts_In[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r];
+				Contrasts(c,r) = (double)h_Contrasts_In[NUMBER_OF_GLM_REGRESSORS * c + r];
 				h_Contrasts[NUMBER_OF_TOTAL_GLM_REGRESSORS * c + r] = (float)Contrasts(c,r);
 			}
 

@@ -337,6 +337,7 @@ class BROCCOLI_LIB
 		void SetSaveAREstimatesMNI(bool);
 		void SetSaveUnwhitenedResults(bool);
 		void SetSaveResidualsEPI(bool);
+		void SetSaveResidualVariances(bool);
 
 		// Get functions for GUI / Wrappers
 
@@ -481,6 +482,7 @@ class BROCCOLI_LIB
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMFTestFirstLevel(cl_mem Volumes, int iterations);
+		void CalculateStatisticalMapsGLMFTestFirstLevelSlices(float* h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 		void CalculateStatisticalMapsGLMFTestSecondLevel(cl_mem Volumes, cl_mem Mask);
 
@@ -494,6 +496,7 @@ class BROCCOLI_LIB
 		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
 		void WhitenDesignMatricesTTestSlice(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int slice, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
 		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesFTestSlice(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int slice, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
 		
 		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
 		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
@@ -1096,6 +1099,7 @@ class BROCCOLI_LIB
 
 		bool WRITE_UNWHITENED_RESULTS;
 
+		bool WRITE_RESIDUAL_VARIANCES;
 		bool WRITE_RESIDUALS_EPI;
 		bool WRITE_RESIDUALS_MNI;
 

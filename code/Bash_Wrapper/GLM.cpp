@@ -125,6 +125,7 @@ int main(int argc, char **argv)
 	bool WRITE_DESIGNMATRIX = false;
 	bool WRITE_ORIGINAL_DESIGNMATRIX = false;
 	bool WRITE_RESIDUALS = false;
+	bool WRITE_RESIDUAL_VARIANCES = false;
 	bool WRITE_AR_ESTIMATES = false;
 
 	const char*		outputFilename;
@@ -168,6 +169,7 @@ int main(int argc, char **argv)
         printf(" \n\n");
         printf(" -mask                      A mask that defines which voxels to run the GLM for (default none) \n");
 		printf(" -saveresiduals             Save the residuals (default no) \n");
+		printf(" -saveresidualvariance      Save residual variance (default no) \n");
         printf(" -savearparameters          Save the estimated AR coefficients (default no) \n");
 		printf(" -saveoriginaldesignmatrix  Save the original design matrix used (default no) \n");
         printf(" -savedesignmatrix          Save the total design matrix used (default no) \n");        
@@ -371,6 +373,11 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-saveresiduals") == 0)
         {
             WRITE_RESIDUALS = true;
+            i += 1;
+        }
+        else if (strcmp(input,"-saveresidualvariance") == 0)
+        {
+            WRITE_RESIDUAL_VARIANCES = true;
             i += 1;
         }
         else if (strcmp(input,"-savearparameters") == 0)
@@ -728,7 +735,6 @@ int main(int argc, char **argv)
 	size_t HIGHRES_REGRESSOR_SIZE = DATA_T * HIGHRES_FACTOR * sizeof(float);    
     size_t BETA_DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
     size_t RESIDUALS_DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
-	size_t STATISTICAL_MAPS_DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
    
 	// If the data is in float format, we can just copy the pointer
 	if ( inputData->datatype != DT_FLOAT )
@@ -755,11 +761,11 @@ int main(int argc, char **argv)
 
 	if (!BETAS_ONLY && !REGRESS_ONLY)
 	{
-		AllocateMemory(h_Contrast_Volumes, STATISTICAL_MAPS_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES");
+		AllocateMemory(h_Contrast_Volumes, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES");
 	}
 	if (!BETAS_ONLY && !BETAS_AND_CONTRASTS_ONLY && !REGRESS_ONLY)
 	{
-		AllocateMemory(h_Statistical_Maps, STATISTICAL_MAPS_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS");
+		AllocateMemory(h_Statistical_Maps, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS");
 	}
 	if (WRITE_RESIDUALS || REGRESS_ONLY)
 	{
@@ -1031,7 +1037,90 @@ int main(int argc, char **argv)
 		}
 		contrasts.close();
 	}
-		
+
+	Eigen::MatrixXd Contrasts(NUMBER_OF_CONTRASTS,NUMBER_OF_GLM_REGRESSORS);
+
+	// Read contrasts into Eigen object
+	if (ANALYZE_FTEST)
+	{
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				Contrasts(c,r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
+			}
+		}
+
+		// Check if contrast matrix has full rank
+		Eigen::FullPivLU<Eigen::MatrixXd> luA(Contrasts);
+		int rank = luA.rank();
+		if (rank < NUMBER_OF_CONTRASTS)
+		{
+	        printf("Contrast matrix does not have full rank, at least one contrast can be written as a linear combination of other contrasts, not OK for F-test, aborting!\n");      
+	        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+	        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;	
+		}
+	}
+
+	// Put design matrix into Eigen object 
+	Eigen::MatrixXd X(DATA_T,NUMBER_OF_GLM_REGRESSORS);
+
+	for (int s = 0; s < DATA_T; s++)
+	{
+		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		{
+			X(s,r) = (double)h_X_GLM[s + r * DATA_T];
+		}
+	}
+
+	// Calculate pseudo inverse
+	Eigen::MatrixXd xtx(NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_GLM_REGRESSORS);
+	xtx = X.transpose() * X;
+	Eigen::MatrixXd inv_xtx = xtx.inverse();
+	Eigen::MatrixXd xtxxt = inv_xtx * X.transpose();
+
+	if (SECOND_LEVEL)
+	{
+		// Put pseudo inverse into regular array
+		for (int s = 0; s < DATA_T; s++)
+		{
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				h_xtxxt_GLM[s + r * DATA_T] = (float)xtxxt(r,s);
+			}
+		}
+	}
+
+	// Calculate contrast scalars
+	if (ANALYZE_TTEST && SECOND_LEVEL)
+	{
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			// Put contrast vector into eigen object
+			Eigen::VectorXd Contrast(NUMBER_OF_GLM_REGRESSORS);
+			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			{
+				Contrast(r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
+			}
+	
+			Eigen::VectorXd scalar = Contrast.transpose() * inv_xtx * Contrast;
+			h_ctxtxc_GLM[c] = scalar(0);
+		}
+	}
+	else if (ANALYZE_FTEST && SECOND_LEVEL)
+	{
+		Eigen::MatrixXd temp = Contrasts * inv_xtx * Contrasts.transpose();
+		Eigen::MatrixXd ctxtxc = temp.inverse();
+
+		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		{
+			for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+			{
+				h_ctxtxc_GLM[c + cc  * NUMBER_OF_CONTRASTS] = ctxtxc(c,cc);
+			}
+		}
+	}
 
     // Write original design matrix to file
 	if (WRITE_ORIGINAL_DESIGNMATRIX)
@@ -1273,6 +1362,8 @@ int main(int argc, char **argv)
 		BROCCOLI.SetRawRegressors(RAW_REGRESSORS);
 		BROCCOLI.SetRawDesignMatrix(RAW_DESIGNMATRIX);
 		BROCCOLI.SetSaveDesignMatrix(WRITE_DESIGNMATRIX);
+		BROCCOLI.SetSaveResidualsEPI(WRITE_RESIDUALS);
+		BROCCOLI.SetSaveResidualVariances(WRITE_RESIDUAL_VARIANCES);
 
 		BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
         BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
@@ -1281,7 +1372,7 @@ int main(int argc, char **argv)
 		BROCCOLI.SetBetasOnly(BETAS_ONLY);
 		BROCCOLI.SetContrastsOnly(CONTRASTS_ONLY);
 		BROCCOLI.SetBetasAndContrastsOnly(BETAS_AND_CONTRASTS_ONLY);
-        		
+       		
 		BROCCOLI.SetPrint(PRINT);		
 
         // Run the GLM
@@ -1290,7 +1381,7 @@ int main(int argc, char **argv)
 		if (REGRESS_ONLY)
 		{
 	        BROCCOLI.SetInputFirstLevelResults(h_Data);        
-	        BROCCOLI.SetInputMNIBrainMask(h_Mask);        
+	        BROCCOLI.SetMask(h_Mask);        
 	        BROCCOLI.SetMNIWidth(DATA_W);
 	        BROCCOLI.SetMNIHeight(DATA_H);
 	        BROCCOLI.SetMNIDepth(DATA_D);                
@@ -1303,25 +1394,25 @@ int main(int argc, char **argv)
 		else if (ANALYZE_TTEST && SECOND_LEVEL)
 		{
 	        BROCCOLI.SetInputFirstLevelResults(h_Data);        
-	        BROCCOLI.SetInputMNIBrainMask(h_Mask); 
+	        BROCCOLI.SetMask(h_Mask); 
        
 	        BROCCOLI.SetMNIWidth(DATA_W);
 	        BROCCOLI.SetMNIHeight(DATA_H);
 	        BROCCOLI.SetMNIDepth(DATA_D);                
 	        BROCCOLI.SetNumberOfSubjects(DATA_T);
-
+			
     	    BROCCOLI.SetOutputBetaVolumesMNI(h_Beta_Volumes);  
 			BROCCOLI.SetOutputContrastVolumesMNI(h_Contrast_Volumes);     
 	        BROCCOLI.SetOutputStatisticalMapsMNI(h_Statistical_Maps);   
 	        BROCCOLI.SetOutputResidualsMNI(h_Residuals);   
 
 	        BROCCOLI.SetStatisticalTest(0); // t-test
-	        //BROCCOLI.PerformGLMTTestSecondLevelWrapper();                            
+	        BROCCOLI.PerformGLMTTestSecondLevelWrapper();                            
 		}
 		else if (ANALYZE_FTEST && SECOND_LEVEL)
 		{
 	        BROCCOLI.SetInputFirstLevelResults(h_Data);        
-	        BROCCOLI.SetInputMNIBrainMask(h_Mask);        
+	        BROCCOLI.SetMask(h_Mask);        
 
 	        BROCCOLI.SetMNIWidth(DATA_W);
 	        BROCCOLI.SetMNIHeight(DATA_H);
@@ -1334,7 +1425,7 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetOutputResidualsMNI(h_Residuals);   
 
 	        BROCCOLI.SetStatisticalTest(1); // F-test
-	        //BROCCOLI.PerformGLMFTestSecondLevelWrapper();                            
+	        BROCCOLI.PerformGLMFTestSecondLevelWrapper();                            
 		}
 		else if (ANALYZE_TTEST && FIRST_LEVEL)
 		{
@@ -1386,9 +1477,8 @@ int main(int argc, char **argv)
 			BROCCOLI.SetOutputAREstimatesEPI(h_AR1_Estimates, h_AR2_Estimates, h_AR3_Estimates, h_AR4_Estimates);
 
 	        BROCCOLI.SetStatisticalTest(1); // F-test
-	        //BROCCOLI.PerformGLMFTestFirstLevelWrapper();                            
+	        BROCCOLI.PerformGLMFTestFirstLevelWrapper();                            
 		}
-
 
 		endTime = GetWallTime();
 
@@ -1488,6 +1578,11 @@ int main(int argc, char **argv)
 		WriteNifti(outputNifti,h_Residuals,"_residuals",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 
+	if (WRITE_RESIDUAL_VARIANCES)
+	{	
+		WriteNifti(outputNifti,h_Residual_Variances,"_residualvariance",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+
 	// Write each beta weight as a separate file
 	if (!REGRESS_ONLY && !CONTRASTS_ONLY)
 	{
@@ -1518,7 +1613,7 @@ int main(int argc, char **argv)
 	}
 
     // Write each contrast volume as a separate file
-	if (!BETAS_ONLY && !REGRESS_ONLY)
+	if (!BETAS_ONLY && !REGRESS_ONLY && !SECOND_LEVEL && !ANALYZE_FTEST)
 	{
 	    for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	{
@@ -1548,34 +1643,41 @@ int main(int argc, char **argv)
 
 	if (!BETAS_ONLY && !REGRESS_ONLY && !CONTRASTS_ONLY && !BETAS_AND_CONTRASTS_ONLY)
 	{
-        // Write each t-map as a separate file
-        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
-        {
-			// nifti file contains t-scores
-			outputNifti->intent_code = 3;
-		
-            std::string temp = tscores;
-            std::stringstream ss;
-			if ((i+1) < 10)
-			{
-	            ss << "_contrast000";
-			}
-			else if ((i+1) < 100)
-			{
-				ss << "_contrast00";
-			}
-			else if ((i+1) < 1000)
-			{
-				ss << "_contrast0";
-			}
-			else
-			{
-				ss << "_contrast";
-			}						
-            ss << i + 1;
-            temp.append(ss.str());
-            WriteNifti(outputNifti,&h_Statistical_Maps[i * DATA_W * DATA_H * DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-        }
+		if (ANALYZE_TTEST)
+		{
+	        // Write each t-map as a separate file
+    	    for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	    {
+				// nifti file contains t-scores
+				outputNifti->intent_code = 3;
+			
+    	        std::string temp = tscores;
+    	        std::stringstream ss;
+				if ((i+1) < 10)
+				{
+		            ss << "_contrast000";
+				}
+				else if ((i+1) < 100)
+				{
+					ss << "_contrast00";
+				}
+				else if ((i+1) < 1000)
+				{
+					ss << "_contrast0";
+				}
+				else
+				{
+					ss << "_contrast";
+				}						
+    	        ss << i + 1;
+    	        temp.append(ss.str());
+    		    WriteNifti(outputNifti,&h_Statistical_Maps[i * DATA_W * DATA_H * DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+        	}
+		}
+		else if (ANALYZE_FTEST)
+		{
+		    WriteNifti(outputNifti,h_Statistical_Maps,"_fscores",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
 	}
 
 	if (WRITE_AR_ESTIMATES)
