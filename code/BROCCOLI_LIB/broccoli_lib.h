@@ -133,7 +133,9 @@ class BROCCOLI_LIB
 		void SetBayesian(bool B);
 		void SetRegressOnly(int R);
 		void SetPreprocessingOnly(bool B);
-		void SetBetasOnly(int B);
+		void SetBetasOnly(bool B);
+		void SetContrastsOnly(bool C);
+		void SetBetasAndContrastsOnly(bool BC);
 		void SetRegressMotion(int R);
 		void SetRegressGlobalMean(int R);
 		void SetRegressConfounds(int R);
@@ -1165,6 +1167,8 @@ class BROCCOLI_LIB
 		bool REGRESS_ONLY;
 		bool PREPROCESSING_ONLY;
 		bool BETAS_ONLY;
+		bool CONTRASTS_ONLY;
+		bool BETAS_AND_CONTRASTS_ONLY;
 		int REGRESS_MOTION;
 		int REGRESS_GLOBALMEAN;
 		int REGRESS_CONFOUNDS;

@@ -32,53 +32,6 @@
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
 
-void LowpassFilterRegressor(float* h_LowpassFiltered_Regressor, float* h_Regressor, int DATA_T, int HIGHRES_FACTOR, float TR)
-{
-	// Allocate memory for lowpass filter
-	int FILTER_LENGTH = 151;
-	float* h_Filter = (float*)malloc(FILTER_LENGTH * sizeof(float));
-
-	// Create lowpass filter
-	int halfSize = (FILTER_LENGTH - 1) / 2;
-	double smoothing_FWHM = 150.0;
-	double sigma = smoothing_FWHM / 2.354 / (double)TR;
-	double sigma2 = 2.0 * sigma * sigma;
-
-	double u;
-	float sum = 0.0f;
-	for (int i = 0; i < FILTER_LENGTH; i++)
-	{
-		u = (double)(i - halfSize);
-		h_Filter[i] = (float)exp(-pow(u,2.0) / sigma2);
-		sum += h_Filter[i];
-	}
-
-	// Normalize
-	for (int i = 0; i < FILTER_LENGTH; i++)
-	{
-		h_Filter[i] /= sum;
-	}
-
-	// Convolve regressor with filter
-	for (int t = 0; t < (DATA_T * HIGHRES_FACTOR); t++)
-	{
-		h_LowpassFiltered_Regressor[t] = 0.0f;
-
-		// 1D convolution
-		//int offset = -(int)(((float)HRF_LENGTH - 1.0f)/2.0f);
-		int offset = -(int)(((float)FILTER_LENGTH - 1.0f)/2.0f);
-		for (int tt = FILTER_LENGTH - 1; tt >= 0; tt--)
-		{
-			if ( ((t + offset) >= 0) && ((t + offset) < (DATA_T * HIGHRES_FACTOR)) )
-			{
-				h_LowpassFiltered_Regressor[t] += h_Regressor[t + offset] * h_Filter[tt];
-			}
-			offset++;
-		}
-	}
-
-	free(h_Filter);
-}
 
 
 
