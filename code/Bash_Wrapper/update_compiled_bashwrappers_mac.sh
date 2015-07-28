@@ -29,7 +29,7 @@ git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Debug/SliceTimingCorrection
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Debug/TransformVolume
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Debug/GetOpenCLInfo
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Debug/Smoothing
-git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Debug/ICA
+git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Debug/GLM
 
 
 cd $BROCCOLI_GIT_DIRECTORY/code/BROCCOLI_LIB
@@ -60,7 +60,7 @@ git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Release/SliceTimingCorrection
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Release/TransformVolume
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Release/GetOpenCLInfo
 git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Release/Smoothing
-git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Release/ICA
+git add $BROCCOLI_GIT_DIRECTORY/compiled/Bash/Mac/Release/GLM
 
 
 
