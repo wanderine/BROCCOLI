@@ -1510,7 +1510,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    size_t EPI_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+    size_t EPI_DATA_SIZE = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)EPI_DATA_T * (size_t)sizeof(float);
     size_t T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
     size_t MNI_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
     
@@ -1532,17 +1532,17 @@ int main(int argc, char **argv)
     size_t PROJECTION_TENSOR_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
     size_t FILTER_DIRECTIONS_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
     
-    size_t BETA_DATA_SIZE_MNI = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
-    size_t STATISTICAL_MAPS_DATA_SIZE_MNI = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE_MNI = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * EPI_DATA_T * sizeof(float);
+    size_t BETA_DATA_SIZE_MNI = (size_t)MNI_DATA_W * (size_t)MNI_DATA_H * (size_t)MNI_DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * (size_t)sizeof(float);
+    size_t STATISTICAL_MAPS_DATA_SIZE_MNI = (size_t)MNI_DATA_W * (size_t)MNI_DATA_H * (size_t)MNI_DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t RESIDUALS_DATA_SIZE_MNI = (size_t)MNI_DATA_W * (size_t)MNI_DATA_H * (size_t)MNI_DATA_D * (size_t)EPI_DATA_T * sizeof(float);
  
-    size_t BETA_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
-    size_t STATISTICAL_MAPS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+    size_t BETA_DATA_SIZE_EPI = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * (size_t)sizeof(float);
+    size_t STATISTICAL_MAPS_DATA_SIZE_EPI = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t RESIDUALS_DATA_SIZE_EPI = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)EPI_DATA_T * sizeof(float);
 
-    size_t BETA_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
-    size_t STATISTICAL_MAPS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * EPI_DATA_T * sizeof(float);
+    size_t BETA_DATA_SIZE_T1 = (size_t)T1_DATA_W * (size_t)T1_DATA_H * (size_t)T1_DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * (size_t)sizeof(float);
+    size_t STATISTICAL_MAPS_DATA_SIZE_T1 = (size_t)T1_DATA_W * (size_t)T1_DATA_H * (size_t)T1_DATA_D * (size_t)NUMBER_OF_CONTRASTS * (size_t)sizeof(float);
+    size_t RESIDUALS_DATA_SIZE_T1 = (size_t)T1_DATA_W * (size_t)T1_DATA_H * (size_t)T1_DATA_D * (size_t)EPI_DATA_T * (size_t)sizeof(float);
     
 	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int);
 	size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
