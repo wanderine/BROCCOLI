@@ -337,6 +337,7 @@ class BROCCOLI_LIB
 		void SetSaveAREstimatesMNI(bool);
 		void SetSaveUnwhitenedResults(bool);
 		void SetSaveResidualsEPI(bool);
+		void SetSaveResidualsMNI(bool);
 		void SetSaveResidualVariances(bool);
 
 		// Get functions for GUI / Wrappers

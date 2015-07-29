@@ -42,7 +42,7 @@ int main(int argc, char **argv)
     
     float           *h_Data, *h_Mask; 
   
-    float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressor, *h_LowpassFiltered_Regressor;
+    float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressor, *h_LowpassFiltered_Regressor, *h_Motion_Parameters;
                   
     int             DATA_W, DATA_H, DATA_D, DATA_T;               
     float           VOXEL_SIZE_X, VOXEL_SIZE_Y, VOXEL_SIZE_Z, TR;
@@ -98,9 +98,6 @@ int main(int argc, char **argv)
 	int				STATISTICAL_TEST = 0;
 	int				INFERENCE_MODE = 1;
 	bool			MASK = false;
-	const char*		MASK_NAME;
-	const char*		DESIGN_FILE;        
-	const char*		CONTRASTS_FILE;
 	int             USE_TEMPORAL_DERIVATIVES = 0;
 
 	bool REGRESS_GLOBALMEAN = false;
@@ -109,13 +106,13 @@ int main(int argc, char **argv)
 	bool ANALYZE_GROUP_MEAN = false;
 	bool ANALYZE_TTEST = false;
 	bool ANALYZE_FTEST = false;
-	bool REGRESS_ONLY = false;
 	bool BETAS_ONLY = false;
 	bool CONTRASTS_ONLY = false;
 	bool BETAS_AND_CONTRASTS_ONLY = false;
 	bool RAW_DESIGNMATRIX = false;
 	bool MODEL_AUTO_CORRELATION = true;
 	bool ADD_DETRENDING_REGRESSORS = false;
+	bool REGRESS_MOTION = false;
 	bool REGRESS_GLOBAL_MEAN = false;
 	bool RAW_REGRESSORS = false;
 
@@ -128,6 +125,10 @@ int main(int argc, char **argv)
 	bool WRITE_RESIDUAL_VARIANCES = false;
 	bool WRITE_AR_ESTIMATES = false;
 
+	const char*		MASK_NAME;
+	const char*		DESIGN_FILE;        
+	const char*		CONTRASTS_FILE;
+	const char*		MOTION_PARAMETERS_FILE;
 	const char*		outputFilename;
        
     //---------------------    
@@ -143,7 +144,7 @@ int main(int argc, char **argv)
         printf("GLM volumes.nii -design design.txt -contrasts design.txt -firstlevel [options]\n\n");
         printf("Usage first level, regressors.txt contains a file name to each regressor:\n\n");
         printf("GLM volumes.nii -designfiles regressors.txt -contrasts design.txt -firstlevel [options]\n\n");
-        printf("Usage usage second level:\n\n");
+        printf("Usage second level:\n\n");
         printf("GLM volumes.nii -design design.txt -contrasts design.txt -secondlevel [options]\n\n");
 //        printf("Regression only:\n\n");
 //        printf("GLM volumes.nii -design design.txt -regressonly [options]\n\n");
@@ -160,17 +161,15 @@ int main(int argc, char **argv)
         printf(" -betasonly                 Only save the beta values, contrast file not needed (default no) \n");
         printf(" -contrastsonly             Only save the contrast values (default no) \n");
         printf(" -betasandcontrastsonly     Only save the beta values and the contrast values (default no) \n");
-        printf(" -regressonly               Only save the residuals from the GLM (default no) \n");
         printf(" \nOptions for single subject analysis \n\n");
         printf(" -temporalderivatives       Use temporal derivatives for the activity regressors (default no) \n");
-        //printf(" -autocorr	                Model temporal auto correlation (for single subject analysis, default no) \n");
- //       printf(" -adddetrendingregressors   Add 4 detrending regressors (mean, linear, quadratic, cubic) to design matrix (default no) \n");
+        printf(" -regressmotion             Provide file with motion regressors to use in design matrix (default no) \n");
         printf(" -regressglobalmean         Include global mean in design matrix (default no) \n");
         printf(" \n\n");
         printf(" -mask                      A mask that defines which voxels to run the GLM for (default none) \n");
 		printf(" -saveresiduals             Save the residuals (default no) \n");
 		printf(" -saveresidualvariance      Save residual variance (default no) \n");
-        printf(" -savearparameters          Save the estimated AR coefficients (default no) \n");
+        printf(" -savearparameters          Save the estimated AR coefficients (first level only, default no) \n");
 		printf(" -saveoriginaldesignmatrix  Save the original design matrix used (default no) \n");
         printf(" -savedesignmatrix          Save the total design matrix used (default no) \n");        
 		printf(" -output                    Set output filename (default volumes_) \n");
@@ -330,11 +329,6 @@ int main(int argc, char **argv)
 			BETAS_AND_CONTRASTS_ONLY = true;
             i += 1;
         }
-        else if (strcmp(input,"-regressonly") == 0)
-        {
-			REGRESS_ONLY = true;
-            i += 1;
-        }
 
 
         else if (strcmp(input,"-temporalderivatives") == 0)
@@ -351,6 +345,18 @@ int main(int argc, char **argv)
         {
 			ADD_DETRENDING_REGRESSORS = true;
             i += 1;
+        }
+        else if (strcmp(input,"-regressmotion") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -regressmotion!\n");
+                return EXIT_FAILURE;
+			}
+
+            MOTION_PARAMETERS_FILE = argv[i+1];
+            REGRESS_MOTION = true;
+            i += 2;
         }
         else if (strcmp(input,"-regressglobalmean") == 0)
         {
@@ -435,7 +441,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
 	}
 
-	if (!FOUND_CONTRASTS && !BETAS_ONLY && !REGRESS_ONLY)
+	if (!FOUND_CONTRASTS && !BETAS_ONLY)
 	{
     	printf("No contrasts file detected, aborting! \n");
         return EXIT_FAILURE;
@@ -451,7 +457,7 @@ int main(int argc, char **argv)
 	//------------------------------------------
 	// Check for invalid combinations
 
-	if (WRITE_AR_ESTIMATES && (SECOND_LEVEL || BETAS_ONLY || CONTRASTS_ONLY || BETAS_AND_CONTRASTS_ONLY || REGRESS_ONLY))
+	if (WRITE_AR_ESTIMATES && (SECOND_LEVEL || BETAS_ONLY || CONTRASTS_ONLY || BETAS_AND_CONTRASTS_ONLY))
 	{
     	printf("No AR parameters will be estimated for the selected analysis, cannot save them, aborting! \n");
         return EXIT_FAILURE;
@@ -472,6 +478,12 @@ int main(int argc, char **argv)
 	if (SECOND_LEVEL && REGRESS_GLOBALMEAN)
 	{
     	printf("Cannot regress global mean for second level analysis, aborting! \n");
+        return EXIT_FAILURE;
+	}
+
+	if (SECOND_LEVEL && REGRESS_MOTION)
+	{
+    	printf("Cannot regress motion for second level analysis, aborting! \n");
         return EXIT_FAILURE;
 	}
 
@@ -532,7 +544,7 @@ int main(int argc, char **argv)
 
    	std::ifstream contrasts;    
 
-	if (!REGRESS_ONLY && !BETAS_ONLY)
+	if (!BETAS_ONLY)
 	{
 	    contrasts.open(CONTRASTS_FILE);  
 	    if (!contrasts.good())
@@ -664,40 +676,7 @@ int main(int argc, char **argv)
 		}
 	}
     
-    // ------------------------------------------------
 
-    // Print some info
-    if (PRINT)
-    {
-        printf("Authored by K.A. Eklund \n");
-        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
-        printf("Number of regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
-        printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
-		if (BETAS_ONLY)
-		{
-			printf("Performing GLM and saving betas \n");
-		}
-		else if (CONTRASTS_ONLY)
-		{
-			printf("Performing GLM and saving contrasts \n");
-		}
-		else if (BETAS_AND_CONTRASTS_ONLY)
-		{
-			printf("Performing GLM and saving betas and contrasts \n");
-		}
-		else if (ANALYZE_TTEST)
-		{
-			printf("Performing %i t-tests \n",  NUMBER_OF_CONTRASTS);
-		}
-		else if (ANALYZE_FTEST)
-		{
-			printf("Performing one F-test \n");
-		}
-		else if (REGRESS_ONLY)
-		{
-			printf("Performing regression \n");
-		}
-    }
 	
     // ------------------------------------------------  
 	// Allocate memory
@@ -723,8 +702,50 @@ int main(int argc, char **argv)
 	}
 	else if (FIRST_LEVEL)
 	{
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN; //NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 	}
+
+    // ------------------------------------------------
+
+    // Print some info
+    if (PRINT)
+    {
+        printf("Authored by K.A. Eklund \n");
+        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+		if (SECOND_LEVEL)
+		{
+	        printf("Number of regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
+		}
+		else
+		{
+			printf("Number of original regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
+			printf("Number of total regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
+		}
+	
+        printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
+		if (BETAS_ONLY)
+		{
+			printf("Performing GLM and saving betas \n");
+		}
+		else if (CONTRASTS_ONLY)
+		{
+			printf("Performing GLM and saving contrasts \n");
+		}
+		else if (BETAS_AND_CONTRASTS_ONLY)
+		{
+			printf("Performing GLM and saving betas and contrasts \n");
+		}
+		else if (ANALYZE_TTEST)
+		{
+			printf("Performing %i t-tests \n",  NUMBER_OF_CONTRASTS);
+		}
+		else if (ANALYZE_FTEST)
+		{
+			printf("Performing one F-test \n");
+		}
+    }
+
+    // ------------------------------------------------
 
     size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
@@ -735,6 +756,7 @@ int main(int argc, char **argv)
 	size_t HIGHRES_REGRESSOR_SIZE = DATA_T * HIGHRES_FACTOR * sizeof(float);    
     size_t BETA_DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
     size_t RESIDUALS_DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_REGRESSORS * DATA_T * sizeof(float);
    
 	// If the data is in float format, we can just copy the pointer
 	if ( inputData->datatype != DT_FLOAT )
@@ -757,17 +779,22 @@ int main(int argc, char **argv)
 
 	AllocateMemory(h_Mask, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MASK");
 
+	if (REGRESS_MOTION)
+	{
+		AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MOTION_PARAMETERS");       
+	}
+
     AllocateMemory(h_Beta_Volumes, BETA_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "BETA_VOLUMES");
 
-	if (!BETAS_ONLY && !REGRESS_ONLY)
+	if (!BETAS_ONLY)
 	{
 		AllocateMemory(h_Contrast_Volumes, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_VOLUMES");
 	}
-	if (!BETAS_ONLY && !BETAS_AND_CONTRASTS_ONLY && !REGRESS_ONLY)
+	if (!BETAS_ONLY && !BETAS_AND_CONTRASTS_ONLY)
 	{
 		AllocateMemory(h_Statistical_Maps, STATISTICAL_MAPS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "STATISTICALMAPS");
 	}
-	if (WRITE_RESIDUALS || REGRESS_ONLY)
+	if (WRITE_RESIDUALS)
 	{
 		AllocateMemory(h_Residuals, RESIDUALS_DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "RESIDUALS");  
 	}
@@ -1009,7 +1036,7 @@ int main(int argc, char **argv)
 	// Read the contrasts
 	//------------------------------------------
 
-	if (!REGRESS_ONLY && !BETAS_ONLY)
+	if (!BETAS_ONLY)
 	{
 		// Open contrast file again
 	    contrasts.open(CONTRASTS_FILE);
@@ -1147,6 +1174,40 @@ int main(int argc, char **argv)
 	    }
 	}
 	
+    //------------------------------------------
+	// Read motion parameters
+	//------------------------------------------
+
+	if (REGRESS_MOTION)
+	{
+	    // Open motion parameters file
+		std::ifstream motionparameters;
+	    motionparameters.open(MOTION_PARAMETERS_FILE);  
+
+	    if ( motionparameters.good() )
+	    {
+			for (int t = 0; t < DATA_T; t++)
+			{
+				for (int r = 0; r < NUMBER_OF_MOTION_REGRESSORS; r++)
+				{
+					if (! (motionparameters >> h_Motion_Parameters[t + r * DATA_T]) )
+					{
+						motionparameters.close();
+				        printf("Could not read all values of the motion parameters file %s, aborting! Stopped reading at time point %i for parameter %i. Please check if the motion parameters file\n",MOTION_PARAMETERS_FILE,t,r);      
+				        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+				        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+				        return EXIT_FAILURE;
+					}
+				}
+			}	
+			motionparameters.close();
+		}
+		else
+		{
+			motionparameters.close();
+	        printf("Could not open the motion parameters file %s !\n",MOTION_PARAMETERS_FILE);
+		}
+	}
 
     //------------------------------------------
 	// Read data
@@ -1363,12 +1424,12 @@ int main(int argc, char **argv)
 		BROCCOLI.SetRawDesignMatrix(RAW_DESIGNMATRIX);
 		BROCCOLI.SetSaveDesignMatrix(WRITE_DESIGNMATRIX);
 		BROCCOLI.SetSaveResidualsEPI(WRITE_RESIDUALS);
+		BROCCOLI.SetSaveResidualsMNI(WRITE_RESIDUALS);
 		BROCCOLI.SetSaveResidualVariances(WRITE_RESIDUAL_VARIANCES);
 
 		BROCCOLI.SetOutputDesignMatrix(h_Design_Matrix, h_Design_Matrix2);
         BROCCOLI.SetOutputResidualVariances(h_Residual_Variances);        
 
-		BROCCOLI.SetRegressOnly(REGRESS_ONLY);
 		BROCCOLI.SetBetasOnly(BETAS_ONLY);
 		BROCCOLI.SetContrastsOnly(CONTRASTS_ONLY);
 		BROCCOLI.SetBetasAndContrastsOnly(BETAS_AND_CONTRASTS_ONLY);
@@ -1378,20 +1439,7 @@ int main(int argc, char **argv)
         // Run the GLM
 
 		startTime = GetWallTime();
-		if (REGRESS_ONLY)
-		{
-	        BROCCOLI.SetInputFirstLevelResults(h_Data);        
-	        BROCCOLI.SetMask(h_Mask);        
-	        BROCCOLI.SetMNIWidth(DATA_W);
-	        BROCCOLI.SetMNIHeight(DATA_H);
-	        BROCCOLI.SetMNIDepth(DATA_D);                
-	        BROCCOLI.SetNumberOfSubjects(DATA_T);
-
-	        BROCCOLI.SetOutputResidualsMNI(h_Residuals);   
-
-	        BROCCOLI.PerformGLMTTestSecondLevelWrapper();                            
-		}
-		else if (ANALYZE_TTEST && SECOND_LEVEL)
+		if (ANALYZE_TTEST && SECOND_LEVEL)
 		{
 	        BROCCOLI.SetInputFirstLevelResults(h_Data);        
 	        BROCCOLI.SetMask(h_Mask); 
@@ -1431,6 +1479,7 @@ int main(int argc, char **argv)
 		{
 			BROCCOLI.SetInputfMRIVolumes(h_Data);
 			BROCCOLI.SetOutputEPIMask(h_Mask);
+			BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
 
 	        BROCCOLI.SetEPIWidth(DATA_W);
 	        BROCCOLI.SetEPIHeight(DATA_H);
@@ -1442,6 +1491,7 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetEPIVoxelSizeZ(VOXEL_SIZE_Z);  
 			BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
 			BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
+			BROCCOLI.SetRegressMotion(REGRESS_MOTION);
 	        BROCCOLI.SetRegressGlobalMean(REGRESS_GLOBALMEAN);
 
     	    BROCCOLI.SetOutputBetaVolumesEPI(h_Beta_Volumes);        
@@ -1457,6 +1507,7 @@ int main(int argc, char **argv)
 		{
 			BROCCOLI.SetInputfMRIVolumes(h_Data);
 			BROCCOLI.SetOutputEPIMask(h_Mask);
+			BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
 
 	        BROCCOLI.SetEPIWidth(DATA_W);
 	        BROCCOLI.SetEPIHeight(DATA_H);
@@ -1468,6 +1519,7 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetEPIVoxelSizeZ(VOXEL_SIZE_Z);  
 			BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
 			BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
+			BROCCOLI.SetRegressMotion(REGRESS_MOTION);
 	        BROCCOLI.SetRegressGlobalMean(REGRESS_GLOBALMEAN);
 
     	    BROCCOLI.SetOutputBetaVolumesEPI(h_Beta_Volumes);        
@@ -1561,13 +1613,7 @@ int main(int argc, char **argv)
     std::string tscores = "_tscores";
     std::string fscores = "_fscores";
 
-	outputNifti->nt = 1;
-	outputNifti->ndim = 3;
-	outputNifti->dim[0] = 3;
-    outputNifti->dim[4] = 1;
-    outputNifti->nvox = DATA_W *DATA_H * DATA_D;
-
-	if (REGRESS_ONLY)
+	if (WRITE_RESIDUALS)
 	{
 		outputNifti->nt = DATA_T;
 		outputNifti->ndim = 4;
@@ -1578,13 +1624,19 @@ int main(int argc, char **argv)
 		WriteNifti(outputNifti,h_Residuals,"_residuals",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 
+	outputNifti->nt = 1;
+	outputNifti->ndim = 3;
+	outputNifti->dim[0] = 3;
+    outputNifti->dim[4] = 1;
+    outputNifti->nvox = DATA_W *DATA_H * DATA_D;
+
 	if (WRITE_RESIDUAL_VARIANCES)
 	{	
 		WriteNifti(outputNifti,h_Residual_Variances,"_residualvariance",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 
 	// Write each beta weight as a separate file
-	if (!REGRESS_ONLY && !CONTRASTS_ONLY)
+	if (!CONTRASTS_ONLY)
 	{
 		for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 		{
@@ -1613,7 +1665,7 @@ int main(int argc, char **argv)
 	}
 
     // Write each contrast volume as a separate file
-	if (!BETAS_ONLY && !REGRESS_ONLY && !SECOND_LEVEL && !ANALYZE_FTEST)
+	if (!BETAS_ONLY && !SECOND_LEVEL && !ANALYZE_FTEST)
 	{
 	    for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	{
@@ -1641,7 +1693,7 @@ int main(int argc, char **argv)
 		}
 	}  
 
-	if (!BETAS_ONLY && !REGRESS_ONLY && !CONTRASTS_ONLY && !BETAS_AND_CONTRASTS_ONLY)
+	if (!BETAS_ONLY && !CONTRASTS_ONLY && !BETAS_AND_CONTRASTS_ONLY)
 	{
 		if (ANALYZE_TTEST)
 		{

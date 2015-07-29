@@ -3793,6 +3793,11 @@ void BROCCOLI_LIB::SetSaveResidualsEPI(bool value)
 	WRITE_RESIDUALS_EPI = value;
 }
 
+void BROCCOLI_LIB::SetSaveResidualsMNI(bool value)
+{
+	WRITE_RESIDUALS_MNI = value;
+}
+
 void BROCCOLI_LIB::SetSaveResidualVariances(bool value)
 {
 	WRITE_RESIDUAL_VARIANCES = value;
@@ -11390,7 +11395,7 @@ void BROCCOLI_LIB::PerformRegressionSlice(cl_mem d_Regressed_Volumes, cl_mem d_V
 
 void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 {
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -11433,6 +11438,13 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
 	h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
 
+	if (REGRESS_MOTION)
+	{
+		for (int i = 0; i < NUMBER_OF_MOTION_REGRESSORS * EPI_DATA_T; i++)
+		{
+			h_Motion_Parameters[i] = h_Motion_Parameters_Out[i];
+		}
+	}
 	if (REGRESS_GLOBALMEAN)
 	{
 		CalculateGlobalMeans(h_fMRI_Volumes);
@@ -11465,6 +11477,20 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 	if (BETAS_ONLY || CONTRASTS_ONLY || BETAS_AND_CONTRASTS_ONLY)
 	{
 		CalculateBetaWeightsAndContrastsFirstLevelSlices(h_fMRI_Volumes);	
+
+		if (WRITE_RESIDUALS_EPI)
+		{
+			// Loop over slices, to save memory
+			for (int slice = 0; slice < EPI_DATA_D; slice++)
+			{
+				// Copy fMRI data to the device, for the current slice
+				CopyCurrentfMRISliceToDevice(d_fMRI_Volumes, h_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+				// Perform the regression
+				PerformRegressionSlice(d_Residuals, d_fMRI_Volumes, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+				// Copy back the current slice
+				CopyCurrentfMRISliceToHost(h_Residuals_EPI, d_Residuals, slice, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+			}
+		}
 	}
 	else
 	{
@@ -11539,7 +11565,7 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 // Used for testing of F-test only
 void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 {
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 
 	c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -11581,6 +11607,13 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
 	h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
 
+	if (REGRESS_MOTION)
+	{
+		for (int i = 0; i < NUMBER_OF_MOTION_REGRESSORS * EPI_DATA_T; i++)
+		{
+			h_Motion_Parameters[i] = h_Motion_Parameters_Out[i];
+		}
+	}
 	if (REGRESS_GLOBALMEAN)
 	{
 		CalculateGlobalMeans(h_fMRI_Volumes);
