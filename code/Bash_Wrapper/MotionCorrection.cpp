@@ -284,10 +284,10 @@ int main(int argc, char ** argv)
     EPI_VOXEL_SIZE_Z = inputData->dz;
                                
     // Calculate size, in bytes
-    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
     size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T * sizeof(float);
     size_t FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
-    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
     
     // Print some info
     if (PRINT)
@@ -624,7 +624,31 @@ int main(int argc, char ** argv)
             
     // Print motion parameters to file
     std::ofstream motion;
-    motion.open("motion.1D");      
+  
+    // Add the provided filename extension to the original filename, before the dot
+
+    // Find the dot in the original filename
+    const char* p = inputData->fname;
+    int dotPosition = 0;
+    while ( (p != NULL) && ((*p) != '.') )
+    {
+        p++;
+        dotPosition++;
+    }
+    
+    // Allocate temporary array
+	const char* extension = "_motionparameters.1D";
+    char* filenameWithExtension = (char*)malloc(strlen(inputData->fname) + strlen(extension) + 1);
+    
+    // Copy filename to the dot
+    strncpy(filenameWithExtension,inputData->fname,dotPosition);
+    filenameWithExtension[dotPosition] = '\0';
+
+    // Add the extension
+    strcat(filenameWithExtension,extension);
+
+    motion.open(filenameWithExtension);      
+
     if ( motion.good() )
     {
         //motion.setf(ios::scientific);

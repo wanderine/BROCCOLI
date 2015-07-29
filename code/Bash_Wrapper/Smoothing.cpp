@@ -324,8 +324,8 @@ int main(int argc, char ** argv)
     EPI_VOXEL_SIZE_Z = inputData->dz;
     	
     // Calculate size, in bytes
-    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
-    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
+    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
     
     // Print some info
     if (PRINT)

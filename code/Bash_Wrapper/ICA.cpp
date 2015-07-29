@@ -387,8 +387,8 @@ int main(int argc, char ** argv)
    	
     // Calculate size, in bytes
     int    NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID = 6;
-    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
-    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
+    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
     size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID * DATA_T * sizeof(float);
 	size_t FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
 

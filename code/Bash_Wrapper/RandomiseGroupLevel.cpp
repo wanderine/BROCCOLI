@@ -736,8 +736,8 @@ int main(int argc, char **argv)
     // ------------------------------------------------
 
     // Calculate size, in bytes 
-    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS * sizeof(float);
-    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_SUBJECTS * sizeof(float);
+    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
   	size_t GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
 
@@ -745,12 +745,12 @@ int main(int argc, char **argv)
 	if (ANALYZE_TTEST)
 	{
 		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+		STATISTICAL_MAPS_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
 	}
 	else if (ANALYZE_FTEST)
 	{
 		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float);
-		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+		STATISTICAL_MAPS_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
 	}
             
     // ------------------------------------------------
@@ -1189,14 +1189,14 @@ int main(int argc, char **argv)
 
     // ------------------------------------------------
 		
-	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0] * NUMBER_OF_SUBJECTS * sizeof(float);
+	size_t SIGN_MATRIX_SIZE = (size_t)NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0] * (size_t)NUMBER_OF_SUBJECTS * sizeof(float);
 
 	AllocateMemory(h_Sign_Matrix, SIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "SIGN_MATRIX");
 
 	for (int c = 0; c < NUMBER_OF_STATISTICAL_MAPS; c++)
 	{ 
-	    size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * sizeof(float);
-		size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
+	    size_t NULL_DISTRIBUTION_SIZE = (size_t)NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * sizeof(float);
+		size_t PERMUTATION_MATRIX_SIZE = (size_t)NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * (size_t)NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
 
 		AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages,allocatedHostMemory, "PERMUTATION_MATRIX");
 		AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_DISTRIBUTION");             

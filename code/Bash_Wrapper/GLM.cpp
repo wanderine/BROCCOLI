@@ -688,7 +688,7 @@ int main(int argc, char **argv)
 	if (ANALYZE_TTEST)
 	{
 		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+		STATISTICAL_MAPS_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
 	}
 	else if (ANALYZE_FTEST)
 	{
@@ -747,15 +747,15 @@ int main(int argc, char **argv)
 
     // ------------------------------------------------
 
-    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
-    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
+    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
+    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
       
     size_t GLM_SIZE = DATA_T * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     size_t DESIGN_MATRIX_SIZE = NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T * sizeof(float);
 	size_t HIGHRES_REGRESSOR_SIZE = DATA_T * HIGHRES_FACTOR * sizeof(float);    
-    size_t BETA_DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t BETA_DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+    size_t RESIDUALS_DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
     size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_REGRESSORS * DATA_T * sizeof(float);
    
 	// If the data is in float format, we can just copy the pointer
