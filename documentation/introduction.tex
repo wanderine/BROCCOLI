@@ -162,9 +162,13 @@ Note that the path should end with a "/" character. To make the change permanent
 export PATH=$PATH:/home/andek/BROCCOLI/compiled/Bash/Linux/Release
 \end{verbatim}
 and for Mac
-
 \begin{verbatim}
 export PATH=$PATH:/Users/andek/BROCCOLI/compiled/Bash/Mac/Release
+\end{verbatim}
+Some parts of BROCCOLI use the clBLAS library for matrix operations. It is therefore necessary to add the following definition (for Linux only)
+\begin{verbatim}
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH
+:/home/andek/BROCCOLI/code/BROCCOLI_LIB/clBLASLinux
 \end{verbatim}
 Some parts of BROCCOLI support OpenMP (open multi processing on the CPU), to speedup code not written in OpenCL. The number of OpenMP threads can, for example, be set using
 
@@ -215,7 +219,7 @@ In these scripts it is easy to change the compilation mode from release to debug
 
 \section{Compiling the bash wrappers}
 
-It is possible to run BROCCOLI in a number of ways, for example from a Matlab terminal or from a Python terminal. The fMRI software packages FSL and AFNI can be launched from a Linux terminal, and BROCCOLI includes a bash wrapper for this purpose. Precompiled versions of the bash functions are located in BROCCOLI/compiled/Bash/Linux and in BROCCOLI/compiled/Bash/Mac . \\ \\ \\ \\ The following bash script can be used to compile the bash wrappers (available in BROCCOLI/code/Bash\_Wrapper)
+It is possible to run BROCCOLI in a number of ways, for example from a Matlab terminal or from a Python terminal. The fMRI software packages FSL and AFNI can be launched from a Linux terminal, and BROCCOLI includes a bash wrapper for this purpose. Precompiled versions of the bash functions are located in BROCCOLI/compiled/Bash/Linux and in BROCCOLI/compiled/Bash/Mac .  \\ \\ The following bash script can be used to compile the bash wrappers (available in BROCCOLI/code/Bash\_Wrapper)
 
 \begin{verbatim}
  ./compile_wrappers.sh 
