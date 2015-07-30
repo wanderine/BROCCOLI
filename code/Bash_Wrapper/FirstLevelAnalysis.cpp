@@ -85,21 +85,21 @@ int main(int argc, char **argv)
 	float			*h_Residuals_EPI;
 	float			*h_Residuals_MNI;
 
-    int             EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
-    int             T1_DATA_H, T1_DATA_W, T1_DATA_D;
-    int             MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
+    size_t          EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
+    size_t          T1_DATA_H, T1_DATA_W, T1_DATA_D;
+    size_t          MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
                 
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, TR;
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
     
-    int             NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONFOUND_REGRESSORS, NUMBER_OF_CONTRASTS, BETA_SPACE;
+    size_t          NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONFOUND_REGRESSORS, NUMBER_OF_CONTRASTS, BETA_SPACE;
     
-    int             NUMBER_OF_DETRENDING_REGRESSORS = 4;
-    int             NUMBER_OF_MOTION_REGRESSORS = 6;	
+    size_t          NUMBER_OF_DETRENDING_REGRESSORS = 4;
+    size_t          NUMBER_OF_MOTION_REGRESSORS = 6;	
 
 	int				NUMBER_OF_EVENTS;
-	int				HIGHRES_FACTOR = 100;
+	size_t			HIGHRES_FACTOR = 100;
     
     //-----------------------
     // Output pointers
@@ -154,18 +154,18 @@ int main(int argc, char **argv)
 
 	bool			RAW_REGRESSORS = false;
 	bool			RAW_DESIGNMATRIX = false;
-    int             REGRESS_MOTION = 0;
-    int             REGRESS_GLOBALMEAN = 0;
-	int				REGRESS_CONFOUNDS = 0;
+    size_t          REGRESS_MOTION = 0;
+    size_t          REGRESS_GLOBALMEAN = 0;
+	size_t			REGRESS_CONFOUNDS = 0;
     float           EPI_SMOOTHING_AMOUNT = 6.0f;
     float           AR_SMOOTHING_AMOUNT = 6.0f;
 	bool			BETAS_ONLY = false;
 	bool			REGRESS_ONLY = false;
 	bool			PREPROCESSING_ONLY = false;
     
-    int             USE_TEMPORAL_DERIVATIVES = 0;
+    size_t          USE_TEMPORAL_DERIVATIVES = 0;
     bool            PERMUTE = false;
-    int				NUMBER_OF_PERMUTATIONS = 1000;
+    size_t			NUMBER_OF_PERMUTATIONS = 1000;
 
     int				INFERENCE_MODE = 1;
     float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
@@ -1510,7 +1510,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    size_t EPI_DATA_SIZE = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)EPI_DATA_T * (size_t)sizeof(float);
+    size_t EPI_DATA_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
     size_t T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
     size_t MNI_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
     
@@ -1532,17 +1532,17 @@ int main(int argc, char **argv)
     size_t PROJECTION_TENSOR_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
     size_t FILTER_DIRECTIONS_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
     
-    size_t BETA_DATA_SIZE_MNI = (size_t)MNI_DATA_W * (size_t)MNI_DATA_H * (size_t)MNI_DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * (size_t)sizeof(float);
-    size_t STATISTICAL_MAPS_DATA_SIZE_MNI = (size_t)MNI_DATA_W * (size_t)MNI_DATA_H * (size_t)MNI_DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE_MNI = (size_t)MNI_DATA_W * (size_t)MNI_DATA_H * (size_t)MNI_DATA_D * (size_t)EPI_DATA_T * sizeof(float);
+    size_t BETA_DATA_SIZE_MNI = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+    size_t STATISTICAL_MAPS_DATA_SIZE_MNI = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t RESIDUALS_DATA_SIZE_MNI = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * EPI_DATA_T * sizeof(float);
  
-    size_t BETA_DATA_SIZE_EPI = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * (size_t)sizeof(float);
-    size_t STATISTICAL_MAPS_DATA_SIZE_EPI = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE_EPI = (size_t)EPI_DATA_W * (size_t)EPI_DATA_H * (size_t)EPI_DATA_D * (size_t)EPI_DATA_T * sizeof(float);
+    size_t BETA_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+    size_t STATISTICAL_MAPS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t RESIDUALS_DATA_SIZE_EPI = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
 
-    size_t BETA_DATA_SIZE_T1 = (size_t)T1_DATA_W * (size_t)T1_DATA_H * (size_t)T1_DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * (size_t)sizeof(float);
-    size_t STATISTICAL_MAPS_DATA_SIZE_T1 = (size_t)T1_DATA_W * (size_t)T1_DATA_H * (size_t)T1_DATA_D * (size_t)NUMBER_OF_CONTRASTS * (size_t)sizeof(float);
-    size_t RESIDUALS_DATA_SIZE_T1 = (size_t)T1_DATA_W * (size_t)T1_DATA_H * (size_t)T1_DATA_D * (size_t)EPI_DATA_T * (size_t)sizeof(float);
+    size_t BETA_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+    size_t STATISTICAL_MAPS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
+    size_t RESIDUALS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * EPI_DATA_T * sizeof(float);
     
 	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int);
 	size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
@@ -1551,29 +1551,29 @@ int main(int argc, char **argv)
     if (PRINT)
     {
         printf("\nAuthored by K.A. Eklund \n");
-	    printf("fMRI data size: %i x %i x %i x %i \n", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+	    printf("fMRI data size: %zu x %zu x %zu x %zu \n", EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
 		printf("fMRI voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
 		printf("fMRI TR: %f s \n", TR);		
 		printf("fMRI slice order: %s \n",SLICE_ORDER_STRING.c_str());
-    	printf("T1 data size: %i x %i x %i \n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
+    	printf("T1 data size: %zu x %zu x %zu \n", T1_DATA_W, T1_DATA_H, T1_DATA_D);
 		printf("T1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);
-	    printf("MNI data size: %i x %i x %i \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	    printf("MNI data size: %zu x %zu x %zu \n", MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 		printf("MNI voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);
 		if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 		{
-		    printf("Number of original GLM regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
+		    printf("Number of original GLM regressors: %zu \n",  NUMBER_OF_GLM_REGRESSORS);
 		}
 		if (REGRESS_CONFOUNDS)
 		{
-	    	printf("Number of confound regressors: %i \n",  NUMBER_OF_CONFOUND_REGRESSORS);
+	    	printf("Number of confound regressors: %zu \n",  NUMBER_OF_CONFOUND_REGRESSORS);
 		}
 		if (!PREPROCESSING_ONLY)
 		{
-	  	    printf("Number of total GLM regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	  	    printf("Number of total GLM regressors: %zu \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		}
 		if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 		{
-		    printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
+		    printf("Number of contrasts: %zu \n",  NUMBER_OF_CONTRASTS);
 		}
     } 
    	if (VERBOS)
@@ -1822,9 +1822,9 @@ int main(int argc, char **argv)
 	    design >> NUMBER_OF_GLM_REGRESSORS;
 
 		float tempFloat;	
-		for (int t = 0; t < EPI_DATA_T; t++)
+		for (size_t t = 0; t < EPI_DATA_T; t++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				if (! (design >> h_X_GLM[t + r * EPI_DATA_T]) )
 				{
@@ -1853,10 +1853,10 @@ int main(int argc, char **argv)
 		if (!RAW_REGRESSORS)
 		{    
 		    // Loop over the number of regressors provided in the design file
-		    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 	    	{
 				// Reset highres regressor
-			    for (int t = 0; t < EPI_DATA_T * HIGHRES_FACTOR; t++)
+			    for (size_t t = 0; t < EPI_DATA_T * HIGHRES_FACTOR; t++)
 		    	{
 					h_Highres_Regressor[t] = 0.0f;
 				}
@@ -1945,7 +1945,7 @@ int main(int argc, char **argv)
 					}
 
     		        // Put values into highres GLM
-    		        for (int i = 0; i < activityLength; i++)
+    		        for (size_t i = 0; i < activityLength; i++)
     		        {
     		            if ((start + i) < (EPI_DATA_T * HIGHRES_FACTOR) )
     		            {
@@ -1969,7 +1969,7 @@ int main(int argc, char **argv)
 				LowpassFilterRegressor(h_LowpassFiltered_Regressor,h_Highres_Regressor,EPI_DATA_T,HIGHRES_FACTOR,TR);
         
     		    // Downsample highres GLM and put values into regular GLM
-    		    for (int t = 0; t < EPI_DATA_T; t++)
+    		    for (size_t t = 0; t < EPI_DATA_T; t++)
     		    {
     		        h_X_GLM[t + r * EPI_DATA_T] = h_LowpassFiltered_Regressor[t*HIGHRES_FACTOR];
     		    }
@@ -1978,7 +1978,7 @@ int main(int argc, char **argv)
 		else if (RAW_REGRESSORS)
 		{
 			// Loop over the number of regressors provided in the design file
-		    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
     		{
 		        // Each regressor is a filename, so try to open the file
 		        std::ifstream regressor;
@@ -1996,7 +1996,7 @@ int main(int argc, char **argv)
 
 				float value;
 				int readValues = 0;
-			    for (int t = 0; t < EPI_DATA_T; t++)
+			    for (size_t t = 0; t < EPI_DATA_T; t++)
 		    	{
 					if (! (regressor >> value) )
 					{
@@ -2042,9 +2042,9 @@ int main(int argc, char **argv)
 		    contrasts >> tempNumber;
    
 			// Read all contrast values
-			for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+			for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 			{
-				for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+				for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 				{
 					if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
 					{
@@ -2077,9 +2077,9 @@ int main(int argc, char **argv)
 
 		    if ( designmatrix.good() )
 		    {
-    		    for (int t = 0; t < EPI_DATA_T; t++)
+    		    for (size_t t = 0; t < EPI_DATA_T; t++)
 		        {
-		    	    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		    	    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			        {
     	        		designmatrix << std::setprecision(6) << std::fixed << (double)h_X_GLM[t + r * EPI_DATA_T] << "  ";
 					}
@@ -2105,7 +2105,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputfMRI->data;
     
-        for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
+        for (size_t i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -2114,7 +2114,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputfMRI->data;
     
-        for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
+        for (size_t i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -2123,7 +2123,7 @@ int main(int argc, char **argv)
     {
         unsigned short int *p = (unsigned short int*)inputfMRI->data;
     
-        for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
+        for (size_t i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -2139,7 +2139,7 @@ int main(int argc, char **argv)
 
         //float *p = (float*)inputfMRI->data;
     
-        //for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
+        //for (size_t i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
         //{
         //    h_fMRI_Volumes[i] = p[i];
         //}
@@ -2169,7 +2169,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputT1->data;
     
-        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
         {
             h_T1_Volume[i] = (float)p[i];
         }
@@ -2178,7 +2178,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputT1->data;
     
-        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
         {
             h_T1_Volume[i] = (float)p[i];
         }
@@ -2187,7 +2187,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputT1->data;
     
-        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
         {
             h_T1_Volume[i] = p[i];
         }
@@ -2205,7 +2205,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputMNI->data;
     
-        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         {
             h_MNI_Brain_Volume[i] = (float)p[i];
         }
@@ -2214,7 +2214,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputMNI->data;
     
-        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         {
             h_MNI_Brain_Volume[i] = (float)p[i];
         }
@@ -2223,7 +2223,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputMNI->data;
     
-        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         {
             h_MNI_Brain_Volume[i] = p[i];
         }
@@ -2685,9 +2685,9 @@ int main(int argc, char **argv)
 
 	    if ( designmatrix.good() )
 	    {
-    	    for (int t = 0; t < EPI_DATA_T; t++)
+    	    for (size_t t = 0; t < EPI_DATA_T; t++)
 	        {
-	    	    for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+	    	    for (size_t r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
 		        {
             		designmatrix << std::setprecision(6) << std::fixed << (double)h_Design_Matrix[t + r * EPI_DATA_T] << "  ";
 				}
@@ -2809,7 +2809,7 @@ int main(int argc, char **argv)
 			if (!WRITE_COMPACT)
 			{
 			    // Write each beta weight as a separate file
-		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+		        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 		        {
 		            std::string temp = beta;
 		            std::stringstream ss;
@@ -2835,7 +2835,7 @@ int main(int argc, char **argv)
 		            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		        }
 			    // Write each contrast volume as a separate file
-		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 		        {
 		            std::string temp = cope;
 		            std::stringstream ss;
@@ -2863,7 +2863,7 @@ int main(int argc, char **argv)
 				if (!BETAS_ONLY)
 				{
 			        // Write each t-map as a separate file
-			        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			        {
 						// nifti file contains t-scores
 						outputNiftiStatisticsMNI->intent_code = 3;
@@ -2941,7 +2941,7 @@ int main(int argc, char **argv)
 				    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D;
 
 					// Write each beta weight as a separate file
-			        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+			        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 			        {
 			            std::string temp = betaNoWhitening;
 			            std::stringstream ss;
@@ -2967,7 +2967,7 @@ int main(int argc, char **argv)
 			            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 			        }
 				    // Write each contrast volume as a separate file
-			        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			        {
 			            std::string temp = copeNoWhitening;
 			            std::stringstream ss;
@@ -2993,7 +2993,7 @@ int main(int argc, char **argv)
 			            WriteNifti(outputNiftiStatisticsMNI,&h_Contrast_Volumes_No_Whitening_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 			        }  
 		    	    // Write each t-map as a separate file
-			        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			        {
 			            std::string temp = tscoresNoWhitening;
 			            std::stringstream ss;
@@ -3068,7 +3068,7 @@ int main(int argc, char **argv)
 				    outputNiftiStatisticsMNI->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D;
 
 		            // Write each p-map as a separate file
-		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		            for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 		            {
 		                std::string temp = pvalues;
 				        std::stringstream ss;
@@ -3112,7 +3112,7 @@ int main(int argc, char **argv)
 	    else if (BAYESIAN)
 	    {
 		    // Write each beta weight as a separate file
-	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 	        {
 	            std::string temp = beta;
 	            std::stringstream ss;
@@ -3138,7 +3138,7 @@ int main(int argc, char **argv)
 	            WriteNifti(outputNiftiStatisticsMNI,&h_Beta_Volumes_MNI[i * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	        }
 	        // Write each PPM as a separate file
-	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 	        {
 	            std::string temp = PPM;
 	            std::stringstream ss;
@@ -3230,7 +3230,7 @@ int main(int argc, char **argv)
 				if (!WRITE_COMPACT)
 				{
 	    	        // Write each beta weight as a separate file
-	    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	    	        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 	    	        {
     		            std::string temp = beta;
     		            std::stringstream ss;
@@ -3257,7 +3257,7 @@ int main(int argc, char **argv)
     		            WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     		        }
     		        // Write each contrast volume as a separate file
-    		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    		        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
     		        {
     		            std::string temp = cope;
     		            std::stringstream ss;
@@ -3285,7 +3285,7 @@ int main(int argc, char **argv)
 					if (!BETAS_ONLY)
 					{
 		    	        // Write each t-map as a separate file
-		    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		    	        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 		    	        {
 							// nifti file contains t-scores
 							outputNiftiStatisticsEPI->intent_code = 3;
@@ -3363,7 +3363,7 @@ int main(int argc, char **argv)
 					    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;									
 
 						// Write each beta weight as a separate file
-	    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+	    		        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 			            {
 			                std::string temp = betaNoWhitening;
 			                std::stringstream ss;
@@ -3389,7 +3389,7 @@ int main(int argc, char **argv)
 			                WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 			            }
 			            // Write each contrast volume as a separate file
-			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			            {
 			                std::string temp = copeNoWhitening;
 			                std::stringstream ss;
@@ -3415,7 +3415,7 @@ int main(int argc, char **argv)
 			                WriteNifti(outputNiftiStatisticsEPI,&h_Contrast_Volumes_No_Whitening_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 			            }
 			            // Write each t-map as a separate file
-			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			            {
 			                std::string temp = tscoresNoWhitening;
 			                std::stringstream ss;
@@ -3491,7 +3491,7 @@ int main(int argc, char **argv)
 					    outputNiftiStatisticsEPI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D;
 	
 			            // Write each p-map as a separate file
-			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			            {
 			                std::string temp = pvalues;
 					        std::stringstream ss;
@@ -3535,7 +3535,7 @@ int main(int argc, char **argv)
     	    else if (BAYESIAN)
     	    {
     	        // Write each beta weight as a separate file
-    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+    	        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
     	        {
     	            std::string temp = beta;
     	            std::stringstream ss;
@@ -3561,7 +3561,7 @@ int main(int argc, char **argv)
     	            WriteNifti(outputNiftiStatisticsEPI,&h_Beta_Volumes_EPI[i * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     	        }
     	        // Write each PPM as a separate file
-    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	        {
     	            std::string temp = PPM;
     	            std::stringstream ss;
@@ -3665,7 +3665,7 @@ int main(int argc, char **argv)
 				if (!WRITE_COMPACT)
 				{
 	    	        // Write each beta weight as a separate file
-    		        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+    		        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
     		        {
     		            std::string temp = beta;
     		            std::stringstream ss;
@@ -3691,7 +3691,7 @@ int main(int argc, char **argv)
     		            WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     		        }
     		        // Write each contrast volume as a separate file
-    		        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    		        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
     		        {
     		            std::string temp = cope;
     		            std::stringstream ss;
@@ -3719,7 +3719,7 @@ int main(int argc, char **argv)
 					if (!BETAS_ONLY)
 					{
 		    	        // Write each t-map as a separate file
-		    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+		    	        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 		    	        {
 		    	            std::string temp = tscores;
 		    	            std::stringstream ss;
@@ -3802,7 +3802,7 @@ int main(int argc, char **argv)
 					    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D;	
 
 						// Write each beta weight as a separate file
-    			        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+    			        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 			            {
 			                std::string temp = betaNoWhitening;
 			                std::stringstream ss;
@@ -3828,7 +3828,7 @@ int main(int argc, char **argv)
 			                WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 			            }
 			            // Write each contrast volume as a separate file
-			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			            {
 			                std::string temp = copeNoWhitening;
 			                std::stringstream ss;
@@ -3854,7 +3854,7 @@ int main(int argc, char **argv)
 			                WriteNifti(outputNiftiStatisticsT1,&h_Contrast_Volumes_No_Whitening_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 			            }
 			            // Write each t-map as a separate file
-			            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+			            for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
 			            {
 			                std::string temp = tscoresNoWhitening;
 			                std::stringstream ss;
@@ -3927,7 +3927,7 @@ int main(int argc, char **argv)
 					    outputNiftiStatisticsT1->nvox = T1_DATA_W * T1_DATA_H * T1_DATA_D;
 
 	    	            // Write each p-map as a separate file
-    		            for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    		            for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
     		            {
     		                std::string temp = pvalues;
     		                std::stringstream ss;
@@ -3971,7 +3971,7 @@ int main(int argc, char **argv)
     	    else if (BAYESIAN)
     	    {
     	        // Write each beta weight as a separate file
-    	        for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+    	        for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
     	        {
     	            std::string temp = beta;
     	            std::stringstream ss;
@@ -3997,7 +3997,7 @@ int main(int argc, char **argv)
     	            WriteNifti(outputNiftiStatisticsT1,&h_Beta_Volumes_T1[i * T1_DATA_W * T1_DATA_H * T1_DATA_D],temp.c_str(),ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
     	        }
     	        // Write each PPM as a separate file
-    	        for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	        for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	        {
     	            std::string temp = PPM;
     	            std::stringstream ss;

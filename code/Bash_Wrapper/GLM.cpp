@@ -44,15 +44,15 @@ int main(int argc, char **argv)
   
     float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressor, *h_LowpassFiltered_Regressor, *h_Motion_Parameters;
                   
-    int             DATA_W, DATA_H, DATA_D, DATA_T;               
+    size_t          DATA_W, DATA_H, DATA_D, DATA_T;               
     float           VOXEL_SIZE_X, VOXEL_SIZE_Y, VOXEL_SIZE_Z, TR;
 
-	int             NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS;
-    int             NUMBER_OF_DETRENDING_REGRESSORS = 4;
-    int             NUMBER_OF_MOTION_REGRESSORS = 6;	
+	size_t          NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS;
+    size_t          NUMBER_OF_DETRENDING_REGRESSORS = 4;
+    size_t          NUMBER_OF_MOTION_REGRESSORS = 6;	
 
 	int				NUMBER_OF_EVENTS;
-	int				HIGHRES_FACTOR = 100;
+	size_t			HIGHRES_FACTOR = 100;
 
     //-----------------------
     // Output
@@ -688,7 +688,7 @@ int main(int argc, char **argv)
 	if (ANALYZE_TTEST)
 	{
 		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-		STATISTICAL_MAPS_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
+		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
 	}
 	else if (ANALYZE_FTEST)
 	{
@@ -711,18 +711,18 @@ int main(int argc, char **argv)
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, DATA_T);
 		if (SECOND_LEVEL)
 		{
-	        printf("Number of regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
+	        printf("Number of regressors: %zu \n",  NUMBER_OF_GLM_REGRESSORS);
 		}
 		else
 		{
-			printf("Number of original regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
-			printf("Number of total regressors: %i \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
+			printf("Number of original regressors: %zu \n",  NUMBER_OF_GLM_REGRESSORS);
+			printf("Number of total regressors: %zu \n",  NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		}
 	
-        printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
+        printf("Number of contrasts: %zu \n",  NUMBER_OF_CONTRASTS);
 		if (BETAS_ONLY)
 		{
 			printf("Performing GLM and saving betas \n");
@@ -737,7 +737,7 @@ int main(int argc, char **argv)
 		}
 		else if (ANALYZE_TTEST)
 		{
-			printf("Performing %i t-tests \n",  NUMBER_OF_CONTRASTS);
+			printf("Performing %zu t-tests \n",  NUMBER_OF_CONTRASTS);
 		}
 		else if (ANALYZE_FTEST)
 		{
@@ -747,15 +747,15 @@ int main(int argc, char **argv)
 
     // ------------------------------------------------
 
-    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
-    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
       
     size_t GLM_SIZE = DATA_T * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     size_t DESIGN_MATRIX_SIZE = NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T * sizeof(float);
 	size_t HIGHRES_REGRESSOR_SIZE = DATA_T * HIGHRES_FACTOR * sizeof(float);    
-    size_t BETA_DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
+    size_t BETA_DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
+    size_t RESIDUALS_DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_REGRESSORS * DATA_T * sizeof(float);
    
 	// If the data is in float format, we can just copy the pointer
@@ -828,9 +828,9 @@ int main(int argc, char **argv)
 	    design >> NUMBER_OF_GLM_REGRESSORS;
 
 		float tempFloat;	
-		for (int t = 0; t < DATA_T; t++)
+		for (size_t t = 0; t < DATA_T; t++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				if (! (design >> h_X_GLM[t + r * DATA_T]) )
 				{
@@ -857,10 +857,10 @@ int main(int argc, char **argv)
 		if (!RAW_REGRESSORS)
 		{    
 		    // Loop over the number of regressors provided in the design file
-		    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 	    	{
 				// Reset highres regressor
-			    for (int t = 0; t < DATA_T * HIGHRES_FACTOR; t++)
+			    for (size_t t = 0; t < DATA_T * HIGHRES_FACTOR; t++)
 		    	{
 					h_Highres_Regressor[t] = 0.0f;
 				}
@@ -949,7 +949,7 @@ int main(int argc, char **argv)
 					}
 
     		        // Put values into highres GLM
-    		        for (int i = 0; i < activityLength; i++)
+    		        for (size_t i = 0; i < activityLength; i++)
     		        {
     		            if ((start + i) < (DATA_T * HIGHRES_FACTOR) )
     		            {
@@ -973,7 +973,7 @@ int main(int argc, char **argv)
 				LowpassFilterRegressor(h_LowpassFiltered_Regressor,h_Highres_Regressor,DATA_T,HIGHRES_FACTOR,TR);
         
     		    // Downsample highres GLM and put values into regular GLM
-    		    for (int t = 0; t < DATA_T; t++)
+    		    for (size_t t = 0; t < DATA_T; t++)
     		    {
     		        h_X_GLM[t + r * DATA_T] = h_LowpassFiltered_Regressor[t*HIGHRES_FACTOR];
     		    }
@@ -982,7 +982,7 @@ int main(int argc, char **argv)
 		else if (RAW_REGRESSORS)
 		{
 			// Loop over the number of regressors provided in the design file
-		    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
     		{
 		        // Each regressor is a filename, so try to open the file
 		        std::ifstream regressor;
@@ -1000,7 +1000,7 @@ int main(int argc, char **argv)
 
 				float value;
 				int readValues = 0;
-			    for (int t = 0; t < DATA_T; t++)
+			    for (size_t t = 0; t < DATA_T; t++)
 		    	{
 					if (! (regressor >> value) )
 					{
@@ -1048,9 +1048,9 @@ int main(int argc, char **argv)
 	    contrasts >> tempNumber;
    
 		// Read all contrast values
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
 				{
@@ -1070,9 +1070,9 @@ int main(int argc, char **argv)
 	// Read contrasts into Eigen object
 	if (ANALYZE_FTEST)
 	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				Contrasts(c,r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
 			}
@@ -1093,9 +1093,9 @@ int main(int argc, char **argv)
 	// Put design matrix into Eigen object 
 	Eigen::MatrixXd X(DATA_T,NUMBER_OF_GLM_REGRESSORS);
 
-	for (int s = 0; s < DATA_T; s++)
+	for (size_t s = 0; s < DATA_T; s++)
 	{
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 		{
 			X(s,r) = (double)h_X_GLM[s + r * DATA_T];
 		}
@@ -1110,9 +1110,9 @@ int main(int argc, char **argv)
 	if (SECOND_LEVEL)
 	{
 		// Put pseudo inverse into regular array
-		for (int s = 0; s < DATA_T; s++)
+		for (size_t s = 0; s < DATA_T; s++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				h_xtxxt_GLM[s + r * DATA_T] = (float)xtxxt(r,s);
 			}
@@ -1122,11 +1122,11 @@ int main(int argc, char **argv)
 	// Calculate contrast scalars
 	if (ANALYZE_TTEST && SECOND_LEVEL)
 	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
 			// Put contrast vector into eigen object
 			Eigen::VectorXd Contrast(NUMBER_OF_GLM_REGRESSORS);
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				Contrast(r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
 			}
@@ -1140,9 +1140,9 @@ int main(int argc, char **argv)
 		Eigen::MatrixXd temp = Contrasts * inv_xtx * Contrasts.transpose();
 		Eigen::MatrixXd ctxtxc = temp.inverse();
 
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+			for (size_t cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
 			{
 				h_ctxtxc_GLM[c + cc  * NUMBER_OF_CONTRASTS] = ctxtxc(c,cc);
 			}
@@ -1157,9 +1157,9 @@ int main(int argc, char **argv)
 
 	    if ( designmatrix.good() )
 	    {
-    	    for (int t = 0; t < DATA_T; t++)
+    	    for (size_t t = 0; t < DATA_T; t++)
 	        {
-	    	    for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+	    	    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 		        {
             		designmatrix << std::setprecision(6) << std::fixed << (double)h_X_GLM[t + r * DATA_T] << "  ";
 				}
@@ -1186,9 +1186,9 @@ int main(int argc, char **argv)
 
 	    if ( motionparameters.good() )
 	    {
-			for (int t = 0; t < DATA_T; t++)
+			for (size_t t = 0; t < DATA_T; t++)
 			{
-				for (int r = 0; r < NUMBER_OF_MOTION_REGRESSORS; r++)
+				for (size_t r = 0; r < NUMBER_OF_MOTION_REGRESSORS; r++)
 				{
 					if (! (motionparameters >> h_Motion_Parameters[t + r * DATA_T]) )
 					{
@@ -1220,7 +1220,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_Data[i] = (float)p[i];
         }
@@ -1229,7 +1229,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_Data[i] = (float)p[i];
         }
@@ -1238,7 +1238,7 @@ int main(int argc, char **argv)
     {
         unsigned short int *p = (unsigned short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_Data[i] = (float)p[i];
         }
@@ -1254,7 +1254,7 @@ int main(int argc, char **argv)
 
         //float *p = (float*)inputfMRI->data;
     
-        //for (int i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
+        //for (size_t i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
         //{
         //    h_fMRI_Volumes[i] = p[i];
         //}
@@ -1286,7 +1286,7 @@ int main(int argc, char **argv)
 	    {
 	        short int *p = (short int*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_Mask[i] = (float)p[i];
 	        }
@@ -1295,7 +1295,7 @@ int main(int argc, char **argv)
 	    {
 	        float *p = (float*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         	{
 	            h_Mask[i] = p[i];
 	        }
@@ -1304,7 +1304,7 @@ int main(int argc, char **argv)
 	    {
     	    unsigned char *p = (unsigned char*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_Mask[i] = (float)p[i];
 	        }
@@ -1320,7 +1320,7 @@ int main(int argc, char **argv)
 	// Mask is NOT provided by user, set all mask voxels to 1
 	else
 	{
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         {
             h_Mask[i] = 1.0f;
         }
@@ -1581,9 +1581,9 @@ int main(int argc, char **argv)
 
 	    if ( designmatrix.good() )
 	    {
-    	    for (int t = 0; t < DATA_T; t++)
+    	    for (size_t t = 0; t < DATA_T; t++)
 	        {
-	    	    for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+	    	    for (size_t r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
 		        {
             		designmatrix << std::setprecision(6) << std::fixed << (double)h_Design_Matrix[t + r * DATA_T] << "  ";
 				}
@@ -1638,7 +1638,7 @@ int main(int argc, char **argv)
 	// Write each beta weight as a separate file
 	if (!CONTRASTS_ONLY)
 	{
-		for (int i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
+		for (size_t i = 0; i < NUMBER_OF_TOTAL_GLM_REGRESSORS; i++)
 		{
 			std::string temp = beta;
 		    std::stringstream ss;
@@ -1667,7 +1667,7 @@ int main(int argc, char **argv)
     // Write each contrast volume as a separate file
 	if (!BETAS_ONLY && !SECOND_LEVEL && !ANALYZE_FTEST)
 	{
-	    for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+	    for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	{
 	    	std::string temp = cope;
 		    std::stringstream ss;
@@ -1698,7 +1698,7 @@ int main(int argc, char **argv)
 		if (ANALYZE_TTEST)
 		{
 	        // Write each t-map as a separate file
-    	    for (int i = 0; i < NUMBER_OF_CONTRASTS; i++)
+    	    for (size_t i = 0; i < NUMBER_OF_CONTRASTS; i++)
     	    {
 				// nifti file contains t-scores
 				outputNifti->intent_code = 3;

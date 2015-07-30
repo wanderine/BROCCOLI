@@ -129,27 +129,27 @@ class BROCCOLI_LIB
 		void SetAutoMask(bool);
 
 		// Statistics
-		void SetTemporalDerivatives(int TD);
+		void SetTemporalDerivatives(size_t TD);
 		void SetBayesian(bool B);
-		void SetRegressOnly(int R);
+		void SetRegressOnly(bool R);
 		void SetPreprocessingOnly(bool B);
 		void SetBetasOnly(bool B);
 		void SetContrastsOnly(bool C);
 		void SetBetasAndContrastsOnly(bool BC);
-		void SetRegressMotion(int R);
-		void SetRegressGlobalMean(int R);
-		void SetRegressConfounds(int R);
+		void SetRegressMotion(size_t R);
+		void SetRegressGlobalMean(size_t R);
+		void SetRegressConfounds(size_t R);
 		void SetPermuteFirstLevel(bool);
 		void SetConfoundRegressors(float* X_GLM);
-		void SetNumberOfGLMRegressors(int NR);
-		void SetNumberOfDetrendingRegressors(int NR);
-		void SetNumberOfConfoundRegressors(int NR);
-		void SetNumberOfContrasts(int NC);
+		void SetNumberOfGLMRegressors(size_t NR);
+		void SetNumberOfDetrendingRegressors(size_t NR);
+		void SetNumberOfConfoundRegressors(size_t NR);
+		void SetNumberOfContrasts(size_t NC);
 		void SetDesignMatrix(float* X_GLM, float* xtxxt_GLM);
 		void SetContrasts(float* contrasts);
 		void SetGLMScalars(float* ctxtxc);
-		void SetNumberOfPermutations(int);
-		void SetNumberOfGroupPermutations(int*);
+		void SetNumberOfPermutations(size_t);
+		void SetNumberOfGroupPermutations(size_t*);
 		void SetNumberOfMCMCIterations(int);
 		void SetBetaSpace(int space);
 		void SetStatisticalTest(int test);
@@ -212,28 +212,28 @@ class BROCCOLI_LIB
 		void SetEPITR(float value);
 		void SetEPISliceOrder(int value);
 
-		void SetEPIWidth(int w);
-		void SetEPIHeight(int h);
-		void SetEPIDepth(int d);
-		void SetEPITimepoints(int t);
+		void SetEPIWidth(size_t w);
+		void SetEPIHeight(size_t h);
+		void SetEPIDepth(size_t d);
+		void SetEPITimepoints(size_t t);
 
 		// T1 data
 		void SetT1VoxelSizeX(float value);
 		void SetT1VoxelSizeY(float value);
 		void SetT1VoxelSizeZ(float value);
 
-		void SetT1Width(int w);
-		void SetT1Height(int h);
-		void SetT1Depth(int d);
+		void SetT1Width(size_t w);
+		void SetT1Height(size_t h);
+		void SetT1Depth(size_t d);
 
 		// MNI data
 		void SetMNIVoxelSizeX(float value);
 		void SetMNIVoxelSizeY(float value);
 		void SetMNIVoxelSizeZ(float value);
 
-		void SetMNIWidth(int w);
-		void SetMNIHeight(int h);
-		void SetMNIDepth(int d);
+		void SetMNIWidth(size_t w);
+		void SetMNIHeight(size_t h);
+		void SetMNIDepth(size_t d);
 
 		// Input data
 		void SetInputfMRIVolumes(float* input);
@@ -244,7 +244,7 @@ class BROCCOLI_LIB
 		void SetInputMNIBrainVolume(float* input);
 		void SetInputMNIBrainMask(float* input);
 		void SetInputFirstLevelResults(float* input);
-		void SetNumberOfSubjects(int N);
+		void SetNumberOfSubjects(size_t N);
 		void SetNumberOfSubjectsGroup1(int *N);
 		void SetNumberOfSubjectsGroup2(int *N);
 
@@ -351,15 +351,15 @@ class BROCCOLI_LIB
 		float GetEPIVoxelSizeZ();
 		float GetEPITR();
 
-		int GetEPIWidth();
-		int GetEPIHeight();
-		int GetEPIDepth();
-		int GetEPITimepoints();
+		size_t GetEPIWidth();
+		size_t GetEPIHeight();
+		size_t GetEPIDepth();
+		size_t GetEPITimepoints();
 
 		// T1 data
-		int GetT1Width();
-		int GetT1Height();
-		int GetT1Depth();
+		size_t GetT1Width();
+		size_t GetT1Height();
+		size_t GetT1Depth();
 
 		float GetSignificanceThreshold();
 
@@ -449,10 +449,10 @@ class BROCCOLI_LIB
 
 		std::string GetBROCCOLIDirectory();
 
-		void CreateCombinedDisplacementField(float* h_Registration_Parameters, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, int DATA_W, int DATA_H, int DATA_D);
+		void CreateCombinedDisplacementField(float* h_Registration_Parameters, cl_mem d_Displacement_Field_X, cl_mem d_Displacement_Field_Y, cl_mem d_Displacement_Field_Z, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 
 		int Calculate3DIndex(int x, int y, int z, int DATA_W, int DATA_H);
-		void Clusterize(int* Cluster_Indices, int& MAX_CLUSTER_SIZE, float& MAX_CLUSTER_MASS, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, int DATA_W, int DATA_H, int DATA_D, int GET_VOXEL_LABELS, int GET_CLUSTER_MASS);
+		void Clusterize(int* Cluster_Indices, int& MAX_CLUSTER_SIZE, float& MAX_CLUSTER_MASS, int& NUMBER_OF_CLUSTERS, float* Data, float Threshold, float* Mask, size_t DATA_W, size_t DATA_H, size_t DATA_D, int GET_VOXEL_LABELS, int GET_CLUSTER_MASS);
 		void ClusterizeOpenCL(cl_mem Cluster_Indices, cl_mem Cluster_Sizes, cl_mem Data, float Threshold, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D, int NUMBER_OF_CONTRASTS);
 		void ClusterizeOpenCLTFCE(float& MAX_VALUE, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D, float maxThreshold);
 		void ClusterizeOpenCLPermutation(float& MAX_CLUSTER, int DATA_W, int DATA_H, int DATA_D);
@@ -472,12 +472,12 @@ class BROCCOLI_LIB
 		void PerformMotionCorrection(cl_mem Volumes);
 		void PerformMotionCorrectionHost(float* h_Volumes);
 
-		void PerformRegression(cl_mem, cl_mem, int, int, int, int);
-		void PerformRegressionSlice(cl_mem, cl_mem, int, int, int, int, int);
-		void PerformDetrending(cl_mem, cl_mem, int, int, int, int);
-		void PerformDetrendingSlice(cl_mem, cl_mem, int, int, int, int, int);
-		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, int, int, int, int);
-		void PerformDetrendingAndMotionRegressionSlice(cl_mem, cl_mem, int, int, int, int, int);
+		void PerformRegression(cl_mem, cl_mem, size_t, size_t, size_t, size_t);
+		void PerformRegressionSlice(cl_mem, cl_mem, size_t, size_t, size_t, size_t, size_t);
+		void PerformDetrending(cl_mem, cl_mem, size_t, size_t, size_t, size_t);
+		void PerformDetrendingSlice(cl_mem, cl_mem, size_t, size_t, size_t, size_t, size_t);
+		void PerformDetrendingAndMotionRegression(cl_mem, cl_mem, size_t, size_t, size_t, size_t);
+		void PerformDetrendingAndMotionRegressionSlice(cl_mem, cl_mem, size_t, size_t, size_t, size_t, size_t);
 
 		void CalculateBetaWeightsAndContrastsFirstLevelSlices(float* h_Volumes);
 		void CalculateStatisticalMapsGLMTTestFirstLevel(cl_mem Volumes, int iterations);
@@ -489,18 +489,18 @@ class BROCCOLI_LIB
 
 		void CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volumes);
 
-		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int DATA_W, int DATA_H, int DATA_D);
-		void CreateVoxelNumbersSlice(cl_mem d_Voxel_Numbers, cl_mem d_Mask, int slice, int DATA_W, int DATA_H, int DATA_D);
+		void CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void CreateVoxelNumbersSlice(cl_mem d_Voxel_Numbers, cl_mem d_Mask, size_t slice, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 
-		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
-		void WhitenDesignMatricesInverseSlice(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS);
-		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
-		void WhitenDesignMatricesTTestSlice(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int slice, int EPI_DATA_W, int EPI_DATA_H, int DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
-		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
-		void WhitenDesignMatricesFTestSlice(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, int slice, int EPI_DATA_W, int EPI_DATA_H, int EPI_DATA_D, int EPI_DATA_T, int NUMBER_OF_GLM_REGRESSORS, int NUMBER_OF_INVALID_TIMEPOINTS, int NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesInverse(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T, size_t NUMBER_OF_REGRESSORS, size_t NUMBER_OF_INVALID_TIMEPOINTS);
+		void WhitenDesignMatricesInverseSlice(cl_mem d_xtxxt_GLM, float* h_X_GLM, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, size_t slice, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T, size_t NUMBER_OF_REGRESSORS, size_t NUMBER_OF_INVALID_TIMEPOINTS);
+		void WhitenDesignMatricesTTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, size_t EPI_DATA_W, size_t EPI_DATA_H, size_t DATA_D, size_t EPI_DATA_T, size_t NUMBER_OF_GLM_REGRESSORS, size_t NUMBER_OF_INVALID_TIMEPOINTS, size_t NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesTTestSlice(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, size_t slice, size_t EPI_DATA_W, size_t EPI_DATA_H, size_t DATA_D, size_t EPI_DATA_T, size_t NUMBER_OF_GLM_REGRESSORS, size_t NUMBER_OF_INVALID_TIMEPOINTS, size_t NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesFTest(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, size_t EPI_DATA_W, size_t EPI_DATA_H, size_t EPI_DATA_D, size_t EPI_DATA_T, size_t NUMBER_OF_GLM_REGRESSORS, size_t NUMBER_OF_INVALID_TIMEPOINTS, size_t NUMBER_OF_CONTRASTS);
+		void WhitenDesignMatricesFTestSlice(cl_mem d_xtxxt_GLM, cl_mem d_GLM_Scalars, float* h_X_GLM, float* h_Contrasts, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, cl_mem d_Mask, cl_mem d_Voxel_Numbers, size_t slice, size_t EPI_DATA_W, size_t EPI_DATA_H, size_t EPI_DATA_D, size_t EPI_DATA_T, size_t NUMBER_OF_GLM_REGRESSORS, size_t NUMBER_OF_INVALID_TIMEPOINTS, size_t NUMBER_OF_CONTRASTS);
 		
-		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
-		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, int DATA_W, int DATA_H, int DATA_D, int DATA_T, int NUMBER_OF_REGRESSORS);
+		void PutWhitenedModelsIntoVolumes(cl_mem d_Mask, cl_mem d_xtxxt_GLM, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T, size_t NUMBER_OF_REGRESSORS);
+		void PutWhitenedModelsIntoVolumes2(cl_mem d_Mask, cl_mem d_AR1_Estimates, cl_mem d_AR2_Estimates, cl_mem d_AR3_Estimates, cl_mem d_AR4_Estimates, float* Regressors, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T, size_t NUMBER_OF_REGRESSORS);
 
 		void ApplyPermutationTestFirstLevel(float* h_fMRI_Volumes);
 		void ApplyPermutationTestSecondLevel();
@@ -605,36 +605,36 @@ class BROCCOLI_LIB
 		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
 		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
 
-		void FlipVolumesXYZTtoXYTZ(float* h_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
-		void FlipVolumesXYTZtoXYZT(float* h_Volumes, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
-		void CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
-		void CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, int slice, int DATA_W, int DATA_H, int DATA_D, int DATA_T);
+		void FlipVolumesXYZTtoXYTZ(float* h_Volumes, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T);
+		void FlipVolumesXYTZtoXYZT(float* h_Volumes, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T);
+		void CopyCurrentfMRISliceToHost(float* h_Volumes, cl_mem d_Volumes, size_t slice, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T);
+		void CopyCurrentfMRISliceToDevice(cl_mem d_Volumes, float* h_Volumes, size_t slice, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T);
 
 		void CalculateGlobalMeans(float* h_Volumes);		
 
-		void SetMemory(cl_mem memory, float value, int N);
-		void SetMemoryInt(cl_mem memory, int value, int N);
-		void SetMemoryFloat2(cl_mem memory, float value, int N);
-		void MultiplyArray(cl_mem d_Array_1, float value, int N);
-		void MultiplyArrays(cl_mem d_Array_1, cl_mem d_Array_2, int N);
-		void MultiplyVolume(cl_mem d_Volume_1, float value, int DATA_W, int DATA_H, int DATA_D);
-		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
-		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D, int VOLUMES);
-		void MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
-		void SubtractArrays(cl_mem d_Array_1, cl_mem d_Array_2, int N);
-		void AddVolume(cl_mem d_Volume, float value, int DATA_W, int DATA_H, int DATA_D);
-		void AddVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
-		void AddVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
-		void SubtractVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
-		void SubtractVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
-		float CalculateSum(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
-		float CalculateMax(cl_mem Volume, int DATA_W, int DATA_H, int DATA_D);
+		void SetMemory(cl_mem memory, float value, size_t N);
+		void SetMemoryInt(cl_mem memory, int value, size_t N);
+		void SetMemoryFloat2(cl_mem memory, float value, size_t N);
+		void MultiplyArray(cl_mem d_Array_1, float value, size_t N);
+		void MultiplyArrays(cl_mem d_Array_1, cl_mem d_Array_2, size_t N);
+		void MultiplyVolume(cl_mem d_Volume_1, float value, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t VOLUMES);
+		void MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void SubtractArrays(cl_mem d_Array_1, cl_mem d_Array_2, size_t N);
+		void AddVolume(cl_mem d_Volume, float value, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void AddVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void AddVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void SubtractVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void SubtractVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		float CalculateSum(cl_mem Volume, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		float CalculateMax(cl_mem Volume, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 
-		float CalculateMaxAtomic(cl_mem Array, int N);
-		float CalculateMaxAtomic(cl_mem Volume, cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
-		float CalculateMax(float *data, int N);
-		int   CalculateMax(int *data, int N);
-		float CalculateMin(float *data, int N);
+		float CalculateMaxAtomic(cl_mem Array, size_t N);
+		float CalculateMaxAtomic(cl_mem Volume, cl_mem Mask, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		float CalculateMax(float *data, size_t N);
+		int   CalculateMax(int *data, size_t N);
+		float CalculateMin(float *data, size_t N);
 		void ThresholdVolume(cl_mem d_Thresholded_Volume, cl_mem d_Volume, float threshold, int DATA_W, int DATA_H, int DATA_D);
 
 
@@ -1104,10 +1104,10 @@ class BROCCOLI_LIB
 		bool WRITE_RESIDUALS_EPI;
 		bool WRITE_RESIDUALS_MNI;
 
-		int EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
-		int T1_DATA_W, T1_DATA_H, T1_DATA_D;
-		int MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
-		int CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D;
+		size_t EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
+		size_t T1_DATA_W, T1_DATA_H, T1_DATA_D;
+		size_t MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
+		size_t CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D;
 
 		// Resolution variables
 		float TR;
@@ -1154,18 +1154,18 @@ class BROCCOLI_LIB
 		bool AUTO_MASK;
 
 		// Statistical analysis variables
-		int NUMBER_OF_SUBJECTS;
+		size_t NUMBER_OF_SUBJECTS;
 		int *NUMBER_OF_SUBJECTS_IN_GROUP1;
 		int *NUMBER_OF_SUBJECTS_IN_GROUP2;
-		int NUMBER_OF_CONTRASTS;
-		int NUMBER_OF_STATISTICAL_MAPS;
-		int NUMBER_OF_GLM_REGRESSORS;
-		int NUMBER_OF_MOTION_REGRESSORS;
-		int NUMBER_OF_TOTAL_GLM_REGRESSORS;
-		int NUMBER_OF_DETRENDING_REGRESSORS;
-		int NUMBER_OF_CONFOUND_REGRESSORS;
+		size_t NUMBER_OF_CONTRASTS;
+		size_t NUMBER_OF_STATISTICAL_MAPS;
+		size_t NUMBER_OF_GLM_REGRESSORS;
+		size_t NUMBER_OF_MOTION_REGRESSORS;
+		size_t NUMBER_OF_TOTAL_GLM_REGRESSORS;
+		size_t NUMBER_OF_DETRENDING_REGRESSORS;
+		size_t NUMBER_OF_CONFOUND_REGRESSORS;
 		int INFERENCE_MODE;
-		int USE_TEMPORAL_DERIVATIVES;
+		size_t USE_TEMPORAL_DERIVATIVES;
 		bool RAW_REGRESSORS;
 		bool RAW_DESIGNMATRIX;
 		bool BAYESIAN;
@@ -1174,9 +1174,9 @@ class BROCCOLI_LIB
 		bool BETAS_ONLY;
 		bool CONTRASTS_ONLY;
 		bool BETAS_AND_CONTRASTS_ONLY;
-		int REGRESS_MOTION;
-		int REGRESS_GLOBALMEAN;
-		int REGRESS_CONFOUNDS;
+		size_t REGRESS_MOTION;
+		size_t REGRESS_GLOBALMEAN;
+		size_t REGRESS_CONFOUNDS;
 		bool PERMUTE_FIRST_LEVEL;
 		float CLUSTER_DEFINING_THRESHOLD;
 		int NUMBER_OF_CLUSTERS;
@@ -1187,20 +1187,20 @@ class BROCCOLI_LIB
 		float SIGNIFICANCE_THRESHOLD;
 		int STATISTICAL_TEST;
 		int *GROUP_DESIGNS;
-		int NUMBER_OF_BRAIN_VOXELS;
-		int NUMBER_OF_INVALID_TIMEPOINTS;
+		size_t NUMBER_OF_BRAIN_VOXELS;
+		size_t NUMBER_OF_INVALID_TIMEPOINTS;
 		bool USE_PERMUTATION_FILE;
 
 		// ICA variables
 		bool Z_SCORE;
-		int NUMBER_OF_ICA_COMPONENTS;
-		int NUMBER_OF_ICA_VARIABLES;
-		int NUMBER_OF_ICA_OBSERVATIONS;
+		size_t NUMBER_OF_ICA_COMPONENTS;
+		size_t NUMBER_OF_ICA_VARIABLES;
+		size_t NUMBER_OF_ICA_OBSERVATIONS;
 		double PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA;
 
 		// Random permutation variables
-		int NUMBER_OF_PERMUTATIONS;
-		int *NUMBER_OF_PERMUTATIONS_PER_CONTRAST;
+		size_t NUMBER_OF_PERMUTATIONS;
+		size_t *NUMBER_OF_PERMUTATIONS_PER_CONTRAST;
 		int NUMBER_OF_SIGNIFICANTLY_ACTIVE_VOXELS;
 		int NUMBER_OF_SIGNIFICANTLY_ACTIVE_CLUSTERS;
 

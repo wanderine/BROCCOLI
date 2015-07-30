@@ -53,6 +53,9 @@ int main(int argc, char ** argv)
     float           *h_Quadrature_Filter_2_Imag = NULL;
     float           *h_Quadrature_Filter_3_Imag = NULL;
 
+    size_t          DATA_W, DATA_H, DATA_D, DATA_T;
+    float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
+
 	//--------------
 
     void*           allMemoryPointers[500];
@@ -82,8 +85,6 @@ int main(int argc, char ** argv)
     bool            PRINT = true;
 	bool			VERBOS = false;
     
-    int             DATA_W, DATA_H, DATA_D, DATA_T;
-    float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
 
     int             MOTION_CORRECTION_FILTER_SIZE = 7; 
     int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
@@ -100,7 +101,7 @@ int main(int argc, char ** argv)
 	bool			APPLY_MOTION_CORRECTION = false;
 	
     float           EPI_SMOOTHING_AMOUNT = 6.0f;
-	int				NUMBER_OF_ICA_COMPONENTS = 55;
+	size_t			NUMBER_OF_ICA_COMPONENTS = 55;
 
 	double			PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA = 80.0;
 
@@ -387,8 +388,8 @@ int main(int argc, char ** argv)
    	
     // Calculate size, in bytes
     int    NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID = 6;
-    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
-    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
     size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID * DATA_T * sizeof(float);
 	size_t FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
 
@@ -396,7 +397,7 @@ int main(int argc, char ** argv)
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, DATA_T);
         printf("Voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);   
         //printf("Smoothing filter size: %f mm \n", EPI_SMOOTHING_AMOUNT);   
     } 
@@ -443,7 +444,7 @@ int main(int argc, char ** argv)
     {
         short int *p = (short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -452,7 +453,7 @@ int main(int argc, char ** argv)
     {
         unsigned char *p = (unsigned char*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -461,7 +462,7 @@ int main(int argc, char ** argv)
     {
         unsigned short int *p = (unsigned short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -477,7 +478,7 @@ int main(int argc, char ** argv)
 
         //float *p = (float*)inputData->data;
     
-        //for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        //for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         //{
         //    h_fMRI_Volumes[i] = p[i];
         //}
@@ -510,7 +511,7 @@ int main(int argc, char ** argv)
 	    {
 	        short int *p = (short int*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_EPI_Mask[i] = (float)p[i];
 	        }
@@ -519,7 +520,7 @@ int main(int argc, char ** argv)
 	    {
 	        unsigned short int *p = (unsigned short int*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         	{
 	            h_EPI_Mask[i] = (float)p[i];
 	        }
@@ -528,7 +529,7 @@ int main(int argc, char ** argv)
 	    {
 	        float *p = (float*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         	{
 	            h_EPI_Mask[i] = p[i];
 	        }
@@ -537,7 +538,7 @@ int main(int argc, char ** argv)
 	    {
     	    unsigned char *p = (unsigned char*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_EPI_Mask[i] = (float)p[i];
 	        }

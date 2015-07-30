@@ -74,7 +74,7 @@ int main(int argc, char ** argv)
     bool            PRINT = true;
 	bool			VERBOS = false;
     
-    int             DATA_W, DATA_H, DATA_D, DATA_T;
+    size_t          DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
 
 	bool			CHANGE_OUTPUT_FILENAME = false;
@@ -324,14 +324,14 @@ int main(int argc, char ** argv)
     EPI_VOXEL_SIZE_Z = inputData->dz;
     	
     // Calculate size, in bytes
-    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
-    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
     
     // Print some info
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, DATA_T);
         printf("Voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);   
         printf("Smoothing filter size: %f mm \n", EPI_SMOOTHING_AMOUNT);   
     } 
@@ -367,7 +367,7 @@ int main(int argc, char ** argv)
     {
         short int *p = (short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -376,7 +376,7 @@ int main(int argc, char ** argv)
     {
         unsigned char *p = (unsigned char*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -385,7 +385,7 @@ int main(int argc, char ** argv)
     {
         unsigned short int *p = (unsigned short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -401,7 +401,7 @@ int main(int argc, char ** argv)
 
         //float *p = (float*)inputData->data;
     
-        //for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        //for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         //{
         //    h_fMRI_Volumes[i] = p[i];
         //}
@@ -433,7 +433,7 @@ int main(int argc, char ** argv)
 	    {
 	        short int *p = (short int*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_Certainty[i] = (float)p[i];
 	        }
@@ -442,7 +442,7 @@ int main(int argc, char ** argv)
 	    {
 	        unsigned short int *p = (unsigned short int*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         	{
 	            h_Certainty[i] = (float)p[i];
 	        }
@@ -451,7 +451,7 @@ int main(int argc, char ** argv)
 	    {
 	        float *p = (float*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         	{
 	            h_Certainty[i] = p[i];
 	        }
@@ -460,7 +460,7 @@ int main(int argc, char ** argv)
 	    {
     	    unsigned char *p = (unsigned char*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_Certainty[i] = (float)p[i];
 	        }
@@ -476,7 +476,7 @@ int main(int argc, char ** argv)
 	// Mask is NOT provided by user, set all mask voxels to 1
 	else
 	{
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         {
             h_Certainty[i] = 1.0f;
         }

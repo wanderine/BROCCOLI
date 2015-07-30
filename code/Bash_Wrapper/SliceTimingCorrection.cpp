@@ -74,9 +74,9 @@ int main(int argc, char ** argv)
     const char*     FILENAME_EXTENSION = "_stc";
     bool            PRINT = true;
 	bool			VERBOS = false;
-	bool			CHANGE_OUTPUT_FILENAME;
+	bool			CHANGE_OUTPUT_FILENAME = false;
     
-    int             DATA_W, DATA_H, DATA_D, DATA_T;
+    size_t          DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
 	float			TR;
 	int				SLICE_ORDER = UNDEFINED;
@@ -461,14 +461,14 @@ int main(int argc, char ** argv)
 	}
 	
     // Calculate size, in bytes
-    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
-    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
     
     // Print some info
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, DATA_T);
         printf("Voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);    
         printf("TR: %f s \n", TR);
 		printf("Slice order: %s \n",SLICE_ORDER_STRING.c_str());

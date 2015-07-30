@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 	int				NUMBER_OF_CONTRASTS = 1; 
     float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
 	int				NUMBER_OF_PERMUTATIONS = 5000;
-	int				NUMBER_OF_PERMUTATIONS_PER_CONTRAST[1000];
+	size_t			NUMBER_OF_PERMUTATIONS_PER_CONTRAST[1000];
 	float			SIGNIFICANCE_LEVEL = 0.05f;
 	int				STATISTICAL_TEST = 0;
 	int				INFERENCE_MODE = 1;
@@ -134,7 +134,8 @@ int main(int argc, char **argv)
 	const char*		outputFilename;
 
     // Size parameters
-    int  DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS, NUMBER_OF_SUBJECTS_IN_GROUP1[1000], NUMBER_OF_SUBJECTS_IN_GROUP2[1000];
+    size_t  DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS;
+	int NUMBER_OF_SUBJECTS_IN_GROUP1[1000], NUMBER_OF_SUBJECTS_IN_GROUP2[1000];
         
     //---------------------    
     
@@ -715,13 +716,13 @@ int main(int argc, char **argv)
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS);
-        printf("Number of permutations: %i \n",  NUMBER_OF_PERMUTATIONS);
-        printf("Number of regressors: %i \n",  NUMBER_OF_GLM_REGRESSORS);
-        printf("Number of contrasts: %i \n",  NUMBER_OF_CONTRASTS);
+        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, NUMBER_OF_SUBJECTS);
+        printf("Number of permutations: %zu \n",  NUMBER_OF_PERMUTATIONS);
+        printf("Number of regressors: %zu \n",  NUMBER_OF_GLM_REGRESSORS);
+        printf("Number of contrasts: %zu \n",  NUMBER_OF_CONTRASTS);
 		if (ANALYZE_TTEST)
 		{
-			printf("Performing %i t-tests \n",  NUMBER_OF_CONTRASTS);
+			printf("Performing %zu t-tests \n",  NUMBER_OF_CONTRASTS);
 		}
 		else if (ANALYZE_FTEST)
 		{
@@ -736,8 +737,8 @@ int main(int argc, char **argv)
     // ------------------------------------------------
 
     // Calculate size, in bytes 
-    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_SUBJECTS * sizeof(float);
-    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
   	size_t GLM_SIZE = NUMBER_OF_SUBJECTS * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
 
@@ -745,12 +746,12 @@ int main(int argc, char **argv)
 	if (ANALYZE_TTEST)
 	{
 		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * sizeof(float);
-		STATISTICAL_MAPS_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)NUMBER_OF_CONTRASTS * sizeof(float);
+		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
 	}
 	else if (ANALYZE_FTEST)
 	{
 		CONTRAST_SCALAR_SIZE = NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float);
-		STATISTICAL_MAPS_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
+		STATISTICAL_MAPS_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
 	}
             
     // ------------------------------------------------
@@ -790,9 +791,9 @@ int main(int argc, char **argv)
     {
 		// Read design matrix from file, should check for errors
 		float tempFloat;	
-		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				if (! (design >> h_X_GLM[NUMBER_OF_SUBJECTS * r + s]) )
 				{
@@ -807,9 +808,9 @@ int main(int argc, char **argv)
 		design.close();
 
 		// Put design matrix into Eigen object 
-		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				X(s,r) = (double)h_X_GLM[s + r * NUMBER_OF_SUBJECTS];
 			}
@@ -818,7 +819,7 @@ int main(int argc, char **argv)
 	else if (ANALYZE_GROUP_MEAN)
 	{
 		// Create regressor with all ones
-		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 		{
 			h_X_GLM[s] = 1.0f;
 			X(s) = 1.0;
@@ -832,9 +833,9 @@ int main(int argc, char **argv)
 	if (!ANALYZE_GROUP_MEAN)
 	{
 		// Read contrasts from file, should check for errors
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				if (! (contrasts >> h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]) )
 				{
@@ -860,9 +861,9 @@ int main(int argc, char **argv)
 	Eigen::MatrixXd Contrasts(NUMBER_OF_CONTRASTS,NUMBER_OF_GLM_REGRESSORS);
 
 	// Put contrast vectors into eigen object
-	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 	{
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 		{
 			Contrasts(c,r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
 		}
@@ -885,7 +886,7 @@ int main(int argc, char **argv)
 	if (ANALYZE_TTEST)
 	{    
 		// Calculate current contrast
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
 			Eigen::MatrixXd currentContrast = Contrasts.row(c);
 			Eigen::MatrixXd currentVector = X * currentContrast.transpose();
@@ -893,12 +894,12 @@ int main(int argc, char **argv)
 			// Check how many unique values there are
 			std::vector<float> allUniqueValues;        
 
-	        for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+	        for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 	        {
 				float value = currentVector(s);
 				bool unique = true;
 				// Check if value is in list of unique values
-				for (int i = 0; i < allUniqueValues.size(); i++)
+				for (size_t i = 0; i < allUniqueValues.size(); i++)
 				{
 					if (value == allUniqueValues[i])
 					{
@@ -932,7 +933,7 @@ int main(int argc, char **argv)
 			if (TWOSAMPLE_DESIGN[c])
 			{
 				NUMBER_OF_SUBJECTS_IN_GROUP1[c] = 0;
-				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+				for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 				{
 					if (currentVector(s) == allUniqueValues[0])
 					{
@@ -961,14 +962,14 @@ int main(int argc, char **argv)
 		// Check how many unique values there are
 		std::vector<float> allUniqueValues;        
 
-        for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+        for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
         {
-	        for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+	        for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
     	    {
 				float value = temp(s,c);
 				bool unique = true;
 				// Check if value is in list of unique values
-				for (int i = 0; i < allUniqueValues.size(); i++)
+				for (size_t i = 0; i < allUniqueValues.size(); i++)
 				{
 					if (value == allUniqueValues[i])
 					{
@@ -1004,7 +1005,7 @@ int main(int argc, char **argv)
 		if (TWOSAMPLE_DESIGN[0])
 		{
 			NUMBER_OF_SUBJECTS_IN_GROUP1[0] = 0;
-			for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+			for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 			{
 				if (temp(s,0) == allUniqueValues[0])
 				{
@@ -1060,7 +1061,7 @@ int main(int argc, char **argv)
 
 	if (!ANALYZE_GROUP_MEAN)
 	{
-		for (int c = 0; c < NUMBER_OF_STATISTICAL_MAPS; c++)
+		for (size_t c = 0; c < NUMBER_OF_STATISTICAL_MAPS; c++)
 		{
 			NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = NUMBER_OF_PERMUTATIONS;
 
@@ -1118,9 +1119,9 @@ int main(int argc, char **argv)
 	Eigen::MatrixXd xtxxt = inv_xtx * X.transpose();
 	
 	// Put pseudo inverse into regular array
-	for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+	for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 	{
-		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 		{
 			h_xtxxt_GLM[s + r * NUMBER_OF_SUBJECTS] = (float)xtxxt(r,s);
 		}
@@ -1129,10 +1130,10 @@ int main(int argc, char **argv)
 	// Print design matrix
 	if (VERBOS)
 	{
-		for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 		{
 			printf("Design matrix is ");
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				printf(" %f ",h_X_GLM[s + r * NUMBER_OF_SUBJECTS]);
 			}
@@ -1143,11 +1144,11 @@ int main(int argc, char **argv)
 	// Calculate contrast scalars
 	if (ANALYZE_TTEST)
 	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
 			// Put contrast vector into eigen object
 			Eigen::VectorXd Contrast(NUMBER_OF_GLM_REGRESSORS);
-			for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 			{
 				Contrast(r) = h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS];		
 			}
@@ -1161,9 +1162,9 @@ int main(int argc, char **argv)
 		Eigen::MatrixXd temp = Contrasts * inv_xtx * Contrasts.transpose();
 		Eigen::MatrixXd ctxtxc = temp.inverse();
 
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
-			for (int cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
+			for (size_t cc = 0; cc < NUMBER_OF_CONTRASTS; cc++)
 			{
 				h_ctxtxc_GLM[c + cc  * NUMBER_OF_CONTRASTS] = ctxtxc(c,cc);
 			}
@@ -1175,10 +1176,10 @@ int main(int argc, char **argv)
 		// Print contrasts
 		if (VERBOS)
 		{
-			for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+			for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 			{
 				printf("Contrast is ");
-				for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+				for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 				{
 					printf(" %f ",h_Contrasts[r + c * NUMBER_OF_GLM_REGRESSORS]);
 				}
@@ -1189,14 +1190,14 @@ int main(int argc, char **argv)
 
     // ------------------------------------------------
 		
-	size_t SIGN_MATRIX_SIZE = (size_t)NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0] * (size_t)NUMBER_OF_SUBJECTS * sizeof(float);
+	size_t SIGN_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0] * NUMBER_OF_SUBJECTS * sizeof(float);
 
 	AllocateMemory(h_Sign_Matrix, SIGN_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "SIGN_MATRIX");
 
-	for (int c = 0; c < NUMBER_OF_STATISTICAL_MAPS; c++)
+	for (size_t c = 0; c < NUMBER_OF_STATISTICAL_MAPS; c++)
 	{ 
-	    size_t NULL_DISTRIBUTION_SIZE = (size_t)NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * sizeof(float);
-		size_t PERMUTATION_MATRIX_SIZE = (size_t)NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * (size_t)NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
+	    size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * sizeof(float);
+		size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] * NUMBER_OF_SUBJECTS * sizeof(unsigned short int);
 
 		AllocateMemoryInt(h_Permutation_Matrix, PERMUTATION_MATRIX_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages,allocatedHostMemory, "PERMUTATION_MATRIX");
 		AllocateMemory(h_Permutation_Distribution, NULL_DISTRIBUTION_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "PERMUTATION_DISTRIBUTION");             
@@ -1218,9 +1219,9 @@ int main(int argc, char **argv)
 
 		if (permutations.good())
 		{
-			for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
+			for (size_t p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 			{
-				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+				for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 				{
 					float temp;
 					if (permutations >> temp)
@@ -1259,9 +1260,9 @@ int main(int argc, char **argv)
 
 		if (permutations.good())
 		{
-			for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
+			for (size_t p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 			{
-				for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+				for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 				{
 					float temp;
 					permutations >> temp;
@@ -1289,7 +1290,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
         {
             h_First_Level_Results[i] = (float)p[i];
         }
@@ -1298,7 +1299,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
         {
             h_First_Level_Results[i] = (float)p[i];
         }
@@ -1307,7 +1308,7 @@ int main(int argc, char **argv)
     {
         unsigned short int *p = (unsigned short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
         {
             h_First_Level_Results[i] = (float)p[i];
         }
@@ -1316,7 +1317,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * NUMBER_OF_SUBJECTS; i++)
         {
             h_First_Level_Results[i] = p[i];
         }
@@ -1336,7 +1337,7 @@ int main(int argc, char **argv)
 	    {
 	        short int *p = (short int*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_Mask[i] = (float)p[i];
 	        }
@@ -1345,7 +1346,7 @@ int main(int argc, char **argv)
 	    {
 	        float *p = (float*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         	{
 	            h_Mask[i] = p[i];
 	        }
@@ -1354,7 +1355,7 @@ int main(int argc, char **argv)
 	    {
     	    unsigned char *p = (unsigned char*)inputMask->data;
     
-	        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
 	        {
 	            h_Mask[i] = (float)p[i];
 	        }
@@ -1370,7 +1371,7 @@ int main(int argc, char **argv)
 	// Mask is NOT provided by user, set all mask voxels to 1
 	else
 	{
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
         {
             h_Mask[i] = 1.0f;
         }
@@ -1563,7 +1564,7 @@ int main(int argc, char **argv)
 	// Print the permutation values to a text file
 	if (WRITE_PERMUTATION_VALUES)
 	{
-		for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
+		for (size_t c = 0; c < NUMBER_OF_CONTRASTS; c++)
 		{
 			h_Permutation_Distribution = h_Permutation_Distributions[c];
 
@@ -1577,7 +1578,7 @@ int main(int argc, char **argv)
 
 		    if ( permutationValues.good() )
 		    {
-    		    for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c]; p++)
+    		    for (size_t p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c]; p++)
 		        {
     	        	permutationValues << std::setprecision(6) << std::fixed << (double)h_Permutation_Distribution[p] << " " << std::endl;
 				}
@@ -1603,9 +1604,9 @@ int main(int argc, char **argv)
 	    {
 			if (ANALYZE_GROUP_MEAN)
 			{
-	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
+	    	    for (size_t p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 		        {
-		    	    for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		    	    for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 			        {
 		            	permutationVectors << std::setprecision(6) << std::fixed << (double)h_Sign_Matrix[s + p * NUMBER_OF_SUBJECTS] << " ";
 					}
@@ -1614,9 +1615,9 @@ int main(int argc, char **argv)
 			}
 			else
 			{
-	    	    for (int p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
+	    	    for (size_t p = 0; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[0]; p++)
 		        {
-		    	    for (int s = 0; s < NUMBER_OF_SUBJECTS; s++)
+		    	    for (size_t s = 0; s < NUMBER_OF_SUBJECTS; s++)
 			        {
 		            	permutationVectors << std::setprecision(6) << std::fixed << (double)(h_Permutation_Matrix[s + p * NUMBER_OF_SUBJECTS] + 1) << " ";
 					}

@@ -79,8 +79,8 @@ int main(int argc, char **argv)
 	bool			VERBOS = false;
 
     // Size parameters
-    int             INPUT_DATA_H, INPUT_DATA_W, INPUT_DATA_D;
-    int             REFERENCE_DATA_H, REFERENCE_DATA_W, REFERENCE_DATA_D;
+    size_t          INPUT_DATA_H, INPUT_DATA_W, INPUT_DATA_D;
+    size_t          REFERENCE_DATA_H, REFERENCE_DATA_W, REFERENCE_DATA_D;
            
 	float			INPUT_VOXEL_SIZE_X, INPUT_VOXEL_SIZE_Y, INPUT_VOXEL_SIZE_Z;
 	float			REFERENCE_VOXEL_SIZE_X, REFERENCE_VOXEL_SIZE_Y, REFERENCE_VOXEL_SIZE_Z;
@@ -383,9 +383,9 @@ int main(int argc, char **argv)
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Input volume size: %i x %i x %i \n",  INPUT_DATA_W, INPUT_DATA_H, INPUT_DATA_D);
+        printf("Input volume size: %zu x %zu x %zu \n",  INPUT_DATA_W, INPUT_DATA_H, INPUT_DATA_D);
         printf("Input volume voxel size: %f x %f x %f \n",  INPUT_VOXEL_SIZE_X, INPUT_VOXEL_SIZE_Y, INPUT_VOXEL_SIZE_Z);
-        printf("Reference volume size: %i x %i x %i \n",  REFERENCE_DATA_W, REFERENCE_DATA_H, REFERENCE_DATA_D);
+        printf("Reference volume size: %zu x %zu x %zu \n",  REFERENCE_DATA_W, REFERENCE_DATA_H, REFERENCE_DATA_D);
         printf("Reference volume voxel size: %f x %f x %f \n",  REFERENCE_VOXEL_SIZE_X, REFERENCE_VOXEL_SIZE_Y, REFERENCE_VOXEL_SIZE_Z);
     }
            
@@ -404,7 +404,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputVolume->data;
     
-        for (int i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
+        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
         {
             h_Input_Volume[i] = (float)p[i];
         }
@@ -413,7 +413,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputVolume->data;
     
-        for (int i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
+        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
         {
             h_Input_Volume[i] = p[i];
         }
@@ -422,7 +422,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputVolume->data;
     
-        for (int i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
+        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
         {
             h_Input_Volume[i] = (float)p[i];
         }
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputDisplacementX->data;
     
-        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_X[i] = (float)p[i];
         }
@@ -448,7 +448,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputDisplacementX->data;
     
-        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_X[i] = p[i];
         }
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputDisplacementY->data;
     
-        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
 	        h_Displacement_Field_Y[i] = (float)p[i];
         }
@@ -474,7 +474,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputDisplacementY->data;
     
-        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_Y[i] = p[i];			
         }
@@ -491,7 +491,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputDisplacementZ->data;
     
-        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_Z[i] = (float)p[i];
         }
@@ -500,7 +500,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputDisplacementZ->data;
     
-        for (int i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
         {
             h_Displacement_Field_Z[i] = p[i];
         }

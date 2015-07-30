@@ -84,7 +84,7 @@ int main(int argc, char ** argv)
 	bool			VERBOS = false;
 	bool			CHANGE_OUTPUT_FILENAME = false;
     
-    int             DATA_W, DATA_H, DATA_D, DATA_T;
+    size_t          DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
     
     //-----------------------
@@ -284,16 +284,16 @@ int main(int argc, char ** argv)
     EPI_VOXEL_SIZE_Z = inputData->dz;
                                
     // Calculate size, in bytes
-    size_t DATA_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * (size_t)DATA_T * sizeof(float);
+    size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T * sizeof(float);
     size_t FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
-    size_t VOLUME_SIZE = (size_t)DATA_W * (size_t)DATA_H * (size_t)DATA_D * sizeof(float);
+    size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
     
     // Print some info
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Data size: %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, DATA_T);
         printf("Voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);    
         printf("Number of iterations for motion correction: %i \n",  NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);
     } 
@@ -348,7 +348,7 @@ int main(int argc, char ** argv)
     {
         short int *p = (short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -357,7 +357,7 @@ int main(int argc, char ** argv)
     {
         unsigned char *p = (unsigned char*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -366,7 +366,7 @@ int main(int argc, char ** argv)
     {
         unsigned short int *p = (unsigned short int*)inputData->data;
     
-        for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         {
             h_fMRI_Volumes[i] = (float)p[i];
         }
@@ -382,7 +382,7 @@ int main(int argc, char ** argv)
 
         //float *p = (float*)inputData->data;
     
-        //for (int i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+        //for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
         //{
         //    h_fMRI_Volumes[i] = p[i];
         //}
@@ -606,7 +606,7 @@ int main(int argc, char ** argv)
     // Find max displacement
     float maxDisplacement = 0.0f;
     int maxVolume = 0;
-    for (int t = 1; t < DATA_T; t++)
+    for (size_t t = 1; t < DATA_T; t++)
     {        
         float displacement = fabs(h_Motion_Parameters[t + 0*DATA_T]) + fabs(h_Motion_Parameters[t + 1*DATA_T]) + fabs(h_Motion_Parameters[t + 2*DATA_T]) + fabs(h_Motion_Parameters[t + 3*DATA_T]) + fabs(h_Motion_Parameters[t + 4*DATA_T]) + fabs(h_Motion_Parameters[t + 5*DATA_T]);
         
@@ -653,7 +653,7 @@ int main(int argc, char ** argv)
     {
         //motion.setf(ios::scientific);
         motion.precision(6);
-        for (int t = 0; t < DATA_T; t++)
+        for (size_t t = 0; t < DATA_T; t++)
         {
             //printf("X translation for timepoint %i is %f\n",t+1,h_Motion_Parameters[t + DATA_T]);
             //motion << h_Motion_Parameters[t + 0*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 1*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 2*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 3*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 4*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 5*DATA_T] << std::endl;
