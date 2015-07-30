@@ -1270,7 +1270,7 @@ class BROCCOLI_LIB
 		float 		*h_Registration_Parameters_Out;
 		// Motion correction variables
 		float		*h_Motion_Corrected_fMRI_Volumes;
-		float		*h_Motion_Parameters_Out, h_Motion_Parameters[10000];
+		float		*h_Motion_Parameters_Out, *h_Motion_Parameters;
 
 		// fMRI - T1
 		float		*h_Aligned_fMRI_Volum;

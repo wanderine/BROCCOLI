@@ -8007,6 +8007,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 		PrintMemoryStatus("Before motion correction");
 
+		h_Motion_Parameters = (float*)malloc(EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float));
+		allocatedHostMemory += EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float);
+		hostMemoryAllocations += 1;
+
 		PerformMotionCorrectionHost(h_fMRI_Volumes);
 
 		if ((WRAPPER == BASH) && VERBOS)
@@ -8756,6 +8760,13 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	free(h_Temp_fMRI_Volume);
 	allocatedHostMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
 	hostMemoryDeallocations += 1;
+	
+	if (APPLY_MOTION_CORRECTION)
+	{
+		free(h_Motion_Parameters);
+		allocatedHostMemory -= EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float);
+		hostMemoryDeallocations += 1;
+	}
 
 	PrintMemoryStatus("After deallocating masks");
 }
@@ -11383,10 +11394,11 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 	h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
 	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
 	h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
+	h_Motion_Parameters = (float*)malloc(EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float));
 
 	if (REGRESS_MOTION)
 	{
-		for (int i = 0; i < NUMBER_OF_MOTION_REGRESSORS * EPI_DATA_T; i++)
+		for (size_t i = 0; i < NUMBER_OF_MOTION_REGRESSORS * EPI_DATA_T; i++)
 		{
 			h_Motion_Parameters[i] = h_Motion_Parameters_Out[i];
 		}
@@ -11472,6 +11484,7 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 	free(h_X_GLM_With_Temporal_Derivatives);
 	free(h_X_GLM_Convolved);
 	free(h_Global_Mean);
+	free(h_Motion_Parameters);
 
 	// Cleanup device memory
 	clReleaseMemObject(c_X_GLM);
@@ -11552,10 +11565,11 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 	h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
 	h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
 	h_Global_Mean = (float*)malloc(EPI_DATA_T * sizeof(float));
+	h_Motion_Parameters = (float*)malloc(EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float));
 
 	if (REGRESS_MOTION)
 	{
-		for (int i = 0; i < NUMBER_OF_MOTION_REGRESSORS * EPI_DATA_T; i++)
+		for (size_t i = 0; i < NUMBER_OF_MOTION_REGRESSORS * EPI_DATA_T; i++)
 		{
 			h_Motion_Parameters[i] = h_Motion_Parameters_Out[i];
 		}
@@ -11611,6 +11625,7 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 	free(h_X_GLM_With_Temporal_Derivatives);
 	free(h_X_GLM_Convolved);
 	free(h_Global_Mean);
+	free(h_Motion_Parameters);
 
 	// Cleanup device memory
 	clReleaseMemObject(c_X_GLM);
@@ -18124,6 +18139,10 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 
 		PrintMemoryStatus("Before motion correction");
 
+		h_Motion_Parameters = (float*)malloc(EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float));
+		allocatedHostMemory += EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float);
+		hostMemoryAllocations += 1;
+
 		PerformMotionCorrectionHost(h_fMRI_Volumes);
 
 		if ((WRAPPER == BASH) && VERBOS)
@@ -18289,6 +18308,11 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	}
 
 	clReleaseMemObject(d_EPI_Mask);
+
+	if (APPLY_MOTION_CORRECTION)
+	{
+		free(h_Motion_Parameters);
+	}
 }
 
 
@@ -18327,6 +18351,10 @@ void BROCCOLI_LIB::PerformICAWrapper()
 		}
 
 		PrintMemoryStatus("Before motion correction");
+
+		h_Motion_Parameters = (float*)malloc(EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float));
+		allocatedHostMemory += EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float);
+		hostMemoryAllocations += 1;
 
 		PerformMotionCorrectionHost(h_fMRI_Volumes);
 
@@ -18491,6 +18519,11 @@ void BROCCOLI_LIB::PerformICAWrapper()
 	}
 
 	clReleaseMemObject(d_EPI_Mask);
+
+	if (APPLY_MOTION_CORRECTION)
+	{
+		free(h_Motion_Parameters);
+	}
 
 	// Stop clBLAS
 	//clblasTeardown();
