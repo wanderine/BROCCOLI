@@ -1,5 +1,5 @@
 NumRegressors 2
 
-task1.txt
-task2.txt
+cond001.txt
+cond002.txt
 
