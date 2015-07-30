@@ -116,7 +116,7 @@ void ReadBinaryFile(float* pointer, int size, const char* filename, void** point
     }
 }
 
-void AllocateMemory(float *& pointer, size_t size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, size_t allocatedMemory, const char* variable)
+void AllocateMemory(float *& pointer, size_t& size, void** pointers, int& Npointers, nifti_image** niftiImages, int Nimages, size_t allocatedMemory, const char* variable)
 {
     pointer = (float*)malloc(size);
     if (pointer != NULL)
