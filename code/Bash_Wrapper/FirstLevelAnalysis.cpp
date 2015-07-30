@@ -33,9 +33,6 @@
 #define DONT_CHECK_EXISTING_FILE false
 
 
-
-
-
 int main(int argc, char **argv)
 {
     //-----------------------
@@ -185,6 +182,7 @@ int main(int argc, char **argv)
 	bool			WRITE_EPI_MASK = false;
     bool            WRITE_SLICETIMING_CORRECTED = false;
     bool            WRITE_MOTION_CORRECTED = false;
+	bool			WRITE_MOTION_PARAMETERS = false;
     bool            WRITE_SMOOTHED = false;
     bool            WRITE_ACTIVITY_EPI = false;
     bool            WRITE_ACTIVITY_T1 = false;
@@ -274,6 +272,7 @@ int main(int argc, char **argv)
         printf(" -saveepimask               Save mask for fMRI data  (default no) \n");
         printf(" -saveslicetimingcorrected  Save slice timing corrected fMRI volumes  (default no) \n");
         printf(" -savemotioncorrected       Save motion corrected fMRI volumes (default no) \n");
+        printf(" -savemotionparameters      Save motion parameters as a text file (default no) \n");
         printf(" -savesmoothed              Save smoothed fMRI volumes (default no) \n");
         printf(" -saveactivityepi           Save activity maps in EPI space (in addition to MNI space, default no) \n");
         printf(" -saveactivityt1            Save activity maps in T1 space (in addition to MNI space, default no) \n");
@@ -871,6 +870,11 @@ int main(int argc, char **argv)
             WRITE_MOTION_CORRECTED = true;
             i += 1;
         }
+        else if (strcmp(input,"-savemotionparameters") == 0)
+        {
+            WRITE_MOTION_PARAMETERS = true;
+            i += 1;
+        }
         else if (strcmp(input,"-savesmoothed") == 0)
         {
             WRITE_SMOOTHED = true;
@@ -1008,6 +1012,11 @@ int main(int argc, char **argv)
 	if (!APPLY_MOTION_CORRECTION && REGRESS_MOTION)
 	{
 		printf("Nice try! Cannot regress motion if you skip motion correction!\n");
+		return EXIT_FAILURE;
+	}
+	if (!APPLY_MOTION_CORRECTION && WRITE_MOTION_PARAMETERS)
+	{
+		printf("Nice try! Cannot save motion parameters if you skip motion correction!\n");
 		return EXIT_FAILURE;
 	}
 	if (RAW_DESIGNMATRIX && USE_TEMPORAL_DERIVATIVES)
@@ -2700,6 +2709,52 @@ int main(int argc, char **argv)
 			designmatrix.close();
 	        printf("Could not open the file for writing the design matrix!\n");
 	    }
+	}
+
+
+	if (WRITE_MOTION_PARAMETERS)
+	{
+		// Print motion parameters to file
+	    std::ofstream motion;
+  
+    	// Add the provided filename extension to the original filename, before the dot
+
+	    // Find the dot in the original filename
+    	const char* p = inputfMRI->fname;
+    	int dotPosition = 0;
+    	while ( (p != NULL) && ((*p) != '.') )
+    	{
+    	    p++;
+    	    dotPosition++;
+    	}
+    
+    	// Allocate temporary array
+		const char* extension = "_motionparameters.1D";
+    	char* filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
+    
+    	// Copy filename to the dot
+    	strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
+    	filenameWithExtension[dotPosition] = '\0';
+
+    	// Add the extension
+    	strcat(filenameWithExtension,extension);
+
+    	motion.open(filenameWithExtension);      
+
+    	if ( motion.good() )
+    	{		  	
+	        motion.precision(6);
+    	    for (size_t t = 0; t < EPI_DATA_T; t++)
+    	    {    
+	            motion << h_Motion_Parameters[t + 4*EPI_DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 3*EPI_DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 5*EPI_DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 2*EPI_DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 0*EPI_DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 1*EPI_DATA_T] << std::endl;
+    	    }
+    	    motion.close();
+    	}
+    	else
+    	{
+    	    printf("Could not open %s for writing!\n",filenameWithExtension);
+    	}
+		free(filenameWithExtension);
 	}
 
     //----------------------------

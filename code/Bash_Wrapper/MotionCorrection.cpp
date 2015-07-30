@@ -663,8 +663,9 @@ int main(int argc, char ** argv)
     }
     else
     {
-        printf("Could not open motion.1D for writing!\n");
+        printf("Could not open %s for writing!\n",filenameWithExtension);
     }
+	free(filenameWithExtension);
         
     // Write motion corrected data to file            
     startTime = GetWallTime();
