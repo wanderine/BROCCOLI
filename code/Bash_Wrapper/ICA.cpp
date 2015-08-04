@@ -36,8 +36,6 @@
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
 
-
-
 int main(int argc, char ** argv)
 {
     //-----------------------
@@ -85,10 +83,6 @@ int main(int argc, char ** argv)
     bool            PRINT = true;
 	bool			VERBOS = false;
     
-
-    int             MOTION_CORRECTION_FILTER_SIZE = 7; 
-    int             NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = 5;
-
 	bool			CHANGE_OUTPUT_FILENAME = false;
 
 	// Settings
@@ -96,11 +90,7 @@ int main(int argc, char ** argv)
 	bool			MASK = false;
 	const char*		MASK_NAME;
 	bool			Z_SCORE = false;
-
-	bool			APPLY_SMOOTHING = false;
-	bool			APPLY_MOTION_CORRECTION = false;
 	
-    float           EPI_SMOOTHING_AMOUNT = 6.0f;
 	size_t			NUMBER_OF_ICA_COMPONENTS = 55;
 
 	double			PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA = 80.0;
@@ -124,8 +114,6 @@ int main(int argc, char ** argv)
         printf("Options:\n\n");
         printf(" -platform           The OpenCL platform to use (default 0) \n");
         printf(" -device             The OpenCL device to use for the specificed platform (default 0) \n");
-        printf(" -smoothing          Smooth data before ICA, give smoothing amount in mm (default false) \n");
-        printf(" -motioncorrection   Apply motion correction before ICA (default false) \n");
         printf(" -var                Proportion of variance to save before ICA (default 80 %%) \n");
 		printf(" -mask               Provide a spatial mask (default false) \n");
 		printf(" -zscore             Z-score each time series before ICA (default false) \n");
@@ -198,35 +186,6 @@ int main(int argc, char ** argv)
             }
             i += 2;
         }
-        else if (strcmp(input,"-smoothing") == 0)
-        {
-			APPLY_SMOOTHING = true;
-
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -smoothing !\n");
-                return EXIT_FAILURE;
-			}
-            
-            EPI_SMOOTHING_AMOUNT = (float)strtod(argv[i+1], &p);
-            
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("Smoothing must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-  			else if ( EPI_SMOOTHING_AMOUNT <= 0.0f )
-            {
-                printf("Smoothing must be > 0.0 !\n");
-                return EXIT_FAILURE;
-            }
-            i += 2;
-        }        
-        else if (strcmp(input,"-motioncorrection") == 0)
-        {
-			APPLY_MOTION_CORRECTION = true;
-            i += 1;
-        }        
         else if (strcmp(input,"-var") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -387,11 +346,8 @@ int main(int argc, char ** argv)
 	}
    	
     // Calculate size, in bytes
-    int    NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID = 6;
     size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     size_t VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
-    size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS_RIGID * DATA_T * sizeof(float);
-	size_t FILTER_SIZE = MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * MOTION_CORRECTION_FILTER_SIZE * sizeof(float);
 
     // Print some info
     if (PRINT)
@@ -399,7 +355,6 @@ int main(int argc, char ** argv)
         printf("Authored by K.A. Eklund \n");
         printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, DATA_T);
         printf("Voxel size: %f x %f x %f mm \n", EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);   
-        //printf("Smoothing filter size: %f mm \n", EPI_SMOOTHING_AMOUNT);   
     } 
    
     // ------------------------------------------------
@@ -418,17 +373,6 @@ int main(int argc, char ** argv)
 		allocatedHostMemory += DATA_SIZE;
 	}
 	AllocateMemory(h_EPI_Mask, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "EPI_MASK");
-	AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MOTION_PARAMETERS");
-
-	if (APPLY_MOTION_CORRECTION)
-	{
-		AllocateMemory(h_Quadrature_Filter_1_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_REAL");    
-	  	AllocateMemory(h_Quadrature_Filter_1_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_IMAG");    
-		AllocateMemory(h_Quadrature_Filter_2_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_2_REAL");    
-	  	AllocateMemory(h_Quadrature_Filter_2_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_2_IMAG");    
-		AllocateMemory(h_Quadrature_Filter_3_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_3_REAL");    
-	  	AllocateMemory(h_Quadrature_Filter_3_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_3_IMAG");    
-	}
 
 	endTime = GetWallTime();
     
@@ -560,40 +504,6 @@ int main(int argc, char ** argv)
 		printf("It took %f seconds to convert data to floats\n",(float)(endTime - startTime));
 	}
 
-	if (APPLY_MOTION_CORRECTION)
-	{
-		// Read quadrature filters, three real valued and three imaginary valued
-
-		std::string filter1RealLinearPathAndName;
-		std::string filter1ImagLinearPathAndName;
-		std::string filter2RealLinearPathAndName;
-		std::string filter2ImagLinearPathAndName;
-		std::string filter3RealLinearPathAndName;
-		std::string filter3ImagLinearPathAndName;
-
-		filter1RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
-		filter1ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
-		filter2RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
-		filter2ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
-		filter3RealLinearPathAndName.append(getenv("BROCCOLI_DIR"));
-		filter3ImagLinearPathAndName.append(getenv("BROCCOLI_DIR"));
-
-		filter1RealLinearPathAndName.append("filters/filter1_real_linear_registration.bin");
-		filter1ImagLinearPathAndName.append("filters/filter1_imag_linear_registration.bin");
-		filter2RealLinearPathAndName.append("filters/filter2_real_linear_registration.bin");
-		filter2ImagLinearPathAndName.append("filters/filter2_imag_linear_registration.bin");
-		filter3RealLinearPathAndName.append("filters/filter3_real_linear_registration.bin");
-		filter3ImagLinearPathAndName.append("filters/filter3_imag_linear_registration.bin");
-
-		ReadBinaryFile(h_Quadrature_Filter_1_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-		ReadBinaryFile(h_Quadrature_Filter_1_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter1ImagLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-		ReadBinaryFile(h_Quadrature_Filter_2_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-		ReadBinaryFile(h_Quadrature_Filter_2_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter2ImagLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-		ReadBinaryFile(h_Quadrature_Filter_3_Real,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3RealLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages); 
-		ReadBinaryFile(h_Quadrature_Filter_3_Imag,MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE*MOTION_CORRECTION_FILTER_SIZE,filter3ImagLinearPathAndName.c_str(),allMemoryPointers,numberOfMemoryPointers,allNiftiImages,numberOfNiftiImages);     
-    }
-
-
     //------------------------
     
 	startTime = GetWallTime();
@@ -683,17 +593,8 @@ int main(int argc, char ** argv)
 		BROCCOLI.SetAutoMask(AUTO_MASK);
 		BROCCOLI.SetZScore(Z_SCORE);
 
-		BROCCOLI.SetApplyMotionCorrection(APPLY_MOTION_CORRECTION);
-		BROCCOLI.SetImageRegistrationFilterSize(MOTION_CORRECTION_FILTER_SIZE);
-        BROCCOLI.SetLinearImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
-        BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);
-
 		BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
-      	BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
 		
-		BROCCOLI.SetApplySmoothing(APPLY_SMOOTHING);
-		BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
-
 		BROCCOLI.SetAllocatedHostMemory(allocatedHostMemory);
           
 		BROCCOLI.SetVarianceToSaveBeforeICA(PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA);                  

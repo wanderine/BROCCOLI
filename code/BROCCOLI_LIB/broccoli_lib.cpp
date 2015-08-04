@@ -18195,68 +18195,6 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	}
 
 	//--------------------------
-	// Motion correction
-	//--------------------------
-
-	if (APPLY_MOTION_CORRECTION)
-	{
-		if ((WRAPPER == BASH) && PRINT)
-		{
-			printf("Performing motion correction");
-			if (!VERBOS)
-			{
-				printf("\n");	
-			}
-		}
-
-		PrintMemoryStatus("Before motion correction");
-
-		h_Motion_Parameters = (float*)malloc(EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float));
-		allocatedHostMemory += EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float);
-		hostMemoryAllocations += 1;
-
-		PerformMotionCorrectionHost(h_fMRI_Volumes);
-
-		if ((WRAPPER == BASH) && VERBOS)
-		{
-			printf("\n");
-		}
-
-		PrintMemoryStatus("After motion correction");
-	}
-
-
-	//--------------------------
-	// Smoothing
-	//--------------------------
-
-	if (APPLY_SMOOTHING)
-	{
-		d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-
-		deviceMemoryAllocations += 1;
-		allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
-		PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
-
-		if ((WRAPPER == BASH) && PRINT)
-		{
-			printf("Performing smoothing\n");
-		}
-	
-		PrintMemoryStatus("Before smoothing");
-
-		PerformSmoothingNormalizedHost(h_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-
-		clReleaseMemObject(d_Smoothed_EPI_Mask);
-		deviceMemoryDeallocations += 1;
-		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-
-		PrintMemoryStatus("After smoothing");
-	}
-
-	//--------------------------
 
 	// Loop through mask to get number of voxels
 	int NUMBER_OF_ICA_VARIABLES = 0;
@@ -18380,11 +18318,6 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	}
 
 	clReleaseMemObject(d_EPI_Mask);
-
-	if (APPLY_MOTION_CORRECTION)
-	{
-		free(h_Motion_Parameters);
-	}
 }
 
 
@@ -18406,68 +18339,6 @@ void BROCCOLI_LIB::PerformICAWrapper()
 	SegmentEPIData();
 	// Copy mask to host
 	clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
-
-	//--------------------------
-	// Motion correction
-	//--------------------------
-
-	if (APPLY_MOTION_CORRECTION)
-	{
-		if ((WRAPPER == BASH) && PRINT)
-		{
-			printf("Performing motion correction");
-			if (!VERBOS)
-			{
-				printf("\n");	
-			}
-		}
-
-		PrintMemoryStatus("Before motion correction");
-
-		h_Motion_Parameters = (float*)malloc(EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float));
-		allocatedHostMemory += EPI_DATA_T * NUMBER_OF_MOTION_REGRESSORS * sizeof(float);
-		hostMemoryAllocations += 1;
-
-		PerformMotionCorrectionHost(h_fMRI_Volumes);
-
-		if ((WRAPPER == BASH) && VERBOS)
-		{
-			printf("\n");
-		}
-
-		PrintMemoryStatus("After motion correction");
-	}
-
-
-	//--------------------------
-	// Smoothing
-	//--------------------------
-
-	if (APPLY_SMOOTHING)
-	{
-		d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-
-		deviceMemoryAllocations += 1;
-		allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-
-		CreateSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, SMOOTHING_FILTER_SIZE, EPI_Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
-		PerformSmoothing(d_Smoothed_EPI_Mask, d_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1);
-
-		if ((WRAPPER == BASH) && PRINT)
-		{
-			printf("Performing smoothing\n");
-		}
-	
-		PrintMemoryStatus("Before smoothing");
-
-		PerformSmoothingNormalizedHost(h_fMRI_Volumes, d_EPI_Mask, d_Smoothed_EPI_Mask, h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
-
-		clReleaseMemObject(d_Smoothed_EPI_Mask);
-		deviceMemoryDeallocations += 1;
-		allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-
-		PrintMemoryStatus("After smoothing");
-	}
 
 	//--------------------------
 
@@ -18591,11 +18462,6 @@ void BROCCOLI_LIB::PerformICAWrapper()
 	}
 
 	clReleaseMemObject(d_EPI_Mask);
-
-	if (APPLY_MOTION_CORRECTION)
-	{
-		free(h_Motion_Parameters);
-	}
 
 	// Stop clBLAS
 	//clblasTeardown();
