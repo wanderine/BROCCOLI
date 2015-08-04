@@ -44,6 +44,7 @@ int main(int argc, char ** argv)
     // Input pointers
     
     float           *h_fMRI_Volumes = NULL;
+	float			*h_Reference_Volume = NULL;
     float           *h_Quadrature_Filter_1_Real = NULL;
     float           *h_Quadrature_Filter_2_Real = NULL;
     float           *h_Quadrature_Filter_3_Real = NULL;
@@ -83,6 +84,8 @@ int main(int argc, char ** argv)
     bool            PRINT = true;
 	bool			VERBOS = false;
 	bool			CHANGE_OUTPUT_FILENAME = false;
+	bool			CHANGE_REFERENCE_VOLUME = false;
+	const char*		referenceVolumeFilename;
     
     size_t          DATA_W, DATA_H, DATA_D, DATA_T;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -115,13 +118,14 @@ int main(int argc, char ** argv)
         printf("Usage:\n\n");
         printf("MotionCorrection input.nii [options]\n\n");
         printf("Options:\n\n");
-        printf(" -platform   The OpenCL platform to use (default 0) \n");
-        printf(" -device     The OpenCL device to use for the specificed platform (default 0) \n");
-        printf(" -iterations Number of iterations for the motion correction algorithm (default 5) \n");        
-        printf(" -output     Set output filename (default input_mc.nii) \n");
-        printf(" -quiet      Don't print anything to the terminal (default false) \n");
-        printf(" -verbose    Print extra stuff (default false) \n");
-        printf(" -debug      Get additional debug information (default false) \n");
+        printf(" -platform           The OpenCL platform to use (default 0) \n");
+        printf(" -device             The OpenCL device to use for the specificed platform (default 0) \n");
+        printf(" -referencevolume    Give a reference volume to align all other volumes to (default false) \n");        
+        printf(" -iterations         Number of iterations for the motion correction algorithm (default 5) \n");        
+        printf(" -output             Set output filename (default input_mc.nii) \n");
+        printf(" -quiet              Don't print anything to the terminal (default false) \n");
+        printf(" -verbose            Print extra stuff (default false) \n");
+        printf(" -debug              Get additional debug information (default false) \n");
         printf("\n\n");
         
         return EXIT_SUCCESS;
@@ -186,6 +190,18 @@ int main(int argc, char ** argv)
                 printf("OpenCL device must be >= 0!\n");
                 return EXIT_FAILURE;
             }
+            i += 2;
+        }
+        else if (strcmp(input,"-referencevolume") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read filename after -referencevolume !\n");
+                return EXIT_FAILURE;
+			}
+
+			referenceVolumeFilename = argv[i+1];
+            CHANGE_REFERENCE_VOLUME = true;
             i += 2;
         }
         else if (strcmp(input,"-iterations") == 0)
@@ -259,11 +275,24 @@ int main(int argc, char ** argv)
     
     if (inputData == NULL)
     {
-        printf("Could not open nifti file!\n");
+        printf("Could not open fMRI data nifti file!\n");
         return EXIT_FAILURE;
     }
     allNiftiImages[numberOfNiftiImages] = inputData;
 	numberOfNiftiImages++;
+
+    nifti_image *referenceVolume;
+	if (CHANGE_REFERENCE_VOLUME)
+	{
+		referenceVolume = nifti_image_read(referenceVolumeFilename,1);
+		if (referenceVolume == NULL)
+		{
+	        printf("Could not open reference volume nifti file!\n");
+	        return EXIT_FAILURE;
+		}
+	    allNiftiImages[numberOfNiftiImages] = referenceVolume;
+		numberOfNiftiImages++;
+	}
 
 	double endTime = GetWallTime();
 
@@ -278,10 +307,40 @@ int main(int argc, char ** argv)
     DATA_D = inputData->nz;
     DATA_T = inputData->nt;
     
+	// Check if reference volume has same size
+	if (CHANGE_REFERENCE_VOLUME)
+	{
+    	int TEMP_DATA_W = referenceVolume->nx;
+   		int TEMP_DATA_H = referenceVolume->ny;
+    	int TEMP_DATA_D = referenceVolume->nz;
+
+		if ( (TEMP_DATA_W != DATA_W) || (TEMP_DATA_H != DATA_H) || (TEMP_DATA_D != DATA_D) )
+		{
+        	printf("fMRI data has a size of %zu x %zu x %zu, while the reference volume has a size of %zu x %zu x %zu , aborting!\n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    	    return EXIT_FAILURE;
+		}
+	}
+
     // Get voxel sizes from input data
     EPI_VOXEL_SIZE_X = inputData->dx;
     EPI_VOXEL_SIZE_Y = inputData->dy;
     EPI_VOXEL_SIZE_Z = inputData->dz;
+
+	// Check if reference volume has same voxel size
+	if (CHANGE_REFERENCE_VOLUME)
+	{
+    	float TEMP_VOXEL_SIZE_X = referenceVolume->dx;
+   		float TEMP_VOXEL_SIZE_Y = referenceVolume->dy;
+    	float TEMP_VOXEL_SIZE_Z = referenceVolume->dz;
+
+		if ( (TEMP_VOXEL_SIZE_X != EPI_VOXEL_SIZE_X) || (TEMP_VOXEL_SIZE_Y != EPI_VOXEL_SIZE_Y) || (TEMP_VOXEL_SIZE_Z != EPI_VOXEL_SIZE_Z) )
+		{
+        	printf("fMRI data has a  voxel size of %f x %f x %f, while the reference volume has a voxel size of %f x %f x %f, aborting!\n",EPI_VOXEL_SIZE_X,EPI_VOXEL_SIZE_Y,EPI_VOXEL_SIZE_Z,TEMP_VOXEL_SIZE_X,TEMP_VOXEL_SIZE_Y,TEMP_VOXEL_SIZE_Z);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    	    return EXIT_FAILURE;
+		}
+	}
                                
     // Calculate size, in bytes
     size_t DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
@@ -313,6 +372,12 @@ int main(int argc, char ** argv)
 	{
 		allocatedHostMemory += DATA_SIZE;
 	}
+
+	if (CHANGE_REFERENCE_VOLUME)
+	{
+		AllocateMemory(h_Reference_Volume, VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "REFERENCE_VOLUME");
+	}
+
 	AllocateMemory(h_Quadrature_Filter_1_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_REAL");    
   	AllocateMemory(h_Quadrature_Filter_1_Imag, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_IMAG");    
 	AllocateMemory(h_Quadrature_Filter_2_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_2_REAL");    
@@ -389,7 +454,7 @@ int main(int argc, char ** argv)
     }
     else
     {
-        printf("Unknown data type in input data, aborting!\n");
+        printf("Unknown data type in fMRI data, aborting!\n");
         FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
         return EXIT_FAILURE;
@@ -407,6 +472,54 @@ int main(int argc, char ** argv)
 		inputData->data = NULL;
 	}
 
+	if (CHANGE_REFERENCE_VOLUME)
+	{
+    	// Convert data to floats
+	    if ( referenceVolume->datatype == DT_SIGNED_SHORT )
+	    {
+	        short int *p = (short int*)referenceVolume->data;
+	    
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        {
+	            h_Reference_Volume[i] = (float)p[i];
+	        }
+	    }
+	    else if ( referenceVolume->datatype == DT_UINT8 )
+	    {
+	        unsigned char *p = (unsigned char*)referenceVolume->data;
+	    
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+	        {
+	            h_Reference_Volume[i] = (float)p[i];
+    	    }
+    	}
+    	else if ( referenceVolume->datatype == DT_UINT16 )
+    	{
+    	    unsigned short int *p = (unsigned short int*)referenceVolume->data;
+    	
+    	    for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+    	    {
+    	        h_Reference_Volume[i] = (float)p[i];
+    	    }
+    	}
+		else if ( referenceVolume->datatype == DT_FLOAT )
+    	{	
+			float *p = (float*)referenceVolume->data;
+    
+        	for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        	{
+        	    h_Reference_Volume[i] = p[i];
+        	}
+	    }
+    	else
+    	{
+    	    printf("Unknown data type in reference volume, aborting!\n");
+    	    FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    	    FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    	    return EXIT_FAILURE;
+    	}
+	}
+	
 	endTime = GetWallTime();
 
 	if (VERBOS)
@@ -546,6 +659,9 @@ int main(int argc, char ** argv)
         BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
         BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);        
         
+		BROCCOLI.SetChangeMotionCorrectionReferenceVolume(CHANGE_REFERENCE_VOLUME);
+		BROCCOLI.SetMotionCorrectionReferenceVolume(h_Reference_Volume);
+
         BROCCOLI.SetImageRegistrationFilterSize(MOTION_CORRECTION_FILTER_SIZE);
         BROCCOLI.SetLinearImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
         BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);

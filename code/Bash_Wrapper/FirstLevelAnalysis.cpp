@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     
     float           *h_Filter_Directions_X, *h_Filter_Directions_Y, *h_Filter_Directions_Z;
     
-	float			*h_EPI_Mask;
+	float			*h_EPI_Mask, *h_MNI_Mask;
     float           *h_Slice_Timing_Corrected_fMRI_Volumes;
     float           *h_Motion_Corrected_fMRI_Volumes;
     float           *h_Smoothed_fMRI_Volumes;    
@@ -180,6 +180,7 @@ int main(int argc, char **argv)
     bool            WRITE_ALIGNED_EPI_T1 = false;
     bool            WRITE_ALIGNED_EPI_MNI = false;
 	bool			WRITE_EPI_MASK = false;
+	bool			WRITE_MNI_MASK = false;
     bool            WRITE_SLICETIMING_CORRECTED = false;
     bool            WRITE_MOTION_CORRECTED = false;
 	bool			WRITE_MOTION_PARAMETERS = false;
@@ -269,7 +270,8 @@ int main(int argc, char **argv)
         printf(" -savet1alignednonlinear    Save T1 volume non-linearly aligned to the MNI volume (default no) \n");
         printf(" -saveepialignedt1          Save EPI volume aligned to the T1 volume (default no) \n");
         printf(" -saveepialignedmni         Save EPI volume aligned to the MNI volume (default no) \n");
-        printf(" -saveepimask               Save mask for fMRI data  (default no) \n");
+        printf(" -saveepimask               Save EPI mask for fMRI data  (default no) \n");
+        printf(" -savemnimask               Save MNI mask for fMRI data  (default no) \n");
         printf(" -saveslicetimingcorrected  Save slice timing corrected fMRI volumes  (default no) \n");
         printf(" -savemotioncorrected       Save motion corrected fMRI volumes (default no) \n");
         printf(" -savemotionparameters      Save motion parameters as a text file (default no) \n");
@@ -860,6 +862,11 @@ int main(int argc, char **argv)
             WRITE_EPI_MASK = true;
             i += 1;
         }
+        else if (strcmp(input,"-savemnimask") == 0)
+        {
+            WRITE_MNI_MASK = true;
+            i += 1;
+        }
         else if (strcmp(input,"-saveslicetimingcorrected") == 0)
         {
             WRITE_SLICETIMING_CORRECTED = true;
@@ -956,6 +963,7 @@ int main(int argc, char **argv)
             WRITE_ALIGNED_EPI_T1 = true;
             WRITE_ALIGNED_EPI_MNI = true;
 			WRITE_EPI_MASK = true;
+			WRITE_MNI_MASK = true;
             WRITE_SLICETIMING_CORRECTED = true;
             WRITE_MOTION_CORRECTED = true;
             WRITE_SMOOTHED = true;
@@ -965,6 +973,7 @@ int main(int argc, char **argv)
             WRITE_AR_ESTIMATES_EPI = true;
             WRITE_AR_ESTIMATES_MNI = true;
 			WRITE_UNWHITENED_RESULTS = true;
+			WRITE_MOTION_CORRECTED = true;
             i += 1;
         }
         else if (strcmp(input,"-quiet") == 0)
@@ -1663,9 +1672,13 @@ int main(int argc, char **argv)
    
 	AllocateMemory(h_Motion_Parameters, MOTION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MOTION_PARAMETERS");       
 
-	if (WRITE_EPI_MASK)
+	if (WRITE_EPI_MASK || WRITE_MNI_MASK)
 	{
 		AllocateMemory(h_EPI_Mask, EPI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "EPI_MASK");
+	}
+	if (WRITE_MNI_MASK)
+	{
+		AllocateMemory(h_MNI_Mask, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "MNI_MASK");
 	}
 	if (WRITE_SLICETIMING_CORRECTED)
 	{
@@ -2536,6 +2549,7 @@ int main(int argc, char **argv)
 		BROCCOLI.SetSaveAlignedEPIMNI(WRITE_ALIGNED_EPI_MNI);	
 
 		BROCCOLI.SetSaveEPIMask(WRITE_EPI_MASK);
+		BROCCOLI.SetSaveMNIMask(WRITE_MNI_MASK);
 		BROCCOLI.SetSaveSliceTimingCorrected(WRITE_SLICETIMING_CORRECTED);
 		BROCCOLI.SetSaveMotionCorrected(WRITE_MOTION_CORRECTED);
 		BROCCOLI.SetSaveSmoothed(WRITE_SMOOTHED);				
@@ -2595,6 +2609,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputAlignedEPIVolumeT1(h_Aligned_EPI_Volume_T1);
         BROCCOLI.SetOutputAlignedEPIVolumeMNI(h_Aligned_EPI_Volume_MNI);
         BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
+        BROCCOLI.SetOutputMNIMask(h_MNI_Mask);
         BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
         BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
         BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Smoothed_fMRI_Volumes);
@@ -2845,6 +2860,11 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsMNI;
 	numberOfNiftiImages++;
     
+    if (WRITE_MNI_MASK)
+	{
+    	WriteNifti(outputNiftiStatisticsMNI,h_MNI_Mask,"_mask_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
+
     std::string beta = "_beta";
     std::string cope = "_cope";
     std::string tscores = "_tscores";

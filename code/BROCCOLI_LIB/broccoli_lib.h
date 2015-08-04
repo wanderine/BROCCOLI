@@ -189,6 +189,8 @@ class BROCCOLI_LIB
 		void SetNumberOfIterationsForLinearImageRegistration(int N);
 		void SetNumberOfIterationsForNonLinearImageRegistration(int N);
 		void SetNumberOfIterationsForMotionCorrection(int N);
+		void SetChangeMotionCorrectionReferenceVolume(bool);
+		void SetMotionCorrectionReferenceVolume(float*);
 		void SetApplyMotionCorrection(bool);
 		void SetCoarsestScaleT1MNI(int N);
 		void SetCoarsestScaleEPIT1(int N);
@@ -275,6 +277,7 @@ class BROCCOLI_LIB
 		void SetOutputPValuesT1(float* output);
 		void SetOutputPValuesMNI(float* output);
 		void SetOutputEPIMask(float*);
+		void SetOutputMNIMask(float*);
 		void SetOutputClusterIndices(int*);
 		void SetOutputLargestCluster(int*);
 		void SetOutputDesignMatrix(float* X_GLM, float* xtxxt_GLM);
@@ -326,6 +329,7 @@ class BROCCOLI_LIB
 		void SetSaveAlignedEPIT1(bool);
 		void SetSaveAlignedEPIMNI(bool);
 		void SetSaveEPIMask(bool);
+		void SetSaveMNIMask(bool);
 		void SetSaveSliceTimingCorrected(bool);
 		void SetSaveMotionCorrected(bool);
 		void SetSaveSmoothed(bool);
@@ -589,6 +593,7 @@ class BROCCOLI_LIB
 		void TransformfMRIVolumesToMNI();
 		void TransformFirstLevelResultsToT1(bool WHITENED);
 		void TransformBayesianFirstLevelResultsToMNI();
+		void TransformMaskToMNI();
 		void TransformPValuesToMNI();
 		void TransformPValuesToT1();
 
@@ -1084,6 +1089,7 @@ class BROCCOLI_LIB
 		bool WRITE_ALIGNED_EPI_MNI;
 
 		bool WRITE_EPI_MASK;
+		bool WRITE_MNI_MASK;
 
 		bool WRITE_SLICETIMING_CORRECTED;
 		bool WRITE_MOTION_CORRECTED;
@@ -1121,6 +1127,7 @@ class BROCCOLI_LIB
 		int SLICE_CUSTOM_REF;
 
 		// Image registration variables
+		bool CHANGE_MOTION_CORRECTION_REFERENCE_VOLUME;
 		int INTERPOLATION_MODE;
 		int IMAGE_REGISTRATION_FILTER_SIZE;
 		int NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS;
@@ -1217,6 +1224,7 @@ class BROCCOLI_LIB
 		float		*h_MNI_Brain_Mask;
 		float		*h_Mask;
 		float		*h_EPI_Mask;
+		float		*h_MNI_Mask;
 		float		*h_Smoothed_EPI_Mask;
         	float       	*h_T1_Volume;
 		float		*h_MNI_Volume;
@@ -1237,6 +1245,7 @@ class BROCCOLI_LIB
 		float		*h_Custom_Slice_Times;
 
 		// Image Registration pointers
+		float		*h_Reference_Volume;
 		cl_float2	*h_Quadrature_Filter_1_Linear_Registration, *h_Quadrature_Filter_2_Linear_Registration, *h_Quadrature_Filter_3_Linear_Registration;
 		float       	*h_Quadrature_Filter_1_Linear_Registration_Real, *h_Quadrature_Filter_2_Linear_Registration_Real, *h_Quadrature_Filter_3_Linear_Registration_Real, *h_Quadrature_Filter_1_Linear_Registration_Imag, *h_Quadrature_Filter_2_Linear_Registration_Imag, *h_Quadrature_Filter_3_Linear_Registration_Imag;
 		float       	*h_Quadrature_Filter_1_NonLinear_Registration_Real, *h_Quadrature_Filter_2_NonLinear_Registration_Real, *h_Quadrature_Filter_3_NonLinear_Registration_Real, *h_Quadrature_Filter_1_NonLinear_Registration_Imag, *h_Quadrature_Filter_2_NonLinear_Registration_Imag, *h_Quadrature_Filter_3_NonLinear_Registration_Imag;

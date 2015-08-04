@@ -254,6 +254,7 @@ void BROCCOLI_LIB::SetStartValues()
 	WRITE_ALIGNED_EPI_MNI = false;
 
 	WRITE_EPI_MASK = false;
+	WRITE_MNI_MASK = false;
 	WRITE_SLICETIMING_CORRECTED = false;
 	WRITE_MOTION_CORRECTED = false;
 	WRITE_SMOOTHED = false;
@@ -299,7 +300,8 @@ void BROCCOLI_LIB::SetStartValues()
 	NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION = 10;
 	NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION = 10;
 	NUMBER_OF_NON_ZERO_A_MATRIX_ELEMENTS = 30;
-	
+	CHANGE_MOTION_CORRECTION_REFERENCE_VOLUME = false;
+
 	SMOOTHING_FILTER_SIZE = 9;
 	
 	NUMBER_OF_DETRENDING_REGRESSORS = 4;
@@ -3378,6 +3380,11 @@ void BROCCOLI_LIB::SetOutputEPIMask(float* data)
 	h_EPI_Mask = data;
 }
 
+void BROCCOLI_LIB::SetOutputMNIMask(float* data)
+{
+	h_MNI_Mask = data;
+}
+
 void BROCCOLI_LIB::SetGLMScalars(float* data)
 {
 	h_ctxtxc_GLM_In = data;
@@ -3529,6 +3536,17 @@ void BROCCOLI_LIB::SetNumberOfIterationsForMotionCorrection(int N)
 {
 	NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION = N;
 }
+
+void BROCCOLI_LIB::SetChangeMotionCorrectionReferenceVolume(bool change)
+{
+	CHANGE_MOTION_CORRECTION_REFERENCE_VOLUME = change;
+}
+
+void BROCCOLI_LIB::SetMotionCorrectionReferenceVolume(float* reference)
+{
+	h_Reference_Volume = reference;
+}
+
 
 void BROCCOLI_LIB::SetCoarsestScaleT1MNI(int N)
 {
@@ -3736,6 +3754,11 @@ void BROCCOLI_LIB::SetSaveAlignedEPIMNI(bool value)
 void BROCCOLI_LIB::SetSaveEPIMask(bool value)
 {
 	WRITE_EPI_MASK = value;
+}
+
+void BROCCOLI_LIB::SetSaveMNIMask(bool value)
+{
+	WRITE_MNI_MASK = value;
 }
 
 void BROCCOLI_LIB::SetSaveSliceTimingCorrected(bool value)
@@ -8054,6 +8077,12 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	if (WRITE_EPI_MASK)
 	{
 		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+
+	}
+	if (WRITE_MNI_MASK)
+	{
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+		TransformMaskToMNI();
 	}
 
 	//---------------------------------------------------------------------------------------------------------------------------------------
@@ -8814,6 +8843,37 @@ void BROCCOLI_LIB::TransformResidualsToMNI()
 	clReleaseMemObject(d_Temp);
 }
 
+void BROCCOLI_LIB::TransformMaskToMNI()
+{
+	// Allocate temporary memory
+	cl_mem d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy mask volume to temp
+	clEnqueueWriteBuffer(commandQueue, d_Temp, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+
+	// First apply initial translation before changing resolution and size 
+	TransformVolumesLinear(d_Temp, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, NEAREST);
+
+	// Change resolution and size of volume
+	ChangeVolumesResolutionAndSize(d_Data, d_Temp, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_EPI_Z_CUT, NEAREST, 0);
+
+	// Now apply the same translation as applied before the EPI-T1 registration
+	TransformVolumesLinear(d_Data, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, NEAREST);
+
+	// Apply transformation
+	TransformVolumesLinear(d_Data, h_Registration_Parameters_EPI_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, NEAREST);
+	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
+	{
+		TransformVolumesNonLinear(d_Data, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, NEAREST);
+	}
+
+	// Write transformed mask to host
+	clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Mask, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Data);
+	clReleaseMemObject(d_Temp);
+}
 
 void BROCCOLI_LIB::TransformfMRIVolumesToMNI()
 {
@@ -9773,11 +9833,23 @@ void BROCCOLI_LIB::PerformSliceTimingCorrectionWrapper()
 // Only stores one fMRI volume in global memory, to reduce memory usage
 void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 {
+	int startVolume;
+
 	// Setup all parameters and allocate memory on device
 	AlignTwoVolumesLinearSetup(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Set the first volume as the reference volume
-	clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+	if (!CHANGE_MOTION_CORRECTION_REFERENCE_VOLUME)
+	{
+		startVolume = 1;
+		clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes , 0, NULL, NULL);
+	}
+	// Set user provided volume as reference
+	else
+	{
+		startVolume = 0;
+		clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_Reference_Volume, 0, NULL, NULL);
+	}
 
 	// Translations
 	h_Motion_Parameters_Out[0 * EPI_DATA_T] = 0.0f;
@@ -9790,7 +9862,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionWrapper()
 	h_Motion_Parameters_Out[5 * EPI_DATA_T] = 0.0f;
 
 	// Run the registration for each volume
-	for (size_t t = 1; t < EPI_DATA_T; t++)
+	for (size_t t = startVolume; t < EPI_DATA_T; t++)
 	{
 		// Set a new volume to be aligned
 		clEnqueueWriteBuffer(commandQueue, d_Aligned_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), &h_fMRI_Volumes[t * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D], 0, NULL, NULL);
