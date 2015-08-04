@@ -27,6 +27,9 @@ The following motion correction options are available
 
 \begin{itemize}
 
+\item -referencevolume
+\newline \newline Provide a reference volume to which all other volumes will be aligned to (default false). If a 4D dataset is provided, all volumes will be aligned to the first volume in this 4D dataset.
+
 \item -iterations  
 \newline \newline Number of iterations for the motion correction (default 5). 
 
@@ -34,7 +37,7 @@ The following motion correction options are available
 
 \section{Outputs}
 
-By default, the function saves the results as input\_mc.nii. The estimated motion parameters are saved as motion.1D. They can for example be viewed using the AFNI function 1dplot (1dplot motion.1D).
+By default, the function saves the results as input\_mc.nii. The estimated motion parameters are saved as input\_motionparameters.1D. They can for example be viewed using the AFNI function 1dplot (1dplot input\_motionparameters.1D).
 
 \section{Output options}
 
