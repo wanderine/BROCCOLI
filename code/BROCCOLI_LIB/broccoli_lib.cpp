@@ -18630,7 +18630,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 
 
 
-int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Shuffled_Whitened_Data, double updateRate)
+int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, double updateRate)
 {
 	double MAX_W = 1.0e8;
 	int error = 0;
@@ -18665,7 +18665,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 	}
 
 	// Copy data back to device
-	clEnqueueWriteBuffer(commandQueue, d_Shuffled_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
 
 	size_t start;
 
@@ -18709,12 +18709,11 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 		// Compute unmixed = weights * subWhitenedData + bias * ib
 		
 		// First unmixed = weights * subWhitenedData 
-		// C = alpha * A * B  + beta * C                                            rows in d_Weights  columns in d_Sub_Whitened_Data   columns in d_Weights     alpha   A matrix     leading dimension of A-matrix      B matrix                        leading dimension of B-matrix    beta     C matrix
-	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+		// C = alpha * A * B  + beta * C                         
+		error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 
 		// Then C = bias * ib + C
-		// C = alpha * A * B  + beta * C                                            rows in d_Bias       columns in ib    columns in d_Bias     alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
-	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       1,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0, 1, 1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 		
 			
 		//unmLogit = unmixed;
@@ -18731,7 +18730,6 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 		
 		// C = alpha * A * B  + beta * C
 	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, block, 1.0f, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, (float)block,   d_TempI, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
-
 		
 	    // (2) weights = weights + lrate*temp_I*weights
 		
@@ -18759,7 +18757,6 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 			break;
 		}
 	}
-
 
 	clReleaseMemObject(d_ib);
 	clReleaseMemObject(d_unmixed);
@@ -18801,13 +18798,10 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 	cl_mem d_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
 	cl_mem d_Old_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
 	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-	cl_mem d_Shuffled_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
 
 	cl_mem d_Scratch = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * 2 * sizeof(float), NULL, NULL);
 	cl_mem d_Float = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
 	cl_mem d_Ones = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-
-	clEnqueueCopyBuffer(commandQueue, d_Whitened_Data, d_Shuffled_Whitened_Data, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), 0, NULL, NULL);
 
 	IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
 	IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
@@ -18830,7 +18824,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 
 	while( (step < MAX_STEP) && (change > W_STOP))
 	{		
-		error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);			
+		error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, lrate);			
 
 		if (error == 1 || error == 2)
 		{
@@ -18909,10 +18903,7 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
 			}
 
-			if (( VERBOS && (step % 10) == 0) || change < W_STOP)
-			{
-				printf("\n\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n\n", step, lrate, change, angleDelta);
-      		}
+			printf("\n\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n\n", step, lrate, change, angleDelta);
 
 			step++;
     	}
@@ -18933,7 +18924,6 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 	clReleaseMemObject(d_d_Weights);
 	clReleaseMemObject(d_Old_d_Weights);
 	clReleaseMemObject(d_Temp);
-	clReleaseMemObject(d_Shuffled_Whitened_Data);
 	clReleaseMemObject(d_Scratch);
 	clReleaseMemObject(d_Float);
 	clReleaseMemObject(d_Ones);

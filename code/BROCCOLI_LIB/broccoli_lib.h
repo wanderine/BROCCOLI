@@ -557,7 +557,7 @@ class BROCCOLI_LIB
 		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		Eigen::MatrixXf PCAWhiten(Eigen::MatrixXf &, bool);
 		void InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix);
-		int UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Shuffled_Whitened_Data, double updateRate);
+		int UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, double updateRate);
 
 		//------------------------------------------------
 		// Convolution functions
