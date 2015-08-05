@@ -1,0 +1,3 @@
+NumRegressors 1
+
+boxcar30Cambridge.txt
