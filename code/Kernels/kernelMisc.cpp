@@ -59,6 +59,18 @@ __kernel void IdentityMatrix(__global float* Matrix,
 	}
 }
 
+__kernel void LogitMatrix(__global float* Matrix, 
+  			     			 __private int N)
+{
+	int x = get_global_id(0);	
+
+	if (x >= N)
+		return;
+
+	Matrix[x] = 1.0f - (2.0f / (1.0f + exp(-Matrix[x] )) );
+}
+
+
 __kernel void GetSubMatrix(__global float* Small_Matrix, 
                            __global const float* Matrix, 
   			     		   __private int rows)

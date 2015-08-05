@@ -39,6 +39,9 @@
 #include <math.h>
 #include <cfloat>
 
+#include <time.h>
+#include <sys/time.h>
+
 #include <limits.h>
 //#include <unistd.h>
 
@@ -332,7 +335,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	error = 0;
 
-	NUMBER_OF_OPENCL_KERNELS = 87;
+	NUMBER_OF_OPENCL_KERNELS = 88;
 
 	commandQueue = NULL;
 	program = NULL;
@@ -1526,6 +1529,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	IdentityMatrixKernel = clCreateKernel(OpenCLPrograms[3],"IdentityMatrix",&createKernelErrorIdentityMatrix);
 	GetSubMatrixKernel = clCreateKernel(OpenCLPrograms[3],"GetSubMatrix",&createKernelErrorGetSubMatrix);
 	PermuteMatrixKernel = clCreateKernel(OpenCLPrograms[3],"PermuteMatrix",&createKernelErrorPermuteMatrix);
+	LogitMatrixKernel = clCreateKernel(OpenCLPrograms[3],"LogitMatrix",&createKernelErrorLogitMatrix);
 	MultiplyVolumeKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolume",&createKernelErrorMultiplyVolume);
 	MultiplyVolumesKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolumes",&createKernelErrorMultiplyVolumes);
 	MultiplyVolumesOverwriteKernel = clCreateKernel(OpenCLPrograms[3],"MultiplyVolumesOverwrite",&createKernelErrorMultiplyVolumesOverwrite);
@@ -1549,15 +1553,16 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[31] = IdentityMatrixKernel;
 	OpenCLKernels[32] = GetSubMatrixKernel;
 	OpenCLKernels[33] = PermuteMatrixKernel;
-	OpenCLKernels[34] = MultiplyVolumeKernel;
-	OpenCLKernels[35] = MultiplyVolumesKernel;
-	OpenCLKernels[36] = MultiplyVolumesOverwriteKernel;
-	OpenCLKernels[37] = AddVolumeKernel;
-	OpenCLKernels[38] = AddVolumesKernel;
-	OpenCLKernels[39] = AddVolumesOverwriteKernel;
-	OpenCLKernels[40] = SubtractVolumesKernel;
-	OpenCLKernels[41] = SubtractVolumesOverwriteKernel;
-	OpenCLKernels[42] = RemoveMeanKernel;
+	OpenCLKernels[34] = LogitMatrixKernel;
+	OpenCLKernels[35] = MultiplyVolumeKernel;
+	OpenCLKernels[36] = MultiplyVolumesKernel;
+	OpenCLKernels[37] = MultiplyVolumesOverwriteKernel;
+	OpenCLKernels[38] = AddVolumeKernel;
+	OpenCLKernels[39] = AddVolumesKernel;
+	OpenCLKernels[40] = AddVolumesOverwriteKernel;
+	OpenCLKernels[41] = SubtractVolumesKernel;
+	OpenCLKernels[42] = SubtractVolumesOverwriteKernel;
+	OpenCLKernels[43] = RemoveMeanKernel;
 
 	// Interpolation kernels
 	InterpolateVolumeNearestLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeNearestLinear",&createKernelErrorInterpolateVolumeNearestLinear);
@@ -1567,28 +1572,28 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	InterpolateVolumeLinearNonLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeLinearNonLinear",&createKernelErrorInterpolateVolumeLinearNonLinear);
 	InterpolateVolumeCubicNonLinearKernel = clCreateKernel(OpenCLPrograms[1],"InterpolateVolumeCubicNonLinear",&createKernelErrorInterpolateVolumeCubicNonLinear);
 
-	OpenCLKernels[43] = InterpolateVolumeNearestLinearKernel;
-	OpenCLKernels[44] = InterpolateVolumeLinearLinearKernel;
-	OpenCLKernels[45] = InterpolateVolumeCubicLinearKernel;
-	OpenCLKernels[46] = InterpolateVolumeNearestNonLinearKernel;
-	OpenCLKernels[47] = InterpolateVolumeLinearNonLinearKernel;
-	OpenCLKernels[48] = InterpolateVolumeCubicNonLinearKernel;
+	OpenCLKernels[44] = InterpolateVolumeNearestLinearKernel;
+	OpenCLKernels[45] = InterpolateVolumeLinearLinearKernel;
+	OpenCLKernels[46] = InterpolateVolumeCubicLinearKernel;
+	OpenCLKernels[47] = InterpolateVolumeNearestNonLinearKernel;
+	OpenCLKernels[48] = InterpolateVolumeLinearNonLinearKernel;
+	OpenCLKernels[49] = InterpolateVolumeCubicNonLinearKernel;
 
 	RescaleVolumeLinearKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeLinear",&createKernelErrorRescaleVolumeLinear);
 	RescaleVolumeCubicKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeCubic",&createKernelErrorRescaleVolumeCubic);
 	RescaleVolumeNearestKernel = clCreateKernel(OpenCLPrograms[1],"RescaleVolumeNearest",&createKernelErrorRescaleVolumeNearest);
 
-	OpenCLKernels[49] = RescaleVolumeLinearKernel;
-	OpenCLKernels[50] = RescaleVolumeCubicKernel;
-	OpenCLKernels[51] = RescaleVolumeNearestKernel;
+	OpenCLKernels[50] = RescaleVolumeLinearKernel;
+	OpenCLKernels[51] = RescaleVolumeCubicKernel;
+	OpenCLKernels[52] = RescaleVolumeNearestKernel;
 
 	CopyT1VolumeToMNIKernel = clCreateKernel(OpenCLPrograms[1],"CopyT1VolumeToMNI",&createKernelErrorCopyT1VolumeToMNI);
 	CopyEPIVolumeToT1Kernel = clCreateKernel(OpenCLPrograms[1],"CopyEPIVolumeToT1",&createKernelErrorCopyEPIVolumeToT1);
 	CopyVolumeToNewKernel = clCreateKernel(OpenCLPrograms[1],"CopyVolumeToNew",&createKernelErrorCopyVolumeToNew);
 
-	OpenCLKernels[52] = CopyT1VolumeToMNIKernel;
-	OpenCLKernels[53] = CopyEPIVolumeToT1Kernel;
-	OpenCLKernels[54] = CopyVolumeToNewKernel;
+	OpenCLKernels[53] = CopyT1VolumeToMNIKernel;
+	OpenCLKernels[54] = CopyEPIVolumeToT1Kernel;
+	OpenCLKernels[55] = CopyVolumeToNewKernel;
 
 	// Clusterize kernels	
 	SetStartClusterIndicesKernel = clCreateKernel(OpenCLPrograms[2],"SetStartClusterIndicesKernel",&createKernelErrorSetStartClusterIndices);
@@ -1601,15 +1606,15 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	CalculatePermutationPValuesVoxelLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesVoxelLevelInference",&createKernelErrorCalculatePermutationPValuesVoxelLevelInference);
 	CalculatePermutationPValuesClusterLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesClusterLevelInference",&createKernelErrorCalculatePermutationPValuesClusterLevelInference);
 
-	OpenCLKernels[55] = SetStartClusterIndicesKernel;
-	OpenCLKernels[56] = ClusterizeScanKernel;
-	OpenCLKernels[57] = ClusterizeRelabelKernel;
-	OpenCLKernels[58] = CalculateClusterSizesKernel;
-	OpenCLKernels[59] = CalculateClusterMassesKernel;
-	OpenCLKernels[60] = CalculateLargestClusterKernel;
-	OpenCLKernels[61] = CalculateTFCEValuesKernel;
-	OpenCLKernels[62] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
-	OpenCLKernels[63] = CalculatePermutationPValuesClusterLevelInferenceKernel;
+	OpenCLKernels[56] = SetStartClusterIndicesKernel;
+	OpenCLKernels[57] = ClusterizeScanKernel;
+	OpenCLKernels[58] = ClusterizeRelabelKernel;
+	OpenCLKernels[59] = CalculateClusterSizesKernel;
+	OpenCLKernels[60] = CalculateClusterMassesKernel;
+	OpenCLKernels[61] = CalculateLargestClusterKernel;
+	OpenCLKernels[62] = CalculateTFCEValuesKernel;
+	OpenCLKernels[63] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
+	OpenCLKernels[64] = CalculatePermutationPValuesClusterLevelInferenceKernel;
 
 	// Statistical kernels
 	CalculateBetaWeightsGLMKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
@@ -1630,28 +1635,28 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	RemoveLinearFitKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
 	RemoveLinearFitSliceKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFitSlice",&createKernelErrorRemoveLinearFitSlice);
 
-	OpenCLKernels[64] = CalculateBetaWeightsGLMKernel;
-	OpenCLKernels[65] = CalculateBetaWeightsGLMSliceKernel;
-	OpenCLKernels[66] = CalculateBetaWeightsAndContrastsGLMSliceKernel;
-	OpenCLKernels[67] = CalculateBetaWeightsGLMFirstLevelKernel;
-	OpenCLKernels[68] = CalculateGLMResidualsKernel;
-	OpenCLKernels[69] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-	OpenCLKernels[70] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-	OpenCLKernels[71] = CalculateStatisticalMapsGLMTTestKernel;
-	OpenCLKernels[72] = CalculateStatisticalMapsGLMFTestKernel;
-	OpenCLKernels[73] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
-	OpenCLKernels[74] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
-	OpenCLKernels[75] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
-	OpenCLKernels[76] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-	OpenCLKernels[77] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
-	OpenCLKernels[78] = TransformDataKernel;
-	OpenCLKernels[79] = RemoveLinearFitKernel;
-	OpenCLKernels[80] = RemoveLinearFitSliceKernel;
+	OpenCLKernels[65] = CalculateBetaWeightsGLMKernel;
+	OpenCLKernels[66] = CalculateBetaWeightsGLMSliceKernel;
+	OpenCLKernels[67] = CalculateBetaWeightsAndContrastsGLMSliceKernel;
+	OpenCLKernels[68] = CalculateBetaWeightsGLMFirstLevelKernel;
+	OpenCLKernels[69] = CalculateGLMResidualsKernel;
+	OpenCLKernels[70] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+	OpenCLKernels[71] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+	OpenCLKernels[72] = CalculateStatisticalMapsGLMTTestKernel;
+	OpenCLKernels[73] = CalculateStatisticalMapsGLMFTestKernel;
+	OpenCLKernels[74] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
+	OpenCLKernels[75] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+	OpenCLKernels[76] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
+	OpenCLKernels[77] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+	OpenCLKernels[78] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
+	OpenCLKernels[79] = TransformDataKernel;
+	OpenCLKernels[80] = RemoveLinearFitKernel;
+	OpenCLKernels[81] = RemoveLinearFitSliceKernel;
 
 	// Bayesian kernels
 	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(OpenCLPrograms[7],"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
 
-	OpenCLKernels[81] = CalculateStatisticalMapsGLMBayesianKernel;
+	OpenCLKernels[82] = CalculateStatisticalMapsGLMBayesianKernel;
 
 	// Whitening kernels	
 	EstimateAR4ModelsKernel = clCreateKernel(OpenCLPrograms[6],"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
@@ -1660,11 +1665,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	ApplyWhiteningAR4SliceKernel = clCreateKernel(OpenCLPrograms[6],"ApplyWhiteningAR4Slice",&createKernelErrorApplyWhiteningAR4Slice);
 	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(OpenCLPrograms[6],"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
 
-	OpenCLKernels[82] = EstimateAR4ModelsKernel;
-	OpenCLKernels[83] = EstimateAR4ModelsSliceKernel;
-	OpenCLKernels[84] = ApplyWhiteningAR4Kernel;
-	OpenCLKernels[85] = ApplyWhiteningAR4SliceKernel;
-	OpenCLKernels[86] = GeneratePermutedVolumesFirstLevelKernel;
+	OpenCLKernels[83] = EstimateAR4ModelsKernel;
+	OpenCLKernels[84] = EstimateAR4ModelsSliceKernel;
+	OpenCLKernels[85] = ApplyWhiteningAR4Kernel;
+	OpenCLKernels[86] = ApplyWhiteningAR4SliceKernel;
+	OpenCLKernels[87] = GeneratePermutedVolumesFirstLevelKernel;
 
 	OPENCL_INITIATED = true;
 
@@ -1806,166 +1811,169 @@ const char* BROCCOLI_LIB::GetOpenCLKernelName(int kernel)
 			return "PermuteMatrix";
 			break;
 		case 34:
-			return "MultiplyVolume";
+			return "LogitMatrix";
 			break;
 		case 35:
-			return "MultiplyVolumes";
+			return "MultiplyVolume";
 			break;
 		case 36:
-			return "MultiplyVolumesOverwrite";
+			return "MultiplyVolumes";
 			break;
 		case 37:
-			return "AddVolume";
+			return "MultiplyVolumesOverwrite";
 			break;
 		case 38:
-			return "AddVolumes";
+			return "AddVolume";
 			break;
 		case 39:
-			return "AddVolumesOverwrite";
+			return "AddVolumes";
 			break;
 		case 40:
-			return "SubtractVolumes";
+			return "AddVolumesOverwrite";
 			break;
 		case 41:
-			return "SubtractVolumesOverwrite";
+			return "SubtractVolumes";
 			break;
 		case 42:
+			return "SubtractVolumesOverwrite";
+			break;
+		case 43:
 			return "RemoveMean";
 			break;
 
-		case 43:
+		case 44:
 			return "InterpolateVolumeNearestLinear";
 			break;
-		case 44:
+		case 45:
 			return "InterpolateVolumeLinearLinear";
 			break;
-		case 45:
+		case 46:
 			return "InterpolateVolumeCubicLinear";
 			break;
-		case 46:
+		case 47:
 			return "InterpolateVolumeNearestNonLinear";
 			break;
-		case 47:
+		case 48:
 			return "InterpolateVolumeLinearNonLinear";
 			break;
-		case 48:
+		case 49:
 			return "InterpolateVolumeCubicNonLinear";
 			break;
-		case 49:
+		case 50:
 			return "RescaleVolumeLinear";
 			break;
-		case 50:
+		case 51:
 			return "RescaleVolumeCubic";
 			break;
-		case 51:
+		case 52:
 			return "RescaleVolumeNearest";
 			break;
-		case 52:
+		case 53:
 			return "CopyT1VolumeToMNI";
 			break;
-		case 53:
+		case 54:
 			return "CopyEPIVolumeToT1";
 			break;
-		case 54:
+		case 55:
 			return "CopyVolumeToNew";
 			break;
 		
-		case 55:
+		case 56:
 			return "SetStartClusterIndices";
 			break;
-		case 56:
+		case 57:
 			return "ClusterizeScan";
 			break;
-		case 57:
+		case 58:
 			return "ClusterizeRelabel";
 			break;
-		case 58:
+		case 59:
 			return "CalculateClusterSizes";
 			break;
-		case 59:
+		case 60:
 			return "CalculateClusterMasses";
 			break;
-		case 60:
+		case 61:
 			return "CalculateLargestCluster";
 			break;
-		case 61:
+		case 62:
 			return "CalculateTFCEValues";
 			break;
-		case 62:
+		case 63:
 			return "CalculatePermutationPValuesVoxelLevelInference";
 			break;
-		case 63:
+		case 64:
 			return "CalculatePermutationPValuesClusterLevelInference";
 			break;
 
-		case 64:
+		case 65:
 			return "CalculateBetaWeightsGLM";
 			break;
-		case 65:
+		case 66:
 			return "CalculateBetaWeightsGLMSlice";
 			break;
-		case 66:
+		case 67:
 			return "CalculateBetaWeightsAndContrastsGLMSlice";
 			break;
-		case 67:
+		case 68:
 			return "CalculateBetaWeightsGLMFirstLevel";
 			break;
-		case 68:
+		case 69:
 			return "CalculateGLMResiduals";
 			break;
-		case 69:
+		case 70:
 			return "CalculateStatisticalMapsGLMTTestFirstLevel";
 			break;
-		case 70:
+		case 71:
 			return "CalculateStatisticalMapsGLMFTestFirstLevel";
 			break;
-		case 71:
+		case 72:
 			return "CalculateStatisticalMapsGLMTTest";
 			break;
-		case 72:
+		case 73:
 			return "CalculateStatisticalMapsGLMFTest";
 			break;
-		case 73:
+		case 74:
 			return "CalculateStatisticalMapsGLMTTestFirstLevelPermutation";
 			break;
-		case 74:
+		case 75:
 			return "CalculateStatisticalMapsGLMFTestFirstLevelPermutation";
 			break;
-		case 75:
+		case 76:
 			return "CalculateStatisticalMapsGLMTTestSecondLevelPermutation";
 			break;
-		case 76:
+		case 77:
 			return "CalculateStatisticalMapsGLMFTestSecondLevelPermutation";
 			break;
-		case 77:
+		case 78:
 			return "CalculateStatisticalMapsMeanSecondLevelPermutation";
 			break;
-		case 78:
+		case 79:
 			return "TransformData";
 			break;
-		case 79:
+		case 80:
 			return "RemoveLinearFit";
 			break;
-		case 80:
+		case 81:
 			return "RemoveLinearFitSlice";
 			break;
 
-		case 81:
+		case 82:
 			return "CalculateStatisticalMapsGLMBayesian";
 			break;
-		case 82:
+		case 83:
 			return "EstimateAR4Models";
 			break;
-		case 83:
+		case 84:
 			return "EstimateAR4ModelsSlice";
 			break;
-		case 84:
+		case 85:
 			return "ApplyWhiteningAR4";
 			break;
-		case 85:
+		case 86:
 			return "ApplyWhiteningAR4Slice";
 			break;
-		case 86:
+		case 87:
 			return "GeneratePermutedVolumesFirstLevel";
 			break;
 
@@ -2013,64 +2021,65 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 	OpenCLCreateKernelErrors[31] = createKernelErrorIdentityMatrix;
 	OpenCLCreateKernelErrors[32] = createKernelErrorGetSubMatrix;
 	OpenCLCreateKernelErrors[33] = createKernelErrorPermuteMatrix;
-	OpenCLCreateKernelErrors[34] = createKernelErrorMultiplyVolume;
-	OpenCLCreateKernelErrors[35] = createKernelErrorMultiplyVolumes;
-	OpenCLCreateKernelErrors[36] = createKernelErrorMultiplyVolumesOverwrite;
-	OpenCLCreateKernelErrors[37] = createKernelErrorAddVolume;
-	OpenCLCreateKernelErrors[38] = createKernelErrorAddVolumes;
-	OpenCLCreateKernelErrors[39] = createKernelErrorAddVolumesOverwrite;
-	OpenCLCreateKernelErrors[40] = createKernelErrorSubtractVolumes;
-	OpenCLCreateKernelErrors[41] = createKernelErrorSubtractVolumesOverwrite;
-	OpenCLCreateKernelErrors[42] = createKernelErrorRemoveMean;
+	OpenCLCreateKernelErrors[34] = createKernelErrorLogitMatrix;
+	OpenCLCreateKernelErrors[35] = createKernelErrorMultiplyVolume;
+	OpenCLCreateKernelErrors[36] = createKernelErrorMultiplyVolumes;
+	OpenCLCreateKernelErrors[37] = createKernelErrorMultiplyVolumesOverwrite;
+	OpenCLCreateKernelErrors[38] = createKernelErrorAddVolume;
+	OpenCLCreateKernelErrors[39] = createKernelErrorAddVolumes;
+	OpenCLCreateKernelErrors[40] = createKernelErrorAddVolumesOverwrite;
+	OpenCLCreateKernelErrors[41] = createKernelErrorSubtractVolumes;
+	OpenCLCreateKernelErrors[42] = createKernelErrorSubtractVolumesOverwrite;
+	OpenCLCreateKernelErrors[43] = createKernelErrorRemoveMean;
 
-	OpenCLCreateKernelErrors[43] = createKernelErrorInterpolateVolumeNearestLinear;
-	OpenCLCreateKernelErrors[44] = createKernelErrorInterpolateVolumeLinearLinear;
-	OpenCLCreateKernelErrors[45] = createKernelErrorInterpolateVolumeCubicLinear;
-	OpenCLCreateKernelErrors[46] = createKernelErrorInterpolateVolumeNearestNonLinear;
-	OpenCLCreateKernelErrors[47] = createKernelErrorInterpolateVolumeLinearNonLinear;
-	OpenCLCreateKernelErrors[48] = createKernelErrorInterpolateVolumeCubicNonLinear;
-	OpenCLCreateKernelErrors[49] = createKernelErrorRescaleVolumeLinear;
-	OpenCLCreateKernelErrors[50] = createKernelErrorRescaleVolumeCubic;
-	OpenCLCreateKernelErrors[51] = createKernelErrorRescaleVolumeNearest;
-	OpenCLCreateKernelErrors[52] = createKernelErrorCopyT1VolumeToMNI;
-	OpenCLCreateKernelErrors[53] = createKernelErrorCopyEPIVolumeToT1;
-	OpenCLCreateKernelErrors[54] = createKernelErrorCopyVolumeToNew;
+	OpenCLCreateKernelErrors[44] = createKernelErrorInterpolateVolumeNearestLinear;
+	OpenCLCreateKernelErrors[45] = createKernelErrorInterpolateVolumeLinearLinear;
+	OpenCLCreateKernelErrors[46] = createKernelErrorInterpolateVolumeCubicLinear;
+	OpenCLCreateKernelErrors[47] = createKernelErrorInterpolateVolumeNearestNonLinear;
+	OpenCLCreateKernelErrors[48] = createKernelErrorInterpolateVolumeLinearNonLinear;
+	OpenCLCreateKernelErrors[49] = createKernelErrorInterpolateVolumeCubicNonLinear;
+	OpenCLCreateKernelErrors[50] = createKernelErrorRescaleVolumeLinear;
+	OpenCLCreateKernelErrors[51] = createKernelErrorRescaleVolumeCubic;
+	OpenCLCreateKernelErrors[52] = createKernelErrorRescaleVolumeNearest;
+	OpenCLCreateKernelErrors[53] = createKernelErrorCopyT1VolumeToMNI;
+	OpenCLCreateKernelErrors[54] = createKernelErrorCopyEPIVolumeToT1;
+	OpenCLCreateKernelErrors[55] = createKernelErrorCopyVolumeToNew;
 
-	OpenCLCreateKernelErrors[55] = createKernelErrorSetStartClusterIndices;
-	OpenCLCreateKernelErrors[56] = createKernelErrorClusterizeScan;
-	OpenCLCreateKernelErrors[57] = createKernelErrorClusterizeRelabel;
-	OpenCLCreateKernelErrors[58] = createKernelErrorCalculateClusterSizes;
-	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateClusterMasses;
-	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateLargestCluster;
-	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateTFCEValues;
-	OpenCLCreateKernelErrors[62] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLCreateKernelErrors[63] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLCreateKernelErrors[56] = createKernelErrorSetStartClusterIndices;
+	OpenCLCreateKernelErrors[57] = createKernelErrorClusterizeScan;
+	OpenCLCreateKernelErrors[58] = createKernelErrorClusterizeRelabel;
+	OpenCLCreateKernelErrors[59] = createKernelErrorCalculateClusterSizes;
+	OpenCLCreateKernelErrors[60] = createKernelErrorCalculateClusterMasses;
+	OpenCLCreateKernelErrors[61] = createKernelErrorCalculateLargestCluster;
+	OpenCLCreateKernelErrors[62] = createKernelErrorCalculateTFCEValues;
+	OpenCLCreateKernelErrors[63] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLCreateKernelErrors[64] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
-	OpenCLCreateKernelErrors[64] = createKernelErrorCalculateBetaWeightsGLM;
-	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
-	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateGLMResiduals;
-	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLCreateKernelErrors[71] = createKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLCreateKernelErrors[72] = createKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLCreateKernelErrors[73] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[74] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[75] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[76] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[77] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLCreateKernelErrors[78] = createKernelErrorTransformData;
-	OpenCLCreateKernelErrors[79] = createKernelErrorRemoveLinearFit;
-	OpenCLCreateKernelErrors[80] = createKernelErrorRemoveLinearFitSlice;
+	OpenCLCreateKernelErrors[65] = createKernelErrorCalculateBetaWeightsGLM;
+	OpenCLCreateKernelErrors[66] = createKernelErrorCalculateBetaWeightsGLMSlice;
+	OpenCLCreateKernelErrors[67] = createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateGLMResiduals;
+	OpenCLCreateKernelErrors[70] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLCreateKernelErrors[71] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLCreateKernelErrors[72] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[73] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[74] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[75] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[76] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[77] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[78] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLCreateKernelErrors[79] = createKernelErrorTransformData;
+	OpenCLCreateKernelErrors[80] = createKernelErrorRemoveLinearFit;
+	OpenCLCreateKernelErrors[81] = createKernelErrorRemoveLinearFitSlice;
 
-	OpenCLCreateKernelErrors[81] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLCreateKernelErrors[82] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLCreateKernelErrors[82] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[83] = createKernelErrorEstimateAR4ModelsSlice;
-	OpenCLCreateKernelErrors[84] = createKernelErrorApplyWhiteningAR4;
-	OpenCLCreateKernelErrors[85] = createKernelErrorApplyWhiteningAR4Slice;
-	OpenCLCreateKernelErrors[86] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLCreateKernelErrors[83] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[84] = createKernelErrorEstimateAR4ModelsSlice;
+	OpenCLCreateKernelErrors[85] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[86] = createKernelErrorApplyWhiteningAR4Slice;
+	OpenCLCreateKernelErrors[87] = createKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLCreateKernelErrors;
 }
@@ -2114,64 +2123,65 @@ int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
 	OpenCLRunKernelErrors[31] = runKernelErrorIdentityMatrix;
 	OpenCLRunKernelErrors[32] = runKernelErrorGetSubMatrix;
 	OpenCLRunKernelErrors[33] = runKernelErrorPermuteMatrix;
-	OpenCLRunKernelErrors[34] = runKernelErrorMultiplyVolume;
-	OpenCLRunKernelErrors[35] = runKernelErrorMultiplyVolumes;
-	OpenCLRunKernelErrors[36] = runKernelErrorMultiplyVolumesOverwrite;
-	OpenCLRunKernelErrors[37] = runKernelErrorAddVolume;
-	OpenCLRunKernelErrors[38] = runKernelErrorAddVolumes;
-	OpenCLRunKernelErrors[39] = runKernelErrorAddVolumesOverwrite;
-	OpenCLRunKernelErrors[40] = runKernelErrorSubtractVolumes;
-	OpenCLRunKernelErrors[41] = runKernelErrorSubtractVolumesOverwrite;
-	OpenCLRunKernelErrors[42] = runKernelErrorRemoveMean;
+	OpenCLRunKernelErrors[34] = runKernelErrorLogitMatrix;
+	OpenCLRunKernelErrors[35] = runKernelErrorMultiplyVolume;
+	OpenCLRunKernelErrors[36] = runKernelErrorMultiplyVolumes;
+	OpenCLRunKernelErrors[37] = runKernelErrorMultiplyVolumesOverwrite;
+	OpenCLRunKernelErrors[38] = runKernelErrorAddVolume;
+	OpenCLRunKernelErrors[39] = runKernelErrorAddVolumes;
+	OpenCLRunKernelErrors[40] = runKernelErrorAddVolumesOverwrite;
+	OpenCLRunKernelErrors[41] = runKernelErrorSubtractVolumes;
+	OpenCLRunKernelErrors[42] = runKernelErrorSubtractVolumesOverwrite;
+	OpenCLRunKernelErrors[43] = runKernelErrorRemoveMean;
 
-	OpenCLRunKernelErrors[43] = runKernelErrorInterpolateVolumeNearestLinear;
-	OpenCLRunKernelErrors[44] = runKernelErrorInterpolateVolumeLinearLinear;
-	OpenCLRunKernelErrors[45] = runKernelErrorInterpolateVolumeCubicLinear;
-	OpenCLRunKernelErrors[46] = runKernelErrorInterpolateVolumeNearestNonLinear;
-	OpenCLRunKernelErrors[47] = runKernelErrorInterpolateVolumeLinearNonLinear;
-	OpenCLRunKernelErrors[48] = runKernelErrorInterpolateVolumeCubicNonLinear;
-	OpenCLRunKernelErrors[49] = runKernelErrorRescaleVolumeLinear;
-	OpenCLRunKernelErrors[50] = runKernelErrorRescaleVolumeCubic;
-	OpenCLRunKernelErrors[51] = runKernelErrorRescaleVolumeNearest;
-	OpenCLRunKernelErrors[52] = runKernelErrorCopyT1VolumeToMNI;
-	OpenCLRunKernelErrors[53] = runKernelErrorCopyEPIVolumeToT1;
-	OpenCLRunKernelErrors[54] = runKernelErrorCopyVolumeToNew;
+	OpenCLRunKernelErrors[44] = runKernelErrorInterpolateVolumeNearestLinear;
+	OpenCLRunKernelErrors[45] = runKernelErrorInterpolateVolumeLinearLinear;
+	OpenCLRunKernelErrors[46] = runKernelErrorInterpolateVolumeCubicLinear;
+	OpenCLRunKernelErrors[47] = runKernelErrorInterpolateVolumeNearestNonLinear;
+	OpenCLRunKernelErrors[48] = runKernelErrorInterpolateVolumeLinearNonLinear;
+	OpenCLRunKernelErrors[49] = runKernelErrorInterpolateVolumeCubicNonLinear;
+	OpenCLRunKernelErrors[50] = runKernelErrorRescaleVolumeLinear;
+	OpenCLRunKernelErrors[51] = runKernelErrorRescaleVolumeCubic;
+	OpenCLRunKernelErrors[52] = runKernelErrorRescaleVolumeNearest;
+	OpenCLRunKernelErrors[53] = runKernelErrorCopyT1VolumeToMNI;
+	OpenCLRunKernelErrors[54] = runKernelErrorCopyEPIVolumeToT1;
+	OpenCLRunKernelErrors[55] = runKernelErrorCopyVolumeToNew;
 
-	OpenCLRunKernelErrors[55] = runKernelErrorSetStartClusterIndices;
-	OpenCLRunKernelErrors[56] = runKernelErrorClusterizeScan;
-	OpenCLRunKernelErrors[57] = runKernelErrorClusterizeRelabel;
-	OpenCLRunKernelErrors[58] = runKernelErrorCalculateClusterSizes;
-	OpenCLRunKernelErrors[59] = runKernelErrorCalculateClusterMasses;
-	OpenCLRunKernelErrors[60] = runKernelErrorCalculateLargestCluster;
-	OpenCLRunKernelErrors[61] = runKernelErrorCalculateTFCEValues;
-	OpenCLRunKernelErrors[62] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLRunKernelErrors[63] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLRunKernelErrors[56] = runKernelErrorSetStartClusterIndices;
+	OpenCLRunKernelErrors[57] = runKernelErrorClusterizeScan;
+	OpenCLRunKernelErrors[58] = runKernelErrorClusterizeRelabel;
+	OpenCLRunKernelErrors[59] = runKernelErrorCalculateClusterSizes;
+	OpenCLRunKernelErrors[60] = runKernelErrorCalculateClusterMasses;
+	OpenCLRunKernelErrors[61] = runKernelErrorCalculateLargestCluster;
+	OpenCLRunKernelErrors[62] = runKernelErrorCalculateTFCEValues;
+	OpenCLRunKernelErrors[63] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
+	OpenCLRunKernelErrors[64] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
 
-	OpenCLRunKernelErrors[64] = runKernelErrorCalculateBetaWeightsGLM;
-	OpenCLRunKernelErrors[65] = runKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLRunKernelErrors[66] = runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
-	OpenCLRunKernelErrors[67] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLRunKernelErrors[68] = runKernelErrorCalculateGLMResiduals;
-	OpenCLRunKernelErrors[69] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLRunKernelErrors[71] = runKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLRunKernelErrors[72] = runKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLRunKernelErrors[73] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[74] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[75] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[76] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[77] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLRunKernelErrors[78] = runKernelErrorTransformData;
-	OpenCLRunKernelErrors[79] = runKernelErrorRemoveLinearFit;
-	OpenCLRunKernelErrors[80] = runKernelErrorRemoveLinearFitSlice;
+	OpenCLRunKernelErrors[65] = runKernelErrorCalculateBetaWeightsGLM;
+	OpenCLRunKernelErrors[66] = runKernelErrorCalculateBetaWeightsGLMSlice;
+	OpenCLRunKernelErrors[67] = runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLRunKernelErrors[68] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLRunKernelErrors[69] = runKernelErrorCalculateGLMResiduals;
+	OpenCLRunKernelErrors[70] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[71] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLRunKernelErrors[72] = runKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLRunKernelErrors[73] = runKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLRunKernelErrors[74] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[75] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[76] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[77] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[78] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLRunKernelErrors[79] = runKernelErrorTransformData;
+	OpenCLRunKernelErrors[80] = runKernelErrorRemoveLinearFit;
+	OpenCLRunKernelErrors[81] = runKernelErrorRemoveLinearFitSlice;
 
-	OpenCLRunKernelErrors[81] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLRunKernelErrors[82] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLRunKernelErrors[82] = runKernelErrorEstimateAR4Models;
-	OpenCLRunKernelErrors[83] = runKernelErrorEstimateAR4ModelsSlice;
-	OpenCLRunKernelErrors[84] = runKernelErrorApplyWhiteningAR4;
-	OpenCLRunKernelErrors[85] = runKernelErrorApplyWhiteningAR4Slice;
-	OpenCLRunKernelErrors[86] = runKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLRunKernelErrors[83] = runKernelErrorEstimateAR4Models;
+	OpenCLRunKernelErrors[84] = runKernelErrorEstimateAR4ModelsSlice;
+	OpenCLRunKernelErrors[85] = runKernelErrorApplyWhiteningAR4;
+	OpenCLRunKernelErrors[86] = runKernelErrorApplyWhiteningAR4Slice;
+	OpenCLRunKernelErrors[87] = runKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLRunKernelErrors;
 }
@@ -7279,6 +7289,16 @@ void BROCCOLI_LIB::SubtractArrays(cl_mem d_Array_1, cl_mem d_Array_2, size_t N)
 	clFinish(commandQueue);
 }
 
+void BROCCOLI_LIB::LogitMatrix(cl_mem d_Array, size_t N)
+{
+	SetGlobalAndLocalWorkSizesAddVolumes(N, 1, 1);
+
+	clSetKernelArg(LogitMatrixKernel, 0, sizeof(cl_mem), &d_Array);
+	clSetKernelArg(LogitMatrixKernel, 1, sizeof(int), &N);
+
+	runKernelErrorLogitMatrix = clEnqueueNDRangeKernel(commandQueue, LogitMatrixKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
 
 // Subtracts two volumes and saves as a third volume
 void BROCCOLI_LIB::SubtractVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D)
@@ -16157,6 +16177,21 @@ void BROCCOLI_LIB::DemeanRegressor(Eigen::VectorXd& Regressor, int N)
 	}
 }
 
+void BROCCOLI_LIB::DemeanRegressor(Eigen::VectorXf& Regressor, int N)
+{
+	float mean = 0.0;
+	for (int t = 0; t < N; t++)
+	{
+		mean += Regressor(t);
+	}
+	mean /= (float)N;
+
+	for (int t = 0; t < N; t++)
+	{
+		Regressor(t) -= mean;
+	}
+}
+
 // Setups all regressors for first level analysis
 Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 {
@@ -17212,6 +17247,20 @@ void BROCCOLI_LIB::ResetEigenMatrix(Eigen::MatrixXd & matrix)
 	}
 }
 
+void BROCCOLI_LIB::ResetEigenMatrix(Eigen::MatrixXf & matrix)
+{
+	int NUMBER_OF_COLUMNS = matrix.cols();
+	int NUMBER_OF_ROWS = matrix.rows();
+
+	for (int r = 0; r < NUMBER_OF_ROWS; r++)
+	{	
+		for (int c = 0; c < NUMBER_OF_COLUMNS; c++)
+		{
+			matrix(r,c) = 0.0f;
+		}
+	}
+}
+
 void BROCCOLI_LIB::IdentityEigenMatrix(Eigen::MatrixXd & matrix)
 {
 	int NUMBER_OF_COLUMNS = matrix.cols();
@@ -17228,6 +17277,27 @@ void BROCCOLI_LIB::IdentityEigenMatrix(Eigen::MatrixXd & matrix)
 			else
 			{
 				matrix(r,c) = 0.0;
+			}
+		}
+	}
+}
+
+void BROCCOLI_LIB::IdentityEigenMatrix(Eigen::MatrixXf & matrix)
+{
+	int NUMBER_OF_COLUMNS = matrix.cols();
+	int NUMBER_OF_ROWS = matrix.rows();
+
+	for (int r = 0; r < NUMBER_OF_ROWS; r++)
+	{	
+		for (int c = 0; c < NUMBER_OF_COLUMNS; c++)
+		{
+			if (c == r)
+			{
+				matrix(r,c) = 1.0f;
+			}
+			else
+			{
+				matrix(r,c) = 0.0f;
 			}
 		}
 	}
@@ -17544,9 +17614,19 @@ void BROCCOLI_LIB::PCADimensionalityReductionEigen(Eigen::MatrixXd & reducedData
 }
 
 
+double GetTime()
+{
+    struct timeval time;
+    if (gettimeofday(&time,NULL))
+    {
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
 
 // Saves a certain percentage of the variance, instead of a fix number of components
-Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean)
+Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean)
 {
 	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
 	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
@@ -17563,76 +17643,99 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean
 		for (size_t voxel = 0; voxel < NUMBER_OF_ICA_VARIABLES; voxel++)
 		{
 			//printf("Demeaning data for voxel %i\n",voxel);
-			Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_ICA_OBSERVATIONS,1);
+			Eigen::VectorXf values = inputData.block(0,voxel,NUMBER_OF_ICA_OBSERVATIONS,1);
 			DemeanRegressor(values,NUMBER_OF_ICA_OBSERVATIONS);
 			inputData.block(0,voxel,NUMBER_OF_ICA_OBSERVATIONS,1) = values;
 		}
 	}
 
 	// Calculate covariance Matrix
-	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_OBSERVATIONS);
-	ResetEigenMatrix(covarianceMatrix);
 	if (WRAPPER == BASH)
 	{
-		printf("Estimating the covariance matrix\n");
+		printf("Estimating the covariance matrix using clBLAS\n");
 	}
+
+	double startTime, endTime;
+	startTime = GetTime();
 
 	cl_mem d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_OBSERVATIONS *  NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
 	cl_mem d_Covariance_Matrix = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_OBSERVATIONS *  NUMBER_OF_ICA_OBSERVATIONS * sizeof(float), NULL, NULL);
-	cl_mem d_Vector = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_OBSERVATIONS * sizeof(float), NULL, NULL);
 	
-	SetMemory(d_Covariance_Matrix, 0.0f, NUMBER_OF_ICA_OBSERVATIONS *  NUMBER_OF_ICA_OBSERVATIONS);
-
 	// Copy data to device
 	clEnqueueWriteBuffer(commandQueue, d_Data, CL_TRUE, 0, NUMBER_OF_ICA_OBSERVATIONS * NUMBER_OF_ICA_VARIABLES * sizeof(float), inputData.data(), 0, NULL, NULL);
 
-//	for (int variable = 0; variable < NUMBER_OF_ICA_VARIABLES; variable++)
-//	{
-		// Copy a new vector
-		
-		// Calculate outer product and increment
+	// C = alpha * A * B  + beta * C                                            
+	//                      rows in d_Data             columns in d_Data          columns in d_Data       alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
+ 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_OBSERVATIONS,   NUMBER_OF_ICA_OBSERVATIONS,    NUMBER_OF_ICA_VARIABLES, 1.0f/(float)(NUMBER_OF_ICA_VARIABLES - 1),  d_Data, 0,   NUMBER_OF_ICA_OBSERVATIONS,       d_Data, 0,      NUMBER_OF_ICA_OBSERVATIONS,    0.0f,   d_Covariance_Matrix, 0, NUMBER_OF_ICA_OBSERVATIONS, 1, &commandQueue, 0, NULL, NULL);
+	clFinish(commandQueue);
+	printf("clBLAS error for covariance matrix is %s \n",GetOpenCLErrorMessage(error));
 
-//	}
-	//covarianceMatrix *= 1.0/(double)(NUMBER_OF_ICA_VARIABLES - 1);
-
-// C = alpha * A * B  + beta * C                                            rows in d_Data             columns in d_Data          columns in d_Data       alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
- 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_OBSERVATIONS,   NUMBER_OF_ICA_VARIABLES,    NUMBER_OF_ICA_VARIABLES, 1.0f,  d_Data, 0,   NUMBER_OF_ICA_OBSERVATIONS,       d_Data, 0,      NUMBER_OF_ICA_OBSERVATIONS,    0.0f,   d_Covariance_Matrix, 0, NUMBER_OF_ICA_OBSERVATIONS, 1, &commandQueue, 0, NULL, NULL);
-
+	// Copy covariance matrix back to host
+	Eigen::MatrixXf covarianceMatrix(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_OBSERVATIONS);
+	clEnqueueReadBuffer(commandQueue, d_Covariance_Matrix, CL_TRUE, 0, NUMBER_OF_ICA_OBSERVATIONS * NUMBER_OF_ICA_OBSERVATIONS * sizeof(float), covarianceMatrix.data(), 0, NULL, NULL);
 
 	clReleaseMemObject(d_Data);
 	clReleaseMemObject(d_Covariance_Matrix);
-	clReleaseMemObject(d_Vector);
+
+	endTime = GetTime();
+	printf("It took %f seconds to calculate the covariance matrix using clBLAS\n",(float)(endTime - startTime));
+
+	//startTime = GetTime();
+	//Eigen::MatrixXf covarianceMatrix(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_OBSERVATIONS);
+	//if (WRAPPER == BASH)
+	//{
+	//	printf("Estimating the covariance matrix using Eigen\n");
+	//}
+	//covarianceMatrix = inputData * inputData.transpose();
+	//covarianceMatrix *= 1.0/(double)(NUMBER_OF_ICA_VARIABLES - 1);
+
+	//endTime = GetTime();
+	//printf("It took %f seconds to calculate the covariance matrix using Eigen\n",(float)(endTime - startTime));
+
+
+	// Calculate eigen values of covariance matrix	
+	//if (WRAPPER == BASH)
+	//{
+	//	printf("Calculating eigen values for clBLAS covariance matrix\n");
+	//}
+	//Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es2(covarianceMatrix2);
+	//Eigen::VectorXf eigenValues2 = es2.eigenvalues();
+	//Eigen::MatrixXf eigenVectors2 = es2.eigenvectors();
 	
+
 	// Calculate eigen values of covariance matrix	
 	if (WRAPPER == BASH)
 	{
-		printf("Calculating eigen values\n");
+		printf("Calculating eigen values \n");
 	}
-	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(covarianceMatrix);
-	Eigen::VectorXd eigenValues = es.eigenvalues();
-	Eigen::MatrixXd eigenVectors = es.eigenvectors();
-	
-	double totalVariance = 0.0;
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(covarianceMatrix);
+	Eigen::VectorXf eigenValues = es.eigenvalues();
+	Eigen::MatrixXf eigenVectors = es.eigenvectors();
+
+
+	float totalVariance = 0.0;
 	for (int i = 0; i < NUMBER_OF_ICA_OBSERVATIONS; i++)
 	{
 		totalVariance += eigenValues(i);
+
+		//printf("Eigen value for Eigen is %f and for clBLAS is %f \n",eigenValues(i),eigenValues2(i));
 	}
 
 	// Calculate number of components to save
-	double savedVariance = 0.0;
-	Eigen::VectorXd temp = eigenValues;
+	float savedVariance = 0.0;
+	Eigen::VectorXf temp = eigenValues;
 	NUMBER_OF_ICA_COMPONENTS = 0;
 	while (savedVariance/totalVariance*100.0 < (double)PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA )
 	{
 		NUMBER_OF_ICA_COMPONENTS++;
 		int index = 0;
-		double largestEigenValue = temp.maxCoeff(&index);
+		float largestEigenValue = temp.maxCoeff(&index);
 		savedVariance += largestEigenValue;
 		temp(index) = 0.0;
 	}
 
-	Eigen::VectorXd savedEigenValues(NUMBER_OF_ICA_COMPONENTS);
-	Eigen::MatrixXd savedEigenVectors(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_OBSERVATIONS);
+	Eigen::VectorXf savedEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf savedEigenVectors(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_OBSERVATIONS);
 
 	// Get a sub matrix of all the eigen vectors, to remove the smallest ones
 	// Get a sub vector of the eigen values, to remove the smallest eigen values
@@ -17640,7 +17743,7 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean
 	{	
 		// Find largest eigen value for current component, and it's location
 		int index = 0; 
-		double largestEigenValue = eigenValues.maxCoeff(&index);
+		float largestEigenValue = eigenValues.maxCoeff(&index);
 		savedEigenValues(i) = largestEigenValue;
 
 		printf("Largest eigen value is %f \n",(float)largestEigenValue);
@@ -17658,23 +17761,62 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXd & inputData, bool demean
 	}
 
 	// Calculate  ^(-1/2) for all saved eigen values
-	Eigen::VectorXd scaledEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	Eigen::VectorXf scaledEigenValues(NUMBER_OF_ICA_COMPONENTS);
 	for (int i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
 	{	
-		double eigenValue = savedEigenValues(i);
+		float eigenValue = savedEigenValues(i);
 		scaledEigenValues(i) = 1.0/sqrt(eigenValue);
 	}
 
 	// Calculate whitening matrix
-	Eigen::MatrixXd whiteningMatrix = scaledEigenValues.asDiagonal() * savedEigenVectors;
+	Eigen::MatrixXf whiteningMatrix = scaledEigenValues.asDiagonal() * savedEigenVectors;
+
+	printf("Whitening matrix size is %i  x %i \n",whiteningMatrix.rows(),whiteningMatrix.cols());
+
+	startTime = GetTime();
+
+	d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_OBSERVATIONS *  NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+	cl_mem d_Whitening_Matrix = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_OBSERVATIONS * sizeof(float), NULL, NULL);
+	cl_mem d_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES *  sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Data, CL_TRUE, 0, NUMBER_OF_ICA_OBSERVATIONS * NUMBER_OF_ICA_VARIABLES * sizeof(float), inputData.data(), 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_Whitening_Matrix, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_OBSERVATIONS * sizeof(float), whiteningMatrix.data(), 0, NULL, NULL);
+
+	// C = alpha * A * B  + beta * C                                            
+ 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,   NUMBER_OF_ICA_VARIABLES,    NUMBER_OF_ICA_OBSERVATIONS, 1.0f,  d_Whitening_Matrix, 0,   NUMBER_OF_ICA_COMPONENTS,       d_Data, 0,      NUMBER_OF_ICA_OBSERVATIONS,    0.0f,   d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+	clFinish(commandQueue);
+	//printf("clBLAS error for whitening data is %s \n",GetOpenCLErrorMessage(error));
+
+	// Copy whitened data back to host
+	Eigen::MatrixXf whitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+	clEnqueueReadBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), whitenedData.data(), 0, NULL, NULL);
+
+	clReleaseMemObject(d_Data);
+	clReleaseMemObject(d_Whitening_Matrix);
+	clReleaseMemObject(d_Whitened_Data);
+
+	endTime = GetTime();
+	printf("It took %f seconds to perform the whitening using clBLAS\n",(float)(endTime - startTime));
+
 
 	// Perform the actual whitening
-	if (WRAPPER == BASH)
-	{
-		printf("Applying dimensionality reduction and whitening\n");
-	}
-	Eigen::MatrixXd whitenedData = whiteningMatrix * inputData;
+	//if (WRAPPER == BASH)
+	//{
+	//	printf("Applying dimensionality reduction and whitening using Eigen\n");
+	//}
+	//Eigen::MatrixXf whitenedData = whiteningMatrix * inputData;
+
+	//endTime = GetTime();
+	//printf("It took %f seconds to perform the whitening using Eigen\n",(float)(endTime - startTime));
 	
+	printf("Whitened data size is %i  x %i \n",whitenedData.rows(),whitenedData.cols());
+
+	//Eigen::MatrixXf error = whitenedData2 - whitenedData;
+	//printf("Max error is %f\n",error.maxCoeff());
+	//printf("Total abs error is %f\n",error.array().abs().sum());
+	//printf("Error norm is %f\n",error.norm());
+
 	return whitenedData;
 }
 
@@ -17691,6 +17833,22 @@ void BROCCOLI_LIB::LogitEigenMatrix(Eigen::MatrixXd & matrix)
 		for (int c = 0; c < COLUMNS; c++)
 		{
 			matrix(r,c) = 1.0-(2.0 / (1.0 + exp(-matrix(r,c) )) );
+		}
+	}
+	// NOTE: gsl_expm1 computes exp(x)-1, hence the 2 + in denominator
+    // return 1.0 - (2.0 / (2.0 + gsl_expm1(-in)));
+}
+
+void BROCCOLI_LIB::LogitEigenMatrix(Eigen::MatrixXf & matrix)
+{
+	int ROWS = matrix.rows();
+	int COLUMNS = matrix.cols();
+
+	for (int r = 0; r < ROWS; r++)
+	{
+		for (int c = 0; c < COLUMNS; c++)
+		{
+			matrix(r,c) = 1.0f-(2.0f / (1.0f + exp(-matrix(r,c) )) );
 		}
 	}
 	// NOTE: gsl_expm1 computes exp(x)-1, hence the 2 + in denominator
@@ -17730,7 +17888,38 @@ void BROCCOLI_LIB::SetEigenMatrixValues(Eigen::MatrixXd & matrix, double value)
 	}
 }
 
+void BROCCOLI_LIB::SetEigenVectorValues(Eigen::VectorXf & vector, double value)
+{
+	int N = 0;
 
+	if (vector.rows() > vector.cols())
+	{
+		N = vector.rows();
+	}
+	else
+	{
+		N = vector.cols();
+	}
+	
+	for (int i = 0; i < N; i++)
+	{
+		vector(i) = value;
+	}
+}
+
+void BROCCOLI_LIB::SetEigenMatrixValues(Eigen::MatrixXf & matrix, double value)
+{
+	int ROWS = matrix.rows();
+	int COLUMNS = matrix.cols();
+
+	for (int r = 0; r < ROWS; r++)
+	{
+		for (int c = 0; c < COLUMNS; c++)
+		{
+			matrix(r,c) = value;
+		}
+	}
+}
 
 int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate)
 {
@@ -17842,6 +18031,126 @@ int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::Ma
 
 
 
+
+
+int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXf & weights, Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & bias, Eigen::MatrixXf & shuffledWhitenedData, double updateRate)
+{
+	size_t NUMBER_OF_OBSERVATIONS = whitenedData.rows();
+	size_t NUMBER_OF_VOXELS = whitenedData.cols();
+
+	double MAX_W = 1.0e8;
+	int error = 0;
+	size_t i;
+	size_t block = (size_t)floor(sqrt(NUMBER_OF_VOXELS/3.0));
+
+	// Create random permutation vector
+	std::vector<int> perm;
+	for (size_t i = 0; i < NUMBER_OF_VOXELS; i++) 
+	{
+	    perm.push_back(i);
+	}
+	std::random_shuffle(perm.begin(), perm.end());
+
+	// Loop over voxels, randomly permute each column
+	for (size_t i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	{
+		Eigen::VectorXf row = shuffledWhitenedData.row(i);
+		Eigen::VectorXf permutedRow = row;
+
+		for (size_t j = 0; j < NUMBER_OF_VOXELS; j++)
+		{
+			permutedRow(j) = row(perm[j]);
+		}		
+
+		shuffledWhitenedData.row(i) = permutedRow.transpose();		
+	}
+
+	size_t start;
+	Eigen::MatrixXf tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+
+	Eigen::MatrixXf *ib =  new Eigen::MatrixXf(1,block);
+	SetEigenMatrixValues(*ib,1.0);	
+
+	Eigen::MatrixXf * unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * ones = new Eigen::MatrixXf(block,1);
+	SetEigenMatrixValues(*ones,1.0);
+
+	for (start = 0; start < NUMBER_OF_VOXELS; start = start + block) 
+	{
+		if (start + block > (NUMBER_OF_VOXELS-1))
+		{
+			block = NUMBER_OF_VOXELS - start;
+
+			delete ib;
+			delete unmixed;
+			delete unmLogit;
+			delete ones;
+
+			ib =  new Eigen::MatrixXf(1,block);
+			SetEigenMatrixValues(*ib,1.0);	
+			unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			ones = new Eigen::MatrixXf(block,1);
+			SetEigenMatrixValues(*ones,1.0);
+		}	
+
+		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+
+		// Compute unmixed = weights . sub_x_white + bias . ib
+		
+		*unmixed = weights * subWhitenedData + bias * *ib;
+
+		*unmLogit = *unmixed;
+	    // Compute 1-2*logit
+		LogitEigenMatrix(*unmLogit);
+		
+		IdentityEigenMatrix(tempI);
+	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
+
+	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
+		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
+		
+	    // (2) weights = weights + lrate*temp_I*weights
+		weights += updateRate * tempI * weights;
+
+	    // Update the bias
+		bias += updateRate * *unmLogit * *ones;
+
+	    // Check if blows up
+	    double max = weights.maxCoeff();
+
+		if (max > MAX_W)
+	    {
+			if (updateRate < 1e-6) 
+			{
+				printf("\nERROR: Weight matrix may not be invertible\n");
+				error = 2;
+				break;
+			}
+			error = 1;
+			break;
+		}
+	}
+
+	delete ib;
+	delete unmixed;
+	delete unmLogit;
+	delete ones;
+
+	return(error);
+}
+
+
+
+
+
+
+
+
+
+// Used for debugging
+/*
 int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Shuffled_Whitened_Data, double updateRate)
 {
 	double MAX_W = 1.0e8;
@@ -17857,11 +18166,509 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 	}
 	std::random_shuffle(perm.begin(), perm.end());
 
+	Eigen::MatrixXf weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf weights2(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf bias(NUMBER_OF_ICA_COMPONENTS,1);
+	Eigen::MatrixXf bias2(NUMBER_OF_ICA_COMPONENTS,1);
+	Eigen::MatrixXf shuffledWhitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+
+	// Copy data from device
+	clEnqueueReadBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+
 	// Loop over voxels, randomly permute each column
-	//PermuteMatrix();
+	for (size_t i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{
+		Eigen::VectorXf row = shuffledWhitenedData.row(i);
+		Eigen::VectorXf permutedRow = row;
+
+		for (size_t j = 0; j < NUMBER_OF_ICA_VARIABLES; j++)
+		{
+			permutedRow(j) = row(perm[j]);
+		}		
+
+		shuffledWhitenedData.row(i) = permutedRow.transpose();		
+	}
+
+	// Copy data back to device
+	clEnqueueWriteBuffer(commandQueue, d_Shuffled_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
 
 
 	size_t start;
+
+	Eigen::MatrixXf tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf tempI2(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+
+	Eigen::MatrixXf *ib =  new Eigen::MatrixXf(1,block);
+	SetEigenMatrixValues(*ib,1.0f);	
+
+	Eigen::MatrixXf * unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * unmixed2 = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * ones = new Eigen::MatrixXf(block,1);
+	SetEigenMatrixValues(*ones,1.0f);
+
+
+
+	cl_mem d_TempI = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_ib = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+	cl_mem d_unmixed = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+	cl_mem d_unmLogit = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+	cl_mem d_ones = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+	cl_mem d_Sub_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+
+	SetMemory(d_ib, 1.0f, block);
+	SetMemory(d_ones, 1.0f, block);
+
+	for (start = 0; start < NUMBER_OF_ICA_VARIABLES; start = start + block) 
+	{
+		if (start + block > (NUMBER_OF_ICA_VARIABLES-1))
+		{
+			block = NUMBER_OF_ICA_VARIABLES - start;
+
+			delete ib;
+			delete unmixed;
+			delete unmixed2;
+			delete unmLogit;
+			delete ones;
+
+			ib =  new Eigen::MatrixXf(1,block);
+			SetEigenMatrixValues(*ib,1.0f);	
+			unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			unmixed2 = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			ones = new Eigen::MatrixXf(block,1);
+			SetEigenMatrixValues(*ones,1.0f);
+
+
+
+			clReleaseMemObject(d_ib);
+			clReleaseMemObject(d_unmixed);
+			clReleaseMemObject(d_unmLogit);
+			clReleaseMemObject(d_ones);
+			clReleaseMemObject(d_Sub_Whitened_Data);
+
+			d_ib = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+			d_unmixed = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+			d_unmLogit = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+			d_ones = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+			d_Sub_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+
+			SetMemory(d_ib, 1.0f, block);
+			SetMemory(d_ones, 1.0f, block);		
+		}	
+
+		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+		clEnqueueWriteBuffer(commandQueue, d_Sub_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), subWhitenedData.data(), 0, NULL, NULL);
+		//GetSubMatrix(d_Sub_Whitened_Data, d_Shuffled_Whitened_Data, 0, start, NUMBER_OF_ICA_COMPONENTS, block);
+
+		// Compute unmixed = weights * subWhitenedData + bias * ib
+		*unmixed = weights * subWhitenedData + bias * *ib;
+		
+		// First unmixed = weights * subWhitenedData 
+		// C = alpha * A * B  + beta * C                                            rows in d_Weights  columns in d_Sub_Whitened_Data   columns in d_Weights     alpha   A matrix     leading dimension of A-matrix      B matrix                        leading dimension of B-matrix    beta     C matrix
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		// Then C = bias * ib + C
+		// C = alpha * A * B  + beta * C                                            rows in d_Bias       columns in ib    columns in d_Bias     alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       1,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+		
+
+		clEnqueueReadBuffer(commandQueue, d_unmixed, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), unmixed2->data(), 0, NULL, NULL);
+		
+		Eigen::MatrixXf diff = *unmixed2 - *unmixed;
+
+		printf("Max difference between eigen and clBLAS for unmixed is %f\n",diff.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for unmixed is %f\n",diff.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for unmixed is %f\n",diff.norm());
+
+
+		*unmLogit = *unmixed;
+
+		//unmLogit = unmixed;
+		clEnqueueCopyBuffer(commandQueue, d_unmixed, d_unmLogit, 0, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), 0, NULL, NULL);
+
+	    // Compute 1-2*logit
+		LogitEigenMatrix(*unmLogit);
+		LogitMatrix(d_unmLogit,NUMBER_OF_ICA_COMPONENTS * block);
+
+		IdentityEigenMatrix(tempI);		
+		IdentityMatrix(d_TempI,NUMBER_OF_ICA_COMPONENTS);
+
+	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
+
+		// (1) temp_I = block*temp_I +unm_logit*unmixed.T
+		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
+		
+		// C = alpha * A * B  + beta * C
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, block, 1.0f, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, (float)block,   d_TempI, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		clEnqueueReadBuffer(commandQueue, d_TempI, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), tempI2.data(), 0, NULL, NULL);
+
+		Eigen::MatrixXf diff2 = tempI - tempI2;
+
+		printf("Max difference between eigen and clBLAS for tempI is %f\n",diff2.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for tempI is %f\n",diff2.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for tempI is %f\n",diff2.norm());
+
+	    // (2) weights = weights + lrate*temp_I*weights
+		weights += updateRate * tempI * weights;
+
+		// C = alpha * A * B  + beta * C
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, (float)updateRate, d_TempI, 0, NUMBER_OF_ICA_COMPONENTS, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, 1.0f,   d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		clEnqueueReadBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights2.data(), 0, NULL, NULL);
+
+		Eigen::MatrixXf diff3 = weights - weights2;
+
+		printf("Max difference between eigen and clBLAS for weights is %f\n",diff3.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for weights is %f\n",diff3.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for weights is %f\n",diff3.norm());
+
+
+	    // Update the bias
+		bias += updateRate * *unmLogit * *ones;
+
+		// C = alpha * A * B  + beta * C
+	 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, 1, block, (float)updateRate, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_ones, 0, NUMBER_OF_ICA_COMPONENTS, 1.0f,   d_Bias, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		// y = alpha * A * x  + beta * y
+		error = clblasSgemv(clblasColumnMajor, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, block, (float)updateRate, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_ones, 0, 1, 1.0f, d_Bias, 0, 1, 1, &commandQueue, 0, NULL, NULL);
+
+		printf("clBLAS error for bias is %i\n",error);
+		
+		clEnqueueReadBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias2.data(), 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		Eigen::MatrixXf diff4 = bias - bias2;
+
+		printf("Max difference between eigen and clBLAS for bias is %f\n",diff4.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for bias is %f\n",diff4.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for bias is %f\n",diff4.norm());
+
+		std::cout << bias.transpose() << std::endl << std::endl;
+		std::cout << bias2.transpose() << std::endl << std::endl;
+		std::cout << diff4.transpose() << std::endl << std::endl;
+
+
+	    // Check if blows up
+		double max = weights.maxCoeff();
+	    double max2 = weights2.maxCoeff();//CalculateMaxAtomic(d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+		printf("Max1 is %f and max2 is %f\n",(float)max,(float)max2);
+
+
+
+		if (max > MAX_W)
+	    {
+			if (updateRate < 1e-6) 
+			{
+				printf("\nERROR: Weight matrix may not be invertible\n");
+				error = 2;
+				break;
+			}
+			error = 1;
+			break;
+		}
+	}
+
+	// Copy data back to device
+	//clEnqueueWriteBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+
+
+	clReleaseMemObject(d_ib);
+	clReleaseMemObject(d_unmixed);
+	clReleaseMemObject(d_unmLogit);
+	clReleaseMemObject(d_ones);
+	clReleaseMemObject(d_Sub_Whitened_Data);
+
+	delete ib;
+	delete unmixed;
+	delete unmixed2;
+	delete unmLogit;
+	delete ones;
+
+	return(error);
+}
+*/
+
+// Used for debugging
+/*
+void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix)
+{
+  	// Computes ICA infomax in whitened data
+    //	Decomposes x_white as x_white=AS
+    //	*Input
+    //	x_white: whitened data (Use PCAwhiten)
+    //	*Output
+    //	A : mixing matrix
+    //	S : source matrix
+  	
+	double EPS = 1e-18;
+	double MAX_W = 1.0e8;
+	double ANNEAL = 0.9;
+	double MIN_LRATE = 1e-6;
+	double W_STOP = 1e-6;
+	size_t MAX_STEP= 512;
+
+	Eigen::MatrixXf bias(NUMBER_OF_ICA_COMPONENTS,1);
+
+	Eigen::MatrixXf oldWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf dWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf oldDWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf temp(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf shuffledWhitenedData(whitenedData.rows(),whitenedData.cols());
+
+	shuffledWhitenedData = whitenedData;
+
+	IdentityEigenMatrix(weights);
+	IdentityEigenMatrix(oldWeights);
+
+	ResetEigenMatrix(bias);
+	ResetEigenMatrix(dWeights);
+	ResetEigenMatrix(oldDWeights);
+	ResetEigenMatrix(temp);
+
+
+	cl_mem d_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), whitenedData.data(), 0, NULL, NULL);
+
+	cl_mem d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Bias = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Old_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Old_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Shuffled_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+
+	cl_mem d_Scratch = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * 2 * sizeof(float), NULL, NULL);
+	cl_mem d_Float = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
+	cl_mem d_Ones = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	clEnqueueCopyBuffer(commandQueue, d_Whitened_Data, d_Shuffled_Whitened_Data, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), 0, NULL, NULL);
+
+	IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+	IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+	// Set all values to 0
+	SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Temp, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	SetMemory(d_Ones, 1.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
+	float change = 1.0f;
+	double angleDelta = 0.0;
+    size_t step = 1;
+	int error = 0;
+
+	float tempsum, dweightsnorm, olddweightsnorm;
+
+	float change2 = 1.0f;
+	double angleDelta2 = 0.0;
+
+	while( (step < MAX_STEP) && (change > W_STOP))
+	{
+	    //error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);		
+		//error = UpdateInfomaxWeightsEigen(weights, whitenedData, bias, shuffledWhitenedData, lrate);		
+		// Copy new weights and bias to device
+		//clEnqueueWriteBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+		//clEnqueueWriteBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+		
+		error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);
+		// Copy new weights and bias from device
+		clEnqueueReadBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+			
+
+		if (error == 1 || error == 2)
+		{
+			// It blowed up! RESTART!
+    	  	step = 1;
+    	  	// change = 1;
+    	  	error = 0;
+    	 	lrate *= ANNEAL;
+		
+			IdentityEigenMatrix(weights);
+			IdentityEigenMatrix(oldWeights);
+
+			ResetEigenMatrix(dWeights);
+			ResetEigenMatrix(oldDWeights);
+			ResetEigenMatrix(bias);
+
+
+
+			IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+			IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+			SetMemory(d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+			
+			if (lrate > MIN_LRATE)
+			{
+    	    	printf("\nLowering learning rate to %g and starting again.\n",lrate);
+    	  	}
+    	  	else
+			{
+		        printf("\nMatrix may not be invertible");
+			}
+    	}
+    	else if (error == 0)
+		{
+			dWeights = weights;	
+			dWeights -= oldWeights;
+		    change = dWeights.squaredNorm();
+
+
+
+			// dWeights = weights;	
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+	
+			//dWeights -= oldWeights;
+			SubtractArrays(d_d_Weights, d_Old_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+		  	error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+			//printf("clBLAS error for d weights norm is %s \n",GetOpenCLErrorMessage(error));
+			clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &dweightsnorm, 0, NULL, NULL);
+			change2 = dweightsnorm * dweightsnorm;
+				
+			if (step > 2)
+			{
+		        // Compute angle delta
+				temp = dWeights;
+				// Pointwise multiplication
+				temp = temp.array() * oldDWeights.array();
+
+		        angleDelta = acos(temp.sum() / (dWeights.norm() * oldDWeights.norm()) );
+        		angleDelta *= (180.0 / M_PI);
+
+
+
+
+
+
+		        // Compute angle delta
+				// temp = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Temp, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+				// Pointwise multiplication
+				// temp = temp.array() * oldDWeights.array();
+				MultiplyArrays(d_Temp, d_Old_d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+				// Calculate sum of temp as a dot product with ones
+				error = clblasSdot(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Temp, 0, 1, d_Ones, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//printf("clBLAS error for temp sum is %s \n",GetOpenCLErrorMessage(error));
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &tempsum, 0, NULL, NULL);						
+
+				// Calculate norm of old d weights
+				error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Old_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//printf("clBLAS error for old d weights norm is %s \n",GetOpenCLErrorMessage(error));
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &olddweightsnorm, 0, NULL, NULL);				
+
+		        angleDelta2 = acos(tempsum / (dweightsnorm * olddweightsnorm) );
+        		angleDelta2 *= (180.0 / M_PI);
+			}
+
+			oldWeights = weights;
+
+			//oldWeights = weights;
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_Old_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+			if (angleDelta > 60)
+			{
+				oldDWeights = dWeights;
+
+        		lrate *= ANNEAL;
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			} 
+			else if (step == 1) 
+			{
+				oldDWeights = dWeights;
+
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			}
+
+			if (( VERBOS && (step % 1) == 0) || change < W_STOP)
+			{
+				printf("\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n", step, lrate, change, angleDelta);
+				printf("\n\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n\n", step, lrate, change2, angleDelta2);
+      		}
+
+			step++;
+    	}
+  	}
+
+	sourceMatrix = weights * whitenedData;	
+	// C = alpha * A * B  + beta * C                                           rows in d_Weights  columns in d_Whitened_Data   columns in d_Weights   alpha   A matrix                                  B matrix                                   beta     C matrix
+ 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Whitened_Data);
+	clReleaseMemObject(d_Weights);
+
+	clReleaseMemObject(d_Bias);
+	clReleaseMemObject(d_Old_Weights);
+	clReleaseMemObject(d_d_Weights);
+	clReleaseMemObject(d_Old_d_Weights);
+	clReleaseMemObject(d_Temp);
+	clReleaseMemObject(d_Shuffled_Whitened_Data);
+	clReleaseMemObject(d_Scratch);
+	clReleaseMemObject(d_Float);
+	clReleaseMemObject(d_Ones);
+}
+*/
+
+
+
+int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Shuffled_Whitened_Data, double updateRate)
+{
+	double MAX_W = 1.0e8;
+	int error = 0;
+	size_t i;
+	size_t block = (size_t)floor(sqrt(NUMBER_OF_ICA_VARIABLES/3.0));
+
+	// Create random permutation vector
+	std::vector<int> perm;
+	for (int i = 0; i < NUMBER_OF_ICA_VARIABLES; i++) 
+	{
+	    perm.push_back(i);
+	}
+	std::random_shuffle(perm.begin(), perm.end());
+
+	Eigen::MatrixXf shuffledWhitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+
+	// Copy data from device
+	clEnqueueReadBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+
+	// Loop over voxels, randomly permute each column
+	for (size_t i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{
+		Eigen::VectorXf row = shuffledWhitenedData.row(i);
+		Eigen::VectorXf permutedRow = row;
+
+		for (size_t j = 0; j < NUMBER_OF_ICA_VARIABLES; j++)
+		{
+			permutedRow(j) = row(perm[j]);
+		}		
+
+		shuffledWhitenedData.row(i) = permutedRow.transpose();		
+	}
+
+	// Copy data back to device
+	clEnqueueWriteBuffer(commandQueue, d_Shuffled_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+
+	size_t start;
+
 	cl_mem d_TempI = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
 
 	cl_mem d_ib = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
@@ -17895,35 +18702,47 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 			SetMemory(d_ones, 1.0f, block);		
 		}	
 
-		//Eigen::MatrixXd subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+		clEnqueueWriteBuffer(commandQueue, d_Sub_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), subWhitenedData.data(), 0, NULL, NULL);
 		//GetSubMatrix(d_Sub_Whitened_Data, d_Shuffled_Whitened_Data, 0, start, NUMBER_OF_ICA_COMPONENTS, block);
 
 		// Compute unmixed = weights * subWhitenedData + bias * ib
+		
 		// First unmixed = weights * subWhitenedData 
 		// C = alpha * A * B  + beta * C                                            rows in d_Weights  columns in d_Sub_Whitened_Data   columns in d_Weights     alpha   A matrix     leading dimension of A-matrix      B matrix                        leading dimension of B-matrix    beta     C matrix
-	 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 
 		// Then C = bias * ib + C
 		// C = alpha * A * B  + beta * C                                            rows in d_Bias       columns in ib    columns in d_Bias     alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
-	 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       block,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       1,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 		
+			
 		//unmLogit = unmixed;
 		clEnqueueCopyBuffer(commandQueue, d_unmixed, d_unmLogit, 0, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), 0, NULL, NULL);
 
 	    // Compute 1-2*logit
-		//LogitArray(d_unmLogit,NUMBER_OF_ICA_COMPONENTS * block);
-		
+		LogitMatrix(d_unmLogit,NUMBER_OF_ICA_COMPONENTS * block);
+
 		IdentityMatrix(d_TempI,NUMBER_OF_ICA_COMPONENTS);
+
 	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
 
-	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
-		//tempI = block * tempI + *unmLogit * (*unmixed).transpose();
+		// (1) temp_I = block*temp_I +unm_logit*unmixed.T
+		
+		// C = alpha * A * B  + beta * C
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, block, 1.0f, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, (float)block,   d_TempI, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
 		
 	    // (2) weights = weights + lrate*temp_I*weights
-		//weights += updateRate * tempI * weights;
+		
+		// C = alpha * A * B  + beta * C
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, (float)updateRate, d_TempI, 0, NUMBER_OF_ICA_COMPONENTS, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, 1.0f,   d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 
 	    // Update the bias
-		//bias += updateRate * *unmLogit * *ones;
+		// bias += updateRate * *unmLogit * *ones;
+
+		// y = alpha * A * x  + beta * y
+		error = clblasSgemv(clblasColumnMajor, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, block, (float)updateRate, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_ones, 0, 1, 1.0f, d_Bias, 0, 1, 1, &commandQueue, 0, NULL, NULL);
 
 	    // Check if blows up
 	    double max = CalculateMaxAtomic(d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
@@ -17941,6 +18760,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 		}
 	}
 
+
 	clReleaseMemObject(d_ib);
 	clReleaseMemObject(d_unmixed);
 	clReleaseMemObject(d_unmLogit);
@@ -17949,6 +18769,177 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 
 	return(error);
 }
+
+
+void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix)
+{
+  	// Computes ICA infomax in whitened data
+    //	Decomposes x_white as x_white=AS
+    //	*Input
+    //	x_white: whitened data (Use PCAwhiten)
+    //	*Output
+    //	A : mixing matrix
+    //	S : source matrix
+  	
+	double EPS = 1e-18;
+	double MAX_W = 1.0e8;
+	double ANNEAL = 0.9;
+	double MIN_LRATE = 1e-6;
+	double W_STOP = 1e-6;
+	size_t MAX_STEP= 512;
+
+
+	cl_mem d_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), whitenedData.data(), 0, NULL, NULL);
+
+	cl_mem d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Bias = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Old_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Old_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Shuffled_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+
+	cl_mem d_Scratch = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * 2 * sizeof(float), NULL, NULL);
+	cl_mem d_Float = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
+	cl_mem d_Ones = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	clEnqueueCopyBuffer(commandQueue, d_Whitened_Data, d_Shuffled_Whitened_Data, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), 0, NULL, NULL);
+
+	IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+	IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+	// Set all values to 0
+	SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Temp, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	SetMemory(d_Ones, 1.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
+	float change = 1.0f;
+	double angleDelta = 0.0;
+    size_t step = 1;
+	int error = 0;
+
+	float tempsum, dweightsnorm, olddweightsnorm;
+
+	while( (step < MAX_STEP) && (change > W_STOP))
+	{		
+		error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);			
+
+		if (error == 1 || error == 2)
+		{
+			// It blowed up! RESTART!
+    	  	step = 1;
+    	  	// change = 1;
+    	  	error = 0;
+    	 	lrate *= ANNEAL;		
+
+			IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+			IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+			SetMemory(d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+			
+			if (lrate > MIN_LRATE)
+			{
+    	    	printf("\nLowering learning rate to %g and starting again.\n",lrate);
+    	  	}
+    	  	else
+			{
+		        printf("\nMatrix may not be invertible");
+			}
+    	}
+    	else if (error == 0)
+		{
+			// dWeights = weights;	
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+	
+			//dWeights -= oldWeights;
+			SubtractArrays(d_d_Weights, d_Old_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+			// Calculate norm of d weights
+		  	error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+			//printf("clBLAS error for d weights norm is %s \n",GetOpenCLErrorMessage(error));
+			clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &dweightsnorm, 0, NULL, NULL);
+			change = dweightsnorm * dweightsnorm;
+				
+			if (step > 2)
+			{
+		        // Compute angle delta
+				// temp = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Temp, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+				// Pointwise multiplication
+				// temp = temp.array() * oldDWeights.array();
+				MultiplyArrays(d_Temp, d_Old_d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+				// Calculate sum of temp as a dot product with ones
+				error = clblasSdot(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Temp, 0, 1, d_Ones, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//printf("clBLAS error for temp sum is %s \n",GetOpenCLErrorMessage(error));
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &tempsum, 0, NULL, NULL);						
+
+				// Calculate norm of old d weights
+				error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Old_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//printf("clBLAS error for old d weights norm is %s \n",GetOpenCLErrorMessage(error));
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &olddweightsnorm, 0, NULL, NULL);				
+
+		        angleDelta = acos(tempsum / (dweightsnorm * olddweightsnorm) );
+        		angleDelta *= (180.0 / M_PI);
+			}
+
+			//oldWeights = weights;
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_Old_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+			if (angleDelta > 60)
+			{
+        		lrate *= ANNEAL;
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			} 
+			else if (step == 1) 
+			{
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			}
+
+			if (( VERBOS && (step % 10) == 0) || change < W_STOP)
+			{
+				printf("\n\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n\n", step, lrate, change, angleDelta);
+      		}
+
+			step++;
+    	}
+  	}
+
+	clEnqueueReadBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+
+	sourceMatrix = weights * whitenedData;	
+
+	// C = alpha * A * B  + beta * C                                           rows in d_Weights  columns in d_Whitened_Data   columns in d_Weights   alpha   A matrix                                  B matrix                                   beta     C matrix
+ 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Whitened_Data);
+	clReleaseMemObject(d_Weights);
+
+	clReleaseMemObject(d_Bias);
+	clReleaseMemObject(d_Old_Weights);
+	clReleaseMemObject(d_d_Weights);
+	clReleaseMemObject(d_Old_d_Weights);
+	clReleaseMemObject(d_Temp);
+	clReleaseMemObject(d_Shuffled_Whitened_Data);
+	clReleaseMemObject(d_Scratch);
+	clReleaseMemObject(d_Float);
+	clReleaseMemObject(d_Ones);
+}
+
+
 
 
 void BROCCOLI_LIB::InfomaxICAEigen(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix)
@@ -18064,161 +19055,6 @@ void BROCCOLI_LIB::InfomaxICAEigen(Eigen::MatrixXd & whitenedData, Eigen::Matrix
 
 
 
-void BROCCOLI_LIB::InfomaxICA(cl_mem d_Whitened_Data, cl_mem d_Weights, cl_mem d_Source_Matrix)
-{
-  	// Computes ICA infomax in whitened data
-    //	Decomposes x_white as x_white=AS
-    //	*Input
-    //	x_white: whitened data (Use PCAwhiten)
-    //	*Output
-    //	A : mixing matrix
-    //	S : source matrix
-  	
-	double EPS = 1e-18;
-	double MAX_W = 1.0e8;
-	double ANNEAL = 0.9;
-	double MIN_LRATE = 1e-6;
-	double W_STOP = 1e-6;
-	size_t MAX_STEP= 512;
-
-	cl_mem d_Bias = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-
-	cl_mem d_Old_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-	cl_mem d_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-	cl_mem d_Old_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-	cl_mem d_Shuffled_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
-
-	cl_mem d_Scratch = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * 2 * sizeof(float), NULL, NULL);
-	cl_mem d_Float = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
-	cl_mem d_Ones = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
-
-	clEnqueueCopyBuffer(commandQueue, d_Whitened_Data, d_Shuffled_Whitened_Data, 0, 0, NUMBER_OF_ICA_OBSERVATIONS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
-
-	IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
-	IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
-
-	// Set all values to 0
-	SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
-	SetMemory(d_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-	SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-	SetMemory(d_Temp, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-
-	SetMemory(d_Ones, 1.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-
-	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
-	float change = 1.0f;
-	double angleDelta = 0.0;
-    size_t step = 1;
-	int error = 0;
-
-	float tempsum, dweightsnorm, olddweightsnorm;
-
-	while( (step < MAX_STEP) && (change > W_STOP))
-	{
-	    error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);
-
-		if (error == 1 || error == 2)
-		{
-			// It blowed up! RESTART!
-    	  	step = 1;
-    	  	// change = 1;
-    	  	error = 0;
-    	 	lrate *= ANNEAL;
-		
-			IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
-			IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
-
-			SetMemory(d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-			SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-			SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
-			
-			if (lrate > MIN_LRATE)
-			{
-    	    	printf("\nLowering learning rate to %g and starting again.\n",lrate);
-    	  	}
-    	  	else
-			{
-		        printf("\nMatrix may not be invertible");
-			}
-    	}
-    	else if (error == 0)
-		{
-			// dWeights = weights;	
-			clEnqueueCopyBuffer(commandQueue, d_Weights, d_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
-	
-			//dWeights -= oldWeights;
-			SubtractArrays(d_d_Weights, d_Old_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-
-		    //change = dWeights.squaredNorm();
-			//error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
-			clFinish(commandQueue);
-			clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &change, 0, NULL, NULL);
-			dweightsnorm = change;
-			change = change * change;
-				
-			if (step > 2)
-			{
-		        // Compute angle delta
-				// temp = dWeights;
-				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Temp, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
-
-				// Pointwise multiplication
-				// temp = temp.array() * oldDWeights.array();
-				MultiplyArrays(d_Temp, d_Old_d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
-
-				// Calculate sum of temp as a dot product with ones
-				//error = clblasSdot(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Temp, 0, 1, d_Ones, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
-				clFinish(commandQueue);
-				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &tempsum, 0, NULL, NULL);						
-
-				// Calculate norm of old d weights
-				//error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Old_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
-				clFinish(commandQueue);
-				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &olddweightsnorm, 0, NULL, NULL);				
-
-		        angleDelta = acos(tempsum / (dweightsnorm * olddweightsnorm) );
-        		angleDelta *= (180.0 / M_PI);
-			}
-
-			//oldWeights = weights;
-			clEnqueueCopyBuffer(commandQueue, d_Weights, d_Old_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
-
-			if (angleDelta > 60)
-			{
-        		lrate *= ANNEAL;
-				// oldDWeights = dWeights;
-				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
-			} 
-			else if (step == 1) 
-			{
-				// oldDWeights = dWeights;
-				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
-			}
-
-			if (( VERBOS && (step % 10) == 0) || change < W_STOP)
-			{
-				printf("\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n", step, lrate, change, angleDelta);
-      		}
-
-			step++;
-    	}
-  	}
-
-	//sourceMatrix = weights * whitenedData
-   	// C = alpha * A * B  + beta * C                                           rows in d_Weights  columns in d_Whitened_Data   columns in d_Weights   alpha   A matrix                                  B matrix                                   beta     C matrix
- 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
-
-	clReleaseMemObject(d_Bias);
-	clReleaseMemObject(d_Old_Weights);
-	clReleaseMemObject(d_d_Weights);
-	clReleaseMemObject(d_Old_d_Weights);
-	clReleaseMemObject(d_Temp);
-	clReleaseMemObject(d_Shuffled_Whitened_Data);
-	clReleaseMemObject(d_Scratch);
-	clReleaseMemObject(d_Float);
-	clReleaseMemObject(d_Ones);
-}
 
 
 void BROCCOLI_LIB::PerformICACPUWrapper()
@@ -18370,7 +19206,7 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 void BROCCOLI_LIB::PerformICAWrapper()
 {
 	// Initiate clBLAS
-	//error = clblasSetup();
+	error = clblasSetup();
     if (error != CL_SUCCESS) 
 	{
         printf("clblasSetup() failed with %s\n", GetOpenCLErrorMessage(error));
@@ -18378,11 +19214,20 @@ void BROCCOLI_LIB::PerformICAWrapper()
 
 	//--------------------------
 
-	// Make a mask
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
-	SegmentEPIData();
-	// Copy mask to host
-	clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+
+	if (!AUTO_MASK)
+	{
+		// Copy mask from host
+		clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+	}
+	else
+	{
+		// Make a mask
+		SegmentEPIData();
+		// Copy mask to host
+		clEnqueueReadBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask, 0, NULL, NULL);
+	}
 
 	//--------------------------
 
@@ -18398,7 +19243,7 @@ void BROCCOLI_LIB::PerformICAWrapper()
 
 	NUMBER_OF_ICA_OBSERVATIONS = EPI_DATA_T;
 
-	Eigen::MatrixXd inputData(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_VARIABLES);
+	Eigen::MatrixXf inputData(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_VARIABLES);
 
 	if (WRAPPER == BASH)
 	{
@@ -18465,15 +19310,15 @@ void BROCCOLI_LIB::PerformICAWrapper()
 
 
 	// First whiten the data and reduce the number of dimensions
-	Eigen::MatrixXd whitenedData = PCAWhiten(inputData, true);
+	Eigen::MatrixXf whitenedData = PCAWhiten(inputData, true);
 	//PCAWhiten(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 	//PCADimensionalityReduction(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 
-	Eigen::MatrixXd weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
-	Eigen::MatrixXd sourceMatrix(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+	Eigen::MatrixXf weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf sourceMatrix(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
 
 	// Run the actual ICA algorithm
-	//InfomaxICA(whitenedData, weights, sourceMatrix);
+	InfomaxICA(whitenedData, weights, sourceMatrix);
 
 	//Eigen::MatrixXd inverseWeights = weights.inverse();
 
@@ -18508,7 +19353,7 @@ void BROCCOLI_LIB::PerformICAWrapper()
 	clReleaseMemObject(d_EPI_Mask);
 
 	// Stop clBLAS
-	//clblasTeardown();
+	clblasTeardown();
 }
 
 

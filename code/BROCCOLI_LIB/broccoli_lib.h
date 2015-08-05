@@ -534,10 +534,15 @@ class BROCCOLI_LIB
 		void CalculatePermutationPValues(cl_mem Mask, int DATA_W, int DATA_H, int DATA_D);
 
 		void ResetEigenMatrix(Eigen::MatrixXd &);
+		void ResetEigenMatrix(Eigen::MatrixXf &);
 		void IdentityEigenMatrix(Eigen::MatrixXd &);
+		void IdentityEigenMatrix(Eigen::MatrixXf &);
 		void LogitEigenMatrix(Eigen::MatrixXd &);
+		void LogitEigenMatrix(Eigen::MatrixXf &);
 		void SetEigenVectorValues(Eigen::VectorXd &, double);
 		void SetEigenMatrixValues(Eigen::MatrixXd &, double);
+		void SetEigenVectorValues(Eigen::VectorXf &, double);
+		void SetEigenMatrixValues(Eigen::MatrixXf &, double);
 
 		void IdentityMatrix(cl_mem , int);
 		void GetSubMatrix(cl_mem, cl_mem, int, int, int, int);
@@ -547,10 +552,11 @@ class BROCCOLI_LIB
 		void PCADimensionalityReductionEigen(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		void InfomaxICAEigen(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix);
 		int UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate);
+		int UpdateInfomaxWeightsEigen(Eigen::MatrixXf & weights, Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & bias, Eigen::MatrixXf & shuffledWhitenedData, double updateRate);
 
 		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
-		Eigen::MatrixXd PCAWhiten(Eigen::MatrixXd &, bool);
-		void InfomaxICA(cl_mem d_Whitened_Data, cl_mem d_Weights, cl_mem d_Source_Matrix);
+		Eigen::MatrixXf PCAWhiten(Eigen::MatrixXf &, bool);
+		void InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix);
 		int UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Shuffled_Whitened_Data, double updateRate);
 
 		//------------------------------------------------
@@ -627,6 +633,7 @@ class BROCCOLI_LIB
 		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t VOLUMES);
 		void MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void SubtractArrays(cl_mem d_Array_1, cl_mem d_Array_2, size_t N);
+		void LogitMatrix(cl_mem d_Array, size_t N);
 		void AddVolume(cl_mem d_Volume, float value, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void AddVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void AddVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
@@ -663,6 +670,7 @@ class BROCCOLI_LIB
 		void SetupFTestFirstLevel(int N);
 		void DemeanRegressor(float* Regressor, int N);
 		void DemeanRegressor(Eigen::VectorXd &Regressor, int N);
+		void DemeanRegressor(Eigen::VectorXf &Regressor, int N);
 
 
 		float Gpdf(double value, double shape, double scale);
@@ -789,6 +797,7 @@ class BROCCOLI_LIB
 		cl_kernel GetSubMatrixKernel;
 		cl_kernel PermuteMatrixKernel;
 		cl_kernel IdentityMatrixKernel;
+		cl_kernel LogitMatrixKernel;
 
 		// Convolution kernels
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel;
@@ -846,6 +855,7 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorGetSubMatrix;
 		cl_int createKernelErrorPermuteMatrix;
 		cl_int createKernelErrorIdentityMatrix;
+		cl_int createKernelErrorLogitMatrix;
 
 		// Convolution kernels
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods;
@@ -934,6 +944,7 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorGetSubMatrix;
 		cl_int runKernelErrorPermuteMatrix;
 		cl_int runKernelErrorIdentityMatrix;
+		cl_int runKernelErrorLogitMatrix;
 
 		// Convolution kernels
 		cl_int runKernelErrorSeparableConvolutionRows, runKernelErrorSeparableConvolutionColumns, runKernelErrorSeparableConvolutionRods;

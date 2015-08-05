@@ -602,8 +602,8 @@ int main(int argc, char ** argv)
    
         // Run the actual ICA
 		startTime = GetWallTime();        
-		BROCCOLI.PerformICACPUWrapper();
-		//BROCCOLI.PerformICAWrapper();
+		//BROCCOLI.PerformICACPUWrapper();
+		BROCCOLI.PerformICAWrapper();
 		endTime = GetWallTime();
 
 		if (VERBOS)
