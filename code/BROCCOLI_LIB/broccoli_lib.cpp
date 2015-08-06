@@ -7343,6 +7343,37 @@ void BROCCOLI_LIB::IdentityMatrix(cl_mem d_Matrix, int N)
 	clFinish(commandQueue);
 }
 
+void BROCCOLI_LIB::GetSubMatrix(cl_mem d_Small_Matrix, cl_mem d_Matrix, int startRow, int startColumn, int smallNumberOfRows, int smallNumberOfColumns, int largeNumberOfRows, int largeNumberOfColumns)
+{
+	SetGlobalAndLocalWorkSizesAddVolumes(smallNumberOfColumns, smallNumberOfRows, 1);
+
+	clSetKernelArg(GetSubMatrixKernel, 0, sizeof(cl_mem), &d_Small_Matrix);
+	clSetKernelArg(GetSubMatrixKernel, 1, sizeof(cl_mem), &d_Matrix);
+	clSetKernelArg(GetSubMatrixKernel, 2, sizeof(int), &startRow);
+	clSetKernelArg(GetSubMatrixKernel, 3, sizeof(int), &startColumn);
+	clSetKernelArg(GetSubMatrixKernel, 4, sizeof(int), &smallNumberOfRows);
+	clSetKernelArg(GetSubMatrixKernel, 5, sizeof(int), &smallNumberOfColumns);
+	clSetKernelArg(GetSubMatrixKernel, 6, sizeof(int), &largeNumberOfRows);
+	clSetKernelArg(GetSubMatrixKernel, 7, sizeof(int), &largeNumberOfColumns);
+
+	runKernelErrorGetSubMatrix = clEnqueueNDRangeKernel(commandQueue, GetSubMatrixKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}	
+
+void BROCCOLI_LIB::PermuteMatrix(cl_mem d_Permuted_Matrix, cl_mem d_Matrix, cl_mem d_Permutation, int numberOfRows, int numberOfColumns)
+{
+	SetGlobalAndLocalWorkSizesAddVolumes(numberOfColumns, numberOfRows, 1);
+
+	clSetKernelArg(PermuteMatrixKernel, 0, sizeof(cl_mem), &d_Permuted_Matrix);
+	clSetKernelArg(PermuteMatrixKernel, 1, sizeof(cl_mem), &d_Matrix);
+	clSetKernelArg(PermuteMatrixKernel, 2, sizeof(cl_mem), &d_Permutation);
+	clSetKernelArg(PermuteMatrixKernel, 3, sizeof(int), &numberOfRows);
+	clSetKernelArg(PermuteMatrixKernel, 4, sizeof(int), &numberOfColumns);
+
+	runKernelErrorPermuteMatrix = clEnqueueNDRangeKernel(commandQueue, PermuteMatrixKernel, 3, NULL, globalWorkSizeAddVolumes, localWorkSizeAddVolumes, 0, NULL, NULL);
+	clFinish(commandQueue);
+}
+
 
 // Not fully optimized, T1 is of MNI size
 void BROCCOLI_LIB::PerformRegistrationEPIT1()
@@ -17411,6 +17442,8 @@ void BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & whitenedData,  Eigen::Matrix
 	whitenedData = whiteningMatrix * inputData;
 }
 
+
+
 // Saves a certain percentage of the variance, instead of a fix number of components
 Eigen::MatrixXd BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & inputData, bool demean)
 {
@@ -17531,6 +17564,126 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & inputData, bool d
 	return whitenedData;
 }
 
+
+// Saves a certain percentage of the variance, instead of a fix number of components
+Eigen::MatrixXf BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXf & inputData, bool demean)
+{
+	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
+	// whitenedData, NUMBER_OF_COMPONENTS x NUMBER_OF_VOXELS
+
+	size_t NUMBER_OF_VOXELS = inputData.cols();
+	size_t NUMBER_OF_OBSERVATIONS = inputData.rows();
+
+	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+
+	if (demean)
+	{
+		if (WRAPPER == BASH)
+		{	
+			printf("Demeaning data\n");
+		}
+		#pragma omp parallel for
+		for (size_t voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+		{
+			//printf("Demeaning data for voxel %i\n",voxel);
+			Eigen::VectorXf values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+			DemeanRegressor(values,NUMBER_OF_OBSERVATIONS);
+			inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1) = values;
+		}
+	}
+
+	// Calculate covariance Matrix
+	Eigen::MatrixXf covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
+	ResetEigenMatrix(covarianceMatrix);
+	if (WRAPPER == BASH)
+	{
+		printf("Estimating the covariance matrix\n");
+	}
+
+	//for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
+	//{
+		//printf("Estimating the covariance matrix for voxel %i \n",voxel);
+		//Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
+	//	Eigen::VectorXd values = inputData.col(voxel);
+	//	covarianceMatrix += values * values.transpose();
+	//}
+	covarianceMatrix = inputData * inputData.transpose();
+	covarianceMatrix *= 1.0/(float)(NUMBER_OF_VOXELS - 1);
+	
+	// Calculate eigen values of covariance matrix	
+	if (WRAPPER == BASH)
+	{
+		printf("Calculating eigen values\n");
+	}
+	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es(covarianceMatrix);
+	Eigen::VectorXf eigenValues = es.eigenvalues();
+	Eigen::MatrixXf eigenVectors = es.eigenvectors();
+	
+	float totalVariance = 0.0f;
+	for (int i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
+	{
+		totalVariance += eigenValues(i);
+	}
+
+	// Calculate number of components to save
+	float savedVariance = 0.0;
+	Eigen::VectorXf temp = eigenValues;
+	NUMBER_OF_ICA_COMPONENTS = 0;
+	while (savedVariance/totalVariance*100.0 < (double)PROPORTION_OF_VARIANCE_TO_SAVE_BEFORE_ICA )
+	{
+		NUMBER_OF_ICA_COMPONENTS++;
+		int index = 0;
+		float largestEigenValue = temp.maxCoeff(&index);
+		savedVariance += largestEigenValue;
+		temp(index) = 0.0f;
+	}
+
+	Eigen::VectorXf savedEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf savedEigenVectors(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_OBSERVATIONS);
+
+	// Get a sub matrix of all the eigen vectors, to remove the smallest ones
+	// Get a sub vector of the eigen values, to remove the smallest eigen values
+	for (int i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{	
+		// Find largest eigen value for current component, and it's location
+		int index = 0; 
+		float largestEigenValue = eigenValues.maxCoeff(&index);
+		savedEigenValues(i) = largestEigenValue;
+
+		printf("Largest eigen value is %f \n",(float)largestEigenValue);
+
+		// Get the corresponding eigen vector
+		savedEigenVectors.row(i) = eigenVectors.col(index).transpose();
+
+		// Set the previous largest eigen value to 0
+		eigenValues(index) = 0.0f;
+	}
+
+	if ((WRAPPER == BASH) && VERBOSE)
+	{
+		printf("Saved %f %% of the total variance during the dimensionality reduction, using %i components\n",(float)savedVariance/(float)totalVariance*100.0,NUMBER_OF_ICA_COMPONENTS);
+	}
+
+	// Calculate  ^(-1/2) for all saved eigen values
+	Eigen::VectorXf scaledEigenValues(NUMBER_OF_ICA_COMPONENTS);
+	for (int i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{	
+		float eigenValue = savedEigenValues(i);
+		scaledEigenValues(i) = 1.0f/sqrt(eigenValue);
+	}
+
+	// Calculate whitening matrix
+	Eigen::MatrixXf whiteningMatrix = scaledEigenValues.asDiagonal() * savedEigenVectors;
+
+	// Perform the actual whitening
+	if (WRAPPER == BASH)
+	{
+		printf("Applying dimensionality reduction and whitening\n");
+	}
+	Eigen::MatrixXf whitenedData = whiteningMatrix * inputData;
+	
+	return whitenedData;
+}
 
 void BROCCOLI_LIB::PCADimensionalityReductionEigen(Eigen::MatrixXd & reducedData,  Eigen::MatrixXd & inputData, int NUMBER_OF_COMPONENTS, bool demean)
 {
@@ -17668,7 +17821,7 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean
 	//                      rows in d_Data             columns in d_Data          columns in d_Data       alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
  	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_OBSERVATIONS,   NUMBER_OF_ICA_OBSERVATIONS,    NUMBER_OF_ICA_VARIABLES, 1.0f/(float)(NUMBER_OF_ICA_VARIABLES - 1),  d_Data, 0,   NUMBER_OF_ICA_OBSERVATIONS,       d_Data, 0,      NUMBER_OF_ICA_OBSERVATIONS,    0.0f,   d_Covariance_Matrix, 0, NUMBER_OF_ICA_OBSERVATIONS, 1, &commandQueue, 0, NULL, NULL);
 	clFinish(commandQueue);
-	printf("clBLAS error for covariance matrix is %s \n",GetOpenCLErrorMessage(error));
+	//printf("clBLAS error for covariance matrix is %s \n",GetOpenCLErrorMessage(error));
 
 	// Copy covariance matrix back to host
 	Eigen::MatrixXf covarianceMatrix(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_OBSERVATIONS);
@@ -17679,29 +17832,6 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean
 
 	endTime = GetTime();
 	printf("It took %f seconds to calculate the covariance matrix using clBLAS\n",(float)(endTime - startTime));
-
-	//startTime = GetTime();
-	//Eigen::MatrixXf covarianceMatrix(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_OBSERVATIONS);
-	//if (WRAPPER == BASH)
-	//{
-	//	printf("Estimating the covariance matrix using Eigen\n");
-	//}
-	//covarianceMatrix = inputData * inputData.transpose();
-	//covarianceMatrix *= 1.0/(double)(NUMBER_OF_ICA_VARIABLES - 1);
-
-	//endTime = GetTime();
-	//printf("It took %f seconds to calculate the covariance matrix using Eigen\n",(float)(endTime - startTime));
-
-
-	// Calculate eigen values of covariance matrix	
-	//if (WRAPPER == BASH)
-	//{
-	//	printf("Calculating eigen values for clBLAS covariance matrix\n");
-	//}
-	//Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> es2(covarianceMatrix2);
-	//Eigen::VectorXf eigenValues2 = es2.eigenvalues();
-	//Eigen::MatrixXf eigenVectors2 = es2.eigenvectors();
-	
 
 	// Calculate eigen values of covariance matrix	
 	if (WRAPPER == BASH)
@@ -17798,24 +17928,6 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean
 
 	endTime = GetTime();
 	printf("It took %f seconds to perform the whitening using clBLAS\n",(float)(endTime - startTime));
-
-
-	// Perform the actual whitening
-	//if (WRAPPER == BASH)
-	//{
-	//	printf("Applying dimensionality reduction and whitening using Eigen\n");
-	//}
-	//Eigen::MatrixXf whitenedData = whiteningMatrix * inputData;
-
-	//endTime = GetTime();
-	//printf("It took %f seconds to perform the whitening using Eigen\n",(float)(endTime - startTime));
-	
-	printf("Whitened data size is %i  x %i \n",whitenedData.rows(),whitenedData.cols());
-
-	//Eigen::MatrixXf error = whitenedData2 - whitenedData;
-	//printf("Max error is %f\n",error.maxCoeff());
-	//printf("Total abs error is %f\n",error.array().abs().sum());
-	//printf("Error norm is %f\n",error.norm());
 
 	return whitenedData;
 }
@@ -17921,225 +18033,10 @@ void BROCCOLI_LIB::SetEigenMatrixValues(Eigen::MatrixXf & matrix, double value)
 	}
 }
 
-int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate)
-{
-	size_t NUMBER_OF_OBSERVATIONS = whitenedData.rows();
-	size_t NUMBER_OF_VOXELS = whitenedData.cols();
-
-	double MAX_W = 1.0e8;
-	int error = 0;
-	size_t i;
-	size_t block = (size_t)floor(sqrt(NUMBER_OF_VOXELS/3.0));
-
-	// Create random permutation vector
-	std::vector<int> perm;
-	for (size_t i = 0; i < NUMBER_OF_VOXELS; i++) 
-	{
-	    perm.push_back(i);
-	}
-	std::random_shuffle(perm.begin(), perm.end());
-
-	// Loop over voxels, randomly permute each column
-	for (size_t i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
-	{
-		Eigen::VectorXd row = shuffledWhitenedData.row(i);
-		Eigen::VectorXd permutedRow = row;
-
-		for (size_t j = 0; j < NUMBER_OF_VOXELS; j++)
-		{
-			permutedRow(j) = row(perm[j]);
-		}		
-
-		shuffledWhitenedData.row(i) = permutedRow.transpose();		
-	}
-
-	size_t start;
-	Eigen::MatrixXd tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
-
-	Eigen::MatrixXd *ib =  new Eigen::MatrixXd(1,block);
-	SetEigenMatrixValues(*ib,1.0);	
-
-	Eigen::MatrixXd * unmixed = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
-	Eigen::MatrixXd * unmLogit = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
-	Eigen::MatrixXd * ones = new Eigen::MatrixXd(block,1);
-	SetEigenMatrixValues(*ones,1.0);
-
-	for (start = 0; start < NUMBER_OF_VOXELS; start = start + block) 
-	{
-		if (start + block > (NUMBER_OF_VOXELS-1))
-		{
-			block = NUMBER_OF_VOXELS - start;
-
-			delete ib;
-			delete unmixed;
-			delete unmLogit;
-			delete ones;
-
-			ib =  new Eigen::MatrixXd(1,block);
-			SetEigenMatrixValues(*ib,1.0);	
-			unmixed = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
-			unmLogit = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
-			ones = new Eigen::MatrixXd(block,1);
-			SetEigenMatrixValues(*ones,1.0);
-		}	
-
-		Eigen::MatrixXd subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
-
-		// Compute unmixed = weights . sub_x_white + bias . ib
-		
-		*unmixed = weights * subWhitenedData + bias * *ib;
-
-		*unmLogit = *unmixed;
-	    // Compute 1-2*logit
-		LogitEigenMatrix(*unmLogit);
-		
-		IdentityEigenMatrix(tempI);
-	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
-
-	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
-		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
-		
-	    // (2) weights = weights + lrate*temp_I*weights
-		weights += updateRate * tempI * weights;
-
-	    // Update the bias
-		bias += updateRate * *unmLogit * *ones;
-
-	    // Check if blows up
-	    double max = weights.maxCoeff();
-
-		if (max > MAX_W)
-	    {
-			if (updateRate < 1e-6) 
-			{
-				printf("\nERROR: Weight matrix may not be invertible\n");
-				error = 2;
-				break;
-			}
-			error = 1;
-			break;
-		}
-	}
-
-	delete ib;
-	delete unmixed;
-	delete unmLogit;
-	delete ones;
-
-	return(error);
-}
 
 
 
 
-
-int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXf & weights, Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & bias, Eigen::MatrixXf & shuffledWhitenedData, double updateRate)
-{
-	size_t NUMBER_OF_OBSERVATIONS = whitenedData.rows();
-	size_t NUMBER_OF_VOXELS = whitenedData.cols();
-
-	double MAX_W = 1.0e8;
-	int error = 0;
-	size_t i;
-	size_t block = (size_t)floor(sqrt(NUMBER_OF_VOXELS/3.0));
-
-	// Create random permutation vector
-	std::vector<int> perm;
-	for (size_t i = 0; i < NUMBER_OF_VOXELS; i++) 
-	{
-	    perm.push_back(i);
-	}
-	std::random_shuffle(perm.begin(), perm.end());
-
-	// Loop over voxels, randomly permute each column
-	for (size_t i = 0; i < NUMBER_OF_OBSERVATIONS; i++)
-	{
-		Eigen::VectorXf row = shuffledWhitenedData.row(i);
-		Eigen::VectorXf permutedRow = row;
-
-		for (size_t j = 0; j < NUMBER_OF_VOXELS; j++)
-		{
-			permutedRow(j) = row(perm[j]);
-		}		
-
-		shuffledWhitenedData.row(i) = permutedRow.transpose();		
-	}
-
-	size_t start;
-	Eigen::MatrixXf tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
-
-	Eigen::MatrixXf *ib =  new Eigen::MatrixXf(1,block);
-	SetEigenMatrixValues(*ib,1.0);	
-
-	Eigen::MatrixXf * unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
-	Eigen::MatrixXf * unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
-	Eigen::MatrixXf * ones = new Eigen::MatrixXf(block,1);
-	SetEigenMatrixValues(*ones,1.0);
-
-	for (start = 0; start < NUMBER_OF_VOXELS; start = start + block) 
-	{
-		if (start + block > (NUMBER_OF_VOXELS-1))
-		{
-			block = NUMBER_OF_VOXELS - start;
-
-			delete ib;
-			delete unmixed;
-			delete unmLogit;
-			delete ones;
-
-			ib =  new Eigen::MatrixXf(1,block);
-			SetEigenMatrixValues(*ib,1.0);	
-			unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
-			unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
-			ones = new Eigen::MatrixXf(block,1);
-			SetEigenMatrixValues(*ones,1.0);
-		}	
-
-		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
-
-		// Compute unmixed = weights . sub_x_white + bias . ib
-		
-		*unmixed = weights * subWhitenedData + bias * *ib;
-
-		*unmLogit = *unmixed;
-	    // Compute 1-2*logit
-		LogitEigenMatrix(*unmLogit);
-		
-		IdentityEigenMatrix(tempI);
-	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
-
-	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
-		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
-		
-	    // (2) weights = weights + lrate*temp_I*weights
-		weights += updateRate * tempI * weights;
-
-	    // Update the bias
-		bias += updateRate * *unmLogit * *ones;
-
-	    // Check if blows up
-	    double max = weights.maxCoeff();
-
-		if (max > MAX_W)
-	    {
-			if (updateRate < 1e-6) 
-			{
-				printf("\nERROR: Weight matrix may not be invertible\n");
-				error = 2;
-				break;
-			}
-			error = 1;
-			break;
-		}
-	}
-
-	delete ib;
-	delete unmixed;
-	delete unmLogit;
-	delete ones;
-
-	return(error);
-}
 
 
 
@@ -18262,7 +18159,6 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 
 		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
 		clEnqueueWriteBuffer(commandQueue, d_Sub_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), subWhitenedData.data(), 0, NULL, NULL);
-		//GetSubMatrix(d_Sub_Whitened_Data, d_Shuffled_Whitened_Data, 0, start, NUMBER_OF_ICA_COMPONENTS, block);
 
 		// Compute unmixed = weights * subWhitenedData + bias * ib
 		*unmixed = weights * subWhitenedData + bias * *ib;
@@ -18628,27 +18524,125 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 }
 */
 
-
-
-int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, double updateRate)
+int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate)
 {
 	double MAX_W = 1.0e8;
 	int error = 0;
 	size_t i;
-	size_t block = (size_t)floor(sqrt(NUMBER_OF_ICA_VARIABLES/3.0));
+	size_t block = (size_t)floor(sqrt((float)NUMBER_OF_ICA_VARIABLES/3.0f));
 
 	// Create random permutation vector
 	std::vector<int> perm;
-	for (int i = 0; i < NUMBER_OF_ICA_VARIABLES; i++) 
+	for (size_t i = 0; i < NUMBER_OF_ICA_VARIABLES; i++) 
 	{
 	    perm.push_back(i);
 	}
 	std::random_shuffle(perm.begin(), perm.end());
 
-	Eigen::MatrixXf shuffledWhitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+	// Loop over voxels, randomly permute each column
+	for (size_t i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{
+		Eigen::VectorXd row = shuffledWhitenedData.row(i);
+		Eigen::VectorXd permutedRow = row;
 
-	// Copy data from device
-	clEnqueueReadBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+		for (size_t j = 0; j < NUMBER_OF_ICA_VARIABLES; j++)
+		{
+			permutedRow(j) = row(perm[j]);
+		}		
+
+		shuffledWhitenedData.row(i) = permutedRow.transpose();		
+	}
+
+	size_t start;
+	Eigen::MatrixXd tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+
+	Eigen::MatrixXd *ib =  new Eigen::MatrixXd(1,block);
+	SetEigenMatrixValues(*ib,1.0);	
+
+	Eigen::MatrixXd * unmixed = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXd * unmLogit = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXd * ones = new Eigen::MatrixXd(block,1);
+	SetEigenMatrixValues(*ones,1.0);
+
+	for (start = 0; start < NUMBER_OF_ICA_VARIABLES; start = start + block) 
+	{
+		if (start + block > (NUMBER_OF_ICA_VARIABLES-1))
+		{
+			block = NUMBER_OF_ICA_VARIABLES - start;
+
+			delete ib;
+			delete unmixed;
+			delete unmLogit;
+			delete ones;
+
+			ib =  new Eigen::MatrixXd(1,block);
+			SetEigenMatrixValues(*ib,1.0);	
+			unmixed = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
+			unmLogit = new Eigen::MatrixXd(NUMBER_OF_ICA_COMPONENTS,block);
+			ones = new Eigen::MatrixXd(block,1);
+			SetEigenMatrixValues(*ones,1.0);
+		}	
+
+		Eigen::MatrixXd subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+
+		// Compute unmixed = weights . sub_x_white + bias . ib
+		
+		*unmixed = weights * subWhitenedData + bias * *ib;
+
+		*unmLogit = *unmixed;
+	    // Compute 1-2*logit
+		LogitEigenMatrix(*unmLogit);
+		
+		IdentityEigenMatrix(tempI);
+	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
+
+	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
+		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
+		
+	    // (2) weights = weights + lrate*temp_I*weights
+		weights += updateRate * tempI * weights;
+
+	    // Update the bias
+		bias += updateRate * *unmLogit * *ones;
+
+	    // Check if blows up
+	    double max = weights.maxCoeff();
+
+		if (max > MAX_W)
+	    {
+			if (updateRate < 1e-6) 
+			{
+				printf("\nERROR: Weight matrix may not be invertible\n");
+				error = 2;
+				break;
+			}
+			error = 1;
+			break;
+		}
+	}
+
+	delete ib;
+	delete unmixed;
+	delete unmLogit;
+	delete ones;
+
+	return(error);
+}
+
+int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXf & weights, Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & bias, Eigen::MatrixXf & shuffledWhitenedData, double updateRate)
+{
+	double MAX_W = 1.0e8;
+	int error = 0;
+	size_t i;
+	size_t block = (size_t)floor(sqrt((float)NUMBER_OF_ICA_VARIABLES/3.0f));
+
+	// Create random permutation vector
+	std::vector<int> perm;
+	for (size_t i = 0; i < NUMBER_OF_ICA_VARIABLES; i++) 
+	{
+	    perm.push_back(i);
+	}
+	std::random_shuffle(perm.begin(), perm.end());
 
 	// Loop over voxels, randomly permute each column
 	for (size_t i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
@@ -18664,8 +18658,104 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 		shuffledWhitenedData.row(i) = permutedRow.transpose();		
 	}
 
-	// Copy data back to device
-	//clEnqueueWriteBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+	size_t start;
+	Eigen::MatrixXf tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+
+	Eigen::MatrixXf *ib =  new Eigen::MatrixXf(1,block);
+	SetEigenMatrixValues(*ib,1.0);	
+
+	Eigen::MatrixXf * unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * ones = new Eigen::MatrixXf(block,1);
+	SetEigenMatrixValues(*ones,1.0);
+
+	for (start = 0; start < NUMBER_OF_ICA_VARIABLES; start = start + block) 
+	{
+		if (start + block > (NUMBER_OF_ICA_VARIABLES-1))
+		{
+			block = NUMBER_OF_ICA_VARIABLES - start;
+
+			delete ib;
+			delete unmixed;
+			delete unmLogit;
+			delete ones;
+
+			ib =  new Eigen::MatrixXf(1,block);
+			SetEigenMatrixValues(*ib,1.0);	
+			unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			ones = new Eigen::MatrixXf(block,1);
+			SetEigenMatrixValues(*ones,1.0);
+		}	
+
+		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+
+		// Compute unmixed = weights . sub_x_white + bias . ib
+		
+		*unmixed = weights * subWhitenedData + bias * *ib;
+
+		*unmLogit = *unmixed;
+	    // Compute 1-2*logit
+		LogitEigenMatrix(*unmLogit);
+		
+		IdentityEigenMatrix(tempI);
+	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
+
+	    // (1) temp_I = block*temp_I +unm_logit*unmixed.T
+		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
+		
+	    // (2) weights = weights + lrate*temp_I*weights
+		weights += updateRate * tempI * weights;
+
+	    // Update the bias
+		bias += updateRate * *unmLogit * *ones;
+
+	    // Check if blows up
+	    double max = weights.maxCoeff();
+
+		if (max > MAX_W)
+	    {
+			if (updateRate < 1e-6) 
+			{
+				printf("\nERROR: Weight matrix may not be invertible\n");
+				error = 2;
+				break;
+			}
+			error = 1;
+			break;
+		}
+	}
+
+	delete ib;
+	delete unmixed;
+	delete unmLogit;
+	delete ones;
+
+	return(error);
+}
+
+
+
+
+int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate)
+{
+	double MAX_W = 1.0e8;
+	int error = 0;
+	size_t i;
+	size_t block = (size_t)floor(sqrt((float)NUMBER_OF_ICA_VARIABLES/3.0f));
+
+	// Create random permutation vector
+	std::vector<unsigned int> perm;
+	for (unsigned int i = 0; i < NUMBER_OF_ICA_VARIABLES; i++) 
+	{
+	    perm.push_back(i);
+	}
+	std::random_shuffle(perm.begin(), perm.end());
+
+	// Copy permutation to device
+	clEnqueueWriteBuffer(commandQueue, d_Permutation, CL_TRUE, 0, NUMBER_OF_ICA_VARIABLES * sizeof(unsigned int), perm.data(), 0, NULL, NULL);
+
+	PermuteMatrix(d_Shuffled_Whitened_Data, d_Whitened_Data, d_Permutation, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES);
 
 	size_t start;
 
@@ -18702,9 +18792,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 			SetMemory(d_ones, 1.0f, block);		
 		}	
 
-		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
-		clEnqueueWriteBuffer(commandQueue, d_Sub_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), subWhitenedData.data(), 0, NULL, NULL);
-		//GetSubMatrix(d_Sub_Whitened_Data, d_Shuffled_Whitened_Data, 0, start, NUMBER_OF_ICA_COMPONENTS, block);
+		GetSubMatrix(d_Sub_Whitened_Data, d_Shuffled_Whitened_Data, 0, start, NUMBER_OF_ICA_COMPONENTS, block, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES);
 
 		// Compute unmixed = weights * subWhitenedData + bias * ib
 		
@@ -18787,6 +18875,8 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 
 
 	cl_mem d_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+	cl_mem d_Shuffled_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+
 	// Copy data to device
 	clEnqueueWriteBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), whitenedData.data(), 0, NULL, NULL);
 
@@ -18802,6 +18892,8 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 	cl_mem d_Scratch = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * 2 * sizeof(float), NULL, NULL);
 	cl_mem d_Float = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
 	cl_mem d_Ones = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Permutation = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_VARIABLES * sizeof(unsigned int), NULL, NULL);
 
 	IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
 	IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
@@ -18824,7 +18916,11 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 
 	while( (step < MAX_STEP) && (change > W_STOP))
 	{		
-		error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, lrate);			
+		double start = GetTime();
+		error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Permutation, d_Shuffled_Whitened_Data, lrate);			
+		double end = GetTime();
+
+		printf("One iteration took %f seconds \n",(float)(end-start));
 
 		if (error == 1 || error == 2)
 		{
@@ -18917,6 +19013,8 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
  	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
 
 	clReleaseMemObject(d_Whitened_Data);
+	clReleaseMemObject(d_Shuffled_Whitened_Data);
+
 	clReleaseMemObject(d_Weights);
 
 	clReleaseMemObject(d_Bias);
@@ -18927,6 +19025,8 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 	clReleaseMemObject(d_Scratch);
 	clReleaseMemObject(d_Float);
 	clReleaseMemObject(d_Ones);
+
+	clReleaseMemObject(d_Permutation);
 }
 
 
@@ -19043,12 +19143,129 @@ void BROCCOLI_LIB::InfomaxICAEigen(Eigen::MatrixXd & whitenedData, Eigen::Matrix
 }
 
 
+void BROCCOLI_LIB::InfomaxICAEigen(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix)
+{
+  	// Computes ICA infomax in whitened data
+    //	Decomposes x_white as x_white=AS
+    //	*Input
+    //	x_white: whitened data (Use PCAwhiten)
+    //	*Output
+    //	A : mixing matrix
+    //	S : source matrix
+  	
+	double EPS = 1e-18;
+	double MAX_W = 1.0e8;
+	double ANNEAL = 0.9;
+	double MIN_LRATE = 1e-6;
+	double W_STOP = 1e-10;
+	size_t MAX_STEP= 512;
+
+	Eigen::MatrixXf bias(NUMBER_OF_ICA_COMPONENTS,1);
+
+	Eigen::MatrixXf oldWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf dWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf oldDWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf temp(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf shuffledWhitenedData(whitenedData.rows(),whitenedData.cols());
+
+	shuffledWhitenedData = whitenedData;
+
+	IdentityEigenMatrix(weights);
+	IdentityEigenMatrix(oldWeights);
+
+	ResetEigenMatrix(bias);
+	ResetEigenMatrix(dWeights);
+	ResetEigenMatrix(oldDWeights);
+	ResetEigenMatrix(temp);
+
+	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
+	double change = 1.0;
+	double angleDelta = 0.0;
+    size_t step = 1;
+	int error = 0;
+
+	while( (step < MAX_STEP) && (change > W_STOP))
+	{
+		double start = GetTime();
+	    error = UpdateInfomaxWeightsEigen(weights, whitenedData, bias, shuffledWhitenedData, lrate);
+		double end = GetTime();
+
+		printf("One iteration took %f seconds \n",(float)(end-start));
+
+		if (error == 1 || error == 2)
+		{
+			// It blowed up! RESTART!
+    	  	step = 1;
+    	  	// change = 1;
+    	  	error = 0;
+    	 	lrate *= ANNEAL;
+		
+			IdentityEigenMatrix(weights);
+			IdentityEigenMatrix(oldWeights);
+
+			ResetEigenMatrix(dWeights);
+			ResetEigenMatrix(oldDWeights);
+			ResetEigenMatrix(bias);
+			
+			if (lrate > MIN_LRATE)
+			{
+    	    	printf("\nLowering learning rate to %g and starting again.\n",lrate);
+    	  	}
+    	  	else
+			{
+		        printf("\nMatrix may not be invertible");
+			}
+    	}
+    	else if (error == 0)
+		{
+			dWeights = weights;	
+			dWeights -= oldWeights;
+		    change = dWeights.squaredNorm();
+	
+			if (step > 2)
+			{
+		        // Compute angle delta
+				temp = dWeights;
+				// Pointwise multiplication
+				temp = temp.array() * oldDWeights.array();
+
+		        angleDelta = acos(temp.sum() / (dWeights.norm() * oldDWeights.norm()) );
+        		angleDelta *= (180.0 / M_PI);
+			}
+
+			oldWeights = weights;
+
+			if (angleDelta > 60)
+			{
+        		lrate *= ANNEAL;
+				oldDWeights = dWeights;
+			} 
+			else if (step == 1) 
+			{
+				oldDWeights = dWeights;
+			}
+
+			printf("\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n", step, lrate, change, angleDelta);
+
+			step++;
+    	}
+  	}
+
+	sourceMatrix = weights * whitenedData;	
+}
 
 
 
 
 void BROCCOLI_LIB::PerformICACPUWrapper()
 {
+	// Initiate clBLAS
+	error = clblasSetup();
+    if (error != CL_SUCCESS) 
+	{
+        printf("clblasSetup() failed with %s\n", GetOpenCLErrorMessage(error));
+    }
+
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
 	if (!AUTO_MASK)
@@ -19067,7 +19284,7 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	//--------------------------
 
 	// Loop through mask to get number of voxels
-	int NUMBER_OF_ICA_VARIABLES = 0;
+	NUMBER_OF_ICA_VARIABLES = 0;
 	for (int v = 0; v < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D; v++)
 	{
 		if (h_EPI_Mask[v] == 1.0f)
@@ -19076,9 +19293,9 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 		}
 	}
 
-	int NUMBER_OF_ICA_OBSERVATIONS = EPI_DATA_T;
+	NUMBER_OF_ICA_OBSERVATIONS = EPI_DATA_T;
 
-	Eigen::MatrixXd inputData(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_VARIABLES);
+	Eigen::MatrixXf inputData(NUMBER_OF_ICA_OBSERVATIONS,NUMBER_OF_ICA_VARIABLES);
 
 	if (WRAPPER == BASH)
 	{
@@ -19142,17 +19359,16 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	}
 
 
-
-
 	// First whiten the data and reduce the number of dimensions
-	Eigen::MatrixXd whitenedData = PCAWhitenEigen(inputData, true);
+	//Eigen::MatrixXf whitenedData = PCAWhitenEigen(inputData, true);
+	Eigen::MatrixXf whitenedData = PCAWhiten(inputData, true);
 	
 	//Eigen::MatrixXd whitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
 	//PCAWhitenEigen(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 	//PCADimensionalityReduction(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
 
-	Eigen::MatrixXd weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
-	Eigen::MatrixXd sourceMatrix(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+	Eigen::MatrixXf weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf sourceMatrix(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
 
 	// Run the actual ICA algorithm
 	InfomaxICAEigen(whitenedData, weights, sourceMatrix);
@@ -19188,6 +19404,9 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 	}
 
 	clReleaseMemObject(d_EPI_Mask);
+
+	// Stop clBLAS
+	clblasTeardown();
 }
 
 

@@ -90,6 +90,7 @@ int main(int argc, char ** argv)
 	bool			MASK = false;
 	const char*		MASK_NAME;
 	bool			Z_SCORE = false;
+	bool			CPU = false;
 	
 	size_t			NUMBER_OF_ICA_COMPONENTS = 55;
 
@@ -117,6 +118,7 @@ int main(int argc, char ** argv)
         printf(" -var                Proportion of variance to save before ICA (default 80 %%) \n");
 		printf(" -mask               Provide a spatial mask (default false) \n");
 		printf(" -zscore             Z-score each time series before ICA (default false) \n");
+		printf(" -cpu	             Use the CPU only (default false) \n");
         printf(" -output             Set output filename (default input_ica.nii) \n");
         printf(" -quiet              Don't print anything to the terminal (default false) \n");
         printf(" -verbose            Print extra stuff (default false) \n");
@@ -230,6 +232,11 @@ int main(int argc, char ** argv)
         else if (strcmp(input,"-zscore") == 0)
         {
             Z_SCORE = true;
+            i += 1;
+        }
+        else if (strcmp(input,"-cpu") == 0)
+        {
+            CPU = true;
             i += 1;
         }
         else if (strcmp(input,"-debug") == 0)
@@ -601,9 +608,15 @@ int main(int argc, char ** argv)
 		BROCCOLI.SetNumberOfICAComponents(NUMBER_OF_ICA_COMPONENTS);
    
         // Run the actual ICA
-		startTime = GetWallTime();        
-		//BROCCOLI.PerformICACPUWrapper();
-		BROCCOLI.PerformICAWrapper();
+		startTime = GetWallTime();   
+		if (CPU)
+		{     
+			BROCCOLI.PerformICACPUWrapper();
+		}
+		else
+		{
+			BROCCOLI.PerformICAWrapper();
+		}
 		endTime = GetWallTime();
 
 		if (VERBOS)

@@ -73,30 +73,45 @@ __kernel void LogitMatrix(__global float* Matrix,
 
 __kernel void GetSubMatrix(__global float* Small_Matrix, 
                            __global const float* Matrix, 
-  			     		   __private int rows)
+  			     		   __private int startRow,
+  			     		   __private int startColumn,
+  			     		   __private int smallNumberOfRows,
+  			     		   __private int smallNumberOfColumns,
+  			     		   __private int largeNumberOfRows,
+  			     		   __private int largeNumberOfColumns)
 {
 	int x = get_global_id(0);	
 	int y = get_global_id(1);
 
-	if (x >= rows || y >= rows)
+	if ((x + startColumn) >= largeNumberOfColumns)
 		return;
 
-	Small_Matrix[x] = Matrix[x];
+	if ((y + startRow) >= largeNumberOfRows)
+		return;
+
+	if (x >= smallNumberOfColumns)
+		return;
+
+	if (y >= smallNumberOfRows)
+		return;
+
+	Small_Matrix[y + x * smallNumberOfRows] = Matrix[(y + startRow) + (x + startColumn) * largeNumberOfRows];
 }
 
 
-__kernel void PermuteMatrix(__global float* Small_Matrix, 
-                           __global const float* Matrix, 
-  			     		   __private int rows)
+__kernel void PermuteMatrix(__global float* Permuted_Matrix, 
+							__global const float* Matrix, 
+                            __global const unsigned int* Permutation, 
+  			     		    __private int rows,
+	                        __private int columns)
 {
 	int x = get_global_id(0);	
 	int y = get_global_id(1);
 
-	if (x >= rows || y >= rows)
+	if (x >= columns || y >= rows)
 		return;
 
-	Small_Matrix[x] = Matrix[x];
-
+	Permuted_Matrix[y + x * rows] = Matrix[y + Permutation[x] * rows];
 }
 
 

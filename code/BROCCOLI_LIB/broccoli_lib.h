@@ -545,19 +545,22 @@ class BROCCOLI_LIB
 		void SetEigenMatrixValues(Eigen::MatrixXf &, double);
 
 		void IdentityMatrix(cl_mem , int);
-		void GetSubMatrix(cl_mem, cl_mem, int, int, int, int);
+		void GetSubMatrix(cl_mem, cl_mem, int, int, int, int, int, int);
+		void PermuteMatrix(cl_mem, cl_mem, cl_mem, int, int);
 
 		void PCAWhitenEigen(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		Eigen::MatrixXd PCAWhitenEigen(Eigen::MatrixXd &, bool);
+		Eigen::MatrixXf PCAWhitenEigen(Eigen::MatrixXf &, bool);
 		void PCADimensionalityReductionEigen(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		void InfomaxICAEigen(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix);
+		void InfomaxICAEigen(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix);
 		int UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & bias, Eigen::MatrixXd & shuffledWhitenedData, double updateRate);
 		int UpdateInfomaxWeightsEigen(Eigen::MatrixXf & weights, Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & bias, Eigen::MatrixXf & shuffledWhitenedData, double updateRate);
 
 		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		Eigen::MatrixXf PCAWhiten(Eigen::MatrixXf &, bool);
 		void InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix);
-		int UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, double updateRate);
+		int UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate);
 
 		//------------------------------------------------
 		// Convolution functions
