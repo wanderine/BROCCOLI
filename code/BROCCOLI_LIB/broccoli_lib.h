@@ -444,7 +444,9 @@ class BROCCOLI_LIB
 		void PerformSecondLevelAnalysisWrapper();
 
 		void PerformICAWrapper();
+		void PerformICADoubleWrapper();
 		void PerformICACPUWrapper();
+		void PerformICADoubleCPUWrapper();
 
 		void GetOpenCLInfo();
 		bool OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
@@ -545,8 +547,11 @@ class BROCCOLI_LIB
 		void SetEigenMatrixValues(Eigen::MatrixXf &, double);
 
 		void IdentityMatrix(cl_mem , int);
+		void IdentityMatrixDouble(cl_mem , int);
 		void GetSubMatrix(cl_mem, cl_mem, int, int, int, int, int, int);
+		void GetSubMatrixDouble(cl_mem, cl_mem, int, int, int, int, int, int);
 		void PermuteMatrix(cl_mem, cl_mem, cl_mem, int, int);
+		void PermuteMatrixDouble(cl_mem, cl_mem, cl_mem, int, int);
 
 		void PCAWhitenEigen(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		Eigen::MatrixXd PCAWhitenEigen(Eigen::MatrixXd &, bool);
@@ -560,7 +565,9 @@ class BROCCOLI_LIB
 		void PCAWhiten(Eigen::MatrixXd &, Eigen::MatrixXd &, int, bool);
 		Eigen::MatrixXf PCAWhiten(Eigen::MatrixXf &, bool);
 		void InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix);
+		void InfomaxICADouble(Eigen::MatrixXd & whitenedData, Eigen::MatrixXd & weights, Eigen::MatrixXd & sourceMatrix);
 		int UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate);
+		int UpdateInfomaxWeightsDouble(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate);
 
 		//------------------------------------------------
 		// Convolution functions
@@ -627,16 +634,20 @@ class BROCCOLI_LIB
 		void CalculateGlobalMeans(float* h_Volumes);		
 
 		void SetMemory(cl_mem memory, float value, size_t N);
+		void SetMemoryDouble(cl_mem memory, double value, size_t N);
 		void SetMemoryInt(cl_mem memory, int value, size_t N);
 		void SetMemoryFloat2(cl_mem memory, float value, size_t N);
 		void MultiplyArray(cl_mem d_Array_1, float value, size_t N);
 		void MultiplyArrays(cl_mem d_Array_1, cl_mem d_Array_2, size_t N);
+		void MultiplyArraysDouble(cl_mem d_Array_1, cl_mem d_Array_2, size_t N);
 		void MultiplyVolume(cl_mem d_Volume_1, float value, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void MultiplyVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t VOLUMES);
 		void MultiplyVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void SubtractArrays(cl_mem d_Array_1, cl_mem d_Array_2, size_t N);
+		void SubtractArraysDouble(cl_mem d_Array_1, cl_mem d_Array_2, size_t N);
 		void LogitMatrix(cl_mem d_Array, size_t N);
+		void LogitMatrixDouble(cl_mem d_Array, size_t N);
 		void AddVolume(cl_mem d_Volume, float value, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void AddVolumes(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 		void AddVolumes(cl_mem d_Result, cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
@@ -779,11 +790,12 @@ class BROCCOLI_LIB
 
 		// Help kernels
 		cl_kernel MemsetKernel;
+		cl_kernel MemsetDoubleKernel;
 		cl_kernel MemsetIntKernel;
 		cl_kernel MemsetFloat2Kernel;
-		cl_kernel MultiplyVolumeKernel, MultiplyVolumesKernel, MultiplyVolumesOverwriteKernel;
+		cl_kernel MultiplyVolumeKernel, MultiplyVolumesKernel, MultiplyVolumesOverwriteKernel, MultiplyVolumesOverwriteDoubleKernel;
 		cl_kernel AddVolumeKernel, AddVolumesKernel, AddVolumesOverwriteKernel;
-		cl_kernel SubtractVolumesKernel, SubtractVolumesOverwriteKernel;
+		cl_kernel SubtractVolumesKernel, SubtractVolumesOverwriteKernel, SubtractVolumesOverwriteDoubleKernel;
 		cl_kernel CalculateColumnSumsKernel, CalculateRowSumsKernel;
 		cl_kernel CalculateColumnMaxsKernel, CalculateRowMaxsKernel;
 		cl_kernel CalculateMaxAtomicKernel;
@@ -797,10 +809,10 @@ class BROCCOLI_LIB
 		cl_kernel CalculateLargestClusterKernel;
 		cl_kernel CalculateTFCEValuesKernel;
 		cl_kernel TransformDataKernel;
-		cl_kernel GetSubMatrixKernel;
-		cl_kernel PermuteMatrixKernel;
-		cl_kernel IdentityMatrixKernel;
-		cl_kernel LogitMatrixKernel;
+		cl_kernel GetSubMatrixKernel, GetSubMatrixDoubleKernel;
+		cl_kernel PermuteMatrixKernel, PermuteMatrixDoubleKernel;
+		cl_kernel IdentityMatrixKernel, IdentityMatrixDoubleKernel;
+		cl_kernel LogitMatrixKernel, LogitMatrixDoubleKernel;
 
 		// Convolution kernels
 		cl_kernel SeparableConvolutionRowsKernel, SeparableConvolutionColumnsKernel, SeparableConvolutionRodsKernel;
@@ -837,15 +849,17 @@ class BROCCOLI_LIB
 		// Create kernel errors
 
 		// Help kernels
-		cl_int createKernelErrorMemset, createKernelErrorMemsetInt, createKernelErrorMemsetFloat2;
+		cl_int createKernelErrorMemset, createKernelErrorMemsetDouble, createKernelErrorMemsetInt, createKernelErrorMemsetFloat2;
 		cl_int createKernelErrorMultiplyVolume;
 		cl_int createKernelErrorMultiplyVolumes;
 		cl_int createKernelErrorMultiplyVolumesOverwrite;
+		cl_int createKernelErrorMultiplyVolumesOverwriteDouble;
 		cl_int createKernelErrorAddVolume;
 		cl_int createKernelErrorAddVolumes;
 		cl_int createKernelErrorAddVolumesOverwrite;
 		cl_int createKernelErrorSubtractVolumes;
 		cl_int createKernelErrorSubtractVolumesOverwrite;
+		cl_int createKernelErrorSubtractVolumesOverwriteDouble;
 		cl_int createKernelErrorRemoveMean;
 		cl_int createKernelErrorSetStartClusterIndices;
 		cl_int createKernelErrorClusterizeScan;
@@ -856,9 +870,13 @@ class BROCCOLI_LIB
 		cl_int createKernelErrorCalculateTFCEValues;
 		cl_int createKernelErrorTransformData;
 		cl_int createKernelErrorGetSubMatrix;
+		cl_int createKernelErrorGetSubMatrixDouble;
 		cl_int createKernelErrorPermuteMatrix;
+		cl_int createKernelErrorPermuteMatrixDouble;
 		cl_int createKernelErrorIdentityMatrix;
+		cl_int createKernelErrorIdentityMatrixDouble;
 		cl_int createKernelErrorLogitMatrix;
+		cl_int createKernelErrorLogitMatrixDouble;
 
 		// Convolution kernels
 		cl_int createKernelErrorSeparableConvolutionRows, createKernelErrorSeparableConvolutionColumns, createKernelErrorSeparableConvolutionRods;
@@ -926,15 +944,17 @@ class BROCCOLI_LIB
 		// Run kernel errors
 
 		// Help kernels
-		cl_int runKernelErrorMemset, runKernelErrorMemsetInt, runKernelErrorMemsetFloat2;
+		cl_int runKernelErrorMemset, runKernelErrorMemsetDouble, runKernelErrorMemsetInt, runKernelErrorMemsetFloat2;
 		cl_int runKernelErrorMultiplyVolume;
 		cl_int runKernelErrorMultiplyVolumes;
 		cl_int runKernelErrorMultiplyVolumesOverwrite;
+		cl_int runKernelErrorMultiplyVolumesOverwriteDouble;
 		cl_int runKernelErrorAddVolume;
 		cl_int runKernelErrorAddVolumes;
 		cl_int runKernelErrorAddVolumesOverwrite;
 		cl_int runKernelErrorSubtractVolumes;
 		cl_int runKernelErrorSubtractVolumesOverwrite;
+		cl_int runKernelErrorSubtractVolumesOverwriteDouble;
 		cl_int runKernelErrorRemoveMean;
 		cl_int runKernelErrorSetStartClusterIndices;
 		cl_int runKernelErrorClusterizeScan;
@@ -945,9 +965,13 @@ class BROCCOLI_LIB
 		cl_int runKernelErrorCalculateTFCEValues;
 		cl_int runKernelErrorTransformData;
 		cl_int runKernelErrorGetSubMatrix;
+		cl_int runKernelErrorGetSubMatrixDouble;
 		cl_int runKernelErrorPermuteMatrix;
+		cl_int runKernelErrorPermuteMatrixDouble;
 		cl_int runKernelErrorIdentityMatrix;
+		cl_int runKernelErrorIdentityMatrixDouble;
 		cl_int runKernelErrorLogitMatrix;
+		cl_int runKernelErrorLogitMatrixDouble;
 
 		// Convolution kernels
 		cl_int runKernelErrorSeparableConvolutionRows, runKernelErrorSeparableConvolutionColumns, runKernelErrorSeparableConvolutionRods;

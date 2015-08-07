@@ -23,6 +23,9 @@
     DEALINGS IN THE SOFTWARE.
 */
 
+#pragma OPENCL EXTENSION cl_khr_fp64: enable
+
+
 // Help functions
 int Calculate2DIndex(int x, int y, int DATA_W)
 {
@@ -59,6 +62,25 @@ __kernel void IdentityMatrix(__global float* Matrix,
 	}
 }
 
+__kernel void IdentityMatrixDouble(__global double* Matrix, 
+  			     			       __private int N)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+
+	if (x >= N || y >= N)
+		return;
+
+	if (x == y)
+	{
+		Matrix[Calculate2DIndex(x,y,N)] = 1.0;
+	}
+	else
+	{
+		Matrix[Calculate2DIndex(x,y,N)] = 0.0;
+	}
+}
+
 __kernel void LogitMatrix(__global float* Matrix, 
   			     			 __private int N)
 {
@@ -70,6 +92,16 @@ __kernel void LogitMatrix(__global float* Matrix,
 	Matrix[x] = 1.0f - (2.0f / (1.0f + exp(-Matrix[x] )) );
 }
 
+__kernel void LogitMatrixDouble(__global double* Matrix, 
+  			     			    __private int N)
+{
+	int x = get_global_id(0);	
+
+	if (x >= N)
+		return;
+
+	Matrix[x] = 1.0 - (2.0 / (1.0 + exp(-Matrix[x] )) );
+}
 
 __kernel void GetSubMatrix(__global float* Small_Matrix, 
                            __global const float* Matrix, 
@@ -79,6 +111,34 @@ __kernel void GetSubMatrix(__global float* Small_Matrix,
   			     		   __private int smallNumberOfColumns,
   			     		   __private int largeNumberOfRows,
   			     		   __private int largeNumberOfColumns)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+
+	if ((x + startColumn) >= largeNumberOfColumns)
+		return;
+
+	if ((y + startRow) >= largeNumberOfRows)
+		return;
+
+	if (x >= smallNumberOfColumns)
+		return;
+
+	if (y >= smallNumberOfRows)
+		return;
+
+	Small_Matrix[y + x * smallNumberOfRows] = Matrix[(y + startRow) + (x + startColumn) * largeNumberOfRows];
+}
+
+
+__kernel void GetSubMatrixDouble(__global double* Small_Matrix, 
+                                 __global const double* Matrix, 
+  			     		         __private int startRow,
+  			     		         __private int startColumn,
+  			     		         __private int smallNumberOfRows,
+  			     		         __private int smallNumberOfColumns,
+  			     		         __private int largeNumberOfRows,
+  			     		         __private int largeNumberOfColumns)
 {
 	int x = get_global_id(0);	
 	int y = get_global_id(1);
@@ -114,6 +174,21 @@ __kernel void PermuteMatrix(__global float* Permuted_Matrix,
 	Permuted_Matrix[y + x * rows] = Matrix[y + Permutation[x] * rows];
 }
 
+
+__kernel void PermuteMatrixDouble(__global double* Permuted_Matrix, 
+							      __global const double* Matrix, 
+                            	  __global const unsigned int* Permutation, 
+  			     		          __private int rows,
+	                              __private int columns)
+{
+	int x = get_global_id(0);	
+	int y = get_global_id(1);
+
+	if (x >= columns || y >= rows)
+		return;
+
+	Permuted_Matrix[y + x * rows] = Matrix[y + Permutation[x] * rows];
+}
 
 __kernel void CalculateColumnSums(__global float* Sums, 
 	                              __global const float* Volume, 
@@ -381,6 +456,24 @@ __kernel void SubtractVolumesOverwrite(__global float* Volume1,
 	Volume1[idx] = Volume1[idx] - Volume2[idx];
 }
 
+__kernel void SubtractVolumesOverwriteDouble(__global double* Volume1, 
+	                              	         __global const double* Volume2, 
+								  	         __private int DATA_W, 
+								             __private int DATA_H, 
+								             __private int DATA_D)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+
+	Volume1[idx] = Volume1[idx] - Volume2[idx];
+}
+
 __kernel void MultiplyVolume(__global float* Volume, 
 	                         __private float factor, 
 							 __private int DATA_W, 
@@ -438,6 +531,25 @@ __kernel void MultiplyVolumesOverwrite(__global float* Volume1,
 	Volume1[idx4D] = Volume1[idx4D] * Volume2[idx3D];
 }
 
+__kernel void MultiplyVolumesOverwriteDouble(__global double* Volume1, 
+	                                         __global const double* Volume2, 
+									         __private int DATA_W, 
+									         __private int DATA_H, 
+									         __private int DATA_D, 
+									         __private int VOLUME)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+	if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+		return;
+
+	int idx3D = Calculate3DIndex(x,y,z,DATA_W,DATA_H);
+	int idx4D = Calculate4DIndex(x,y,z,VOLUME,DATA_W,DATA_H,DATA_D);
+
+	Volume1[idx4D] = Volume1[idx4D] * Volume2[idx3D];
+}
 
 __kernel void MemsetInt(__global int *Data,
 	                    __private int value,
@@ -455,6 +567,18 @@ __kernel void MemsetInt(__global int *Data,
 __kernel void Memset(__global float *Data, 
 	                 __private float value, 
 					 __private int N)
+{
+	int i = get_global_id(0);
+
+	if (i >= N)
+		return;
+
+	Data[i] = value;
+}
+
+__kernel void MemsetDouble(__global double *Data, 
+	                       __private double value, 
+					       __private int N)
 {
 	int i = get_global_id(0);
 
