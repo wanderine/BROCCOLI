@@ -43,6 +43,9 @@ g++ -framework OpenCL Smoothing.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENC
 
 g++ -framework OpenCL GLM.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o GLM
 
+g++ -framework OpenCL ICA.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o ICA
+
+
 
 # Move compiled files to correct directory
 
@@ -56,6 +59,7 @@ if [ "$COMPILATION" -eq "$RELEASE" ] ; then
     mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
     mv Smoothing ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
     mv GLM ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
     mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
     mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
@@ -66,6 +70,7 @@ elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
     mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
     mv Smoothing ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
     mv GLM ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
 fi
 
 # For debugging, use lldb
