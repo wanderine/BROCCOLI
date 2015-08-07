@@ -17779,6 +17779,7 @@ double GetTime()
 }
 
 // Saves a certain percentage of the variance, instead of a fix number of components
+#ifdef __linux
 Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean)
 {
 	// inputData, NUMBER_OF_OBSERVATIONS x NUMBER_OF_VOXELS
@@ -17931,6 +17932,11 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean
 
 	return whitenedData;
 }
+#elif __APPLE__
+Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean)
+{
+}
+#endif
 
 
 
