@@ -18736,7 +18736,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXf & weights, Eigen::Ma
 
 
 
-
+#ifdef __linux
 int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate)
 {
 	double MAX_W = 1.0e8;
@@ -18854,8 +18854,13 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 
 	return(error);
 }
+#elif __APPLE__
+int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate)
+{
+}
+#endif
 
-
+#ifdef __linux
 void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix)
 {
   	// Computes ICA infomax in whitened data
@@ -19028,7 +19033,11 @@ void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & 
 
 	clReleaseMemObject(d_Permutation);
 }
-
+#elif __APPLE__
+void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix)
+{
+}
+#endif
 
 
 
@@ -19259,12 +19268,14 @@ void BROCCOLI_LIB::InfomaxICAEigen(Eigen::MatrixXf & whitenedData, Eigen::Matrix
 
 void BROCCOLI_LIB::PerformICACPUWrapper()
 {
+	#ifdef __linux
 	// Initiate clBLAS
 	error = clblasSetup();
     if (error != CL_SUCCESS) 
 	{
         printf("clblasSetup() failed with %s\n", GetOpenCLErrorMessage(error));
     }
+	#endif
 
 	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
@@ -19360,8 +19371,13 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 
 
 	// First whiten the data and reduce the number of dimensions
-	//Eigen::MatrixXf whitenedData = PCAWhitenEigen(inputData, true);
+	
+
+	#ifdef __linux
 	Eigen::MatrixXf whitenedData = PCAWhiten(inputData, true);
+	#elif __APPLE__
+	Eigen::MatrixXf whitenedData = PCAWhitenEigen(inputData, true);
+	#endif
 	
 	//Eigen::MatrixXd whitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
 	//PCAWhitenEigen(whitenedData,  inputData, NUMBER_OF_ICA_COMPONENTS, true);
@@ -19405,8 +19421,10 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 
 	clReleaseMemObject(d_EPI_Mask);
 
+	#ifdef __linux
 	// Stop clBLAS
 	clblasTeardown();
+	#endif
 }
 
 
@@ -19414,12 +19432,14 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 
 void BROCCOLI_LIB::PerformICAWrapper()
 {
+	#ifdef __linux
 	// Initiate clBLAS
 	error = clblasSetup();
     if (error != CL_SUCCESS) 
 	{
         printf("clblasSetup() failed with %s\n", GetOpenCLErrorMessage(error));
     }
+	#endif
 
 	//--------------------------
 
@@ -19561,8 +19581,10 @@ void BROCCOLI_LIB::PerformICAWrapper()
 
 	clReleaseMemObject(d_EPI_Mask);
 
+	#ifdef __linux
 	// Stop clBLAS
 	clblasTeardown();
+	#endif
 }
 
 
