@@ -27,6 +27,8 @@ fi
 # Compile each wrapper
 g++ -framework OpenCL  GetOpenCLInfo.cpp -lBROCCOLI_LIB -I${OPENCL_HEADER_DIRECTORY}  -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY}  -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -o GetOpenCLInfo
 
+g++ -framework OpenCL  GetBandwidth.cpp -lBROCCOLI_LIB -I${OPENCL_HEADER_DIRECTORY}  -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY}  -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -o GetBandwidth
+
 g++ -framework OpenCL MotionCorrection.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o MotionCorrection
 
 g++ -framework OpenCL RegisterTwoVolumes.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEADER_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib ${FLAGS} -o RegisterTwoVolumes
@@ -51,6 +53,7 @@ g++ -framework OpenCL ICA.cpp -lBROCCOLI_LIB -lniftiio -lznz -lz -I${OPENCL_HEAD
 
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
     mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
+    mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
     mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
     mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
     mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
@@ -62,6 +65,7 @@ if [ "$COMPILATION" -eq "$RELEASE" ] ; then
     mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
     mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
+    mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
     mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
     mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
     mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Mac/Debug
