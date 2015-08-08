@@ -55,7 +55,7 @@ fi
 
 g++ GetOpenCLInfo.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -lBROCCOLI_LIB -lOpenCL -lclBLAS ${FLAGS} -o GetOpenCLInfo
 
-g++ GetBandwidthPerformance.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -lBROCCOLI_LIB -lOpenCL -lclBLAS ${FLAGS} -o GetBandwidthPerformance
+g++ GetBandwidth.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -lBROCCOLI_LIB -lOpenCL -lclBLAS ${FLAGS} -o GetBandwidth
 
 # Support for compressed files
 g++ MotionCorrection.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lclBLAS -lniftiio -lznz -lz ${FLAGS} -o MotionCorrection 
@@ -80,7 +80,7 @@ g++ GLM.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPEN
 # Move compiled files to correct directory
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
-	mv GetBandwidthPerformance ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
@@ -92,7 +92,7 @@ if [ "$COMPILATION" -eq "$RELEASE" ] ; then
 	mv GLM ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
-	mv GetBandwidthPerformance ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv RegisterTwoVolumes ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv TransformVolume ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug

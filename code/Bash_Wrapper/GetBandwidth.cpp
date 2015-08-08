@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
 	BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,2,false); // 2 = Bash wrapper
 
-	BROCCOLI.GetBandwidthPerformance();
+	BROCCOLI.GetBandwidth();
     
             
     return EXIT_SUCCESS;

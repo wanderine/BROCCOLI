@@ -848,7 +848,7 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 	}
 }
 
-void BROCCOLI_LIB::GetBandwidthPerformance()
+void BROCCOLI_LIB::GetBandwidth()
 {
 	size_t elements = 131000000/2;
 
