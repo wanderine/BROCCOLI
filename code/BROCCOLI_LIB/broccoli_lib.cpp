@@ -80,6 +80,17 @@ float mymax(float a, float b)
 		return b;
 }
 
+double GetTime()
+{
+    struct timeval time;
+    if (gettimeofday(&time,NULL))
+    {
+        //  Handle error
+        return 0;
+    }
+    return (double)time.tv_sec + (double)time.tv_usec * .000001;
+}
+
 float myround(float a)
 {
 	return floor(a + 0.5f);
@@ -835,6 +846,57 @@ void BROCCOLI_LIB::GetOpenCLInfo()
 			deviceInfo.append("\n");
 		}
 	}
+}
+
+void BROCCOLI_LIB::GetBandwidthPerformance()
+{
+	size_t elements = 131000000/2;
+
+	// Allocate 250 MB on host
+	float* h_Data = (float*)malloc(elements * sizeof(float));
+
+	// Allocate 250 MB on device
+	cl_mem d_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, elements * sizeof(float), NULL, NULL);
+	
+	// Copy data from host to device
+	double start = GetTime();
+	for (int i = 0; i < 10; i++)
+	{
+		clEnqueueWriteBuffer(commandQueue, d_Data, CL_TRUE, 0, elements * sizeof(float), h_Data, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+	double end = GetTime();
+	double time = (end - start)/10.0;
+	printf("On average it took %f seconds to transfer 250 MB from host to device, giving a bandwidth of %f MB/s\n",(float)(time),(float)(250.0/time));
+
+	// Copy data from device to host
+	start = GetTime();
+	for (int i = 0; i < 10; i++)
+	{
+		clEnqueueReadBuffer(commandQueue, d_Data, CL_TRUE, 0, elements * sizeof(float), h_Data, 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+	end = GetTime();
+	time = (end - start)/10.0;
+	printf("On average it took %f seconds to transfer 250 MB from device to host, giving a bandwidth of %f MB/s\n",(float)(time),(float)(250.0/time));
+
+	cl_mem d_Data2 = clCreateBuffer(context, CL_MEM_READ_WRITE, elements * sizeof(float), NULL, NULL);
+
+	// Copy data from device to device
+	start = GetTime();
+	for (int i = 0; i < 10; i++)
+	{
+		clEnqueueCopyBuffer(commandQueue, d_Data, d_Data2, 0, 0, elements * sizeof(float), 0, NULL, NULL);
+		clFinish(commandQueue);
+	}
+	end = GetTime();
+	time = (end - start)/10.0;
+	printf("On average it took %f seconds to transfer 250 MB from device to device, giving a bandwidth of %f MB/s\n",(float)(time),(float)(250.0/time));
+
+
+	free(h_Data);
+	clReleaseMemObject(d_Data);
+	clReleaseMemObject(d_Data2);
 }
 
 const char* BROCCOLI_LIB::GetOpenCLDeviceName()
@@ -17910,16 +17972,7 @@ void BROCCOLI_LIB::PCADimensionalityReductionEigen(Eigen::MatrixXd & reducedData
 }
 
 
-double GetTime()
-{
-    struct timeval time;
-    if (gettimeofday(&time,NULL))
-    {
-        //  Handle error
-        return 0;
-    }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
-}
+
 
 // Saves a certain percentage of the variance, instead of a fix number of components
 #ifdef __linux

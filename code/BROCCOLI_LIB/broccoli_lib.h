@@ -449,6 +449,8 @@ class BROCCOLI_LIB
 		void PerformICADoubleCPUWrapper();
 
 		void GetOpenCLInfo();
+		void GetBandwidthPerformance();
+
 		bool OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE);
 
 	private:
