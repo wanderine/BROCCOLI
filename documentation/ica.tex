@@ -1,0 +1,77 @@
+\section{ICA}
+
+BROCCOLI provides a function for independent component analysis (ICA). In its simplest form, it can be used as
+
+\begin{verbatim}
+ICA volumes.nii
+\end{verbatim}
+where volumes.nii is a 4D file with several volumes.
+
+\section{OpenCL options}
+
+The following OpenCL options are available
+
+\begin{itemize}
+
+\item -platform
+\newline \newline The OpenCL platform to use (default 0).
+
+\item -device
+\newline \newline The OpenCL device to use (default 0).
+
+\end{itemize}
+
+\newpage 
+
+\section{ICA options}
+
+The following ICA options are available
+
+\begin{itemize}
+
+\item -var
+\newline \newline Proportion of variance to save before ICA (default 80 \%).  
+
+\item -mask
+\newline \newline Provide a spatial mask (default false), otherwise a mask will automatically be created.
+
+\item -zscore
+\newline \newline Z-score each time series before ICA (default false). 
+
+\item -cpu
+\newline \newline Use the CPU only (default false).
+
+\item -double
+\newline \newline Use double precision for all calculations, instead of single precision floats (default false). 
+
+\end{itemize}
+
+\section{Outputs}
+
+By default, the function saves the independent components as volumes\_ica.nii.
+\section{Output options}
+
+The following output options are available
+
+\begin{itemize}
+
+\item -output 
+\newline \newline Set output filename (default volumes\_ica.nii).
+
+\end{itemize}
+
+\section{Additional options}
+
+The following additional options are available
+
+\begin{itemize}
+
+\item -quiet 
+\newline \newline Don't print anything to the terminal (default false). 
+
+\item -verbose
+\newline \newline Print extra stuff (default false). 
+
+\end{itemize}
+
+
