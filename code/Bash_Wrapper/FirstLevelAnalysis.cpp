@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;
     
-    size_t          NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONFOUND_REGRESSORS, NUMBER_OF_CONTRASTS, BETA_SPACE;
+    size_t          NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS, NUMBER_OF_CONFOUND_REGRESSORS, NUMBER_OF_CONTRASTS;
     
     size_t          NUMBER_OF_DETRENDING_REGRESSORS = 4;
     size_t          NUMBER_OF_MOTION_REGRESSORS = 6;	
@@ -1189,7 +1189,7 @@ int main(int argc, char **argv)
 		    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
     		{
 		        contrasts.close();
-		        printf("Design file says that number of regressors is %zu, while contrast file says there are %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+		        printf("Design file says that number of regressors is %zu, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
 		        return EXIT_FAILURE;
 		    }
     
@@ -1523,7 +1523,7 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-        	printf("Number of total regressors must be <= 25 when permuting ! You provided %zu regressors in the design file, with 4 regressors for detrending, this comes to a total of zui regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+        	printf("Number of total regressors must be <= 25 when permuting ! You provided %zu regressors in the design file, with 4 regressors for detrending, this comes to a total of %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		}
         return EXIT_FAILURE;
     }

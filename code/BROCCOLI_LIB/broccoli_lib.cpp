@@ -16073,7 +16073,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(float* h_fMRI_Volumes)
 
         if (WRAPPER == BASH)
         {
-            printf("\nPermutation threshold for contrast %i for a significance level of %f is %f \n\n",c+1,SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
+            printf("\nPermutation threshold for contrast %zu for a significance level of %f is %f \n\n",c+1,SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
         }
 	}
 
@@ -18595,7 +18595,7 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean
 }
 #elif __APPLE__
 Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean)
-{
+{	
 }
 #endif
 

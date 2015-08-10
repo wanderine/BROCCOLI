@@ -678,7 +678,7 @@ int main(int argc, char **argv)
 		if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
 		{
 			contrasts.close();
-			printf("Design file says that number of regressors is %i, while contrast file says there are %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+			printf("Design file says that number of regressors is %zu, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
