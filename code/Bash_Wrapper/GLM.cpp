@@ -141,13 +141,11 @@ int main(int argc, char **argv)
     {   
 		printf("\nThe function applies the GLM for single subject analysis and group analysis.\n\n");     
         printf("Usage first level, design.txt contains all regressors:\n\n");
-        printf("GLM volumes.nii -design design.txt -contrasts design.txt -firstlevel [options]\n\n");
+        printf("GLM volumes.nii -design design.txt -contrasts contrasts.txt -firstlevel [options]\n\n");
         printf("Usage first level, regressors.txt contains a file name to each regressor:\n\n");
-        printf("GLM volumes.nii -designfiles regressors.txt -contrasts design.txt -firstlevel [options]\n\n");
+        printf("GLM volumes.nii -designfiles regressors.txt -contrasts contrasts.txt -firstlevel [options]\n\n");
         printf("Usage second level:\n\n");
-        printf("GLM volumes.nii -design design.txt -contrasts design.txt -secondlevel [options]\n\n");
-//        printf("Regression only:\n\n");
-//        printf("GLM volumes.nii -design design.txt -regressonly [options]\n\n");
+        printf("GLM volumes.nii -design design.txt -contrasts contrasts.txt -secondlevel [options]\n\n");
         printf("Options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");

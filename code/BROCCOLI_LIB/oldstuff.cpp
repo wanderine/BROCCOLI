@@ -4611,3 +4611,499 @@ void BROCCOLI_LIB::ClusterizeOpenCLWrapper3()
 	*/
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Used for debugging
+/*
+int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Shuffled_Whitened_Data, double updateRate)
+{
+	double MAX_W = 1.0e8;
+	int error = 0;
+	size_t i;
+	size_t block = (size_t)floor(sqrt(NUMBER_OF_ICA_VARIABLES/3.0));
+
+	// Create random permutation vector
+	std::vector<int> perm;
+	for (int i = 0; i < NUMBER_OF_ICA_VARIABLES; i++) 
+	{
+	    perm.push_back(i);
+	}
+	std::random_shuffle(perm.begin(), perm.end());
+
+	Eigen::MatrixXf weights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf weights2(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf bias(NUMBER_OF_ICA_COMPONENTS,1);
+	Eigen::MatrixXf bias2(NUMBER_OF_ICA_COMPONENTS,1);
+	Eigen::MatrixXf shuffledWhitenedData(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_VARIABLES);
+
+	// Copy data from device
+	clEnqueueReadBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+
+	// Loop over voxels, randomly permute each column
+	for (size_t i = 0; i < NUMBER_OF_ICA_COMPONENTS; i++)
+	{
+		Eigen::VectorXf row = shuffledWhitenedData.row(i);
+		Eigen::VectorXf permutedRow = row;
+
+		for (size_t j = 0; j < NUMBER_OF_ICA_VARIABLES; j++)
+		{
+			permutedRow(j) = row(perm[j]);
+		}		
+
+		shuffledWhitenedData.row(i) = permutedRow.transpose();		
+	}
+
+	// Copy data back to device
+	clEnqueueWriteBuffer(commandQueue, d_Shuffled_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), shuffledWhitenedData.data(), 0, NULL, NULL);
+
+
+	size_t start;
+
+	Eigen::MatrixXf tempI(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf tempI2(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+
+	Eigen::MatrixXf *ib =  new Eigen::MatrixXf(1,block);
+	SetEigenMatrixValues(*ib,1.0f);	
+
+	Eigen::MatrixXf * unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * unmixed2 = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+	Eigen::MatrixXf * ones = new Eigen::MatrixXf(block,1);
+	SetEigenMatrixValues(*ones,1.0f);
+
+
+
+	cl_mem d_TempI = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_ib = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+	cl_mem d_unmixed = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+	cl_mem d_unmLogit = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+	cl_mem d_ones = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+	cl_mem d_Sub_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+
+	SetMemory(d_ib, 1.0f, block);
+	SetMemory(d_ones, 1.0f, block);
+
+	for (start = 0; start < NUMBER_OF_ICA_VARIABLES; start = start + block) 
+	{
+		if (start + block > (NUMBER_OF_ICA_VARIABLES-1))
+		{
+			block = NUMBER_OF_ICA_VARIABLES - start;
+
+			delete ib;
+			delete unmixed;
+			delete unmixed2;
+			delete unmLogit;
+			delete ones;
+
+			ib =  new Eigen::MatrixXf(1,block);
+			SetEigenMatrixValues(*ib,1.0f);	
+			unmixed = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			unmixed2 = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			unmLogit = new Eigen::MatrixXf(NUMBER_OF_ICA_COMPONENTS,block);
+			ones = new Eigen::MatrixXf(block,1);
+			SetEigenMatrixValues(*ones,1.0f);
+
+
+
+			clReleaseMemObject(d_ib);
+			clReleaseMemObject(d_unmixed);
+			clReleaseMemObject(d_unmLogit);
+			clReleaseMemObject(d_ones);
+			clReleaseMemObject(d_Sub_Whitened_Data);
+
+			d_ib = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+			d_unmixed = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+			d_unmLogit = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+			d_ones = clCreateBuffer(context, CL_MEM_READ_WRITE, block * sizeof(float), NULL, NULL);
+			d_Sub_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), NULL, NULL);
+
+			SetMemory(d_ib, 1.0f, block);
+			SetMemory(d_ones, 1.0f, block);		
+		}	
+
+		Eigen::MatrixXf subWhitenedData = shuffledWhitenedData.block(0,start,NUMBER_OF_ICA_COMPONENTS,block);
+		clEnqueueWriteBuffer(commandQueue, d_Sub_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), subWhitenedData.data(), 0, NULL, NULL);
+
+		// Compute unmixed = weights * subWhitenedData + bias * ib
+		*unmixed = weights * subWhitenedData + bias * *ib;
+		
+		// First unmixed = weights * subWhitenedData 
+		// C = alpha * A * B  + beta * C                                            rows in d_Weights  columns in d_Sub_Whitened_Data   columns in d_Weights     alpha   A matrix     leading dimension of A-matrix      B matrix                        leading dimension of B-matrix    beta     C matrix
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,           block,               NUMBER_OF_ICA_COMPONENTS, 1.0f,  d_Weights, 0, NUMBER_OF_ICA_COMPONENTS,          d_Sub_Whitened_Data, 0,          NUMBER_OF_ICA_COMPONENTS,       0.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		// Then C = bias * ib + C
+		// C = alpha * A * B  + beta * C                                            rows in d_Bias       columns in ib    columns in d_Bias     alpha   A matrix     leading dimension of A-matrix      B matrix     leading dimension of B-matrix    beta     C matrix
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS,      block,          1,                1.0f,  d_Bias, 0,     NUMBER_OF_ICA_COMPONENTS,          d_ib, 0,       1,                         1.0f,   d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+		
+
+		clEnqueueReadBuffer(commandQueue, d_unmixed, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), unmixed2->data(), 0, NULL, NULL);
+		
+		Eigen::MatrixXf diff = *unmixed2 - *unmixed;
+
+		printf("Max difference between eigen and clBLAS for unmixed is %f\n",diff.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for unmixed is %f\n",diff.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for unmixed is %f\n",diff.norm());
+
+
+		*unmLogit = *unmixed;
+
+		//unmLogit = unmixed;
+		clEnqueueCopyBuffer(commandQueue, d_unmixed, d_unmLogit, 0, 0, NUMBER_OF_ICA_COMPONENTS * block * sizeof(float), 0, NULL, NULL);
+
+	    // Compute 1-2*logit
+		LogitEigenMatrix(*unmLogit);
+		LogitMatrix(d_unmLogit,NUMBER_OF_ICA_COMPONENTS * block);
+
+		IdentityEigenMatrix(tempI);		
+		IdentityMatrix(d_TempI,NUMBER_OF_ICA_COMPONENTS);
+
+	    // weights = weights + lrate*(block*I+(unmLogit*unmixed.T))*weights
+
+		// (1) temp_I = block*temp_I +unm_logit*unmixed.T
+		tempI = (double)block * tempI + *unmLogit * (*unmixed).transpose();
+		
+		// C = alpha * A * B  + beta * C
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, block, 1.0f, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_unmixed, 0, NUMBER_OF_ICA_COMPONENTS, (float)block,   d_TempI, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		clEnqueueReadBuffer(commandQueue, d_TempI, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), tempI2.data(), 0, NULL, NULL);
+
+		Eigen::MatrixXf diff2 = tempI - tempI2;
+
+		printf("Max difference between eigen and clBLAS for tempI is %f\n",diff2.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for tempI is %f\n",diff2.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for tempI is %f\n",diff2.norm());
+
+	    // (2) weights = weights + lrate*temp_I*weights
+		weights += updateRate * tempI * weights;
+
+		// C = alpha * A * B  + beta * C
+	 	error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_COMPONENTS, (float)updateRate, d_TempI, 0, NUMBER_OF_ICA_COMPONENTS, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, 1.0f,   d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		clEnqueueReadBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights2.data(), 0, NULL, NULL);
+
+		Eigen::MatrixXf diff3 = weights - weights2;
+
+		printf("Max difference between eigen and clBLAS for weights is %f\n",diff3.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for weights is %f\n",diff3.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for weights is %f\n",diff3.norm());
+
+
+	    // Update the bias
+		bias += updateRate * *unmLogit * *ones;
+
+		// C = alpha * A * B  + beta * C
+	 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, 1, block, (float)updateRate, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_ones, 0, NUMBER_OF_ICA_COMPONENTS, 1.0f,   d_Bias, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+		// y = alpha * A * x  + beta * y
+		error = clblasSgemv(clblasColumnMajor, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, block, (float)updateRate, d_unmLogit, 0, NUMBER_OF_ICA_COMPONENTS, d_ones, 0, 1, 1.0f, d_Bias, 0, 1, 1, &commandQueue, 0, NULL, NULL);
+
+		printf("clBLAS error for bias is %i\n",error);
+		
+		clEnqueueReadBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias2.data(), 0, NULL, NULL);
+		clFinish(commandQueue);
+
+		Eigen::MatrixXf diff4 = bias - bias2;
+
+		printf("Max difference between eigen and clBLAS for bias is %f\n",diff4.maxCoeff());
+		printf("Tot difference between eigen and clBLAS for bias is %f\n",diff4.array().abs().sum());
+		printf("Norm difference between eigen and clBLAS for bias is %f\n",diff4.norm());
+
+		std::cout << bias.transpose() << std::endl << std::endl;
+		std::cout << bias2.transpose() << std::endl << std::endl;
+		std::cout << diff4.transpose() << std::endl << std::endl;
+
+
+	    // Check if blows up
+		double max = weights.maxCoeff();
+	    double max2 = weights2.maxCoeff();//CalculateMaxAtomic(d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+		printf("Max1 is %f and max2 is %f\n",(float)max,(float)max2);
+
+
+
+		if (max > MAX_W)
+	    {
+			if (updateRate < 1e-6) 
+			{
+				printf("\nERROR: Weight matrix may not be invertible\n");
+				error = 2;
+				break;
+			}
+			error = 1;
+			break;
+		}
+	}
+
+	// Copy data back to device
+	//clEnqueueWriteBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+	//clEnqueueWriteBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+
+
+	clReleaseMemObject(d_ib);
+	clReleaseMemObject(d_unmixed);
+	clReleaseMemObject(d_unmLogit);
+	clReleaseMemObject(d_ones);
+	clReleaseMemObject(d_Sub_Whitened_Data);
+
+	delete ib;
+	delete unmixed;
+	delete unmixed2;
+	delete unmLogit;
+	delete ones;
+
+	return(error);
+}
+*/
+
+// Used for debugging
+/*
+void BROCCOLI_LIB::InfomaxICA(Eigen::MatrixXf & whitenedData, Eigen::MatrixXf & weights, Eigen::MatrixXf & sourceMatrix)
+{
+  	// Computes ICA infomax in whitened data
+    //	Decomposes x_white as x_white=AS
+    //	*Input
+    //	x_white: whitened data (Use PCAwhiten)
+    //	*Output
+    //	A : mixing matrix
+    //	S : source matrix
+  	
+	double EPS = 1e-18;
+	double MAX_W = 1.0e8;
+	double ANNEAL = 0.9;
+	double MIN_LRATE = 1e-6;
+	double W_STOP = 1e-6;
+	size_t MAX_STEP= 512;
+
+	Eigen::MatrixXf bias(NUMBER_OF_ICA_COMPONENTS,1);
+
+	Eigen::MatrixXf oldWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf dWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf oldDWeights(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf temp(NUMBER_OF_ICA_COMPONENTS,NUMBER_OF_ICA_COMPONENTS);
+	Eigen::MatrixXf shuffledWhitenedData(whitenedData.rows(),whitenedData.cols());
+
+	shuffledWhitenedData = whitenedData;
+
+	IdentityEigenMatrix(weights);
+	IdentityEigenMatrix(oldWeights);
+
+	ResetEigenMatrix(bias);
+	ResetEigenMatrix(dWeights);
+	ResetEigenMatrix(oldDWeights);
+	ResetEigenMatrix(temp);
+
+
+	cl_mem d_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Whitened_Data, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), whitenedData.data(), 0, NULL, NULL);
+
+	cl_mem d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Bias = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	cl_mem d_Old_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Old_d_Weights = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Temp = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+	cl_mem d_Shuffled_Whitened_Data = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), NULL, NULL);
+
+	cl_mem d_Scratch = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * 2 * sizeof(float), NULL, NULL);
+	cl_mem d_Float = clCreateBuffer(context, CL_MEM_READ_WRITE, sizeof(float), NULL, NULL);
+	cl_mem d_Ones = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), NULL, NULL);
+
+	clEnqueueCopyBuffer(commandQueue, d_Whitened_Data, d_Shuffled_Whitened_Data, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_VARIABLES * sizeof(float), 0, NULL, NULL);
+
+	IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+	IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+	// Set all values to 0
+	SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+	SetMemory(d_Temp, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	SetMemory(d_Ones, 1.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+	double lrate = 0.005/log((double)NUMBER_OF_ICA_COMPONENTS);
+	float change = 1.0f;
+	double angleDelta = 0.0;
+    size_t step = 1;
+	int error = 0;
+
+	float tempsum, dweightsnorm, olddweightsnorm;
+
+	float change2 = 1.0f;
+	double angleDelta2 = 0.0;
+
+	while( (step < MAX_STEP) && (change > W_STOP))
+	{
+	    //error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);		
+		//error = UpdateInfomaxWeightsEigen(weights, whitenedData, bias, shuffledWhitenedData, lrate);		
+		// Copy new weights and bias to device
+		//clEnqueueWriteBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+		//clEnqueueWriteBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+		
+		error = UpdateInfomaxWeights(d_Weights, d_Whitened_Data, d_Bias, d_Shuffled_Whitened_Data, lrate);
+		// Copy new weights and bias from device
+		clEnqueueReadBuffer(commandQueue, d_Weights, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), weights.data(), 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Bias, CL_TRUE, 0, NUMBER_OF_ICA_COMPONENTS * sizeof(float), bias.data(), 0, NULL, NULL);
+			
+
+		if (error == 1 || error == 2)
+		{
+			// It blowed up! RESTART!
+    	  	step = 1;
+    	  	// change = 1;
+    	  	error = 0;
+    	 	lrate *= ANNEAL;
+		
+			IdentityEigenMatrix(weights);
+			IdentityEigenMatrix(oldWeights);
+
+			ResetEigenMatrix(dWeights);
+			ResetEigenMatrix(oldDWeights);
+			ResetEigenMatrix(bias);
+
+
+
+			IdentityMatrix(d_Weights, NUMBER_OF_ICA_COMPONENTS);
+			IdentityMatrix(d_Old_Weights, NUMBER_OF_ICA_COMPONENTS);
+
+			SetMemory(d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Old_d_Weights, 0.0f, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+			SetMemory(d_Bias, 0.0f, NUMBER_OF_ICA_COMPONENTS);
+			
+			if (lrate > MIN_LRATE)
+			{
+    	    	printf("\nLowering learning rate to %g and starting again.\n",lrate);
+    	  	}
+    	  	else
+			{
+		        printf("\nMatrix may not be invertible");
+			}
+    	}
+    	else if (error == 0)
+		{
+			dWeights = weights;	
+			dWeights -= oldWeights;
+		    change = dWeights.squaredNorm();
+
+
+
+			// dWeights = weights;	
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+	
+			//dWeights -= oldWeights;
+			SubtractArrays(d_d_Weights, d_Old_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+		  	error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+			//printf("clBLAS error for d weights norm is %s \n",GetOpenCLErrorMessage(error));
+			clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &dweightsnorm, 0, NULL, NULL);
+			change2 = dweightsnorm * dweightsnorm;
+				
+			if (step > 2)
+			{
+		        // Compute angle delta
+				temp = dWeights;
+				// Pointwise multiplication
+				temp = temp.array() * oldDWeights.array();
+
+		        angleDelta = acos(temp.sum() / (dWeights.norm() * oldDWeights.norm()) );
+        		angleDelta *= (180.0 / M_PI);
+
+
+
+
+
+
+		        // Compute angle delta
+				// temp = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Temp, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+				// Pointwise multiplication
+				// temp = temp.array() * oldDWeights.array();
+				MultiplyArrays(d_Temp, d_Old_d_Weights, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS);
+
+				// Calculate sum of temp as a dot product with ones
+				error = clblasSdot(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Temp, 0, 1, d_Ones, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//printf("clBLAS error for temp sum is %s \n",GetOpenCLErrorMessage(error));
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &tempsum, 0, NULL, NULL);						
+
+				// Calculate norm of old d weights
+				error = clblasSnrm2(NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS, d_Float, 0, d_Old_d_Weights, 0, 1, d_Scratch, 1, &commandQueue, 0, NULL, NULL);
+				//printf("clBLAS error for old d weights norm is %s \n",GetOpenCLErrorMessage(error));
+				clEnqueueReadBuffer(commandQueue, d_Float, CL_TRUE, 0, sizeof(float), &olddweightsnorm, 0, NULL, NULL);				
+
+		        angleDelta2 = acos(tempsum / (dweightsnorm * olddweightsnorm) );
+        		angleDelta2 *= (180.0 / M_PI);
+			}
+
+			oldWeights = weights;
+
+			//oldWeights = weights;
+			clEnqueueCopyBuffer(commandQueue, d_Weights, d_Old_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+
+			if (angleDelta > 60)
+			{
+				oldDWeights = dWeights;
+
+        		lrate *= ANNEAL;
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			} 
+			else if (step == 1) 
+			{
+				oldDWeights = dWeights;
+
+				// oldDWeights = dWeights;
+				clEnqueueCopyBuffer(commandQueue, d_d_Weights, d_Old_d_Weights, 0, 0, NUMBER_OF_ICA_COMPONENTS * NUMBER_OF_ICA_COMPONENTS * sizeof(float), 0, NULL, NULL);
+			}
+
+			if (( VERBOS && (step % 1) == 0) || change < W_STOP)
+			{
+				printf("\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n", step, lrate, change, angleDelta);
+				printf("\n\nStep %zu: Lrate %.1e, Wchange %.1e, Angle %.2f \n\n", step, lrate, change2, angleDelta2);
+      		}
+
+			step++;
+    	}
+  	}
+
+	sourceMatrix = weights * whitenedData;	
+	// C = alpha * A * B  + beta * C                                           rows in d_Weights  columns in d_Whitened_Data   columns in d_Weights   alpha   A matrix                                  B matrix                                   beta     C matrix
+ 	//error = clblasSgemm (clblasColumnMajor, clblasNoTrans, clblasNoTrans, NUMBER_OF_ICA_COMPONENTS, NUMBER_OF_ICA_VARIABLES, NUMBER_OF_ICA_COMPONENTS, 1.0f, d_Weights, 0, NUMBER_OF_ICA_COMPONENTS, d_Whitened_Data, 0, NUMBER_OF_ICA_COMPONENTS, 0.0f, d_Source_Matrix, 0, NUMBER_OF_ICA_COMPONENTS, 1, &commandQueue, 0, NULL, NULL);
+
+	clReleaseMemObject(d_Whitened_Data);
+	clReleaseMemObject(d_Weights);
+
+	clReleaseMemObject(d_Bias);
+	clReleaseMemObject(d_Old_Weights);
+	clReleaseMemObject(d_d_Weights);
+	clReleaseMemObject(d_Old_d_Weights);
+	clReleaseMemObject(d_Temp);
+	clReleaseMemObject(d_Shuffled_Whitened_Data);
+	clReleaseMemObject(d_Scratch);
+	clReleaseMemObject(d_Float);
+	clReleaseMemObject(d_Ones);
+}
+*/
+
+
+
