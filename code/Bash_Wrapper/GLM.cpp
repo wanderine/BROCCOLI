@@ -531,7 +531,7 @@ int main(int argc, char **argv)
     if (NUMBER_OF_GLM_REGRESSORS <= 0)
     {
         design.close();
-        printf("Number of regressors must be > 0 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,DESIGN_FILE);
+        printf("Number of regressors must be > 0 ! You provided %zu regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,DESIGN_FILE);
         return EXIT_FAILURE;
     }
     design.close();
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
 	    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
    		{
 	        contrasts.close();
-	        printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+	        printf("Design file says that number of regressors is %zu, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
 	        return EXIT_FAILURE;
 	    }
     
@@ -662,13 +662,13 @@ int main(int argc, char **argv)
 	// Check if mask volume has the same dimensions as the data
 	if (MASK)
 	{
-		int TEMP_DATA_W = inputMask->nx;
-		int TEMP_DATA_H = inputMask->ny;
-		int TEMP_DATA_D = inputMask->nz;
+		size_t TEMP_DATA_W = inputMask->nx;
+		size_t TEMP_DATA_H = inputMask->ny;
+		size_t TEMP_DATA_D = inputMask->nz;
 
 		if ( (TEMP_DATA_W != DATA_W) || (TEMP_DATA_H != DATA_H) || (TEMP_DATA_D != DATA_D) )
 		{
-			printf("Input data has the dimensions %i x %i x %i, while the mask volume has the dimensions %i x %i x %i. Aborting! \n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			printf("Input data has the dimensions %zu x %zu x %zu, while the mask volume has the dimensions %zu x %zu x %zu. Aborting! \n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -735,7 +735,7 @@ int main(int argc, char **argv)
 		}
 		else if (ANALYZE_TTEST)
 		{
-			printf("Performing %zu t-tests \n",  NUMBER_OF_CONTRASTS);
+			printf("Performing %i t-tests \n",  NUMBER_OF_CONTRASTS);
 		}
 		else if (ANALYZE_FTEST)
 		{
@@ -833,7 +833,7 @@ int main(int argc, char **argv)
 				if (! (design >> h_X_GLM[t + r * DATA_T]) )
 				{
 					design.close();
-			        printf("Could not read all values of the design file %s, aborting! Stopped reading at time point %i for regressor %i. Please check if the number of regressors and time points are correct. \n",DESIGN_FILE,t,r);      
+			        printf("Could not read all values of the design file %s, aborting! Stopped reading at time point %zu for regressor %zu. Please check if the number of regressors and time points are correct. \n",DESIGN_FILE,t,r);      
 			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
 			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			        return EXIT_FAILURE;
@@ -892,7 +892,7 @@ int main(int argc, char **argv)
 
 				if (DEBUG)
 				{
-					printf("Number of events for regressor %i is %i \n",r,NUMBER_OF_EVENTS);
+					printf("Number of events for regressor %zu is %i \n",r,NUMBER_OF_EVENTS);
 				}
     	    
     		    // Loop over events
@@ -1004,7 +1004,7 @@ int main(int argc, char **argv)
 					{
 						regressor.close();
     		            design.close();
-    		            printf("Unable to read the value for TR %i in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
+    		            printf("Unable to read the value for TR %zu in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
     		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
     		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
     		            return EXIT_FAILURE;
@@ -1018,7 +1018,7 @@ int main(int argc, char **argv)
 				{
 					regressor.close();
     		        design.close();
-    		        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %i), aborting! Check the regressor file. \n",filename.c_str(),readValues,DATA_T);
+    		        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %zu), aborting! Check the regressor file. \n",filename.c_str(),readValues,DATA_T);
     		        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
     		        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
     		        return EXIT_FAILURE;
@@ -1191,7 +1191,7 @@ int main(int argc, char **argv)
 					if (! (motionparameters >> h_Motion_Parameters[t + r * DATA_T]) )
 					{
 						motionparameters.close();
-				        printf("Could not read all values of the motion parameters file %s, aborting! Stopped reading at time point %i for parameter %i. Please check if the motion parameters file\n",MOTION_PARAMETERS_FILE,t,r);      
+				        printf("Could not read all values of the motion parameters file %s, aborting! Stopped reading at time point %zu for parameter %zu. Please check the motion parameters file\n",MOTION_PARAMETERS_FILE,t,r);      
 				        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
 				        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 				        return EXIT_FAILURE;

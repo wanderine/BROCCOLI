@@ -310,9 +310,9 @@ int main(int argc, char ** argv)
 	// Check if reference volume has same size
 	if (CHANGE_REFERENCE_VOLUME)
 	{
-    	int TEMP_DATA_W = referenceVolume->nx;
-   		int TEMP_DATA_H = referenceVolume->ny;
-    	int TEMP_DATA_D = referenceVolume->nz;
+    	size_t TEMP_DATA_W = referenceVolume->nx;
+   		size_t TEMP_DATA_H = referenceVolume->ny;
+    	size_t TEMP_DATA_D = referenceVolume->nz;
 
 		if ( (TEMP_DATA_W != DATA_W) || (TEMP_DATA_H != DATA_H) || (TEMP_DATA_D != DATA_D) )
 		{

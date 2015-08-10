@@ -336,13 +336,13 @@ int main(int argc, char ** argv)
 	// Check if mask volume has the same dimensions as the data
 	if (MASK)
 	{
-		int TEMP_DATA_W = inputMask->nx;
-		int TEMP_DATA_H = inputMask->ny;
-		int TEMP_DATA_D = inputMask->nz;
+		size_t TEMP_DATA_W = inputMask->nx;
+		size_t TEMP_DATA_H = inputMask->ny;
+		size_t TEMP_DATA_D = inputMask->nz;
 
 		if ( (TEMP_DATA_W != DATA_W) || (TEMP_DATA_H != DATA_H) || (TEMP_DATA_D != DATA_D) )
 		{
-			printf("Input data has the dimensions %i x %i x %i, while the mask volume has the dimensions %i x %i x %i. Aborting! \n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			printf("Input data has the dimensions %zu x %zu x %zu, while the mask volume has the dimensions %zu x %zu x %zu. Aborting! \n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}

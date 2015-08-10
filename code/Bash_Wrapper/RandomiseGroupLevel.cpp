@@ -91,10 +91,10 @@ int main(int argc, char **argv)
 	bool			VERBOS = false;
    	bool			CHANGE_OUTPUT_NAME = false;    
                    
-    int             NUMBER_OF_GLM_REGRESSORS = 1;
-	int				NUMBER_OF_CONTRASTS = 1; 
+    size_t          NUMBER_OF_GLM_REGRESSORS = 1;
+	size_t			NUMBER_OF_CONTRASTS = 1; 
     float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
-	int				NUMBER_OF_PERMUTATIONS = 5000;
+	size_t			NUMBER_OF_PERMUTATIONS = 5000;
 	size_t			NUMBER_OF_PERMUTATIONS_PER_CONTRAST[1000];
 	float			SIGNIFICANCE_LEVEL = 0.05f;
 	int				STATISTICAL_TEST = 0;
@@ -553,13 +553,13 @@ int main(int argc, char **argv)
 	// Check if mask volume has the same dimensions as the data
 	if (MASK)
 	{
-		int TEMP_DATA_W = inputMask->nx;
-		int TEMP_DATA_H = inputMask->ny;
-		int TEMP_DATA_D = inputMask->nz;
+		size_t TEMP_DATA_W = inputMask->nx;
+		size_t TEMP_DATA_H = inputMask->ny;
+		size_t TEMP_DATA_D = inputMask->nz;
 
 		if ( (TEMP_DATA_W != DATA_W) || (TEMP_DATA_H != DATA_H) || (TEMP_DATA_D != DATA_D) )
 		{
-			printf("Input data has the dimensions %i x %i x %i, while the mask volume has the dimensions %i x %i x %i. Aborting! \n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			printf("Input data has the dimensions %zu x %zu %zu, while the mask volume has the dimensions %zu x %zu x %zu. Aborting! \n",DATA_W,DATA_H,DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -615,7 +615,7 @@ int main(int argc, char **argv)
 		else if (NUMBER_OF_GLM_REGRESSORS > NUMBER_OF_SUBJECTS)
 		{
 			design.close();
-			printf("Number of regressors must be smaller or equal to the number of subjects! You provided %i regressors in the design file and there are %i subjects. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_SUBJECTS);
+			printf("Number of regressors must be smaller or equal to the number of subjects! You provided %i regressors in the design file and there are %zu subjects. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_SUBJECTS);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -644,7 +644,7 @@ int main(int argc, char **argv)
 		if ( tempNumber != NUMBER_OF_SUBJECTS )
 		{
 			design.close();
-			printf("Input data contains %i volumes, while the design file says %i subjects. Aborting! \n",NUMBER_OF_SUBJECTS,tempNumber);
+			printf("Input data contains %zu volumes, while the design file says %i subjects. Aborting! \n",NUMBER_OF_SUBJECTS,tempNumber);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -941,15 +941,15 @@ int main(int argc, char **argv)
 					}
 				}
 				NUMBER_OF_SUBJECTS_IN_GROUP2[c] = NUMBER_OF_SUBJECTS - NUMBER_OF_SUBJECTS_IN_GROUP1[c];
-		        printf("Two sample t-test design detected for t-contrast %i, %i subjects in group 1 and %i subjects in group 2\n",c+1,NUMBER_OF_SUBJECTS_IN_GROUP1[c],NUMBER_OF_SUBJECTS_IN_GROUP2[c]);
+		        printf("Two sample t-test design detected for t-contrast %zu, %i subjects in group 1 and %i subjects in group 2\n",c+1,NUMBER_OF_SUBJECTS_IN_GROUP1[c],NUMBER_OF_SUBJECTS_IN_GROUP2[c]);
 			}
 			else if (CORRELATION_DESIGN[c])
 			{
-			   printf("Correlation design detected for t-contrast %i\n",c+1);
+			   printf("Correlation design detected for t-contrast %zu\n",c+1);
 			}	
 			else if (MEAN_DESIGN[c])
 			{
-			   printf("Mean design detected for t-contrast %i\n",c+1);
+			   printf("Mean design detected for t-contrast %zu\n",c+1);
 			}	
 
 		}
@@ -1070,18 +1070,18 @@ int main(int argc, char **argv)
 		       	double MAX_PERMS = round(exp(lgamma(NUMBER_OF_SUBJECTS+1)-lgamma(NUMBER_OF_SUBJECTS-NUMBER_OF_SUBJECTS_IN_GROUP2[c]+1)-lgamma(NUMBER_OF_SUBJECTS_IN_GROUP2[c]+1)));
 				if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
 				{
-					printf("Warning: Number of possible permutations for your design is %g for contrast %i, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,c+1,(double)NUMBER_OF_PERMUTATIONS);
+					printf("Warning: Number of possible permutations for your design is %g for contrast %zu, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,c+1,(double)NUMBER_OF_PERMUTATIONS);
 					NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = (int)MAX_PERMS; 
 					DO_ALL_PERMUTATIONS = true;
 				}
 				else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
 				{
 					DO_ALL_PERMUTATIONS = true;
-					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
+					printf("Max number of permutations for contrast %zu is %g \n",c+1,MAX_PERMS);
 				}
 				else
 				{
-					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
+					printf("Max number of permutations for contrast %zu is %g \n",c+1,MAX_PERMS);
 				}
 			}
 			else if (CORRELATION_DESIGN[c])
@@ -1089,23 +1089,23 @@ int main(int argc, char **argv)
 				double MAX_PERMS = factorial(NUMBER_OF_SUBJECTS);
 				if ((double)NUMBER_OF_PERMUTATIONS > MAX_PERMS)
 				{
-					printf("Warning: Number of possible permutations for your design is %g for contrast %i, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,c+1,(double)NUMBER_OF_PERMUTATIONS);
+					printf("Warning: Number of possible permutations for your design is %g for contrast %zu, but %g permutations were requested. Lowering number of permutations to number of possible permutations. \n",MAX_PERMS,c+1,(double)NUMBER_OF_PERMUTATIONS);
 					NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = (int)MAX_PERMS; 
 					DO_ALL_PERMUTATIONS = true;
 				}
 				else if ((double)NUMBER_OF_PERMUTATIONS == MAX_PERMS)
 				{
 					DO_ALL_PERMUTATIONS = true;
-					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
+					printf("Max number of permutations for contrast %zu is %g \n",c+1,MAX_PERMS);
 				}
 				else
 				{
-					printf("Max number of permutations for contrast %i is %g \n",c+1,MAX_PERMS);
+					printf("Max number of permutations for contrast %zu is %g \n",c+1,MAX_PERMS);
 				}
 			}
 			else if (MEAN_DESIGN[c])
 			{
-				printf("Warning: Contrast %i leads to a simple mean value, only doing 1 permutation!\n",c+1);
+				printf("Warning: Contrast %zu leads to a simple mean value, only doing 1 permutation!\n",c+1);
 				NUMBER_OF_PERMUTATIONS_PER_CONTRAST[c] = 1; 
 			}
 		}
@@ -1571,7 +1571,7 @@ int main(int argc, char **argv)
 			std::ofstream permutationValues;
 			std::string permValues(PERMUTATION_VALUES_FILE);
 			char tmp[1000];
-			sprintf(tmp, "%d", c+1);
+			sprintf(tmp, "%zu", c+1);
 			permValues.insert(permValues.find("."),std::string(tmp));
 
 		    permutationValues.open(permValues.c_str());      

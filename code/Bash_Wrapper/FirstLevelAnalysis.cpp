@@ -1138,19 +1138,19 @@ int main(int argc, char **argv)
 	    if (NUMBER_OF_GLM_REGRESSORS <= 0)
 	    {
 	        design.close();
-	        printf("Number of regressors must be > 0 ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+	        printf("Number of regressors must be > 0 ! You provided %zu regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
 	        return EXIT_FAILURE;
 	    }
 	    else if ((NUMBER_OF_GLM_REGRESSORS > 25) && PERMUTE)
 	    {
 	        design.close();
-	        printf("Number of regressors must be <= 25 when permuting ! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+	        printf("Number of regressors must be <= 25 when permuting ! You provided %zu regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
 	        return EXIT_FAILURE;
 	    }
 	    else if ( BAYESIAN && (NUMBER_OF_GLM_REGRESSORS != 2) )
 	    {
 	        design.close();
-	        printf("Number of regressors must currently be exactly 2 for Bayesian fMRI analysis! You provided %i regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
+	        printf("Number of regressors must currently be exactly 2 for Bayesian fMRI analysis! You provided %zu regressors in the design file %s. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,argv[4]);
 	        return EXIT_FAILURE;
 	    }
 	    design.close();
@@ -1189,7 +1189,7 @@ int main(int argc, char **argv)
 		    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
     		{
 		        contrasts.close();
-		        printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+		        printf("Design file says that number of regressors is %i, while contrast file says there are %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
 		        return EXIT_FAILURE;
 		    }
     
@@ -1206,7 +1206,7 @@ int main(int argc, char **argv)
 		    if (NUMBER_OF_CONTRASTS <= 0)
 		    {
 		        contrasts.close();
-    		    printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+    		    printf("Number of contrasts must be > 0 ! You provided %zu in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
 		        return EXIT_FAILURE;
 		    }
 		    contrasts.close();
@@ -1500,7 +1500,7 @@ int main(int argc, char **argv)
 	}
 
     // Calculate sizes, in bytes
-    
+    NUMBER_OF_TOTAL_GLM_REGRESSORS = 4;
 	if (!BAYESIAN && !RAW_DESIGNMATRIX)
 	{
 		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION + REGRESS_GLOBALMEAN; //NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
@@ -1519,7 +1519,7 @@ int main(int argc, char **argv)
         FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 		if (REGRESS_MOTION)
 		{
-        	printf("Number of total regressors must be <= 25 when permuting ! You provided %i regressors in the design file, with 6 regressors for motion and 4 for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+        	printf("Number of total regressors must be <= 25 when permuting ! You provided %zu regressors in the design file, with 6 regressors for motion and 4 for detrending, this comes to a total of %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		}
 		else
 		{
@@ -1533,7 +1533,7 @@ int main(int argc, char **argv)
     size_t MNI_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
     
     size_t EPI_VOLUME_SIZE = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
-    size_t EPI_VOLUME_SIZE_INT = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
+    //size_t EPI_VOLUME_SIZE_INT = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(int);
     
     size_t FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
     
@@ -1545,7 +1545,7 @@ int main(int argc, char **argv)
     size_t DESIGN_MATRIX_SIZE = NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
 	size_t HIGHRES_REGRESSOR_SIZE = EPI_DATA_T * HIGHRES_FACTOR * sizeof(float);    
 
-    size_t CONFOUNDS_SIZE = NUMBER_OF_CONFOUND_REGRESSORS * EPI_DATA_T * sizeof(float);
+    //size_t CONFOUNDS_SIZE = NUMBER_OF_CONFOUND_REGRESSORS * EPI_DATA_T * sizeof(float);
     
     size_t PROJECTION_TENSOR_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
     size_t FILTER_DIRECTIONS_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
@@ -1560,7 +1560,7 @@ int main(int argc, char **argv)
 
     size_t BETA_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
     size_t STATISTICAL_MAPS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
-    size_t RESIDUALS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * EPI_DATA_T * sizeof(float);
+    //size_t RESIDUALS_DATA_SIZE_T1 = T1_DATA_W * T1_DATA_H * T1_DATA_D * EPI_DATA_T * sizeof(float);
     
 	size_t PERMUTATION_MATRIX_SIZE = NUMBER_OF_PERMUTATIONS * EPI_DATA_T * sizeof(unsigned short int);
 	size_t NULL_DISTRIBUTION_SIZE = NUMBER_OF_PERMUTATIONS * NUMBER_OF_CONTRASTS * sizeof(float);
@@ -1851,7 +1851,7 @@ int main(int argc, char **argv)
 				if (! (design >> h_X_GLM[t + r * EPI_DATA_T]) )
 				{
 					design.close();
-			        printf("Could not read all values of the design file %s, aborting! Stopped reading at time point %i for regressor %i. Please check if the number of regressors and time points are correct. \n",argv[4],t,r);      
+			        printf("Could not read all values of the design file %s, aborting! Stopped reading at time point %zu for regressor %zu. Please check if the number of regressors and time points are correct. \n",argv[4],t,r);      
 			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
 			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			        return EXIT_FAILURE;
@@ -1912,7 +1912,7 @@ int main(int argc, char **argv)
 
 				if (DEBUG)
 				{
-					printf("Number of events for regressor %i is %i \n",r,NUMBER_OF_EVENTS);
+					printf("Number of events for regressor %zu is %i \n",r,NUMBER_OF_EVENTS);
 				}
     	    
     		    // Loop over events
@@ -2024,7 +2024,7 @@ int main(int argc, char **argv)
 					{
 						regressor.close();
     		            design.close();
-    		            printf("Unable to read the value for TR %i in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
+    		            printf("Unable to read the value for TR %zu in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
     		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
     		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
     		            return EXIT_FAILURE;
@@ -2038,7 +2038,7 @@ int main(int argc, char **argv)
 				{
 					regressor.close();
     		        design.close();
-    		        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %i), aborting! Check the regressor file. \n",filename.c_str(),readValues,EPI_DATA_T);
+    		        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %zu), aborting! Check the regressor file. \n",filename.c_str(),readValues,EPI_DATA_T);
     		        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
     		        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
     		        return EXIT_FAILURE;
@@ -2577,15 +2577,14 @@ int main(int argc, char **argv)
         BROCCOLI.SetRegressMotion(REGRESS_MOTION);
         BROCCOLI.SetRegressGlobalMean(REGRESS_GLOBALMEAN);
         BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
-        BROCCOLI.SetRegressConfounds(REGRESS_CONFOUNDS);
-        BROCCOLI.SetBetaSpace(BETA_SPACE);
+        //BROCCOLI.SetRegressConfounds(REGRESS_CONFOUNDS);
 
         BROCCOLI.SetNumberOfMCMCIterations(NUMBER_OF_MCMC_ITERATIONS);
     
         if (REGRESS_CONFOUNDS == 1)
         {
-            BROCCOLI.SetNumberOfConfoundRegressors(NUMBER_OF_CONFOUND_REGRESSORS);
-            BROCCOLI.SetConfoundRegressors(h_X_GLM_Confounds);
+            //BROCCOLI.SetNumberOfConfoundRegressors(NUMBER_OF_CONFOUND_REGRESSORS);
+            //BROCCOLI.SetConfoundRegressors(h_X_GLM_Confounds);
         }
     
         BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
@@ -2653,7 +2652,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputAREstimatesEPI(h_AR1_Estimates_EPI, h_AR2_Estimates_EPI, h_AR3_Estimates_EPI, h_AR4_Estimates_EPI);
         BROCCOLI.SetOutputAREstimatesMNI(h_AR1_Estimates_MNI, h_AR2_Estimates_MNI, h_AR3_Estimates_MNI, h_AR4_Estimates_MNI);
         BROCCOLI.SetOutputAREstimatesT1(h_AR1_Estimates_T1, h_AR2_Estimates_T1, h_AR3_Estimates_T1, h_AR4_Estimates_T1);
-        BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
+        //BROCCOLI.SetOutputWhitenedModels(h_Whitened_Models);
 		    
 		BROCCOLI.SetPrint(PRINT);
 

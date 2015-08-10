@@ -8432,14 +8432,14 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			largeMemory = false;
 			if ((WRAPPER == BASH) && VERBOS)
 			{
-				printf("Cannot run the GLM the whole volume at once, doing slice by slice. Required device memory for GLM is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+				printf("Cannot run the GLM the whole volume at once, doing slice by slice. Required device memory for GLM is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 			}
 		}
 		else
 		{
 			if ((WRAPPER == BASH) && VERBOS)
 			{
-				printf("Sufficient memory for running the GLM the whole volume at once! Required device memory for GLM is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+				printf("Sufficient memory for running the GLM the whole volume at once! Required device memory for GLM is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 			}
 		}
 
@@ -8643,9 +8643,9 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 			if ( ((totalRequiredMemory + (cl_ulong)allocatedDeviceMemory) / (1024*1024)) > globalMemorySize)
 			{
-				if ((WRAPPER == BASH))
+				if (WRAPPER == BASH)
 				{
-					printf("Cannot run permutation test on the selected device. Required memory for permutation test is %i MB, global memory is %i MB ! \n",totalRequiredMemory/(1024*1024),globalMemorySize);
+					printf("Cannot run permutation test on the selected device. Required memory for permutation test is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory/(1024*1024),globalMemorySize);
 				}
 			}
 			else
@@ -8662,7 +8662,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 				if ( (memoryAllocationError1 != CL_SUCCESS) || (memoryAllocationError2 != CL_SUCCESS) )
 				{
-					if ((WRAPPER == BASH))
+					if (WRAPPER == BASH)
 					{	
 						printf("Unable to allocate memory for permutation test, aborting. The error messages are %s and %s .\n",GetOpenCLErrorMessage(memoryAllocationError1),GetOpenCLErrorMessage(memoryAllocationError2));
 					}
@@ -8804,14 +8804,14 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			largeMemory = false;
 			if ((WRAPPER == BASH) && VERBOS)
 			{
-				printf("Cannot calculate beta values for the whole volume at once, doing slice by slice. Required device memory for beta values is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+				printf("Cannot calculate beta values for the whole volume at once, doing slice by slice. Required device memory for beta values is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 			}
 		}
 		else
 		{
 			if ((WRAPPER == BASH) && VERBOS)
 			{
-				printf("Sufficient memory for calculating beta values for the whole volume at once! Required device memory for beta values is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+				printf("Sufficient memory for calculating beta values for the whole volume at once! Required device memory for beta values is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 			}
 		}
 
@@ -9083,14 +9083,14 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			largeMemory = false;
 			if ((WRAPPER == BASH) && VERBOS)
 			{
-				printf("Cannot run the regression the whole volume at once, doing slice by slice. Required device memory for regression is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+				printf("Cannot run the regression the whole volume at once, doing slice by slice. Required device memory for regression is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 			}
 		}
 		else
 		{
 			if ((WRAPPER == BASH) && VERBOS)
 			{
-				printf("Sufficient memory for running the regression the whole volume at once! Required device memory for regression is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+				printf("Sufficient memory for running the regression the whole volume at once! Required device memory for regression is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 			}
 		}
 
@@ -10408,7 +10408,7 @@ void BROCCOLI_LIB::PerformMotionCorrectionHost(float* h_Volumes)
 
 		if ((WRAPPER == BASH) && VERBOS)
 		{
-			printf(", %i",t);
+			printf(", %zu",t);
 			fflush(stdout);
 		}
 	}
@@ -11464,7 +11464,7 @@ void BROCCOLI_LIB::PerformSmoothingNormalizedHostWrapper()
 
 		if ((WRAPPER == BASH) && VERBOS)
 		{
-			printf(", %i",v);
+			printf(", %zu",v);
 			fflush(stdout);
 		}
 	}
@@ -11905,14 +11905,14 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 		largeMemory = false;
 		if ((WRAPPER == BASH) && VERBOS)
 		{
-			printf("Cannot run the GLM the whole volume at once, doing slice by slice. Required device memory for GLM is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+			printf("Cannot run the GLM the whole volume at once, doing slice by slice. Required device memory for GLM is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 		}
 	}
 	else
 	{
 		if ((WRAPPER == BASH) && VERBOS)
 		{
-			printf("Sufficient memory for running the GLM the whole volume at once! Required device memory for GLM is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+			printf("Sufficient memory for running the GLM the whole volume at once! Required device memory for GLM is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 		}
 	}
 
@@ -12143,7 +12143,6 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 
 	// Check amount of global memory, compared to required memory
 	bool largeMemory = true;
-	bool ttest = true;
 	size_t totalRequiredMemory;
 
 	totalRequiredMemory = allocatedDeviceMemory + EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float) * 2 + EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float) + EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float) * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float) * 6 + NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float) + EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float);
@@ -12155,14 +12154,14 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 		largeMemory = false;
 		if ((WRAPPER == BASH) && VERBOS)
 		{
-			printf("Cannot run the GLM the whole volume at once, doing slice by slice. Required device memory for GLM is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+			printf("Cannot run the GLM the whole volume at once, doing slice by slice. Required device memory for GLM is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 		}
 	}
 	else
 	{
 		if ((WRAPPER == BASH) && VERBOS)
 		{
-			printf("Sufficient memory for running the GLM the whole volume at once! Required device memory for GLM is %i MB, global memory is %i MB ! \n",totalRequiredMemory,globalMemorySize);
+			printf("Sufficient memory for running the GLM the whole volume at once! Required device memory for GLM is %zu MB, global memory is %zu MB ! \n",totalRequiredMemory,globalMemorySize);
 		}
 	}
 
@@ -12990,7 +12989,7 @@ void BROCCOLI_LIB::CreateVoxelNumbers(cl_mem d_Voxel_Numbers, cl_mem d_Mask, siz
 
 	if ((WRAPPER == BASH) && VERBOS)
 	{
-		printf("\nThe number of brain voxels is %i \n",NUMBER_OF_BRAIN_VOXELS);
+		printf("\nThe number of brain voxels is %zu \n",NUMBER_OF_BRAIN_VOXELS);
 	}
 
 	// Copy data to device
@@ -13027,7 +13026,7 @@ void BROCCOLI_LIB::CreateVoxelNumbersSlice(cl_mem d_Voxel_Numbers, cl_mem d_Mask
 
 	if ((WRAPPER == BASH) && VERBOS)
 	{
-		printf("\nThe number of brain voxels is %i for slice %i \n",NUMBER_OF_BRAIN_VOXELS,slice);
+		printf("\nThe number of brain voxels is %zu for slice %zu \n",NUMBER_OF_BRAIN_VOXELS,slice);
 	}
 
 	// Copy data to device
@@ -15043,7 +15042,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMBayesianFirstLevel(float* h_Volume
 	{
 		if ( (WRAPPER == BASH) && (VERBOS) )
 		{
-			printf("Bayesian GLM slice %i\n",slice);
+			printf("Bayesian GLM slice %zu\n",slice);
 		}
 
 		// Copy fMRI data to the device, for the current slice
@@ -16021,7 +16020,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(float* h_fMRI_Volumes)
 			{ 
 				if ((WRAPPER == BASH) && PRINT)
 				{
-					printf("%i, ",p+1);
+					printf("%zu, ",p+1);
 					fflush(stdout);
 				}
 			}
@@ -16258,7 +16257,7 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
         {
             if ((WRAPPER == BASH) && PRINT && (p%100 == 0))
             {
-                printf("Starting permutation %i \n",p+1);
+                printf("Starting permutation %lu \n",p+1);
             }
    
             // Calculate statistical maps
@@ -16296,11 +16295,11 @@ void BROCCOLI_LIB::ApplyPermutationTestSecondLevel()
         {
 			if (STATISTICAL_TEST == TTEST)
 			{
-	            printf("Permutation threshold for contrast %i for a significance level of %f is %f \n",c+1,SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
+	            printf("Permutation threshold for contrast %zu for a significance level of %f is %f \n",c+1,SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
 			}
 			else if (STATISTICAL_TEST == FTEST)
 			{
-	            printf("Permutation threshold for F-test for a significance level of %f is %f \n",c+1,SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
+	            printf("Permutation threshold for F-test for a significance level of %f is %f \n",SIGNIFICANCE_LEVEL, SIGNIFICANCE_THRESHOLD);
 			}
 			else if (STATISTICAL_TEST == GROUP_MEAN)
 			{
@@ -16468,7 +16467,7 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelTwoSample(int contrast)
 		}			
 	}
 
-	printf("Number of permutations is %i \n",NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
+	printf("Number of permutations is %zu \n",NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
 
 	// Loop over all remaining permutations
 	for (int p = 1; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]; p++)
@@ -18013,7 +18012,7 @@ void BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & whitenedData,  Eigen::Matrix
 	size_t NUMBER_OF_VOXELS = inputData.cols();
 	size_t NUMBER_OF_OBSERVATIONS = inputData.rows();
 
-	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+	printf("Input data matrix size is %li x %li \n",inputData.rows(),inputData.cols());
 
 	if (WRAPPER == BASH)
 	{
@@ -18124,7 +18123,7 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & inputData, bool d
 	size_t NUMBER_OF_VOXELS = inputData.cols();
 	size_t NUMBER_OF_OBSERVATIONS = inputData.rows();
 
-	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+	printf("Input data matrix size is %li x %li \n",inputData.rows(),inputData.cols());
 
 	if (demean)
 	{
@@ -18211,7 +18210,7 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & inputData, bool d
 
 	if ((WRAPPER == BASH) && VERBOSE)
 	{
-		printf("Saved %f %% of the total variance during the dimensionality reduction, using %i components\n",(float)savedVariance/(float)totalVariance*100.0,NUMBER_OF_ICA_COMPONENTS);
+		printf("Saved %f %% of the total variance during the dimensionality reduction, using %zu components\n",(float)savedVariance/(float)totalVariance*100.0,NUMBER_OF_ICA_COMPONENTS);
 	}
 
 	// Calculate  ^(-1/2) for all saved eigen values
@@ -18245,7 +18244,7 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXf & inputData, bool d
 	size_t NUMBER_OF_VOXELS = inputData.cols();
 	size_t NUMBER_OF_OBSERVATIONS = inputData.rows();
 
-	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+	printf("Input data matrix size is %li x %li \n",inputData.rows(),inputData.cols());
 
 	if (demean)
 	{
@@ -18332,7 +18331,7 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXf & inputData, bool d
 
 	if ((WRAPPER == BASH) && VERBOSE)
 	{
-		printf("Saved %f %% of the total variance during the dimensionality reduction, using %i components\n",(float)savedVariance/(float)totalVariance*100.0,NUMBER_OF_ICA_COMPONENTS);
+		printf("Saved %f %% of the total variance during the dimensionality reduction, using %zu components\n",(float)savedVariance/(float)totalVariance*100.0,NUMBER_OF_ICA_COMPONENTS);
 	}
 
 	// Calculate  ^(-1/2) for all saved eigen values
@@ -18364,7 +18363,7 @@ void BROCCOLI_LIB::PCADimensionalityReductionEigen(Eigen::MatrixXd & reducedData
 	size_t NUMBER_OF_VOXELS = inputData.cols();
 	size_t NUMBER_OF_OBSERVATIONS = inputData.rows();
 
-	printf("Input data matrix size is %i x %i \n",inputData.rows(),inputData.cols());
+	printf("Input data matrix size is %li x %li \n",inputData.rows(),inputData.cols());
 
 	if (demean)
 	{
@@ -18389,15 +18388,15 @@ void BROCCOLI_LIB::PCADimensionalityReductionEigen(Eigen::MatrixXd & reducedData
 	}
 	//covarianceMatrix = inputData.adjoint() * inputData;
 	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);
-	printf("Covariance matrix size is %i x %i \n",covarianceMatrix.rows(),covarianceMatrix.cols());
+	printf("Covariance matrix size is %li x %li \n",covarianceMatrix.rows(),covarianceMatrix.cols());
 	
 	// Calculate eigen values of covariance matrix	
 	Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(covarianceMatrix);
 	Eigen::VectorXd eigenValues = es.eigenvalues();
 	Eigen::MatrixXd eigenVectors = es.eigenvectors();
 
-	printf("Eigen values matrix size is %i x %i \n",eigenValues.rows(),eigenValues.cols());
-	printf("Eigen vectors matrix size is %i x %i \n",eigenVectors.rows(),eigenVectors.cols());
+	printf("Eigen values matrix size is %li x %li \n",eigenValues.rows(),eigenValues.cols());
+	printf("Eigen vectors matrix size is %li x %li \n",eigenVectors.rows(),eigenVectors.cols());
 
 	Eigen::VectorXd savedEigenValues(NUMBER_OF_COMPONENTS);
 	Eigen::MatrixXd savedEigenVectors(NUMBER_OF_COMPONENTS,NUMBER_OF_OBSERVATIONS);
@@ -19075,6 +19074,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data,
 #elif __APPLE__
 int BROCCOLI_LIB::UpdateInfomaxWeights(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate)
 {
+	return 0;
 }
 #endif
 
@@ -19224,6 +19224,7 @@ int BROCCOLI_LIB::UpdateInfomaxWeightsDouble(cl_mem d_Weights, cl_mem d_Whitened
 #elif __APPLE__
 int BROCCOLI_LIB::UpdateInfomaxWeightsDouble(cl_mem d_Weights, cl_mem d_Whitened_Data, cl_mem d_Bias, cl_mem d_Permutation, cl_mem d_Shuffled_Whitened_Data, double updateRate)
 {
+	return 0;
 }
 #endif
 
@@ -19887,7 +19888,7 @@ void BROCCOLI_LIB::PerformICACPUWrapper()
 
 	if (WRAPPER == BASH)
 	{
-		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
+		printf("Original number of voxels is %zu, reduced to %zu voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
 	}
 
 	// Put data into Eigen object
@@ -20028,7 +20029,7 @@ void BROCCOLI_LIB::PerformICADoubleCPUWrapper()
 
 	if (WRAPPER == BASH)
 	{
-		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
+		printf("Original number of voxels is %zu, reduced to %zu voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
 	}
 
 	// Put data into Eigen object
@@ -20179,7 +20180,7 @@ void BROCCOLI_LIB::PerformICAWrapper()
 
 	if (WRAPPER == BASH)
 	{
-		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
+		printf("Original number of voxels is %zu, reduced to %zu voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
 	}
 
 	// Put data into Eigen object
@@ -20339,7 +20340,7 @@ void BROCCOLI_LIB::PerformICADoubleWrapper()
 
 	if (WRAPPER == BASH)
 	{
-		printf("Original number of voxels is %i, reduced to %i voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
+		printf("Original number of voxels is %zu, reduced to %zu voxels using a mask\n",EPI_DATA_W*EPI_DATA_H*EPI_DATA_D,NUMBER_OF_ICA_VARIABLES);
 	}
 
 	// Put data into Eigen object
