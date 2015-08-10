@@ -1189,7 +1189,7 @@ int main(int argc, char **argv)
 		    if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
     		{
 		        contrasts.close();
-		        printf("Design file says that number of regressors is %i, while contrast file says there are %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+		        printf("Design file says that number of regressors is %zu, while contrast file says there are %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
 		        return EXIT_FAILURE;
 		    }
     
@@ -1523,7 +1523,7 @@ int main(int argc, char **argv)
 		}
 		else
 		{
-        	printf("Number of total regressors must be <= 25 when permuting ! You provided %i regressors in the design file, with 4 regressors for detrending, this comes to a total of %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+        	printf("Number of total regressors must be <= 25 when permuting ! You provided %zu regressors in the design file, with 4 regressors for detrending, this comes to a total of zui regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_TOTAL_GLM_REGRESSORS);
 		}
         return EXIT_FAILURE;
     }
@@ -1580,10 +1580,6 @@ int main(int argc, char **argv)
 		if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 		{
 		    printf("Number of original GLM regressors: %zu \n",  NUMBER_OF_GLM_REGRESSORS);
-		}
-		if (REGRESS_CONFOUNDS)
-		{
-	    	printf("Number of confound regressors: %zu \n",  NUMBER_OF_CONFOUND_REGRESSORS);
 		}
 		if (!PREPROCESSING_ONLY)
 		{

@@ -754,7 +754,7 @@ class BROCCOLI_LIB
 	
 
 		cl_ulong localMemorySize;
-		cl_ulong globalMemorySize;
+		size_t globalMemorySize;
 		size_t maxThreadsPerBlock;
 		size_t maxThreadsPerDimension[3];
 

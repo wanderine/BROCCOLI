@@ -16010,7 +16010,7 @@ void BROCCOLI_LIB::ApplyPermutationTestFirstLevel(float* h_fMRI_Volumes)
 	{
 		if ((WRAPPER == BASH) && PRINT)
 		{
-			printf("Contrast %i, permutation, ", c+1);
+			printf("Contrast %zu, permutation, ", c+1);
 			fflush(stdout);
 		}
 
@@ -16927,7 +16927,7 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 
 	// Normalize
 	Linear = Linear / Linear.maxCoeff();
-	double minn = abs(Quadratic.minCoeff());
+	double minn = std::abs(Quadratic.minCoeff());
 	double maxx = Quadratic.maxCoeff();
 	if (maxx > minn)
 	{
@@ -18717,7 +18717,6 @@ int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXd & weights, Eigen::Ma
 {
 	double MAX_W = 1.0e8;
 	int error = 0;
-	size_t i;
 	//size_t block = (size_t)floor(sqrt((float)NUMBER_OF_ICA_VARIABLES/3.0f));
 	size_t block = NUMBER_OF_ICA_VARIABLES/10;
 
@@ -18823,7 +18822,6 @@ int BROCCOLI_LIB::UpdateInfomaxWeightsEigen(Eigen::MatrixXf & weights, Eigen::Ma
 {
 	double MAX_W = 1.0e8;
 	int error = 0;
-	size_t i;
 	//size_t block = (size_t)floor(sqrt((float)NUMBER_OF_ICA_VARIABLES/3.0f))*2;
 	size_t block = NUMBER_OF_ICA_VARIABLES/10;
 

@@ -601,21 +601,21 @@ int main(int argc, char **argv)
 		if (NUMBER_OF_GLM_REGRESSORS <= 0)
 		{
 			design.close();
-			printf("Number of regressors must be > 0 ! You provided %i regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
+			printf("Number of regressors must be > 0 ! You provided %zu regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
 		else if (NUMBER_OF_GLM_REGRESSORS > 25)
 		{
 			design.close();
-			printf("Number of regressors must be <= 25 ! You provided %i regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
+			printf("Number of regressors must be <= 25 ! You provided %zu regressors in the design file. Aborting! \n",NUMBER_OF_GLM_REGRESSORS);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
 		else if (NUMBER_OF_GLM_REGRESSORS > NUMBER_OF_SUBJECTS)
 		{
 			design.close();
-			printf("Number of regressors must be smaller or equal to the number of subjects! You provided %i regressors in the design file and there are %zu subjects. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_SUBJECTS);
+			printf("Number of regressors must be smaller or equal to the number of subjects! You provided %zu regressors in the design file and there are %zu subjects. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,NUMBER_OF_SUBJECTS);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -678,7 +678,7 @@ int main(int argc, char **argv)
 		if ( tempNumber != NUMBER_OF_GLM_REGRESSORS )
 		{
 			contrasts.close();
-			printf("Design file says that number of regressors is %i, while contrast file says there are %i regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
+			printf("Design file says that number of regressors is %i, while contrast file says there are %zu regressors. Aborting! \n",NUMBER_OF_GLM_REGRESSORS,tempNumber);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -697,14 +697,14 @@ int main(int argc, char **argv)
 		if (NUMBER_OF_CONTRASTS <= 0)
 		{
 			contrasts.close();
-			printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+			printf("Number of contrasts must be > 0 ! You provided %zu in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
 		if ((STATISTICAL_TEST == 1) && (NUMBER_OF_CONTRASTS > 10))
 		{
 			contrasts.close();
-			printf("Number of contrasts must currently be <= 10 for F-test! You provided %i contrasts in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+			printf("Number of contrasts must currently be <= 10 for F-test! You provided %zu contrasts in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}

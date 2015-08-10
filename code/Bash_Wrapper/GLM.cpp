@@ -92,8 +92,8 @@ int main(int argc, char **argv)
    	bool			CHANGE_OUTPUT_NAME = false;    
                    
 	float           AR_SMOOTHING_AMOUNT = 6.0f;
-	int				NUMBER_OF_CONTRASTS = 1; 
-	int	 NUMBER_OF_STATISTICAL_MAPS = 1;
+	size_t			NUMBER_OF_CONTRASTS = 1; 
+	int	 			NUMBER_OF_STATISTICAL_MAPS = 1;
     float           CLUSTER_DEFINING_THRESHOLD = 2.5f;
 	int				STATISTICAL_TEST = 0;
 	int				INFERENCE_MODE = 1;
@@ -582,7 +582,7 @@ int main(int argc, char **argv)
 	    if (NUMBER_OF_CONTRASTS <= 0)
 	    {
 	        contrasts.close();
-   		    printf("Number of contrasts must be > 0 ! You provided %i in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
+   		    printf("Number of contrasts must be > 0 ! You provided %zu in the contrasts file. Aborting! \n",NUMBER_OF_CONTRASTS);
 	        return EXIT_FAILURE;
 	    }
 	    contrasts.close();
@@ -735,7 +735,7 @@ int main(int argc, char **argv)
 		}
 		else if (ANALYZE_TTEST)
 		{
-			printf("Performing %i t-tests \n",  NUMBER_OF_CONTRASTS);
+			printf("Performing %zu t-tests \n",  NUMBER_OF_CONTRASTS);
 		}
 		else if (ANALYZE_FTEST)
 		{
