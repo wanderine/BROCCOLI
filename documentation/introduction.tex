@@ -13,8 +13,15 @@ For Windows computers, see https://windows.github.com/ or download BROCCOLI as a
 
 \section{Installing OpenCL}
 
-BROCCOLI requires that at least one OpenCL driver is installed. All hardware platforms (e.g. Intel, AMD and Nvidia) require a specific OpenCL driver. It is possible to install several OpenCL drivers on a single machine. \\ \\ Intel drivers (runtime) are currently located at \\ \\ https://software.intel.com/en-us/articles/opencl-drivers , \\ \\ and can for Linux also be downloaded from \\ \\ https://dl.dropboxusercontent.com/u/4494604/opencl\_runtime\_15.1\_x64\_5.0.0.57.tar
-\\ \\ AMD drivers can be found at http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-tools-sdks/amd-accelerated-parallel-processing-app-sdk/ \\ \\ Nvidia drivers can be found at http://www.nvidia.com/Download/index.aspx. Note that a driver for an Nvidia graphics cards includes an OpenCL driver. 
+BROCCOLI requires that at least one OpenCL driver is installed. All hardware platforms (e.g. Intel, AMD and Nvidia) require a specific OpenCL driver. It is possible to install several OpenCL drivers on a single machine. \\ \\ Intel drivers (runtime) are currently located at \\ \\ https://software.intel.com/en-us/articles/opencl-drivers , \\ \\ and can for CentOS / Fedora / Redhat also be downloaded from \\ \\ https://dl.dropboxusercontent.com/u/4494604/opencl\_runtime\_15.1\_x64\_5.0.0.57.tar \\ \\
+and for Ubuntu from \\ \\
+https://dl.dropboxusercontent.com/u/4494604/ \\
+intel\_code\_builder\_for\_opencl\_2015\_ubuntu\_5.0.0.43\_x64.tgz
+\\ \\ AMD drivers can be found at http://developer.amd.com/tools-and-sdks/opencl-zone/opencl-tools-sdks/amd-accelerated-parallel-processing-app-sdk/ \\ \\ Nvidia drivers can be found at http://www.nvidia.com/Download/index.aspx. Note that a driver for an Nvidia graphics cards includes an OpenCL driver. On Ubuntu machines, an Nvidia driver can be installed using \\ \\
+
+sudo apt-get install nvidia-current
+
+
 
 \section{Checking the OpenCL drivers}
 
@@ -205,7 +212,11 @@ If compilation of a kernel file fails, some information will be given in the cor
 
 \section{Compiling the BROCCOLI library}
 
-BROCCOLI is written as a C++/OpenCL library, such that it can be linked to a number of softwares. Precompiled versions of the BROCCOLI library are located in BROCCOLI/compiled/BROCCOLI\_LIB/Linux and in BROCCOLI/compiled/BROCCOLI\_LIB/Mac . To compile the BROCCOLI library, it is necessary to first install an OpenCL SDK. For Intel, the OpenCL SDK (code builder) can be downloaded from \\ \\ https://software.intel.com/en-us/articles/opencl-drivers \\ \\ and for Linux also from \\ \\ https://dl.dropboxusercontent.com/u/4494604/intel\_code\_builder\_for\_opencl\_2015\_5.0.0.62\_x64.tar \\ \\ To compile the BROCCOLI library on a Linux computer, the following command can be used from the directory BROCCOLI/code/BROCCOLI\_LIB 
+BROCCOLI is written as a C++/OpenCL library, such that it can be linked to a number of softwares. Precompiled versions of the BROCCOLI library are located in BROCCOLI/compiled/BROCCOLI\_LIB/Linux and in BROCCOLI/compiled/BROCCOLI\_LIB/Mac . To compile the BROCCOLI library, it is necessary to first install an OpenCL SDK. For Intel, the OpenCL SDK (code builder) can be downloaded from \\ \\ https://software.intel.com/en-us/articles/opencl-drivers \\ \\ and for Linux (CentOS / Fedora / Redhat) also from \\ \\ https://dl.dropboxusercontent.com/u/4494604/ \\ intel\_code\_builder\_for\_opencl\_2015\_5.0.0.62\_x64.tar \\ \\ 
+and for Ubuntu the SDK and the driver is combined in one file \\ \\
+https://dl.dropboxusercontent.com/u/4494604/ \\
+intel\_code\_builder\_for\_opencl\_2015\_ubuntu\_5.0.0.43\_x64.tgz \\ \\
+To compile the BROCCOLI library on a Linux computer, the following command can be used from the directory BROCCOLI/code/BROCCOLI\_LIB 
 
 \begin{verbatim}
  ./compile_broccoli_library.sh 
@@ -233,9 +244,13 @@ In these scripts it is easy to change the compilation mode from release to debug
 
 \section{Required libraries}
 
-For Linux computers, it may be necessary to install some development libraries, to be able to compile the BROCCOLI library.
+For Linux computers, it may be necessary to install some development libraries, to be able to compile the BROCCOLI library. \\
+
+\noindent CentOS / Fedora / Redhat
 
 \begin{verbatim}
+yum -y install git
+
 yum -y install libXp.x86_64
 
 yum -y install libXpm.x86_64
@@ -247,8 +262,14 @@ yum -y install gcc-c++
 yum -y install zlib-devel
 \end{verbatim}
 
+\noindent Ubuntu
+
 \begin{verbatim}
+sudo apt-get install git
+
 sudo apt-get install zlib1g-dev
+
+sudo apt-get install g++
 \end{verbatim}
 
 
