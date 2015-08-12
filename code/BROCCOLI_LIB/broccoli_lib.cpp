@@ -7754,23 +7754,30 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
     clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
     clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
 
-	// Put input volume in the center of the volume
-	CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
+	{
+		// Put input volume in the center of the volume
+		CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
 
-    // Change resolution and size of input volume
-    ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
+    	// Change resolution and size of input volume
+    	ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
+	
+		// Make sure that the two volumes overlap from start
+		MatchVolumeMasses(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
-	// Make sure that the two volumes overlap from start
-	MatchVolumeMasses(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+		// Copy the interpolated volume to host
+		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
 
-	// Copy the interpolated volume to host
-	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
+		// Do Linear registration between the two volumes
+		AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
 
-	// Do Linear registration between the two volumes
-	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
-
-	// Copy the linearly aligned volume to host
-	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_Linear, 0, NULL, NULL);
+		// Copy the linearly aligned volume to host
+		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_Linear, 0, NULL, NULL);
+	}
+	else
+	{
+		clEnqueueWriteBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+	}
 
 	// Perform non-Linear registration
 	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
@@ -7809,7 +7816,7 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 
 		clReleaseMemObject(d_MNI_Brain_Mask);
 	}
-	else if (DO_SKULLSTRIP_ORIGINAL)
+	else if (DO_SKULLSTRIP_ORIGINAL && (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0))
 	{
 		// Copy brain mask from host
 		cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
@@ -18215,23 +18222,20 @@ Eigen::MatrixXd BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXd & inputData, bool d
 	}
 
 	// Calculate covariance Matrix
-	Eigen::MatrixXd covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
-	ResetEigenMatrix(covarianceMatrix);
 	if (WRAPPER == BASH)
 	{
 		printf("Estimating the covariance matrix\n");
 	}
 
-	//for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
-	//{
-		//printf("Estimating the covariance matrix for voxel %i \n",voxel);
-		//Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
-	//	Eigen::VectorXd values = inputData.col(voxel);
-	//	covarianceMatrix += values * values.transpose();
-	//}
-	covarianceMatrix = inputData * inputData.transpose();
-	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);
-	
+	double startTime = GetTime();
+	Eigen::MatrixXd covarianceMatrix = inputData * inputData.transpose();
+	covarianceMatrix *= 1.0/(double)(NUMBER_OF_VOXELS - 1);	
+	double endTime = GetTime();
+	if ((WRAPPER == BASH) && VERBOS)
+	{
+		printf("It took %f seconds to calculate the covariance matrix using Eigen\n",(float)(endTime - startTime));
+	}
+
 	// Calculate eigen values of covariance matrix	
 	if (WRAPPER == BASH)
 	{
@@ -18335,24 +18339,21 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhitenEigen(Eigen::MatrixXf & inputData, bool d
 		}
 	}
 
-	// Calculate covariance Matrix
-	Eigen::MatrixXf covarianceMatrix(NUMBER_OF_OBSERVATIONS,NUMBER_OF_OBSERVATIONS);
-	ResetEigenMatrix(covarianceMatrix);
+	// Calculate covariance Matrix	
 	if (WRAPPER == BASH)
 	{
 		printf("Estimating the covariance matrix\n");
 	}
 
-	//for (int voxel = 0; voxel < NUMBER_OF_VOXELS; voxel++)
-	//{
-		//printf("Estimating the covariance matrix for voxel %i \n",voxel);
-		//Eigen::VectorXd values = inputData.block(0,voxel,NUMBER_OF_OBSERVATIONS,1);
-	//	Eigen::VectorXd values = inputData.col(voxel);
-	//	covarianceMatrix += values * values.transpose();
-	//}
-	covarianceMatrix = inputData * inputData.transpose();
-	covarianceMatrix *= 1.0/(float)(NUMBER_OF_VOXELS - 1);
-	
+	double startTime = GetTime();
+	Eigen::MatrixXf covarianceMatrix = inputData * inputData.transpose();
+	covarianceMatrix *= 1.0/(float)(NUMBER_OF_VOXELS - 1);	
+	double endTime = GetTime();
+	if ((WRAPPER == BASH) && VERBOS)
+	{
+		printf("It took %f seconds to calculate the covariance matrix using Eigen\n",(float)(endTime - startTime));
+	}
+
 	// Calculate eigen values of covariance matrix	
 	if (WRAPPER == BASH)
 	{
@@ -18566,7 +18567,10 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean
 	clReleaseMemObject(d_Covariance_Matrix);
 
 	endTime = GetTime();
-	printf("It took %f seconds to calculate the covariance matrix using clBLAS\n",(float)(endTime - startTime));
+	if ((WRAPPER == BASH) && VERBOS)
+	{
+		printf("It took %f seconds to calculate the covariance matrix using clBLAS\n",(float)(endTime - startTime));
+	}
 
 	// Calculate eigen values of covariance matrix	
 	if (WRAPPER == BASH)
@@ -18662,7 +18666,10 @@ Eigen::MatrixXf BROCCOLI_LIB::PCAWhiten(Eigen::MatrixXf & inputData, bool demean
 	clReleaseMemObject(d_Whitened_Data);
 
 	endTime = GetTime();
-	printf("It took %f seconds to perform the whitening using clBLAS\n",(float)(endTime - startTime));
+	if ((WRAPPER == BASH) && VERBOS)
+	{
+		printf("It took %f seconds to perform the whitening using clBLAS\n",(float)(endTime - startTime));
+	}
 
 	return whitenedData;
 }

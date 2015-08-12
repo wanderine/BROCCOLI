@@ -32,8 +32,6 @@
 #define CHECK_EXISTING_FILE true
 #define DONT_CHECK_EXISTING_FILE false
 
-
-
 int main(int argc, char **argv)
 {
     //-----------------------
@@ -137,7 +135,7 @@ int main(int argc, char **argv)
         printf("Options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
-        printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
+        printf(" -iterationslinear          Number of iterations for the linear registration (default 10), 0 means that no linear registration is performed \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
 
         printf(" -sigma                     Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
@@ -248,9 +246,9 @@ int main(int argc, char **argv)
 		        printf("Number of linear iterations must be an integer! You provided %s \n",argv[i+1]);
 				return EXIT_FAILURE;
 		    }
-            else if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION <= 0)
+            else if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION < 0)
             {
-                printf("Number of linear iterations must be a positive number!\n");
+                printf("Number of linear iterations must be >= 0!\n");
                 return EXIT_FAILURE;
             }
             i += 2;
@@ -411,6 +409,12 @@ int main(int argc, char **argv)
         }                
     }
 
+	if ((NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION == 0) && (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION == 0))
+	{
+        printf("Number of iterations is 0 both for linear and non-linear registration!\n");
+        return EXIT_FAILURE;
+	}
+
 	// Check if BROCCOLI_DIR variable is set
 	if (getenv("BROCCOLI_DIR") == NULL)
 	{
@@ -432,12 +436,6 @@ int main(int argc, char **argv)
     }
 	allNiftiImages[numberOfNiftiImages] = inputT1;
 	numberOfNiftiImages++;
-
-	// Loop over number of extensions
-	//for(int c = 0; c < inputT1->num_ext; c++ )
-    //{
-	//    printf("Extension %i has size %i, code %i and contains %s\n",c,inputT1->ext_list[c].esize,inputT1->ext_list[c].ecode,inputT1->ext_list[c].edata);
-    //}
     
 	// -----------------------------------
 	// Read second volume (reference)
@@ -453,12 +451,6 @@ int main(int argc, char **argv)
     }
 	allNiftiImages[numberOfNiftiImages] = inputMNI;
 	numberOfNiftiImages++;
-
-	// Loop over number of extensions
-	//for(int c = 0; c < inputMNI->num_ext; c++ )
-    //{
-	//   printf("Extension %i has size %i, code %i and contains %s\n",c,inputMNI->ext_list[c].esize,inputMNI->ext_list[c].ecode,inputMNI->ext_list[c].edata);
-    //}
 
 	nifti_image *inputMask;
 	if (MASK || MASK_ORIGINAL)
@@ -500,6 +492,17 @@ int main(int argc, char **argv)
     MNI_VOXEL_SIZE_X = inputMNI->dx;
     MNI_VOXEL_SIZE_Y = inputMNI->dy;
     MNI_VOXEL_SIZE_Z = inputMNI->dz;
+
+	// Check if sizes match, for non-linear registration only
+	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION == 0)
+	{
+		if ( (T1_DATA_W != MNI_DATA_W) || (T1_DATA_H != MNI_DATA_H) || (T1_DATA_D != MNI_DATA_D) )
+		{
+			printf("Reference volume has the dimensions %zu x %zu x %zu, while the input volume has the dimensions %zu x %zu x %zu. Not OK when only doing non-linear registration, aborting! \n",MNI_DATA_W,MNI_DATA_H,MNI_DATA_D,T1_DATA_W,T1_DATA_H,T1_DATA_D);
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			return EXIT_FAILURE;
+		}
+	}
     
 	// The filter size is 7, so select a lowest scale that gives at least 10 valid samples (3 data points are lost on each side in each dimension, i.e. 6 total)
 	if ( (MNI_DATA_W/16 >= 16) && (MNI_DATA_H/16 >= 16) && (MNI_DATA_D/16 >= 16) )
@@ -532,7 +535,7 @@ int main(int argc, char **argv)
 
 		if ( (TEMP_DATA_W != MNI_DATA_W) || (TEMP_DATA_H != MNI_DATA_H) || (TEMP_DATA_D != MNI_DATA_D) )
 		{
-			printf("Reference volume has the dimensions %zu x %zu x %zu, while the mask volume has the dimensions %zu x %zu x %zud. Aborting! \n",MNI_DATA_W,MNI_DATA_H,MNI_DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			printf("Reference volume has the dimensions %zu x %zu x %zu, while the mask volume has the dimensions %zu x %zu x %zu. Aborting! \n",MNI_DATA_W,MNI_DATA_H,MNI_DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -1118,12 +1121,14 @@ int main(int argc, char **argv)
     }        
            
 
-
-	printf("\nAffine registration parameters\n");
-	printf(" %f %f %f %f\n", h_Registration_Parameters[3]+1.0f,h_Registration_Parameters[4],h_Registration_Parameters[5],h_Registration_Parameters[0]);
-	printf(" %f %f %f %f\n", h_Registration_Parameters[6],h_Registration_Parameters[7]+1.0f,h_Registration_Parameters[8],h_Registration_Parameters[1]);
-	printf(" %f %f %f %f\n", h_Registration_Parameters[9],h_Registration_Parameters[10],h_Registration_Parameters[11]+1.0f,h_Registration_Parameters[2]);
-	printf(" %f %f %f %f\n\n", 0.0f,0.0f,0.0f,1.0f);
+	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
+	{
+		printf("\nAffine registration parameters\n");
+		printf(" %f %f %f %f\n", h_Registration_Parameters[3]+1.0f,h_Registration_Parameters[4],h_Registration_Parameters[5],h_Registration_Parameters[0]);
+		printf(" %f %f %f %f\n", h_Registration_Parameters[6],h_Registration_Parameters[7]+1.0f,h_Registration_Parameters[8],h_Registration_Parameters[1]);
+		printf(" %f %f %f %f\n", h_Registration_Parameters[9],h_Registration_Parameters[10],h_Registration_Parameters[11]+1.0f,h_Registration_Parameters[2]);
+		printf(" %f %f %f %f\n\n", 0.0f,0.0f,0.0f,1.0f);
+	}
 
 
     // Print registration parameters to file
@@ -1171,7 +1176,10 @@ int main(int argc, char **argv)
     	WriteNifti(outputNifti,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
 
-    WriteNifti(outputNifti,h_Aligned_T1_Volume,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
+	{
+	    WriteNifti(outputNifti,h_Aligned_T1_Volume,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	}
 	
 	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
 	{
