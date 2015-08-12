@@ -114,25 +114,11 @@ int main(int argc, char **argv)
 	bool			MASK_ORIGINAL = false;
 	const char* 	MASK_NAME;
 
-	float			STARTTRANSX = 0.0f;
-	float			STARTTRANSY = 0.0f;
-	float			STARTTRANSZ = 0.0f;
-	float			STARTROTX = 0.0f;
-	float			STARTROTY = 0.0f;
-	float			STARTROTZ = 0.0f;
-
-	float			ENDTRANSX = 0.0f;
-	float			ENDTRANSY = 0.0f;
-	float			ENDTRANSZ = 0.0f;
-	float			ENDROTX = 0.0f;
-	float			ENDROTY = 0.0f;
-	float			ENDROTZ = 0.0f;
-
 	const char*		outputFilename;
 
     // Size parameters
-    int             T1_DATA_H, T1_DATA_W, T1_DATA_D;
-    int             MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
+    size_t          T1_DATA_H, T1_DATA_W, T1_DATA_D;
+    size_t          MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
     float           MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z;    
@@ -153,22 +139,6 @@ int main(int argc, char **argv)
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
         printf(" -iterationslinear          Number of iterations for the linear registration (default 10) \n");        
         printf(" -iterationsnonlinear       Number of iterations for the non-linear registration (default 10), 0 means that no non-linear registration is performed \n");        
-        //printf(" -lowestscale               The lowest scale for the linear and non-linear registration, should be 1, 2, 4 or 8 (default 4), x means downsampling a factor x in each dimension  \n");        
-		/*
-        printf(" -starttransx               Transformation in x direction to be applied before registration, in voxels (default 0) \n");
-        printf(" -starttransy               Transformation in y direction to be applied before registration, in voxels (default 0) \n");
-        printf(" -starttransz               Transformation in z direction to be applied before registration, in voxels (default 0) \n");
-        printf(" -startrotx               	Rotation around x-axis to be applied before registration, in degrees (default 0) \n");
-        printf(" -startroty               	Rotation around y-axis to be applied before registration, in degrees (default 0) \n");
-        printf(" -startrotz               	Rotation around z-axis to be applied before registration, in degrees (default 0) \n");
-
-        printf(" -endtransx               	Transformation in x direction to be applied after registration, in voxels (default 0) \n");
-        printf(" -endtransy               	Transformation in y direction to be applied after registration, in voxels (default 0) \n");
-        printf(" -endtransz               	Transformation in z direction to be applied after registration, in voxels (default 0) \n");
-        printf(" -endrotx               	Rotation around x-axis to be applied after registration, in degrees (default 0) \n");
-        printf(" -endroty               	Rotation around y-axis to be applied after registration, in degrees (default 0) \n");
-        printf(" -endrotz               	Rotation around z-axis to be applied after registration, in degrees (default 0) \n");
-		*/
 
         printf(" -sigma                     Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
@@ -353,210 +323,6 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
-        else if (strcmp(input,"-starttransx") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -starttransx !\n");
-                return EXIT_FAILURE;
-			}
-
-            STARTTRANSX = (float)strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("starttransx must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-starttransy") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -starttransy !\n");
-                return EXIT_FAILURE;
-			}
-
-            STARTTRANSY = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("starttransy must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-starttransz") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -starttransz !\n");
-                return EXIT_FAILURE;
-			}
-
-            STARTTRANSZ = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("starttransz must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-startrotx") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -startrotx !\n");
-                return EXIT_FAILURE;
-			}
-
-            STARTROTX = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("startrotx must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-startroty") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -startroty !\n");
-                return EXIT_FAILURE;
-			}
-
-            STARTROTY = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("startroty must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-startrotz") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -startrotz !\n");
-                return EXIT_FAILURE;
-			}
-
-            STARTROTZ = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("startrotz must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-endtransx") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -endtransx !\n");
-                return EXIT_FAILURE;
-			}
-
-            ENDTRANSX = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("endtransx must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-endtransy") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -endtransy !\n");
-                return EXIT_FAILURE;
-			}
-
-            ENDTRANSY = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("endtransy must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-endtransz") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -endtransz !\n");
-                return EXIT_FAILURE;
-			}
-
-            ENDTRANSZ = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("endtransz must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-endrotx") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -endrotx !\n");
-                return EXIT_FAILURE;
-			}
-
-            ENDROTX = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("endrotx must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-endroty") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -endroty !\n");
-                return EXIT_FAILURE;
-			}
-
-            ENDROTY = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("endroty must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
-        else if (strcmp(input,"-endrotz") == 0)
-        {
-			if ( (i+1) >= argc  )
-			{
-			    printf("Unable to read value after -endrotz !\n");
-                return EXIT_FAILURE;
-			}
-
-            ENDROTZ = strtod(argv[i+1], &p);
-
-			if (!isspace(*p) && *p != 0)
-		    {
-		        printf("endrotz must be a float! You provided %s \n",argv[i+1]);
-				return EXIT_FAILURE;
-		    }
-            i += 2;
-        }
         else if (strcmp(input,"-zcut") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -575,7 +341,7 @@ int main(int argc, char **argv)
 
             i += 2;
         }
-	else if (strcmp(input,"-mask") == 0)
+		else if (strcmp(input,"-mask") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
@@ -587,7 +353,7 @@ int main(int argc, char **argv)
             MASK_NAME = argv[i+1];
             i += 2;
         }
-	else if (strcmp(input,"-maskoriginal") == 0)
+		else if (strcmp(input,"-maskoriginal") == 0)
         {
 			if ( (i+1) >= argc  )
 			{
@@ -760,13 +526,13 @@ int main(int argc, char **argv)
 	// Check  if mask has same dimensions as reference volume
 	if (MASK || MASK_ORIGINAL)
 	{
-		int TEMP_DATA_W = inputMask->nx;
-		int TEMP_DATA_H = inputMask->ny;
-		int TEMP_DATA_D = inputMask->nz;
+		size_t TEMP_DATA_W = inputMask->nx;
+		size_t TEMP_DATA_H = inputMask->ny;
+		size_t TEMP_DATA_D = inputMask->nz;
 
 		if ( (TEMP_DATA_W != MNI_DATA_W) || (TEMP_DATA_H != MNI_DATA_H) || (TEMP_DATA_D != MNI_DATA_D) )
 		{
-			printf("Reference volume has the dimensions %i x %i x %i, while the mask volume has the dimensions %i x %i x %i. Aborting! \n",MNI_DATA_W,MNI_DATA_H,MNI_DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
+			printf("Reference volume has the dimensions %zu x %zu x %zu, while the mask volume has the dimensions %zu x %zu x %zud. Aborting! \n",MNI_DATA_W,MNI_DATA_H,MNI_DATA_D,TEMP_DATA_W,TEMP_DATA_H,TEMP_DATA_D);
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 			return EXIT_FAILURE;
 		}
@@ -774,32 +540,32 @@ int main(int argc, char **argv)
 
     // Calculate sizes, in bytes
     
-    int DOWNSAMPLED_DATA_W = (int)round((float)MNI_DATA_W/(float)COARSEST_SCALE);
-	int DOWNSAMPLED_DATA_H = (int)round((float)MNI_DATA_H/(float)COARSEST_SCALE);
-	int DOWNSAMPLED_DATA_D = (int)round((float)MNI_DATA_D/(float)COARSEST_SCALE);
+    size_t DOWNSAMPLED_DATA_W = (int)round((float)MNI_DATA_W/(float)COARSEST_SCALE);
+	size_t DOWNSAMPLED_DATA_H = (int)round((float)MNI_DATA_H/(float)COARSEST_SCALE);
+	size_t DOWNSAMPLED_DATA_D = (int)round((float)MNI_DATA_D/(float)COARSEST_SCALE);
                 
-   	int T1_DATA_W_INTERPOLATED = (int)round((float)T1_DATA_W * T1_VOXEL_SIZE_X / MNI_VOXEL_SIZE_X);
-	int T1_DATA_H_INTERPOLATED = (int)round((float)T1_DATA_H * T1_VOXEL_SIZE_Y / MNI_VOXEL_SIZE_Y);
-	int T1_DATA_D_INTERPOLATED = (int)round((float)T1_DATA_D * T1_VOXEL_SIZE_Z / MNI_VOXEL_SIZE_Z);
+   	size_t T1_DATA_W_INTERPOLATED = (int)round((float)T1_DATA_W * T1_VOXEL_SIZE_X / MNI_VOXEL_SIZE_X);
+	size_t T1_DATA_H_INTERPOLATED = (int)round((float)T1_DATA_H * T1_VOXEL_SIZE_Y / MNI_VOXEL_SIZE_Y);
+	size_t T1_DATA_D_INTERPOLATED = (int)round((float)T1_DATA_D * T1_VOXEL_SIZE_Z / MNI_VOXEL_SIZE_Z);
 
-    int IMAGE_REGISTRATION_PARAMETERS_SIZE = NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
-    int FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
-    int FILTER_SIZE2 = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(cl_float2);
-    int T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
-    int MNI_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
-    int MNI2_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(cl_float2);
-    int INTERPOLATED_T1_VOLUME_SIZE = T1_DATA_W_INTERPOLATED * T1_DATA_H_INTERPOLATED * T1_DATA_D_INTERPOLATED * sizeof(float);
-    int DOWNSAMPLED_VOLUME_SIZE = DOWNSAMPLED_DATA_W * DOWNSAMPLED_DATA_H * DOWNSAMPLED_DATA_D * sizeof(float);
-    int PROJECTION_TENSOR_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
-    int FILTER_DIRECTIONS_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
+    size_t IMAGE_REGISTRATION_PARAMETERS_SIZE = NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS * sizeof(float);
+    size_t FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
+    size_t FILTER_SIZE2 = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(cl_float2);
+    size_t T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+    size_t MNI_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+    size_t MNI2_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(cl_float2);
+    size_t INTERPOLATED_T1_VOLUME_SIZE = T1_DATA_W_INTERPOLATED * T1_DATA_H_INTERPOLATED * T1_DATA_D_INTERPOLATED * sizeof(float);
+    size_t DOWNSAMPLED_VOLUME_SIZE = DOWNSAMPLED_DATA_W * DOWNSAMPLED_DATA_H * DOWNSAMPLED_DATA_D * sizeof(float);
+    size_t PROJECTION_TENSOR_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
+    size_t FILTER_DIRECTIONS_SIZE = NUMBER_OF_FILTERS_FOR_NONLINEAR_REGISTRATION * sizeof(float);
     
     // Print some info
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Volume 1 size: %i x %i x %i \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
+        printf("Volume 1 size: %zu x %zu x %zu \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
         printf("Volume 1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);    
-        printf("Volume 2 size: %i x %i x %i \n",  MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+        printf("Volume 2 size: %zu x %zu x %zu \n",  MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
         printf("Volume 2 voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);    
     }
    	if (VERBOS)
@@ -903,7 +669,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputT1->data;
     
-        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
         {
             h_T1_Volume[i] = (float)p[i];
         }
@@ -912,7 +678,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputT1->data;
     
-        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
         {
             h_T1_Volume[i] = (float)p[i];
         }
@@ -921,7 +687,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputT1->data;
     
-        for (int i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
         {
             h_T1_Volume[i] = p[i];
         }
@@ -938,7 +704,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputMNI->data;
     
-        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         {
             h_MNI_Volume[i] = (float)p[i];
         }
@@ -947,7 +713,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputMNI->data;
     
-        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         {
             h_MNI_Volume[i] = (float)p[i];
         }
@@ -956,7 +722,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputMNI->data;
     
-        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         {
             h_MNI_Volume[i] = p[i];
         }
@@ -975,7 +741,7 @@ int main(int argc, char **argv)
 	    {
 	        short int *p = (short int*)inputMask->data;
     
-	        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+	        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
 	        {
 	            h_MNI_Brain_Mask[i] = (float)p[i];
 	        }
@@ -984,7 +750,7 @@ int main(int argc, char **argv)
 	    {
 	        float *p = (float*)inputMask->data;
     
-	        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+	        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
         	{
 	            h_MNI_Brain_Mask[i] = p[i];
 	        }
@@ -993,7 +759,7 @@ int main(int argc, char **argv)
 	    {
     	    unsigned char *p = (unsigned char*)inputMask->data;
     
-	        for (int i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
+	        for (size_t i = 0; i < MNI_DATA_W * MNI_DATA_H * MNI_DATA_D; i++)
 	        {
 	            h_MNI_Brain_Mask[i] = (float)p[i];
 	        }
