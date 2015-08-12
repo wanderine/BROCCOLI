@@ -1046,14 +1046,12 @@ int main(int argc, char **argv)
 		BROCCOLI.SetDoSkullstrip(MASK);
 		BROCCOLI.SetDoSkullstripOriginal(MASK_ORIGINAL);
 
+		BROCCOLI.SetSaveDisplacementField(WRITE_DISPLACEMENT_FIELD);
 		BROCCOLI.SetSaveInterpolatedT1(WRITE_INTERPOLATED);
 		BROCCOLI.SetSaveAlignedT1MNILinear(true);
 		BROCCOLI.SetSaveAlignedT1MNINonLinear(true);		
 
-        if (WRITE_DISPLACEMENT_FIELD)
-        {
-            BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
-        }        
+        BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
 
         if (DEBUG)
         {

@@ -323,6 +323,7 @@ class BROCCOLI_LIB
 
 		void SetSignificanceLevel(float value);
 
+		void SetSaveDisplacementField(bool);
 		void SetSaveInterpolatedT1(bool);
 		void SetSaveAlignedT1MNILinear(bool);
 		void SetSaveAlignedT1MNINonLinear(bool);
@@ -1154,6 +1155,8 @@ class BROCCOLI_LIB
 		bool WRITE_RESIDUAL_VARIANCES;
 		bool WRITE_RESIDUALS_EPI;
 		bool WRITE_RESIDUALS_MNI;
+
+		bool WRITE_DISPLACEMENT_FIELD;
 
 		size_t EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		size_t T1_DATA_W, T1_DATA_H, T1_DATA_D;

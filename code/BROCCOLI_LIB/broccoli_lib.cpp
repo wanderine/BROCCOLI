@@ -3882,6 +3882,11 @@ void BROCCOLI_LIB::SetSignificanceLevel(float value)
 	SIGNIFICANCE_LEVEL = value;
 }
 
+void BROCCOLI_LIB::SetSaveDisplacementField(bool value)
+{
+	WRITE_DISPLACEMENT_FIELD = value;
+}
+
 void BROCCOLI_LIB::SetSaveInterpolatedT1(bool value)
 {
 	WRITE_INTERPOLATED_T1 = value;
@@ -7772,15 +7777,18 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 	{
 		AlignTwoVolumesNonLinearSeveralScales(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
 
-		CreateCombinedDisplacementField(h_Registration_Parameters_T1_MNI_Out,d_Total_Displacement_Field_X,d_Total_Displacement_Field_Y,d_Total_Displacement_Field_Z,MNI_DATA_W,MNI_DATA_H,MNI_DATA_D);
-
 		// Copy the non-linearly aligned volume to host
 		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonLinear, 0, NULL, NULL);
 
-		// Copy the displacement field to host
-		clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
-		clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
+		if (WRITE_DISPLACEMENT_FIELD)
+		{
+			CreateCombinedDisplacementField(h_Registration_Parameters_T1_MNI_Out,d_Total_Displacement_Field_X,d_Total_Displacement_Field_Y,d_Total_Displacement_Field_Z,MNI_DATA_W,MNI_DATA_H,MNI_DATA_D);
+	
+			// Copy the displacement field to host
+			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
+		}
 
 		clReleaseMemObject(d_Total_Displacement_Field_X);
 		clReleaseMemObject(d_Total_Displacement_Field_Y);
