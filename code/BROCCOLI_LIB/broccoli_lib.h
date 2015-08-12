@@ -489,7 +489,7 @@ class BROCCOLI_LIB
 
 		void CalculateBetaWeightsAndContrastsFirstLevel(float* h_Volumes);
 		void CalculateBetaWeightsAndContrastsFirstLevelSlices(float* h_Volumes);
-		void CalculateStatisticalMapsGLMTTestFirstLevel(float *h_Volumes, int iterations);
+		cl_int CalculateStatisticalMapsGLMTTestFirstLevel(float *h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMTTestFirstLevelSlices(float* h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMFTestFirstLevel(float *h_Volumes, int iterations);
 		void CalculateStatisticalMapsGLMFTestFirstLevelSlices(float* h_Volumes, int iterations);
@@ -624,11 +624,11 @@ class BROCCOLI_LIB
 		void SetupGLMFirstLevel(int N);
 		void CleanupGLMFirstLevel();
 
-		void CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
-		void CenterVolumeMass(cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D);
-		void CenterVolumeMass(cl_mem d_Volume, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
-		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, int DATA_W, int DATA_H, int DATA_D);
-		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, float* h_Parameters, int DATA_W, int DATA_H, int DATA_D);
+		void CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void CenterVolumeMass(cl_mem d_Volume, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void CenterVolumeMass(cl_mem d_Volume, float* h_Parameters, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, size_t DATA_W, size_t DATA_H, size_t DATA_D);
+		void MatchVolumeMasses(cl_mem d_Volume_1, cl_mem d_Volume_2, float* h_Parameters, size_t DATA_W, size_t DATA_H, size_t DATA_D);
 
 		void FlipVolumesXYZTtoXYTZ(float* h_Volumes, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T);
 		void FlipVolumesXYTZtoXYZT(float* h_Volumes, size_t DATA_W, size_t DATA_H, size_t DATA_D, size_t DATA_T);

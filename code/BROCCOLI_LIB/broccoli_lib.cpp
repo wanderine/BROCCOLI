@@ -6608,7 +6608,7 @@ void BROCCOLI_LIB::CalculateGlobalMeans(float* h_Volumes)
 }
 
 
-void BROCCOLI_LIB::CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, int DATA_W, int DATA_H, int DATA_D)
+void BROCCOLI_LIB::CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem d_Volume, size_t DATA_W, size_t DATA_H, size_t DATA_D)
 {
     float *h_Temp_Volume = (float*)malloc(DATA_W * DATA_H * DATA_D * sizeof(float));
 
@@ -6622,11 +6622,11 @@ void BROCCOLI_LIB::CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem
     ry = 0.0f;
     rz = 0.0f;
 
-    for (int z = 0; z < DATA_D; z++)
+    for (size_t z = 0; z < DATA_D; z++)
     {
-        for (int y = 0; y < DATA_H; y++)
+        for (size_t y = 0; y < DATA_H; y++)
         {
-            for (int x = 0; x < DATA_W; x++)
+            for (size_t x = 0; x < DATA_W; x++)
             {
                 mass = h_Temp_Volume[x + y * DATA_W + z * DATA_W * DATA_H];
                 rx += mass * (float)x;
@@ -6648,9 +6648,9 @@ void BROCCOLI_LIB::CalculateCenterOfMass(float &rx, float &ry, float &rz, cl_mem
 
 // Alters a volume such that the center of mass is in the middle of the volume
 void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume,
-                                    int DATA_W,
-                                    int DATA_H,
-                                    int DATA_D)
+                                    size_t DATA_W,
+                                    size_t DATA_H,
+                                    size_t DATA_D)
 
 {
     float xCenter, yCenter, zCenter;
@@ -6686,9 +6686,9 @@ void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume,
 // Alters a volume such that the center of mass is in the middle of the volume, returns translation parameters
 void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume, 
  									float *h_Parameters, 
-                                    int DATA_W,
-                                    int DATA_H,
-                                    int DATA_D)
+                                    size_t DATA_W,
+                                    size_t DATA_H,
+                                    size_t DATA_D)
 
 {
     float xCenter, yCenter, zCenter;
@@ -6723,9 +6723,9 @@ void BROCCOLI_LIB::CenterVolumeMass(cl_mem d_Volume,
 // Alters volume1 such that its center of mass matches volume2
 void BROCCOLI_LIB::MatchVolumeMasses(cl_mem d_Volume_1,
 									 cl_mem d_Volume_2,	
-                                	 int DATA_W,
-                                     int DATA_H,
-                                     int DATA_D)
+                                	 size_t DATA_W,
+                                     size_t DATA_H,
+                                     size_t DATA_D)
 
 {
     float xCenter1, yCenter1, zCenter1;
@@ -6762,9 +6762,9 @@ void BROCCOLI_LIB::MatchVolumeMasses(cl_mem d_Volume_1,
 void BROCCOLI_LIB::MatchVolumeMasses(cl_mem d_Volume_1,
 									 cl_mem d_Volume_2,	
 									 float* h_Parameters,
-                                	 int DATA_W,
-                                     int DATA_H,
-                                     int DATA_D)
+                                	 size_t DATA_W,
+                                     size_t DATA_H,
+                                     size_t DATA_D)
 
 {
     float xCenter1, yCenter1, zCenter1;
@@ -7732,11 +7732,19 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1Original()
 
 void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 {
+	deviceMemoryAllocations = 0;
+	deviceMemoryDeallocations = 0;
+	allocatedDeviceMemory = 0;
+
 	// Allocate memory for input volume, input volume of reference size and referencec volume
 	cl_mem d_Input_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Reference_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Input_Volume_Reference_Size = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
+	allocatedDeviceMemory += T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+	allocatedDeviceMemory += 2 * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+	deviceMemoryAllocations += 3;
+	
 	// Copy data to device
     clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
     clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
@@ -7821,6 +7829,10 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 	clReleaseMemObject(d_Input_Volume);
 	clReleaseMemObject(d_Input_Volume_Reference_Size);
 	clReleaseMemObject(d_Reference_Volume);
+
+	allocatedDeviceMemory -= T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+	allocatedDeviceMemory -= 2 * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+	deviceMemoryDeallocations += 3;
 }
 
 void BROCCOLI_LIB::CreateCombinedDisplacementField(float* h_Registration_Parameters_,
@@ -8443,11 +8455,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			}
 		}
 
-		c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
-		c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
-		c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-		c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
-
+		// Backup version
 		if (!largeMemory)
 		{
 			// Allocate memory for one slice for all time points, loop over slices to save memory
@@ -8465,7 +8473,11 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			deviceMemoryAllocations += 2;
 		}
 
-		
+		c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+		c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
+		c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+		c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
+
 		d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 		d_Contrast_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 		d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
@@ -8518,14 +8530,41 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		}
 
 		// Run the actual GLM
+		cl_int largeMemoryError = 0;
+		if (largeMemory)
+		{
+			largeMemoryError = CalculateStatisticalMapsGLMTTestFirstLevel(h_fMRI_Volumes,3);
+		}
+
 		if (!largeMemory)
 		{
 			CalculateStatisticalMapsGLMTTestFirstLevelSlices(h_fMRI_Volumes,3);
 		}
-		else
+		else if (largeMemoryError)
 		{
-			CalculateStatisticalMapsGLMTTestFirstLevel(h_fMRI_Volumes,3);
+			clReleaseMemObject(d_fMRI_Volumes);
+			clReleaseMemObject(d_Whitened_fMRI_Volumes);
+			allocatedDeviceMemory -= 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
+			deviceMemoryDeallocations += 2;
+			largeMemory = false;
+
+			runKernelErrorCalculateBetaWeightsGLMFirstLevel = 0;
+			runKernelErrorCalculateGLMResiduals = 0;
+			runKernelErrorEstimateAR4Models = 0;
+			runKernelErrorApplyWhiteningAR4 = 0;
+			runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel = 0;
+
+			printf("GLM error detected for full volume analysis, trying to loop over slices instead!\n");
+
+			d_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+			d_Whitened_fMRI_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+			d_Residuals = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float), NULL, NULL);
+			allocatedDeviceMemory += 3 * EPI_DATA_W * EPI_DATA_H * 1 * EPI_DATA_T * sizeof(float);
+			deviceMemoryAllocations += 3;
+
+			CalculateStatisticalMapsGLMTTestFirstLevelSlices(h_fMRI_Volumes,3);
 		}
+
 
 		// Copy data in EPI space to host
 
@@ -14119,7 +14158,7 @@ void BROCCOLI_LIB::CalculateBetaWeightsAndContrastsFirstLevelSlices(float* h_Vol
 
 // Calculates a statistical map for first level analysis, using a Cochrane-Orcutt procedure
 
-void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(float *h_Volumes, int iterations)
+cl_int BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(float *h_Volumes, int iterations)
 {
 	SetGlobalAndLocalWorkSizesStatisticalCalculations(EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
@@ -14132,6 +14171,7 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(float *h_Volumes, 
 	CreateVoxelNumbers(d_Voxel_Numbers, d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Allocate memory for voxel specific design matrices (sufficient to store the pseudo inverses, since we only need to estimate beta weights with the voxel-specific models, not the residuals)
+	cl_int memError1 = 0;
 	cl_mem d_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_WRITE | CL_MEM_ALLOC_HOST_PTR, NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 	allocatedDeviceMemory += NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
 
@@ -14298,6 +14338,31 @@ void BROCCOLI_LIB::CalculateStatisticalMapsGLMTTestFirstLevel(float *h_Volumes, 
 	allocatedDeviceMemory -= NUMBER_OF_BRAIN_VOXELS * NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float);
 	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float);
 	allocatedDeviceMemory -= EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
+	if (runKernelErrorCalculateBetaWeightsGLMFirstLevel != CL_SUCCESS) 
+	{
+		return runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	}
+	else if (runKernelErrorCalculateGLMResiduals != CL_SUCCESS)
+	{
+		return runKernelErrorCalculateGLMResiduals;
+	}
+	else if (runKernelErrorEstimateAR4Models != CL_SUCCESS)
+	{
+		return runKernelErrorEstimateAR4Models;
+	}
+	else if (runKernelErrorApplyWhiteningAR4 != CL_SUCCESS)
+	{
+		return runKernelErrorApplyWhiteningAR4;
+	}
+	else if (runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel != CL_SUCCESS)
+	{
+		return runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	}
+	else
+	{
+		return CL_SUCCESS;
+	}
 }
 
 
