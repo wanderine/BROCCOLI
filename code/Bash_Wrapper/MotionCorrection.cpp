@@ -743,23 +743,47 @@ int main(int argc, char ** argv)
   
     // Add the provided filename extension to the original filename, before the dot
 
-    // Find the dot in the original filename
-    const char* p = inputData->fname;
-    int dotPosition = 0;
-    while ( (p != NULL) && ((*p) != '.') )
-    {
-        p++;
-        dotPosition++;
-    }
-    
-    // Allocate temporary array
 	const char* extension = "_motionparameters.1D";
-    char* filenameWithExtension = (char*)malloc(strlen(inputData->fname) + strlen(extension) + 1);
-    
-    // Copy filename to the dot
-    strncpy(filenameWithExtension,inputData->fname,dotPosition);
-    filenameWithExtension[dotPosition] = '\0';
+	char* filenameWithExtension;
 
+    // Find the dot in the original filename
+	if (!CHANGE_OUTPUT_FILENAME)
+	{
+	    const char* p = inputData->fname;
+	    int dotPosition = 0;
+	    while ( (p != NULL) && ((*p) != '.') )
+	    {
+	        p++;
+	        dotPosition++;
+	    }
+    
+	    // Allocate temporary array
+	    filenameWithExtension = (char*)malloc(strlen(inputData->fname) + strlen(extension) + 1);
+
+	    // Copy filename to the dot
+	    strncpy(filenameWithExtension,inputData->fname,dotPosition);
+    	filenameWithExtension[dotPosition] = '\0';
+	}
+	else
+	{
+	    const char* p = outputFilename;
+	    int dotPosition = 0;
+		int i = 0;
+	    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
+	    {
+	        p++;
+	        dotPosition++;
+			i++;
+	    }
+    
+	    // Allocate temporary array
+	    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
+
+	    // Copy filename to the dot
+	    strncpy(filenameWithExtension,outputFilename,dotPosition);
+    	filenameWithExtension[dotPosition] = '\0';
+	}
+  
     // Add the extension
     strcat(filenameWithExtension,extension);
 

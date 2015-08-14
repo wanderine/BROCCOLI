@@ -1121,7 +1121,7 @@ int main(int argc, char **argv)
     }        
            
 
-	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
+	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0 && PRINT)
 	{
 		printf("\nAffine registration parameters\n");
 		printf(" %f %f %f %f\n", h_Registration_Parameters[3]+1.0f,h_Registration_Parameters[4],h_Registration_Parameters[5],h_Registration_Parameters[0]);
