@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """The BROCCOLI module provides classes for interfacing with the `BROCCOLI
-<http://github.com/wanderine/BROCCOLI>`_ command line tools.  
+<http://github.com/wanderine/BROCCOLI>`_ command line tools.
 
 These are the base tools for working with BROCCOLI.
 Preprocessing tools are found in broccoli/preprocess.py

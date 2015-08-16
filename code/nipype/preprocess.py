@@ -1,7 +1,7 @@
 # emacs: -*- mode: python; py-indent-offset: 4; indent-tabs-mode: nil -*-
 # vi: set ft=python sts=4 ts=4 sw=4 et:
 """The BROCCOLI module provides classes for interfacing with the `BROCCOLI
-<http://github.com/wanderine/BROCCOLI>`_ command line tools.  
+<http://github.com/wanderine/BROCCOLI>`_ command line tools.
 
     Change directory to provide relative paths for doctests
     >>> import os
@@ -45,14 +45,26 @@ class RegisterTwoVolumesInputSpec(BROCCOLICommandInputSpec):
                    exists=True,
                    copyfile=False)
 
-   
+
     iterationslinear = traits.Int(argstr='-iterationslinear %d', desc='Number of iterations for linear registration')
 
     iterationsnonlinear = traits.Int(argstr='-iterationsnonlinear %d', desc='Number of iterations for non-linear registration')
 
-    sigma = traits.Float(argstr='-sigma %f', desc='Amount of Gaussian smoothing for regularization of displacement field (default 5.0)')
+    sigma = traits.Float(argstr='-sigma %s', desc='Amount of Gaussian smoothing for regularization of displacement field (default 5.0)')
 
     mask = traits.Str(argstr='-mask %s', desc='Mask to apply after linear and non-linear registration')
+
+    maskoriginal = traits.Str(argstr='-maskoriginal %s', desc='Mask to apply on original volume after (inverted) linear registration (but after interpolation to reference volume size)')
+
+class RegisterTwoVolumesOutputSpec(TraitedSpec):
+    interpolated_file = File(
+        desc="path/name of volume interpolated to reference volume size (if generated)")
+    aligned_linear_file = File(
+        desc="path/name of linearly aligned volume (if generated)")
+    aligned_nonlinear_file = File(
+        desc="path/name of non-linearly aligned volume (if generated)")
+    masked_file = File(
+        desc="path/name of masked registered volume (if generated)")
 
 
 class RegisterTwoVolumes(BROCCOLICommand):
@@ -69,14 +81,51 @@ class RegisterTwoVolumes(BROCCOLICommand):
     >>> reg.inputs.platform = 1
     >>> reg.inputs.device = 2
     >>> reg.cmdline
-    'RegisterTwoVolumes structural.nii mni.nii -platform 1 -device 2'
+    'RegisterTwoVolumes structural.nii mni.nii -device 2 -platform 1'
     >>> res = reg.run() # doctest: +SKIP
 
     """
 
     _cmd = 'RegisterTwoVolumes'
     input_spec = RegisterTwoVolumesInputSpec
-    output_spec = BROCCOLICommandOutputSpec
+    output_spec = RegisterTwoVolumesOutputSpec
+
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        if (not isdefined(self.inputs.output)):
+            if ((not isdefined(self.inputs.iterationslinear)) or (self.inputs.iterationslinear > 0)):
+                outputs['aligned_linear_file'] = self._gen_fname(self.inputs.in_file,
+                                               suffix='_aligned_linear')
+
+            if ((not isdefined(self.inputs.iterationsnonlinear)) or (self.inputs.iterationsnonlinear > 0)):
+                outputs['aligned_nonlinear_file'] = self._gen_fname(self.inputs.in_file,
+                                               suffix='_aligned_nonlinear')
+
+            if (isdefined(self.inputs.saveinterpolated)):
+                outputs['interpolated_file'] = self._gen_fname(self.inputs.in_file,
+                                               suffix='_interpolated')
+
+            if (isdefined(self.inputs.mask) or isdefined(self.inputs.maskoriginal)):
+                outputs['masked_file'] = self._gen_fname(self.inputs.in_file,
+                                               suffix='_skullstripped')
+
+        else:
+            if ((not isdefined(self.inputs.iterationslinear)) or (self.inputs.iterationslinear > 0)):
+                outputs['aligned_linear_file'] = self._gen_fname(self.inputs.output,
+                                               suffix='_aligned_linear')
+
+            if ((not isdefined(self.inputs.iterationsnonlinear)) or (self.inputs.iterationsnonlinear > 0)):
+                outputs['aligned_nonlinear_file'] = self._gen_fname(self.inputs.output,
+                                               suffix='_aligned_nonlinear')
+
+            if (isdefined(self.inputs.saveinterpolated)):
+                outputs['interpolated_file'] = self._gen_fname(self.inputs.output,
+                                               suffix='_interpolated')
+
+            if (isdefined(self.inputs.mask) or isdefined(self.inputs.maskoriginal)):
+                outputs['masked_file'] = self._gen_fname(self.inputs.output,
+                                               suffix='_skullstripped')
+        return outputs
 
 
 
@@ -89,13 +138,19 @@ class SmoothingInputSpec(BROCCOLICommandInputSpec):
                    exists=True,
                    copyfile=False)
 
-   
-    fwhm = traits.Float(argstr='-fwhm %f', desc='Amount of Gaussian smoothing, in mm FWHM')
+
+    fwhm = traits.Float(argstr='-fwhm %s', desc='Amount of Gaussian smoothing, in mm FWHM')
 
     mask = traits.Str(argstr='-mask %s', desc='Perform smoothing inside mask (normalized convolution)')
 
     automask = traits.Bool(argstr='-automask', desc='Generate a mask and apply smoothing inside mask (normalized convolution)')
 
+
+class SmoothingOutputSpec(TraitedSpec):
+    smoothed_file = File(exists=True,
+        desc="path/name of smoothed volume(s)")
+    mask_file = File(exists=True,
+        desc="path/name of generated mask (if generated)")
 
 class Smoothing(BROCCOLICommand):
     """This function performs smoothing of one or several volumes
@@ -107,24 +162,37 @@ class Smoothing(BROCCOLICommand):
     >>> from nipype.testing import example_data
     >>> sm = broccoli.Smoothing()
     >>> sm.inputs.in_file = 'functional.nii'
-    >>> sm.inputs.fwhm = 4
     >>> sm.inputs.platform = 1
     >>> sm.inputs.device = 2
+    >>> sm.inputs.fwhm = 4
     >>> sm.cmdline
-    'Smoothing functional.nii -fwhm 4 -platform 1 -device 2'
+    'Smoothing functional.nii -device 2 -fwhm 4.0 -platform 1'
     >>> res = sm.run() # doctest: +SKIP
 
     """
 
     _cmd = 'Smoothing'
     input_spec = SmoothingInputSpec
-    output_spec = BROCCOLICommandOutputSpec
+    output_spec = SmoothingOutputSpec
 
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        if (not isdefined(self.inputs.output)):
 
+            smoothed_file = self._gen_fname(self.inputs.in_file,
+                                               suffix='_sm')
 
+            if (isdefined(self.inputs.auto_mask)):
+                    outputs['mask_file'] = self._gen_fname(self.inputs.in_file,
+                                                   suffix='_mask')
 
+        else:
+            smoothed_file = inputs.output
 
-
+            if (isdefined(self.inputs.auto_mask)):
+                    outputs['mask_file'] = self._gen_fname(self.inputs.output,
+                                                   suffix='_mask')
+        return outputs
 
 class MotionCorrectionInputSpec(BROCCOLICommandInputSpec):
     in_file = File(desc='input volumes to apply motion correction to',
@@ -134,13 +202,19 @@ class MotionCorrectionInputSpec(BROCCOLICommandInputSpec):
                    exists=True,
                    copyfile=False)
 
-   
+
 
     iterations = traits.Int(argstr='-iterations %d', desc='Number of iterations for motion correction algorithm')
 
     referencevolume = traits.Str(argstr='-referencevolume %s', desc='Volume to align all other volumes to')
 
-    
+
+class MotionCorrectionOutputSpec(TraitedSpec):
+    motioncorrected_file = File(exists=True,
+        desc="path/name of motion corrected volume")
+    parameters_file = File(exists=True,
+        desc="path/name of motion parameters file")
+
 
 class MotionCorrection(BROCCOLICommand):
     """This function performs motion correction for an fMRI dataset
@@ -155,14 +229,30 @@ class MotionCorrection(BROCCOLICommand):
     >>> mc.inputs.platform = 1
     >>> mc.inputs.device = 2
     >>> mc.cmdline
-    'MotionCorrection functional.nii -platform 1 -device 2'
+    'MotionCorrection functional.nii -device 2 -platform 1'
     >>> res = mc.run() # doctest: +SKIP
 
     """
 
     _cmd = 'MotionCorrection'
     input_spec = MotionCorrectionInputSpec
-    output_spec = BROCCOLICommandOutputSpec
+    output_spec = MotionCorrectionOutputSpec
 
+    def _list_outputs(self):
+        outputs = self.output_spec().get()
+        if (not isdefined(self.inputs.output)):
+
+            motioncorrected_file = self._gen_fname(self.inputs.in_file,
+                                               suffix='_mc')
+
+            parameters_file = self._gen_fname(self.inputs.in_file,
+                                               suffix='_motionparameters.1D')
+
+        else:
+            smoothed_file = inputs.output
+
+            parameters_file = self._gen_fname(self.inputs.output,
+                                               suffix='_motionparameters.1D')
+        return outputs
 
 
