@@ -138,8 +138,10 @@ class BROCCOLICommand(CommandLine):
         if ext is None:
             if '.nii.gz' in basename:
                 ext = '.nii.gz'
+                print "found nii.gz"
             elif '.nii' in basename:
                 ext = '.nii'
+                print "found nii"
             else:
                 ext = '.nii'
 

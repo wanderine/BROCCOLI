@@ -247,16 +247,24 @@ class MotionCorrection(BROCCOLICommand):
             motioncorrected_file = self._gen_fname(self.inputs.in_file,
                                                suffix='_mc')
 
+            print motioncorrected_file
+
             parameters_file = self._gen_fname(self.inputs.in_file,
                                                suffix='_motionparameters',
                                                ext='.1D')
+            print parameters_file
+
         else:
             motioncorrected_file = self._gen_fname(self.inputs.output)
 
 
+            print motioncorrected_file
+
             parameters_file = self._gen_fname(self.inputs.output,
                                                suffix='_motionparameters',
                                                ext='.1D')
+
+            print parameters_file
 
         return outputs
 

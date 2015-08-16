@@ -1188,7 +1188,7 @@ int main(int argc, char **argv)
 
 	if (MASK || MASK_ORIGINAL)
 	{
-   		WriteNifti(outputNifti,h_Skullstripped_T1_Volume,"_skullstripped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+   		WriteNifti(outputNifti,h_Skullstripped_T1_Volume,"_masked",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
               	
 	if (WRITE_DISPLACEMENT_FIELD)
