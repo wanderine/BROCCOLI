@@ -56,7 +56,7 @@ class RegisterTwoVolumesInputSpec(BROCCOLICommandInputSpec):
 
     maskoriginal = traits.Str(argstr='-maskoriginal %s', desc='Mask to apply on original volume after (inverted) linear registration (but after interpolation to reference volume size)')
 
-    saveinterpolated = traits.Str(argstr='-maskoriginal %s', desc='Save input volume after interpolation to reference volume size')
+    saveinterpolated = traits.bool(argstr='-saveinterpolated', desc='Save input volume after interpolation to reference volume size')
 
 class RegisterTwoVolumesOutputSpec(TraitedSpec):
     interpolated_file = File(
