@@ -295,6 +295,8 @@ void BROCCOLI_LIB::SetStartValues()
 	FILE_TYPE = RAW;
 	DATA_TYPE = FLOAT;
 
+	NUMBER_OF_RUNS = 1;
+
 	EPI_DATA_W = 64;
 	EPI_DATA_H = 64;
 	EPI_DATA_D = 30;
@@ -3790,6 +3792,16 @@ void BROCCOLI_LIB::SetEPIDepth(size_t d)
 void BROCCOLI_LIB::SetEPITimepoints(size_t t)
 {
 	EPI_DATA_T = t;
+}
+
+void BROCCOLI_LIB::SetEPITimepointsPerRun(size_t* t)
+{
+	EPI_DATA_T_PER_RUN = t;
+}
+
+void BROCCOLI_LIB::SetNumberOfRuns(size_t r)
+{
+	NUMBER_OF_RUNS = r;
 }
 
 void BROCCOLI_LIB::SetT1Width(size_t w)
@@ -8445,7 +8457,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			printf("Performing statistical analysis\n");
 		}
 
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 		CalculateNumberOfBrainVoxels(d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
@@ -8524,7 +8536,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			CalculateGlobalMeans(h_fMRI_Volumes);
 		}
 
-		SetupTTestFirstLevel(EPI_DATA_T);
+		SetupTTestFirstLevel();
 
 		// Copy data to device
 		clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
@@ -8846,7 +8858,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			printf("Performing statistical analysis, only estimating beta values and contrasts\n");
 		}
 
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 		// Check amount of global memory, compared to required memory
 		bool largeMemory = true;
@@ -8910,7 +8922,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			CalculateGlobalMeans(h_fMRI_Volumes);
 		}
 
-		SetupTTestFirstLevel(EPI_DATA_T);
+		SetupTTestFirstLevel();
 
 		// Copy data to device
 		clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
@@ -9034,7 +9046,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			printf("Performing statistical analysis\n");
 		}
 
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + 		NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + 		NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 		c_X_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
 		c_xtxxt_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), NULL, NULL);
@@ -9057,7 +9069,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		h_X_GLM_With_Temporal_Derivatives = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * 2 * EPI_DATA_T * sizeof(float));
 		h_X_GLM_Convolved = (float*)malloc(NUMBER_OF_GLM_REGRESSORS * (USE_TEMPORAL_DERIVATIVES+1) * EPI_DATA_T * sizeof(float));
 
-		SetupTTestFirstLevel(EPI_DATA_T);
+		SetupTTestFirstLevel();
 
 		clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
 		clEnqueueWriteBuffer(commandQueue, c_xtxxt_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_xtxxt_GLM , 0, NULL, NULL);
@@ -9122,10 +9134,10 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	{
 		if ((WRAPPER == BASH) && PRINT)
 		{
-			printf("Performing regresssion\n");
+			printf("Performing regression\n");
 		}
 
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 
 		// Check amount of global memory, compared to required memory
 		bool largeMemory = true;
@@ -9182,7 +9194,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 			CalculateGlobalMeans(h_fMRI_Volumes);
 		}
 
-		SetupGLMRegressorsFirstLevel(EPI_DATA_T);
+		SetupGLMRegressorsFirstLevel();
 
 		// Copy data to device
 		clEnqueueWriteBuffer(commandQueue, c_X_GLM, CL_TRUE, 0, NUMBER_OF_TOTAL_GLM_REGRESSORS * EPI_DATA_T * sizeof(float), h_X_GLM , 0, NULL, NULL);
@@ -9199,6 +9211,8 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 				}
 			}
 		}
+
+
 
 		if (!largeMemory)
 		{
@@ -9229,6 +9243,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		}
 
 		// Normalize residuals to have unit variance (the mean has already been removed)
+		/*
 		for (int x = 0; x < EPI_DATA_W; x++)
 		{
 			for (int y = 0; y < EPI_DATA_H; y++)
@@ -9254,6 +9269,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 				}
 			}
 		}
+		*/
 
 		TransformResidualsToMNI();
 
@@ -11934,7 +11950,7 @@ void BROCCOLI_LIB::PerformRegressionSlice(cl_mem d_Regressed_Volumes, cl_mem d_V
 
 void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 {
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 
 	CalculateNumberOfBrainVoxels(d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
@@ -12042,7 +12058,7 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 		CalculateGlobalMeans(h_fMRI_Volumes);
 	}
 
-	SetupTTestFirstLevel(EPI_DATA_T);
+	SetupTTestFirstLevel();
 
 	// Copy mask to device
 	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
@@ -12191,7 +12207,7 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 // Used for testing of F-test only
 void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 {
-	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
+	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 
 	CalculateNumberOfBrainVoxels(d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
@@ -12281,7 +12297,7 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 		CalculateGlobalMeans(h_fMRI_Volumes);
 	}
 
-	SetupFTestFirstLevel(EPI_DATA_T);
+	SetupFTestFirstLevel();
 
 	// Copy mask to device
 	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
@@ -16974,111 +16990,173 @@ void BROCCOLI_LIB::DemeanRegressor(Eigen::VectorXf& Regressor, int N)
 }
 
 // Setups all regressors for first level analysis
-Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
+Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel()
 {
 	// Calculate total number of regressors
 	if (!RAW_DESIGNMATRIX)
 	{
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + NUMBER_OF_CONFOUND_REGRESSORS*REGRESS_CONFOUNDS;
 	}
 	else
 	{
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN;
+	}
+
+	std::vector<Eigen::VectorXd> allOneRegressors;
+	std::vector<Eigen::VectorXd> allLinearRegressors;
+	std::vector<Eigen::VectorXd> allQuadraticRegressors;
+	std::vector<Eigen::VectorXd> allCubicRegressors;
+
+	bool meanRegressor[NUMBER_OF_TOTAL_GLM_REGRESSORS];
+	bool detrendingRegressor[NUMBER_OF_TOTAL_GLM_REGRESSORS];
+	int  detrendingRegressorRun[NUMBER_OF_TOTAL_GLM_REGRESSORS];
+	int totalTRs[NUMBER_OF_RUNS];
+
+	for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+	{
+		meanRegressor[r] = false;
+		detrendingRegressor[r] = false;
+		detrendingRegressorRun[r] = 0;
+	}
+
+	totalTRs[0] = 0;
+	for (size_t run = 1; run < NUMBER_OF_RUNS; run++)
+	{
+		totalTRs[run] = totalTRs[run-1] + EPI_DATA_T_PER_RUN[run-1];
 	}
 
 	// Create detrending regressors
-	Eigen::VectorXd Ones(N,1);
-	Eigen::VectorXd Linear(N,1);
-	Eigen::VectorXd Quadratic(N,1);
-	Eigen::VectorXd Cubic(N,1);
-
-	// Ones and linear trend
-	float offset = -((float)N - 1.0f)/2.0f;
-	for (int t = 0; t < N; t++)
+	for (size_t run = 0; run < NUMBER_OF_RUNS; run++)
 	{
-		Ones(t) = 1.0;
-		Linear(t) = offset + (double)t;
+		int N = EPI_DATA_T_PER_RUN[run];
+
+		Eigen::VectorXd Ones(N,1);
+		Eigen::VectorXd Linear(N,1);
+		Eigen::VectorXd Quadratic(N,1);
+		Eigen::VectorXd Cubic(N,1);
+
+		// Ones and linear trend
+		float offset = -((float)N - 1.0f)/2.0f;
+		for (int t = 0; t < N; t++)
+		{
+			Ones(t) = 1.0;
+			Linear(t) = offset + (double)t;
+		}
+
+		// Calculate quadratic and cubic trends
+		Quadratic = Linear.cwiseProduct(Linear);
+		Cubic = Linear.cwiseProduct(Linear);
+		Cubic = Cubic.cwiseProduct(Linear);
+
+		// Normalize
+		Linear = Linear / Linear.maxCoeff();
+		double minn = std::abs(Quadratic.minCoeff());
+		double maxx = Quadratic.maxCoeff();
+		if (maxx > minn)
+		{
+			Quadratic = Quadratic / maxx;
+		}
+		else
+		{
+			Quadratic = Quadratic / minn;
+		}
+		Cubic = Cubic / Cubic.maxCoeff();
+
+		allOneRegressors.push_back(Ones);
+		allLinearRegressors.push_back(Linear);
+		allQuadraticRegressors.push_back(Quadratic);
+		allCubicRegressors.push_back(Cubic);
 	}
 
-	// Calculate quadratic and cubic trends
-	Quadratic = Linear.cwiseProduct(Linear);
-	Cubic = Linear.cwiseProduct(Linear);
-	Cubic = Cubic.cwiseProduct(Linear);
-
-	// Normalize
-	Linear = Linear / Linear.maxCoeff();
-	double minn = std::abs(Quadratic.minCoeff());
-	double maxx = Quadratic.maxCoeff();
-	if (maxx > minn)
-	{
-		Quadratic = Quadratic / maxx;
-	}
-	else
-	{
-		Quadratic = Quadratic / minn;
-	}
-	Cubic = Cubic / Cubic.maxCoeff();
 
 	if (!REGRESS_ONLY)
 	{
 		// Create temporal derivatives if requested and then convolve all regressors with HRF
 		if (USE_TEMPORAL_DERIVATIVES && !RAW_REGRESSORS && !RAW_DESIGNMATRIX)
 		{
-			GenerateRegressorTemporalDerivatives(h_X_GLM_With_Temporal_Derivatives, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
-			ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_With_Temporal_Derivatives, N, NUMBER_OF_GLM_REGRESSORS*2);
+			GenerateRegressorTemporalDerivatives(h_X_GLM_With_Temporal_Derivatives, h_X_GLM_In, EPI_DATA_T, NUMBER_OF_GLM_REGRESSORS);
+			ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_With_Temporal_Derivatives, EPI_DATA_T, NUMBER_OF_GLM_REGRESSORS*2);
 		}
 		// Convolve regressors with HRF
 		else if (!RAW_REGRESSORS && !RAW_DESIGNMATRIX)
 		{
-			ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_In, N, NUMBER_OF_GLM_REGRESSORS);
+			ConvolveRegressorsWithHRF(h_X_GLM_Convolved, h_X_GLM_In, EPI_DATA_T, NUMBER_OF_GLM_REGRESSORS);
 		}
 		// Just copy raw regressors
 		else if (RAW_REGRESSORS || RAW_DESIGNMATRIX)
 		{
 			// Loop over samples
-			for (int i = 0; i < N; i++)
+			for (int i = 0; i < EPI_DATA_T; i++)
 			{
 				// Loop over regressors
 				for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 				{
-					h_X_GLM_Convolved[i + r * N] = h_X_GLM_In[i + r * N];
+					h_X_GLM_Convolved[i + r * EPI_DATA_T] = h_X_GLM_In[i + r * EPI_DATA_T];
 				}
 			}
 		}
 	}
 
 	// Setup total design matrix
-	Eigen::MatrixXd X(N,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	Eigen::MatrixXd X(EPI_DATA_T,NUMBER_OF_TOTAL_GLM_REGRESSORS);
+	for (int i = 0; i < EPI_DATA_T; i++)
+	{
+		for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+		{
+			X(i,r) = 0.0;		
+		}	
+	}
+
+	// Detrending regressors
+	size_t accumulatedTRs = 0;
+	for (int run = 0; run < NUMBER_OF_RUNS; run++)
+	{
+		Eigen::VectorXd Ones = allOneRegressors[run];
+		Eigen::VectorXd Linear = allLinearRegressors[run];
+		Eigen::VectorXd Quadratic = allQuadraticRegressors[run];
+		Eigen::VectorXd Cubic = allCubicRegressors[run];
+
+		for (int i = 0; i < EPI_DATA_T_PER_RUN[run]; i++)
+		{	
+			X(i+accumulatedTRs,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 0) = Ones(i);
+			X(i+accumulatedTRs,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 1) = Linear(i);
+			X(i+accumulatedTRs,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 2) = Quadratic(i);
+			X(i+accumulatedTRs,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 3) = Cubic(i);
+		}
+		accumulatedTRs += EPI_DATA_T_PER_RUN[run];
+
+		meanRegressor[NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 0] = true;
+		detrendingRegressor[NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 1] = true;
+		detrendingRegressor[NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 2] = true;
+		detrendingRegressor[NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 3] = true;
+		detrendingRegressorRun[NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 1] = run;
+		detrendingRegressorRun[NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 2] = run;
+		detrendingRegressorRun[NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 3] = run;
+	}
 
 	// Loop over samples
-	for (int i = 0; i < N; i++)
+	for (int i = 0; i < EPI_DATA_T; i++)
 	{
-		// Regressors for paradigms
+		// Regressors for paradigms (number of regressors is 0 for regressonly)
 		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
-			X(i,r) = (double)h_X_GLM_Convolved[i + r * N];
+			X(i,r) = (double)h_X_GLM_Convolved[i + r * EPI_DATA_T];
 		}
-
-		// Detrending regressors
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) = Ones(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) = Linear(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) = Quadratic(i);
-		X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) = Cubic(i);
 
 		if (REGRESS_MOTION)
 		{
 			// Motion regressors
-			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) = h_Motion_Parameters[i + 0 * N];
-			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) = h_Motion_Parameters[i + 1 * N];
-			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) = h_Motion_Parameters[i + 2 * N];
-			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) = h_Motion_Parameters[i + 3 * N];
-			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) = h_Motion_Parameters[i + 4 * N];
-			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) = h_Motion_Parameters[i + 5 * N];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 0) = h_Motion_Parameters[i + 0 * EPI_DATA_T];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 1) = h_Motion_Parameters[i + 1 * EPI_DATA_T];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 2) = h_Motion_Parameters[i + 2 * EPI_DATA_T];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 3) = h_Motion_Parameters[i + 3 * EPI_DATA_T];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 4) = h_Motion_Parameters[i + 4 * EPI_DATA_T];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 5) = h_Motion_Parameters[i + 5 * EPI_DATA_T];
 		}
 
 		if (REGRESS_GLOBALMEAN)
 		{
-			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) = (double)h_Global_Mean[i];
+			X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) = (double)h_Global_Mean[i];
 		}
 
 		if (REGRESS_CONFOUNDS && !RAW_DESIGNMATRIX)
@@ -17086,7 +17164,7 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			// Confounding regressors
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
 			{
-				X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) = (double)h_X_GLM_Confounds[i + r * N];
+				X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) = (double)h_X_GLM_Confounds[i + r * EPI_DATA_T];
 			}
 		}
 	}
@@ -17094,24 +17172,48 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 	// Calculate which regressor contains only ones
 	int MEAN_REGRESSOR;
 
-	if (!RAW_DESIGNMATRIX)
+	if (NUMBER_OF_RUNS == 1)
 	{
-		MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1);
+		if (!RAW_DESIGNMATRIX)
+		{
+			MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1);
+		}
+		else
+		{
+			MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS;
+		}
+	
+		// Demean regressors
+		for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
+		{
+			if (r != MEAN_REGRESSOR)
+			{
+				Eigen::VectorXd regressor = X.block(0,r,EPI_DATA_T,1);
+				DemeanRegressor(regressor,EPI_DATA_T);
+				X.block(0,r,EPI_DATA_T,1) = regressor;
+			}
+		}
 	}
 	else
 	{
-		MEAN_REGRESSOR = NUMBER_OF_GLM_REGRESSORS;
-	}
-
-	// Demean regressors
-	for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
-	{
-		if (r != MEAN_REGRESSOR)
+		// Demean regressors
+		for (int r = 0; r < NUMBER_OF_TOTAL_GLM_REGRESSORS; r++)
 		{
-			Eigen::VectorXd regressor = X.block(0,r,N,1);
-			DemeanRegressor(regressor,N);
-			X.block(0,r,N,1) = regressor;
+			if (detrendingRegressor[r])
+			{
+				int run = detrendingRegressorRun[r];
+				Eigen::VectorXd regressor = X.block(totalTRs[run],r,EPI_DATA_T_PER_RUN[run],1);
+				DemeanRegressor(regressor,EPI_DATA_T_PER_RUN[run]);
+				X.block(totalTRs[run],r,EPI_DATA_T_PER_RUN[run],1) = regressor;
+			}
+			else if (!meanRegressor[r])
+			{
+				Eigen::VectorXd regressor = X.block(0,r,EPI_DATA_T,1);
+				DemeanRegressor(regressor,EPI_DATA_T);
+				X.block(0,r,EPI_DATA_T,1) = regressor;
+			}
 		}
+
 	}
 
 	// Calculate pseudo inverse (could be done with SVD instead, or QR)
@@ -17121,70 +17223,75 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 	Eigen::MatrixXd xtxxt = inv_xtx * X.transpose();
 
 	// Finally store regressors in ordinary arrays
-	for (int i = 0; i < N; i++)
+	for (int i = 0; i < EPI_DATA_T; i++)
 	{
-		// Regressors for paradigms
+		// Regressors for paradigms (number of regressors is 0 for regressonly)
 		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
-			h_X_GLM[i + r * N] = X(i,r);
+			h_X_GLM[i + r * EPI_DATA_T] = X(i,r);
 		}
 
-		// Detrending regressors
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2);
-		h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3);
+		for (int run = 0; run < NUMBER_OF_RUNS; run++)
+		{
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 0) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 0);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 1) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 1);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 2) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 2);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 3) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 3);
+		}
 
 		if (REGRESS_MOTION)
 		{
 			// Motion regressors
-			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0);
-			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1);
-			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2);
-			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3);
-			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4);
-			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 0) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 0);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 1) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 1);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 2) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 2);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 3) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 3);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 4) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 4);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 5) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 5);
 		}
 
 		if (REGRESS_GLOBALMEAN)
 		{
-			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION);
+			h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION);
 		}
 
 		if (REGRESS_CONFOUNDS && !RAW_DESIGNMATRIX)
 		{
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
 			{
-				h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) * N] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r);
+				h_X_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) * EPI_DATA_T] = (float)X(i,NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r);
 			}
 		}
 
-		// Regressors for paradigms
+		// Regressors for paradigms (number of regressors is 0 for regressonly)
 		for (int r = 0; r < NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1); r++)
 		{
-			h_xtxxt_GLM[i + r * N] = (float)xtxxt(r,i);
+			h_xtxxt_GLM[i + r * EPI_DATA_T] = (float)xtxxt(r,i);
 		}
 
-		// Detrending regressors
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 0,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 1,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 2,i);
-		h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + 3,i);
+		for (int run = 0; run < NUMBER_OF_RUNS; run++)
+		{
+			// Detrending regressors
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 0) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 0,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 1) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 1,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 2) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 2,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 3) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + run*NUMBER_OF_DETRENDING_REGRESSORS + 3,i);
+		}
 
 		if (REGRESS_MOTION)
 		{
 			// Motion regressors
-			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 0,i);
-			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 1,i);
-			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 2,i);
-			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 3,i);
-			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 4,i);
-			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + 5,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 0) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 0,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 1) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 1,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 2) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 2,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 3) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 3,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 4) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 4,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 5) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + 5,i);
 		}
 
 		if (REGRESS_GLOBALMEAN)
 		{
-			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION,i);
+			h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION,i);
 		}
 
 		if (REGRESS_CONFOUNDS && !RAW_DESIGNMATRIX)
@@ -17192,7 +17299,7 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 			// Confounding regressors
 			for (int r = 0; r < NUMBER_OF_CONFOUND_REGRESSORS; r++)
 			{
-				h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) * N] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r,i);
+				h_xtxxt_GLM[i + (NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r) * EPI_DATA_T] = (float)xtxxt(NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + NUMBER_OF_MOTION_REGRESSORS*REGRESS_MOTION + REGRESS_GLOBALMEAN + r,i);
 			}
 		}
 	}
@@ -17201,10 +17308,10 @@ Eigen::MatrixXd BROCCOLI_LIB::SetupGLMRegressorsFirstLevel(int N)
 }
 
 // Setup variables for a t-test for first level analysis
-void BROCCOLI_LIB::SetupTTestFirstLevel(int N)
+void BROCCOLI_LIB::SetupTTestFirstLevel()
 {
 	// Setup GLM regressors
-	Eigen::MatrixXd inv_xtx = SetupGLMRegressorsFirstLevel(N);
+	Eigen::MatrixXd inv_xtx = SetupGLMRegressorsFirstLevel();
 
 	// Now update the contrast vectors also
 	for (int c = 0; c < NUMBER_OF_CONTRASTS; c++)
@@ -17262,10 +17369,10 @@ void BROCCOLI_LIB::SetupTTestFirstLevel(int N)
 
 
 // Setup variables for a F-test for first level analysis
-void BROCCOLI_LIB::SetupFTestFirstLevel(int N)
+void BROCCOLI_LIB::SetupFTestFirstLevel()
 {
 	// Setup GLM regressors
-	Eigen::MatrixXd inv_xtx = SetupGLMRegressorsFirstLevel(N);
+	Eigen::MatrixXd inv_xtx = SetupGLMRegressorsFirstLevel();
 
 	// Now update the contrasts also
 	Eigen::MatrixXd Contrasts(NUMBER_OF_CONTRASTS,NUMBER_OF_TOTAL_GLM_REGRESSORS);

@@ -5033,7 +5033,7 @@ __kernel void RemoveLinearFit(__global float* Residual_Volumes,
 	}
 	
 	float eps;
-	float beta[10];
+	float beta[100];
 
 	// Load beta values into regressors
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
@@ -5085,7 +5085,7 @@ __kernel void RemoveLinearFitSlice(__global float* Residual_Volumes,
 	}
 	
 	float eps;
-	float beta[10];
+	float beta[100];
 
 	// Load beta values into regressors
     for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)

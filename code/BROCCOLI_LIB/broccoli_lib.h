@@ -218,6 +218,9 @@ class BROCCOLI_LIB
 		void SetEPIHeight(size_t h);
 		void SetEPIDepth(size_t d);
 		void SetEPITimepoints(size_t t);
+		void SetEPITimepointsPerRun(size_t* t);
+
+		void SetNumberOfRuns(size_t r);
 
 		// T1 data
 		void SetT1VoxelSizeX(float value);
@@ -684,9 +687,9 @@ class BROCCOLI_LIB
 
 		void SetupDetrendingRegressors(int N);
 		void SetupDetrendingAndMotionRegressors(int N);
-		Eigen::MatrixXd SetupGLMRegressorsFirstLevel(int N);
-		void SetupTTestFirstLevel(int N);
-		void SetupFTestFirstLevel(int N);
+		Eigen::MatrixXd SetupGLMRegressorsFirstLevel();
+		void SetupTTestFirstLevel();
+		void SetupFTestFirstLevel();
 		void DemeanRegressor(float* Regressor, int N);
 		void DemeanRegressor(Eigen::VectorXd &Regressor, int N);
 		void DemeanRegressor(Eigen::VectorXf &Regressor, int N);
@@ -1158,7 +1161,9 @@ class BROCCOLI_LIB
 
 		bool WRITE_DISPLACEMENT_FIELD;
 
+		size_t NUMBER_OF_RUNS;
 		size_t EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
+		size_t *EPI_DATA_T_PER_RUN;
 		size_t T1_DATA_W, T1_DATA_H, T1_DATA_D;
 		size_t MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
 		size_t CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D;

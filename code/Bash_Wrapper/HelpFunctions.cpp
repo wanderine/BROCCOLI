@@ -51,6 +51,59 @@ void LowpassFilterRegressor(float* h_LowpassFiltered_Regressor, float* h_Regress
 }
 
 
+
+
+void LowpassFilterRegressors(float* h_LowpassFiltered_Regressors, float* h_Regressors, int DATA_T, int HIGHRES_FACTOR, float TR, int NUMBER_OF_REGRESSORS)
+{
+	// Allocate memory for lowpass filter
+	int FILTER_LENGTH = 151;
+	float* h_Filter = (float*)malloc(FILTER_LENGTH * sizeof(float));
+
+	// Create lowpass filter
+	int halfSize = (FILTER_LENGTH - 1) / 2;
+	double smoothing_FWHM = 150.0;
+	double sigma = smoothing_FWHM / 2.354 / (double)TR;
+	double sigma2 = 2.0 * sigma * sigma;
+
+	double u;
+	float sum = 0.0f;
+	for (int i = 0; i < FILTER_LENGTH; i++)
+	{
+		u = (double)(i - halfSize);
+		h_Filter[i] = (float)exp(-pow(u,2.0) / sigma2);
+		sum += h_Filter[i];
+	}
+
+	// Normalize
+	for (int i = 0; i < FILTER_LENGTH; i++)
+	{
+		h_Filter[i] /= sum;
+	}
+
+	for (int r = 0; r < NUMBER_OF_REGRESSORS; r++)
+	{
+		// Convolve regressor with filter
+		for (int t = 0; t < (DATA_T * HIGHRES_FACTOR); t++)
+		{
+			h_LowpassFiltered_Regressors[t + r * DATA_T*HIGHRES_FACTOR] = 0.0f;
+	
+			// 1D convolution
+			//int offset = -(int)(((float)HRF_LENGTH - 1.0f)/2.0f);
+			int offset = -(int)(((float)FILTER_LENGTH - 1.0f)/2.0f);
+			for (int tt = FILTER_LENGTH - 1; tt >= 0; tt--)
+			{
+				if ( ((t + offset) >= 0) && ((t + offset) < (DATA_T * HIGHRES_FACTOR)) )
+				{
+					h_LowpassFiltered_Regressors[t + r * DATA_T*HIGHRES_FACTOR] += h_Regressors[t + offset + r * DATA_T*HIGHRES_FACTOR] * h_Filter[tt];
+				}
+				offset++;
+			}
+		}
+	}
+
+	free(h_Filter);
+}
+
 void ConvertFloat2ToFloats(float* Real, float* Imag, cl_float2* Complex, int DATA_W, int DATA_H, int DATA_D)
 {
     for (int z = 0; z < DATA_D; z++)
