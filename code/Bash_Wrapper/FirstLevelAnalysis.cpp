@@ -163,6 +163,9 @@ int main(int argc, char **argv)
 	bool			MULTIPLE_RUNS = false;    
 					NUMBER_OF_RUNS = 1;
 
+	bool			CHANGE_OUTPUT_FILENAME = false;
+	const char      *outputFilename;
+
     size_t          USE_TEMPORAL_DERIVATIVES = 0;
     bool            PERMUTE = false;
     size_t			NUMBER_OF_PERMUTATIONS = 1000;
@@ -299,6 +302,7 @@ int main(int argc, char **argv)
         printf(" -saveallpreprocessed       Save all preprocessed fMRI data (slice timing corrected, motion corrected, smoothed) (default no) \n");
         printf(" -saveunwhitenedresults     Save all statistical results without voxel-wise whitening (default no) \n");
         printf(" -saveall                   Save everything (default no) \n");
+        printf(" -output                    Set output filename (default fMRI*.nii) \n");
         printf(" -quiet                     Don't print anything to the terminal (default false) \n");
         printf(" -verbose                   Print extra stuff (default false) \n");
         printf(" -debug                     Get additional debug information saved as nifti files (default no). Warning: This will use a lot of extra memory! \n");
@@ -1062,6 +1066,19 @@ int main(int argc, char **argv)
         {
             DEBUG = true;
             i += 1;
+        }
+        else if (strcmp(input,"-output") == 0)
+        {
+			CHANGE_OUTPUT_FILENAME = true;
+
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read name after -output !\n");
+                return EXIT_FAILURE;
+			}
+
+            outputFilename = argv[i+1];
+            i += 2;
         }
         else
         {
@@ -2301,25 +2318,70 @@ int main(int argc, char **argv)
 		if (WRITE_ORIGINAL_DESIGNMATRIX)
 		{
 			std::ofstream designmatrix;
-		    designmatrix.open("original_designmatrix.txt");  
 
-		    if ( designmatrix.good() )
-		    {
-    		    for (size_t t = 0; t < EPI_DATA_T; t++)
-		        {
-		    	    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-			        {
-    	        		designmatrix << std::setprecision(6) << std::fixed << (double)h_X_GLM[t + r * EPI_DATA_T] << "  ";
+			const char* extension = "_original_designmatrix.txt";
+			char* filenameWithExtension;
+
+			// Find the dot in the original filename
+			if (!CHANGE_OUTPUT_FILENAME)
+			{
+			    const char* p = inputfMRI->fname;
+			    int dotPosition = 0;
+			    while ( (p != NULL) && ((*p) != '.') )
+			    {
+			        p++;
+			        dotPosition++;
+			    }
+    		
+			    // Allocate temporary array
+			    filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
+		
+			    // Copy filename to the dot
+			    strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
+    			filenameWithExtension[dotPosition] = '\0';
+			}
+			else
+			{
+			    const char* p = outputFilename;
+			    int dotPosition = 0;
+				int i = 0;
+			    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
+			    {
+			        p++;
+			        dotPosition++;
+					i++;
+			    }
+    	
+			    // Allocate temporary array
+			    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
+		
+			    // Copy filename to the dot
+			    strncpy(filenameWithExtension,outputFilename,dotPosition);
+    			filenameWithExtension[dotPosition] = '\0';
+			}
+	
+    		// Add the extension
+    		strcat(filenameWithExtension,extension);
+	
+    		designmatrix.open(filenameWithExtension);    
+
+			if ( designmatrix.good() )
+			{
+    			for (size_t t = 0; t < EPI_DATA_T; t++)
+			    {
+			    	for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+				    {
+    		        	designmatrix << std::setprecision(6) << std::fixed << (double)h_X_GLM[t + r * EPI_DATA_T] << "  ";
 					}
 					designmatrix << std::endl;
 				}
-			    designmatrix.close();
-    	    } 	
-		    else
-		    {
 				designmatrix.close();
-		        printf("Could not open the file for writing the original design matrix!\n");
-		    }
+    		} 	
+			else
+			{
+				designmatrix.close();
+			    printf("Could not open the file for writing the original design matrix!\n");
+			}
 		}
 	}
 
@@ -2420,13 +2482,6 @@ int main(int argc, char **argv)
 			// Save the pointer in the pointer list
 			allMemoryPointers[numberOfMemoryPointers] = (void*)h_fMRI_Volumes;
 	        numberOfMemoryPointers++;
-	
-	        //float *p = (float*)inputfMRI->data;
-	    
-	        //for (size_t i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
-	        //{
-	        //    h_fMRI_Volumes[i] = p[i];
-	        //}
 	    }	
 	}
 
@@ -2973,11 +3028,58 @@ int main(int argc, char **argv)
     
     startTime = GetWallTime();
 
+	inputfMRI = allfMRINiftiImages[0];
+
 	// Write total design matrix to file
 	if (WRITE_DESIGNMATRIX)
 	{
 		std::ofstream designmatrix;
-	    designmatrix.open("total_designmatrix.txt");  
+
+		const char* extension = "_total_designmatrix.txt";
+		char* filenameWithExtension;
+
+		// Find the dot in the original filename
+		if (!CHANGE_OUTPUT_FILENAME)
+		{
+		    const char* p = inputfMRI->fname;
+		    int dotPosition = 0;
+		    while ( (p != NULL) && ((*p) != '.') )
+		    {
+		        p++;
+		        dotPosition++;
+		    }
+    	
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
+	
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
+    		filenameWithExtension[dotPosition] = '\0';
+		}
+		else
+		{
+		    const char* p = outputFilename;
+		    int dotPosition = 0;
+			int i = 0;
+		    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
+		    {
+		        p++;
+		        dotPosition++;
+				i++;
+		    }
+    
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
+	
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,outputFilename,dotPosition);
+    		filenameWithExtension[dotPosition] = '\0';
+		}
+
+    	// Add the extension
+    	strcat(filenameWithExtension,extension);
+
+    	designmatrix.open(filenameWithExtension);    
 
 	    if ( designmatrix.good() )
 	    {
@@ -2994,7 +3096,7 @@ int main(int argc, char **argv)
 	    else
 	    {
 			designmatrix.close();
-	        printf("Could not open the file for writing the design matrix!\n");
+	        printf("Could not open the file for writing the total design matrix!\n");
 	    }
 	}
 
@@ -3003,25 +3105,47 @@ int main(int argc, char **argv)
 	{
 		// Print motion parameters to file
 	    std::ofstream motion;
-  
-    	// Add the provided filename extension to the original filename, before the dot
 
-	    // Find the dot in the original filename
-    	const char* p = inputfMRI->fname;
-    	int dotPosition = 0;
-    	while ( (p != NULL) && ((*p) != '.') )
-    	{
-    	    p++;
-    	    dotPosition++;
-    	}
+	  	const char* extension = "_motionparameters.1D";
+		char* filenameWithExtension;
+
+		// Find the dot in the original filename
+		if (!CHANGE_OUTPUT_FILENAME)
+		{
+		    const char* p = inputfMRI->fname;
+		    int dotPosition = 0;
+		    while ( (p != NULL) && ((*p) != '.') )
+		    {
+		        p++;
+		        dotPosition++;
+		    }
+    	
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
+	
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
+    		filenameWithExtension[dotPosition] = '\0';
+		}
+		else
+		{
+		    const char* p = outputFilename;
+		    int dotPosition = 0;
+			int i = 0;
+		    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
+		    {
+		        p++;
+		        dotPosition++;
+				i++;
+		    }
     
-    	// Allocate temporary array
-		const char* extension = "_motionparameters.1D";
-    	char* filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
-    
-    	// Copy filename to the dot
-    	strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
-    	filenameWithExtension[dotPosition] = '\0';
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
+	
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,outputFilename,dotPosition);
+    		filenameWithExtension[dotPosition] = '\0';
+		}
 
     	// Add the extension
     	strcat(filenameWithExtension,extension);
@@ -3055,48 +3179,92 @@ int main(int argc, char **argv)
 
     // Create new nifti image
     nifti_image *outputNiftiT1 = nifti_copy_nim_info(inputMNI);
-    nifti_set_filenames(outputNiftiT1, inputT1->fname, 0, 1);
     allNiftiImages[numberOfNiftiImages] = outputNiftiT1;
 	numberOfNiftiImages++;
     
-    if (WRITE_INTERPOLATED_T1)
+	if (CHANGE_OUTPUT_FILENAME)
 	{
-    	WriteNifti(outputNiftiT1,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		nifti_set_filenames(outputNiftiT1, outputFilename, 0, 1);
+
+	    if (WRITE_INTERPOLATED_T1)
+		{
+   			WriteNifti(outputNiftiT1,h_Interpolated_T1_Volume,"_t1_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+   		if (WRITE_ALIGNED_T1_MNI_LINEAR)
+		{
+   			WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_Linear,"_t1_aligned_mni_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+   		if (WRITE_ALIGNED_T1_MNI_NONLINEAR)
+		{
+   			WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_NonLinear,"_t1_aligned_mni_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
 	}
-    if (WRITE_ALIGNED_T1_MNI_LINEAR)
+	else
 	{
-    	WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_Linear,"_aligned_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    nifti_set_filenames(outputNiftiT1, inputT1->fname, 0, 1);
+
+	    if (WRITE_INTERPOLATED_T1)
+		{
+   			WriteNifti(outputNiftiT1,h_Interpolated_T1_Volume,"_interpolated",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+   		if (WRITE_ALIGNED_T1_MNI_LINEAR)
+		{
+   			WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_Linear,"_aligned_mni_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+   		if (WRITE_ALIGNED_T1_MNI_NONLINEAR)
+		{
+   			WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_NonLinear,"_aligned_mni_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
 	}
-    if (WRITE_ALIGNED_T1_MNI_NONLINEAR)
-	{
-    	WriteNifti(outputNiftiT1,h_Aligned_T1_Volume_NonLinear,"_aligned_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	}
+
+
 
     // Create new nifti image
     nifti_image *outputNiftiEPI = nifti_copy_nim_info(inputMNI);
-    nifti_set_filenames(outputNiftiEPI, inputfMRI->fname, 0, 1);
     allNiftiImages[numberOfNiftiImages] = outputNiftiEPI;
 	numberOfNiftiImages++;
 
-	if (WRITE_ALIGNED_EPI_T1)
+	if (CHANGE_OUTPUT_FILENAME)
 	{
-    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_T1,"_aligned_t1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	}    
-	if (WRITE_ALIGNED_EPI_MNI)
+		nifti_set_filenames(outputNiftiEPI, outputFilename, 0, 1);
+	
+		if (WRITE_ALIGNED_EPI_T1)
+		{
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_T1,"_epi_aligned_t1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}    
+		if (WRITE_ALIGNED_EPI_MNI)
+		{
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI,"_epi_aligned_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}    
+	}
+	else
 	{
-    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI,"_aligned_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-	}    
+	    nifti_set_filenames(outputNiftiEPI, inputfMRI->fname, 0, 1);
+
+		if (WRITE_ALIGNED_EPI_T1)
+		{
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_T1,"_aligned_t1",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}    
+		if (WRITE_ALIGNED_EPI_MNI)
+		{
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI,"_aligned_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}    
+	}
 
     //----------------------------
     // Write preprocessed data
     //----------------------------
     
-    // Create new nifti image
-	inputfMRI = allfMRINiftiImages[0];
+    // Create new nifti image	
     nifti_image *outputNiftifMRI = nifti_copy_nim_info(inputfMRI);
     allNiftiImages[numberOfNiftiImages] = outputNiftifMRI;
 	numberOfNiftiImages++;
     
+	if (CHANGE_OUTPUT_FILENAME)
+	{
+		nifti_set_filenames(outputNiftifMRI, outputFilename, 0, 1);
+	}    
+
     if (WRITE_SLICETIMING_CORRECTED)
 	{
     	WriteNifti(outputNiftifMRI,h_Slice_Timing_Corrected_fMRI_Volumes,"_slice_timing_corrected",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -3118,10 +3286,23 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftifMRISingleVolume;
 	numberOfNiftiImages++;
 
-    if (WRITE_EPI_MASK)
+	if (CHANGE_OUTPUT_FILENAME)
 	{
-    	WriteNifti(outputNiftifMRISingleVolume,h_EPI_Mask,"_mask",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		nifti_set_filenames(outputNiftifMRISingleVolume, outputFilename, 0, 1);
+
+	    if (WRITE_EPI_MASK)
+		{
+    		WriteNifti(outputNiftifMRISingleVolume,h_EPI_Mask,"_epi_mask",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
 	}
+	else
+	{
+	    if (WRITE_EPI_MASK)
+		{
+    		WriteNifti(outputNiftifMRISingleVolume,h_EPI_Mask,"_mask",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+	}
+
 
     //------------------------------------------
     // Write statistical results, MNI space
@@ -3133,6 +3314,11 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsMNI;
 	numberOfNiftiImages++;
     
+	if (CHANGE_OUTPUT_FILENAME)
+	{
+		nifti_set_filenames(outputNiftiStatisticsMNI, outputFilename, 0, 1);
+	}
+
     if (WRITE_MNI_MASK)
 	{
     	WriteNifti(outputNiftiStatisticsMNI,h_MNI_Mask,"_mask_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
@@ -3569,6 +3755,11 @@ int main(int argc, char **argv)
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsEPI;
     numberOfNiftiImages++;
     
+	if (CHANGE_OUTPUT_FILENAME)
+	{
+		nifti_set_filenames(outputNiftiStatisticsEPI, outputFilename, 0, 1);
+	}
+
 	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{
 	    if (WRITE_ACTIVITY_EPI)
@@ -4003,6 +4194,11 @@ int main(int argc, char **argv)
 	nifti_free_extensions(outputNiftiStatisticsT1);
     allNiftiImages[numberOfNiftiImages] = outputNiftiStatisticsT1;
     numberOfNiftiImages++;
+
+	if (CHANGE_OUTPUT_FILENAME)
+	{
+		nifti_set_filenames(outputNiftiStatisticsT1, outputFilename, 0, 1);
+	}
 
 	if (!REGRESS_ONLY && !PREPROCESSING_ONLY)
 	{  
