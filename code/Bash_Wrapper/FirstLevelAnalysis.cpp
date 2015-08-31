@@ -1346,7 +1346,8 @@ int main(int argc, char **argv)
 	if (!MULTIPLE_RUNS)
 	{
 		inputfMRI = nifti_image_read(argv[1],1);
-    
+	    allfMRINiftiImages.push_back(inputfMRI);
+
     	if (inputfMRI == NULL)
     	{
     	    printf("Could not open fMRI data!\n");
@@ -2382,6 +2383,7 @@ int main(int argc, char **argv)
 				designmatrix.close();
 			    printf("Could not open the file for writing the original design matrix!\n");
 			}
+			free(filenameWithExtension);
 		}
 	}
 
@@ -3098,6 +3100,7 @@ int main(int argc, char **argv)
 			designmatrix.close();
 	        printf("Could not open the file for writing the total design matrix!\n");
 	    }
+		free(filenameWithExtension);
 	}
 
 

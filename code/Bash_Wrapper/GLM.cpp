@@ -42,9 +42,10 @@ int main(int argc, char **argv)
     
     float           *h_Data, *h_Mask; 
   
-    float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressor, *h_LowpassFiltered_Regressor, *h_Motion_Parameters;
+    float           *h_X_GLM, *h_xtxxt_GLM, *h_X_GLM_Confounds, *h_Contrasts, *h_ctxtxc_GLM, *h_Highres_Regressors, *h_LowpassFiltered_Regressors, *h_Motion_Parameters;
                   
-    size_t          DATA_W, DATA_H, DATA_D, DATA_T;               
+    size_t          DATA_W, DATA_H, DATA_D, DATA_T, NUMBER_OF_RUNS;  
+	size_t*			DATA_T_PER_RUN;             
     float           VOXEL_SIZE_X, VOXEL_SIZE_Y, VOXEL_SIZE_Z, TR;
 
 	size_t          NUMBER_OF_GLM_REGRESSORS, NUMBER_OF_TOTAL_GLM_REGRESSORS;
@@ -89,7 +90,7 @@ int main(int argc, char **argv)
     bool            DEBUG = false;
     bool            PRINT = true;
 	bool			VERBOS = false;
-   	bool			CHANGE_OUTPUT_NAME = false;    
+   	bool			CHANGE_OUTPUT_FILENAME = false;    
                    
 	float           AR_SMOOTHING_AMOUNT = 6.0f;
 	size_t			NUMBER_OF_CONTRASTS = 1; 
@@ -115,6 +116,9 @@ int main(int argc, char **argv)
 	bool REGRESS_MOTION = false;
 	bool REGRESS_GLOBAL_MEAN = false;
 	bool RAW_REGRESSORS = false;
+
+	bool			MULTIPLE_RUNS = false;    
+					NUMBER_OF_RUNS = 1;
 
 	bool FIRST_LEVEL = false;
 	bool SECOND_LEVEL = false;
@@ -142,8 +146,14 @@ int main(int argc, char **argv)
 		printf("\nThe function applies the GLM for single subject analysis and group analysis.\n\n");     
         printf("Usage first level, design.txt contains all regressors:\n\n");
         printf("GLM volumes.nii -design design.txt -contrasts contrasts.txt -firstlevel [options]\n\n");
+        printf("Usage first level, three runs, design1.txt contains all regressors for run 1:\n\n");
+        printf("GLM -runs 3 volumes1.nii volumes2.nii volumes3.nii -design design1.txt design2.txt design3.txt -contrasts contrasts.txt -firstlevel [options]\n\n");
         printf("Usage first level, regressors.txt contains a file name to each regressor:\n\n");
         printf("GLM volumes.nii -designfiles regressors.txt -contrasts contrasts.txt -firstlevel [options]\n\n");
+        printf("Usage first level, regressors.txt contains a file name to each raw regressor:\n\n");
+        printf("GLM volumes.nii -designfiles regressors.txt -contrasts contrasts.txt -firstlevel -rawregressors [options]\n\n");
+        printf("Usage first level, three runs, regressors1.txt contains a file name to each regressor for run 1:\n\n");
+        printf("GLM -runs 3 volumes1.nii volumes2.nii volumes3.nii -designfiles regressors1.txt regressors2.txt regressors3.txt -contrasts contrasts.txt -firstlevel [options]\n\n");
         printf("Usage second level:\n\n");
         printf("GLM volumes.nii -design design.txt -contrasts contrasts.txt -secondlevel [options]\n\n");
         printf("Options:\n\n");
@@ -160,10 +170,13 @@ int main(int argc, char **argv)
         printf(" -contrastsonly             Only save the contrast values (default no) \n");
         printf(" -betasandcontrastsonly     Only save the beta values and the contrast values (default no) \n");
         printf(" \nOptions for single subject analysis \n\n");
+        printf(" -runs                      Number of runs \n");
+        printf(" -rawregressors             Use raw regressor files (one per regressor)\n");
         printf(" -temporalderivatives       Use temporal derivatives for the activity regressors (default no) \n");
         printf(" -regressmotion             Provide file with motion regressors to use in design matrix (default no) \n");
         printf(" -regressglobalmean         Include global mean in design matrix (default no) \n");
-        printf(" \n\n");
+        printf(" \n");
+        printf(" \nMisc options \n\n");
         printf(" -mask                      A mask that defines which voxels to run the GLM for (default none) \n");
 		printf(" -saveresiduals             Save the residuals (default no) \n");
 		printf(" -saveresidualvariance      Save residual variance (default no) \n");
@@ -177,6 +190,33 @@ int main(int argc, char **argv)
         
         return EXIT_SUCCESS;
     }
+
+	// Check if first argument is -runs
+	char *temp = argv[1];
+    int i = 2;
+    if (strcmp(temp,"-runs") == 0)
+    {		
+        MULTIPLE_RUNS = true;
+
+		char *p;
+		NUMBER_OF_RUNS = (int)strtol(argv[2], &p, 10);
+			
+		if (!isspace(*p) && *p != 0)
+	    {
+	        printf("Number of runs must be an integer! You provided %s \n",argv[2]);
+			return EXIT_FAILURE;
+	    }
+        else if (NUMBER_OF_RUNS < 1)
+        {
+			printf("Number of runs must be > 1!\n");
+            return EXIT_FAILURE;
+        }
+		i = 3 + NUMBER_OF_RUNS;
+    }
+
+	DATA_T_PER_RUN = (size_t*)malloc(NUMBER_OF_RUNS*sizeof(size_t));
+
+	/*
     // Try to open file
     else if (argc > 1)
     {        
@@ -188,14 +228,15 @@ int main(int argc, char **argv)
         }
         fclose(fp);             
     }
+	*/
     
     // Loop over additional inputs
 
-    int i = 2;
     while (i < argc)
     {
         char *input = argv[i];
         char *p;
+
         if (strcmp(input,"-platform") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -253,7 +294,7 @@ int main(int argc, char **argv)
             DESIGN_FILE = argv[i+1];
 			RAW_DESIGNMATRIX = true;
 			FOUND_DESIGN = true;
-            i += 2;
+            i += 1 + NUMBER_OF_RUNS;
         }
         else if (strcmp(input,"-designfiles") == 0)
         {
@@ -266,7 +307,7 @@ int main(int argc, char **argv)
             DESIGN_FILE = argv[i+1];
 			RAW_DESIGNMATRIX = false;
 			FOUND_DESIGN = true;
-            i += 2;
+            i += 1 + NUMBER_OF_RUNS;
         }
         else if (strcmp(input,"-contrasts") == 0)
         {
@@ -311,6 +352,11 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
             }
             i += 2;
+        }
+        else if (strcmp(input,"-rawregressors") == 0)
+        {
+            RAW_REGRESSORS = true;
+            i += 1;
         }
         else if (strcmp(input,"-betasonly") == 0)
         {
@@ -422,7 +468,7 @@ int main(int argc, char **argv)
                 return EXIT_FAILURE;
 			}
 
-			CHANGE_OUTPUT_NAME = true;
+			CHANGE_OUTPUT_FILENAME = true;
             outputFilename = argv[i+1];
             i += 2;
         }
@@ -455,6 +501,12 @@ int main(int argc, char **argv)
 	//------------------------------------------
 	// Check for invalid combinations
 
+	if (MULTIPLE_RUNS && SECOND_LEVEL)
+	{
+    	printf("Multiple runs option is only for first level analysis, aborting! \n");
+        return EXIT_FAILURE;		
+	}
+
 	if (WRITE_AR_ESTIMATES && (SECOND_LEVEL || BETAS_ONLY || CONTRASTS_ONLY || BETAS_AND_CONTRASTS_ONLY))
 	{
     	printf("No AR parameters will be estimated for the selected analysis, cannot save them, aborting! \n");
@@ -464,6 +516,18 @@ int main(int argc, char **argv)
 	if (RAW_DESIGNMATRIX && USE_TEMPORAL_DERIVATIVES)
 	{
     	printf("Cannot use temporal derivatives for raw design matrix, aborting! \n");
+        return EXIT_FAILURE;
+	}
+
+	if (RAW_REGRESSORS && USE_TEMPORAL_DERIVATIVES)
+	{
+    	printf("Cannot use temporal derivatives for raw regressors, aborting! \n");
+        return EXIT_FAILURE;
+	}
+
+	if (SECOND_LEVEL && RAW_REGRESSORS)
+	{
+    	printf("Cannot use raw regressors for second level analysis, aborting! \n");
         return EXIT_FAILURE;
 	}
 
@@ -594,16 +658,40 @@ int main(int argc, char **argv)
 
 	double startTime = GetWallTime();
 
-    nifti_image *inputData = nifti_image_read(argv[1],1);
-    
-    if (inputData == NULL)
-    {
-        printf("Could not open volumes!\n");
-        return EXIT_FAILURE;
-    }
-	allNiftiImages[numberOfNiftiImages] = inputData;
-	numberOfNiftiImages++;
-    
+	nifti_image *inputData;
+	std::vector<nifti_image*> allfMRINiftiImages;
+
+	if (!MULTIPLE_RUNS)
+	{
+		inputData = nifti_image_read(argv[1],1);
+	    allfMRINiftiImages.push_back(inputData);
+
+    	if (inputData == NULL)
+    	{
+    	    printf("Could not open fMRI data file %s!\n",argv[1]);
+    	    return EXIT_FAILURE;
+    	}
+		allNiftiImages[numberOfNiftiImages] = inputData;
+		numberOfNiftiImages++;
+	}
+	else
+	{
+		for (int i = 0; i < NUMBER_OF_RUNS; i++)
+		{
+			inputData = nifti_image_read(argv[3+i],1);
+			allfMRINiftiImages.push_back(inputData);    
+
+    		if (inputData == NULL)
+    		{
+    		    printf("Could not open fMRI data file %s for run %i !\n",argv[3+i],i+1);
+    		    return EXIT_FAILURE;
+    		}
+			allNiftiImages[numberOfNiftiImages] = inputData;
+			numberOfNiftiImages++;
+		    DATA_T_PER_RUN[i] = inputData->nt;    
+		}
+	}
+
 	nifti_image *inputMask;
 	if (MASK)
 	{
@@ -632,8 +720,21 @@ int main(int argc, char **argv)
     // Get data dimensions from input data
    	DATA_W = inputData->nx;
     DATA_H = inputData->ny;
-    DATA_D = inputData->nz;    
-    DATA_T = inputData->nt;    
+    DATA_D = inputData->nz;   
+
+	if (!MULTIPLE_RUNS)
+	{   
+	    DATA_T = inputData->nt;   
+		DATA_T_PER_RUN[0] = DATA_T; 
+	}
+	else
+	{
+		DATA_T = 0;
+		for (int i = 0; i < NUMBER_OF_RUNS; i++)
+		{
+		    DATA_T += DATA_T_PER_RUN[i];
+		}
+	}
 
     // Get voxel sizes
     VOXEL_SIZE_X = inputData->dx;
@@ -700,7 +801,7 @@ int main(int argc, char **argv)
 	}
 	else if (FIRST_LEVEL)
 	{
-		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
+		NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 	}
 
     // ------------------------------------------------
@@ -709,7 +810,18 @@ int main(int argc, char **argv)
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+		if (!MULTIPLE_RUNS)
+		{
+		    printf("Data size: %zu x %zu x %zu x %zu \n", DATA_W, DATA_H, DATA_D, DATA_T);
+		}
+		else
+		{
+			for (int i = 0; i < NUMBER_OF_RUNS; i++)
+			{
+			    printf("Data size for run %i: %zu x %zu x %zu x %zu \n", i+1, DATA_W, DATA_H, DATA_D, DATA_T_PER_RUN[i]);
+			}
+		    printf("Total data size: %zu x %zu x %zu x %zu \n", DATA_W, DATA_H, DATA_D, DATA_T);
+		}
 		if (SECOND_LEVEL)
 		{
 	        printf("Number of regressors: %zu \n",  NUMBER_OF_GLM_REGRESSORS);
@@ -751,24 +863,32 @@ int main(int argc, char **argv)
     size_t GLM_SIZE = DATA_T * NUMBER_OF_GLM_REGRESSORS * sizeof(float);
     size_t CONTRAST_SIZE = NUMBER_OF_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float);
     size_t DESIGN_MATRIX_SIZE = NUMBER_OF_TOTAL_GLM_REGRESSORS * DATA_T * sizeof(float);
-	size_t HIGHRES_REGRESSOR_SIZE = DATA_T * HIGHRES_FACTOR * sizeof(float);    
+	size_t HIGHRES_REGRESSORS_SIZE = DATA_T * HIGHRES_FACTOR * NUMBER_OF_GLM_REGRESSORS * sizeof(float);    
     size_t BETA_DATA_SIZE = DATA_W * DATA_H * DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float);
     size_t RESIDUALS_DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
     size_t MOTION_PARAMETERS_SIZE = NUMBER_OF_MOTION_REGRESSORS * DATA_T * sizeof(float);
    
-	// If the data is in float format, we can just copy the pointer
-	if ( inputData->datatype != DT_FLOAT )
+
+	if (!MULTIPLE_RUNS)
 	{
-		AllocateMemory(h_Data, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INPUT_VOLUMES");
+		// If the data is in float format, we can just copy the pointer
+		if ( inputData->datatype != DT_FLOAT )
+		{
+			AllocateMemory(h_Data, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "fMRI_VOLUMES");
+		}
+		else
+		{
+			allocatedHostMemory += DATA_SIZE;
+		}
 	}
 	else
 	{
-		allocatedHostMemory += DATA_SIZE;
+		AllocateMemory(h_Data, DATA_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "fMRI_VOLUMES");
 	}
 
     AllocateMemory(h_X_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX");
-    AllocateMemory(h_Highres_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "HIGHRES_REGRESSOR");
-    AllocateMemory(h_LowpassFiltered_Regressor, HIGHRES_REGRESSOR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "LOWPASSFILTERED_REGRESSOR");
+    AllocateMemory(h_Highres_Regressors, HIGHRES_REGRESSORS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "HIGHRES_REGRESSOR");
+    AllocateMemory(h_LowpassFiltered_Regressors, HIGHRES_REGRESSORS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "LOWPASSFILTERED_REGRESSOR");
     AllocateMemory(h_xtxxt_GLM, GLM_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DESIGN_MATRIX_INVERSE");
     AllocateMemory(h_Contrasts, CONTRAST_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRASTS");
     AllocateMemory(h_ctxtxc_GLM, CONTRAST_SCALAR_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "CONTRAST_SCALARS");
@@ -812,223 +932,283 @@ int main(int argc, char **argv)
  	{
 		printf("It took %f seconds to allocate memory\n",(float)(endTime - startTime));
 	}
-
-    // ------------------------------------------------  
-	// Read regressors and contrasts
-    // ------------------------------------------------  
+   
+    // ------------------------------------------------
+	// Read events for each regressor    	
 
 	if (RAW_DESIGNMATRIX)
 	{
-	    // Open design file
-	    design.open(DESIGN_FILE);
-	    // Read first two values
-	    design >> tempString; // NumRegressors as string
-	    design >> NUMBER_OF_GLM_REGRESSORS;
-
-		float tempFloat;	
-		for (size_t t = 0; t < DATA_T; t++)
+		int designfile;
+		if (!MULTIPLE_RUNS)
 		{
-			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+			designfile = 3;
+		}
+		else
+		{
+			designfile = 4 + NUMBER_OF_RUNS;
+		}
+
+		int accumulatedTRs = 0;
+		for (int run = 0; run < NUMBER_OF_RUNS; run++)
+		{
+		    // Open design file again
+		    design.open(argv[designfile]);
+
+		    if (!design.good())
+		    {
+		        design.close();
+		        printf("Unable to open design file %s. Aborting! \n",argv[designfile]);
+				FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+		        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		        return EXIT_FAILURE;
+		    }
+
+		    // Read first two values again
+		    design >> tempString; // NumRegressors as string
+		    design >> NUMBER_OF_GLM_REGRESSORS;
+
+			float tempFloat;	
+			for (size_t t = 0; t < DATA_T_PER_RUN[run]; t++)
 			{
-				if (! (design >> h_X_GLM[t + r * DATA_T]) )
+				for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 				{
-					design.close();
-			        printf("Could not read all values of the design file %s, aborting! Stopped reading at time point %zu for regressor %zu. Please check if the number of regressors and time points are correct. \n",DESIGN_FILE,t,r);      
-			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-			        return EXIT_FAILURE;
+					if (! (design >> h_X_GLM[t + accumulatedTRs + r * DATA_T]) )
+					{
+						design.close();
+				        printf("Could not read all values of the design file %s, aborting! Stopped reading at time point %zu for regressor %zu. Please check if the number of regressors and time points are correct. \n",argv[designfile],t,r);      
+				        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+				        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+				        return EXIT_FAILURE;
+					}
 				}
-			}
-		}	
-		design.close();
+			}	
+			design.close();
+			designfile++;
+			accumulatedTRs += DATA_T_PER_RUN[run];
+		}
 	}
-	else if (!RAW_DESIGNMATRIX)
+	else
 	{
+		startTime = GetWallTime();
+
 	    // Each line of the design file is a filename
-    
-	    // Open design file again
-	    design.open(DESIGN_FILE);
-	    // Read first two values again
-	    design >> tempString; // NumRegressors as string
-	    design >> NUMBER_OF_GLM_REGRESSORS;
 
-		if (!RAW_REGRESSORS)
-		{    
-		    // Loop over the number of regressors provided in the design file
-		    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-	    	{
-				// Reset highres regressor
-			    for (size_t t = 0; t < DATA_T * HIGHRES_FACTOR; t++)
-		    	{
-					h_Highres_Regressor[t] = 0.0f;
-				}
-
-		        // Each regressor is a filename, so try to open the file
-		        std::ifstream regressor;
-		        std::string filename;
-		        design >> filename;
-		        regressor.open(filename.c_str());
-		        if (!regressor.good())
-		        {
-		            regressor.close();
-		            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
-		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		            return EXIT_FAILURE;
-		        }
-        
-		        // Read number of events for current regressor
-		        regressor >> tempString; // NumEvents as string
-		        std::string NE("NumEvents");
-		        if (tempString.compare(NE) != 0)
-		        {
-    		        design.close();
-		            printf("First element of each regressor file should be the string 'NumEvents', but it is %s for the regressor file %s. Aborting! \n",tempString.c_str(),filename.c_str());
-		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		            return EXIT_FAILURE;
-    		    }
-		        regressor >> NUMBER_OF_EVENTS;
-
-				if (DEBUG)
-				{
-					printf("Number of events for regressor %zu is %i \n",r,NUMBER_OF_EVENTS);
-				}
-    	    
-    		    // Loop over events
-    		    for (int e = 0; e < NUMBER_OF_EVENTS; e++)
-    		    {
-    		        float onset;
-    		        float duration;
-    		        float value;
-    	        
-    		        // Read onset, duration and value for current event
-					if (! (regressor >> onset) )
-					{
-						regressor.close();
-    		            design.close();
-    		            printf("Unable to read the onset for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
-    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    		            return EXIT_FAILURE;
-					}
-
-    		        if (! (regressor >> duration) )
-					{
-						regressor.close();
-    		            design.close();
-    		            printf("Unable to read the duration for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
-    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    		            return EXIT_FAILURE;
-					}
-
-					if (! (regressor >> value) )
-					{
-						regressor.close();
-    		            design.close();
-    		            printf("Unable to read the value for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
-    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    		            return EXIT_FAILURE;
-					}
-    	    
-					if (DEBUG)
-					{
-						printf("Event %i: Onset is %f, duration is %f and value is %f \n",e,onset,duration,value);
-					}
-    	        
-    		        int start = (int)round(onset * (float)HIGHRES_FACTOR / TR);
-    		        int activityLength = (int)round(duration * (float)HIGHRES_FACTOR / TR);
-    	        
-					if (DEBUG)
-					{
-						printf("Event %i: Start is %i, activity length is %i \n",e,start,activityLength);
-					}
-
-    		        // Put values into highres GLM
-    		        for (size_t i = 0; i < activityLength; i++)
-    		        {
-    		            if ((start + i) < (DATA_T * HIGHRES_FACTOR) )
-    		            {
-    		                h_Highres_Regressor[start + i] = value;
-    		            }
-    		            else
-    		            {
-							regressor.close();
-    		                design.close();
-    		                printf("The activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! Check the regressor file .\n",e,filename.c_str());	
-    		                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    		                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    		                return EXIT_FAILURE;
-    		            }
-    		        }            
-    		    }
-
-				regressor.close();
-
-    		    // Lowpass filter highres regressor
-				LowpassFilterRegressor(h_LowpassFiltered_Regressor,h_Highres_Regressor,DATA_T,HIGHRES_FACTOR,TR);
-        
-    		    // Downsample highres GLM and put values into regular GLM
-    		    for (size_t t = 0; t < DATA_T; t++)
-    		    {
-    		        h_X_GLM[t + r * DATA_T] = h_LowpassFiltered_Regressor[t*HIGHRES_FACTOR];
-    		    }
-    		}
-		}
-		else if (RAW_REGRESSORS)
+		int designfile;
+		if (!MULTIPLE_RUNS)
 		{
-			// Loop over the number of regressors provided in the design file
-		    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
-    		{
-		        // Each regressor is a filename, so try to open the file
-		        std::ifstream regressor;
-		        std::string filename;
-		        design >> filename;
-		        regressor.open(filename.c_str());
-		        if (!regressor.good())
-		        {
-		            regressor.close();
-		            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
-		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-		            return EXIT_FAILURE;
-		        }
+			designfile = 3;
+		}
+		else
+		{
+			designfile = 4 + NUMBER_OF_RUNS;
+		}
 
-				float value;
-				int readValues = 0;
-			    for (size_t t = 0; t < DATA_T; t++)
+		// Reset highres regressors
+	    for (size_t t = 0; t < NUMBER_OF_GLM_REGRESSORS * DATA_T * HIGHRES_FACTOR; t++)
+    	{
+			h_Highres_Regressors[t] = 0.0f;
+		}
+
+		int accumulatedTRs = 0;
+		for (int run = 0; run < NUMBER_OF_RUNS; run++)
+		{  
+		    // Open design file again
+		    design.open(argv[designfile]);
+
+		    if (!design.good())
+		    {
+		        design.close();
+		        printf("Unable to open design file %s. Aborting! \n",argv[designfile]);
+				FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+		        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		        return EXIT_FAILURE;
+		    }
+
+		    // Read first two values again
+		    design >> tempString; // NumRegressors as string
+		    design >> NUMBER_OF_GLM_REGRESSORS;
+
+			if (!RAW_REGRESSORS)
+			{    
+			    // Loop over the number of regressors provided in the design file
+			    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
 		    	{
-					if (! (regressor >> value) )
+			        // Each regressor is a filename, so try to open the file
+			        std::ifstream regressor;
+			        std::string filename;
+			        design >> filename;
+			        regressor.open(filename.c_str());
+			        if (!regressor.good())
+			        {
+			            regressor.close();
+			            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
+			            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			            return EXIT_FAILURE;
+			        }
+        
+			        // Read number of events for current regressor
+			        regressor >> tempString; // NumEvents as string
+			        std::string NE("NumEvents");
+			        if (tempString.compare(NE) != 0)
+			        {
+    			        design.close();
+			            printf("First element of each regressor file should be the string 'NumEvents', but it is %s for the regressor file %s. Aborting! \n",tempString.c_str(),filename.c_str());
+			            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			            return EXIT_FAILURE;
+    			    }
+			        regressor >> NUMBER_OF_EVENTS;
+	
+					if (DEBUG)
+					{
+						printf("Number of events for regressor %zu is %i \n",r,NUMBER_OF_EVENTS);
+					}
+    	    
+    			    // Loop over events
+    			    for (int e = 0; e < NUMBER_OF_EVENTS; e++)
+    			    {
+    			        float onset;
+    			        float duration;
+    			        float value;
+    	        
+    			        // Read onset, duration and value for current event
+						if (! (regressor >> onset) )
+						{
+							regressor.close();
+    			            design.close();
+    			            printf("Unable to read the onset for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+    			            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    			            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    			            return EXIT_FAILURE;
+						}
+	
+    			        if (! (regressor >> duration) )
+						{
+							regressor.close();
+    			            design.close();
+    			            printf("Unable to read the duration for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+    			            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    			            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    			            return EXIT_FAILURE;
+						}
+
+						if (! (regressor >> value) )
+						{
+							regressor.close();
+    			            design.close();
+    			            printf("Unable to read the value for event %i in regressor file %s, aborting! Check the regressor file. \n",e,filename.c_str());
+    			            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    			            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    			            return EXIT_FAILURE;
+						}
+    	    
+						if (DEBUG)
+						{
+							printf("Event %i: Onset is %f, duration is %f and value is %f \n",e,onset,duration,value);
+						}
+    	        
+    			        int start = (int)round(onset * (float)HIGHRES_FACTOR / TR);
+    			        int activityLength = (int)round(duration * (float)HIGHRES_FACTOR / TR);
+    	        
+						if (DEBUG)
+						{
+							printf("Event %i: Start is %i, activity length is %i \n",e,start,activityLength);
+						}
+
+    			        // Put values into highres GLM
+    			        for (size_t i = 0; i < activityLength; i++)
+    			        {
+    			            if ((start + i) < (DATA_T_PER_RUN[run] * HIGHRES_FACTOR) )
+    			            {
+    			                h_Highres_Regressors[start + i + accumulatedTRs*HIGHRES_FACTOR + r * DATA_T*HIGHRES_FACTOR] = value;
+    			            }
+    			            else
+    			            {
+								regressor.close();
+    			                design.close();
+    			                printf("For run %i, the activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! Check the regressor file .\n",run+1,e,filename.c_str());	
+    			                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    			                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    			                return EXIT_FAILURE;
+    			            }
+    			        }            
+    			    }
+					regressor.close();	
+				}
+			}
+			else if (RAW_REGRESSORS)
+			{
+				// Loop over the number of regressors provided in the design file
+			    for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+    			{
+			        // Each regressor is a filename, so try to open the file
+			        std::ifstream regressor;
+			        std::string filename;
+			        design >> filename;
+			        regressor.open(filename.c_str());
+			        if (!regressor.good())
+			        {
+			            regressor.close();
+			            printf("Unable to open the regressor file %s . Aborting! \n",filename.c_str());
+			            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+			            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+			            return EXIT_FAILURE;
+			        }
+
+					float value;
+					int readValues = 0;
+				    for (size_t t = 0; t < DATA_T_PER_RUN[run]; t++)
+			    	{
+						if (! (regressor >> value) )
+						{
+							regressor.close();
+    			            design.close();
+    			            printf("Unable to read the value for TR %zu in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
+    			            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    			            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    			            return EXIT_FAILURE;
+						}
+						h_X_GLM[t + accumulatedTRs + r * DATA_T] = value;
+						readValues++;
+					}
+		
+					// Check if number of values is the same as the number of TRs
+					if (readValues != DATA_T_PER_RUN[run])
 					{
 						regressor.close();
-    		            design.close();
-    		            printf("Unable to read the value for TR %zu in regressor file %s, aborting! Check the regressor file. \n",t,filename.c_str());
-    		            FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    		            FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    		            return EXIT_FAILURE;
+    			        design.close();
+    			        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %zu), aborting! Check the regressor file. \n",filename.c_str(),readValues,DATA_T_PER_RUN[run]);
+    			        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    			        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    			        return EXIT_FAILURE;
 					}
-					h_X_GLM[t + r * DATA_T] = value;
-					readValues++;
-				}
-	
-				// Check if number of values is the same as the number of TRs
-				if (readValues != DATA_T)
-				{
+		
 					regressor.close();
-    		        design.close();
-    		        printf("Number of values in regressor file %s is not the same as the number of TRs in the fMRI data (%i vs %zu), aborting! Check the regressor file. \n",filename.c_str(),readValues,DATA_T);
-    		        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    		        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    		        return EXIT_FAILURE;
 				}
-	
-				regressor.close();
 			}
+    		design.close();
+			designfile++;
+			accumulatedTRs += DATA_T_PER_RUN[run];
 		}
-    	design.close();
 	}
+
+	if (!RAW_REGRESSORS && !RAW_DESIGNMATRIX)
+	{
+		// Lowpass filter highres regressors
+		LowpassFilterRegressors(h_LowpassFiltered_Regressors,h_Highres_Regressors,DATA_T,HIGHRES_FACTOR,TR,NUMBER_OF_GLM_REGRESSORS);
+        
+	    // Downsample highres GLM and put values into regular GLM
+	    for (size_t t = 0; t < DATA_T; t++)
+	    {
+			for (size_t r = 0; r < NUMBER_OF_GLM_REGRESSORS; r++)
+		    {	
+		        h_X_GLM[t + r * DATA_T] = h_LowpassFiltered_Regressors[t*HIGHRES_FACTOR + r * DATA_T * HIGHRES_FACTOR];
+			}
+	    }
+	}
+
+
 
 	//------------------------------------------
 	// Read the contrasts
@@ -1038,6 +1218,15 @@ int main(int argc, char **argv)
 	{
 		// Open contrast file again
 	    contrasts.open(CONTRASTS_FILE);
+
+	    if (!contrasts.good())
+	    {
+	        contrasts.close();
+	        printf("Unable to open contrast file %s. Aborting! \n",CONTRASTS_FILE);
+			FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+	        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+	    }
 
 	    // Read first two values again
 		contrasts >> tempString; // NumRegressors as string
@@ -1151,7 +1340,52 @@ int main(int argc, char **argv)
 	if (WRITE_ORIGINAL_DESIGNMATRIX)
 	{
 		std::ofstream designmatrix;
-	    designmatrix.open("original_designmatrix.txt");  
+
+		const char* extension = "_original_designmatrix.txt";
+		char* filenameWithExtension;
+
+		// Find the dot in the original filename
+		if (!CHANGE_OUTPUT_FILENAME)
+		{
+		    const char* p = inputData->fname;
+		    int dotPosition = 0;
+		    while ( (p != NULL) && ((*p) != '.') )
+		    {
+		        p++;
+		        dotPosition++;
+		    }
+    		
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(inputData->fname) + strlen(extension) + 1);
+		
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,inputData->fname,dotPosition);
+   			filenameWithExtension[dotPosition] = '\0';
+		}
+		else
+		{
+		    const char* p = outputFilename;
+		    int dotPosition = 0;
+			int i = 0;
+		    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
+		    {
+		        p++;
+		        dotPosition++;
+				i++;
+		    }
+   	
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
+	
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,outputFilename,dotPosition);
+   			filenameWithExtension[dotPosition] = '\0';
+		}
+	
+   		// Add the extension
+   		strcat(filenameWithExtension,extension);
+	
+   		designmatrix.open(filenameWithExtension);
 
 	    if ( designmatrix.good() )
 	    {
@@ -1170,6 +1404,7 @@ int main(int argc, char **argv)
 			designmatrix.close();
 	        printf("Could not open the file for writing the original design matrix!\n");
 	    }
+		free(filenameWithExtension);
 	}
 	
     //------------------------------------------
@@ -1213,69 +1448,126 @@ int main(int argc, char **argv)
 
 	startTime = GetWallTime();
 
-    // Convert data to floats
-    if ( inputData->datatype == DT_SIGNED_SHORT )
-    {
-        short int *p = (short int*)inputData->data;
-    
-        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
-        {
-            h_Data[i] = (float)p[i];
-        }
-    }
-	else if ( inputData->datatype == DT_UINT8 )
-    {
-        unsigned char *p = (unsigned char*)inputData->data;
-    
-        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
-        {
-            h_Data[i] = (float)p[i];
-        }
-    }
-    else if ( inputData->datatype == DT_UINT16 )
-    {
-        unsigned short int *p = (unsigned short int*)inputData->data;
-    
-        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
-        {
-            h_Data[i] = (float)p[i];
-        }
-    }
-	// Correct data type, just copy the pointer
-    else if ( inputData->datatype == DT_FLOAT )
-    {		
-		h_Data = (float*)inputData->data;
+	// Convert fMRI data to floats
+	size_t accumulatedTRs = 0;
 
-		// Save the pointer in the pointer list
-		allMemoryPointers[numberOfMemoryPointers] = (void*)h_Data;
-        numberOfMemoryPointers++;
-
-        //float *p = (float*)inputfMRI->data;
-    
-        //for (size_t i = 0; i < EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T; i++)
-        //{
-        //    h_fMRI_Volumes[i] = p[i];
-        //}
-    }
-    else
-    {
-        printf("Unknown data type in input data, aborting!\n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-		FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-        return EXIT_FAILURE;
-    }
-    
-	// Free input data, it has been converted to floats
-	if ( inputData->datatype != DT_FLOAT )
-	{		
-		free(inputData->data);
-		inputData->data = NULL;
+	if (MULTIPLE_RUNS)
+	{
+		for (size_t run = 0; run < NUMBER_OF_RUNS; run++)
+		{
+			inputData = allfMRINiftiImages[run];
+	
+		    if ( inputData->datatype == DT_SIGNED_SHORT )
+		    {
+		        short int *p = (short int*)inputData->data;
+    			
+		        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T_PER_RUN[run]; i++)
+    		    {
+    		        h_Data[i + accumulatedTRs * DATA_W * DATA_H * DATA_D] = (float)p[i];
+    		    }
+			}
+		    else if ( inputData->datatype == DT_UINT8 )
+		    {
+		        unsigned char *p = (unsigned char*)inputData->data;
+		    
+		        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T_PER_RUN[run]; i++)
+		        {
+		            h_Data[i + accumulatedTRs * DATA_W * DATA_H * DATA_D] = (float)p[i];
+		        }
+		    }
+		    else if ( inputData->datatype == DT_UINT16 )
+		    {
+		        unsigned short int *p = (unsigned short int*)inputData->data;
+		    
+		        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T_PER_RUN[run]; i++)
+		        {
+		            h_Data[i + accumulatedTRs * DATA_W * DATA_H * DATA_D] = (float)p[i];
+		        }
+		    }
+		    else if ( inputData->datatype == DT_FLOAT )
+		    {		
+		        float *p = (float*)inputData->data;
+		    
+		        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T_PER_RUN[run]; i++)
+		        {
+		            h_Data[i + accumulatedTRs * DATA_W * DATA_H * DATA_D] = (float)p[i];
+		        }
+		    }
+		    else
+		    {
+		        printf("Unknown data type in fMRI data for run %i, aborting!\n",run+1);
+		        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+				FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		        return EXIT_FAILURE;
+		    }
+			accumulatedTRs += DATA_T_PER_RUN[run];
+		}
 	}
-	// Pointer has been copied to h_Data and pointer list, so set the input data pointer to NULL
 	else
-	{		
-		inputData->data = NULL;
+	{
+	    if ( inputData->datatype == DT_SIGNED_SHORT )
+	    {
+	        short int *p = (short int*)inputData->data;
+    		
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+    	    {
+    	        h_Data[i] = (float)p[i];
+    	    }
+		}
+	    else if ( inputData->datatype == DT_UINT8 )
+	    {
+	        unsigned char *p = (unsigned char*)inputData->data;
+	    
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+	        {
+	            h_Data[i] = (float)p[i];
+	        }
+	    }
+	    else if ( inputData->datatype == DT_UINT16 )
+	    {
+	        unsigned short int *p = (unsigned short int*)inputData->data;
+	    
+	        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D * DATA_T; i++)
+	        {
+	            h_Data[i] = (float)p[i];
+	        }
+	    }
+		// Correct data type, just copy the pointer
+	    else if ( inputData->datatype == DT_FLOAT )
+	    {		
+			h_Data = (float*)inputData->data;
+	
+			// Save the pointer in the pointer list
+			allMemoryPointers[numberOfMemoryPointers] = (void*)h_Data;
+	        numberOfMemoryPointers++;
+	    }	
 	}
+
+	if (MULTIPLE_RUNS)
+	{
+		// Free memory, as it is stored in a big array
+		for (size_t run = 0; run < NUMBER_OF_RUNS; run++)
+		{
+			inputData = allfMRINiftiImages[run];
+			free(inputData->data);
+			inputData->data = NULL;
+		}
+	}
+	else
+	{	
+		// Free input fMRI data, it has been converted to floats
+		if ( inputData->datatype != DT_FLOAT )
+		{		
+			free(inputData->data);
+			inputData->data = NULL;
+		}
+		// Pointer has been copied to h_Data and pointer list, so set the input data pointer to NULL
+		else
+		{		
+			inputData->data = NULL;
+		}
+	}
+
 
 	// Mask is provided by user
 	if (MASK)
@@ -1482,8 +1774,10 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetEPIWidth(DATA_W);
 	        BROCCOLI.SetEPIHeight(DATA_H);
 	        BROCCOLI.SetEPIDepth(DATA_D);
-	        BROCCOLI.SetEPITimepoints(DATA_T);     
+	        BROCCOLI.SetEPITimepoints(DATA_T);  
+			BROCCOLI.SetEPITimepointsPerRun(DATA_T_PER_RUN);   
 	        BROCCOLI.SetEPITR(TR); 
+			BROCCOLI.SetNumberOfRuns(NUMBER_OF_RUNS);
 	        BROCCOLI.SetEPIVoxelSizeX(VOXEL_SIZE_X);
 	        BROCCOLI.SetEPIVoxelSizeY(VOXEL_SIZE_Y);
 	        BROCCOLI.SetEPIVoxelSizeZ(VOXEL_SIZE_Z);  
@@ -1511,7 +1805,9 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetEPIHeight(DATA_H);
 	        BROCCOLI.SetEPIDepth(DATA_D);
 	        BROCCOLI.SetEPITimepoints(DATA_T);     
+			BROCCOLI.SetEPITimepointsPerRun(DATA_T_PER_RUN);
 	        BROCCOLI.SetEPITR(TR); 
+			BROCCOLI.SetNumberOfRuns(NUMBER_OF_RUNS);
 	        BROCCOLI.SetEPIVoxelSizeX(VOXEL_SIZE_X);
 	        BROCCOLI.SetEPIVoxelSizeY(VOXEL_SIZE_Y);
 	        BROCCOLI.SetEPIVoxelSizeZ(VOXEL_SIZE_Z);  
@@ -1572,10 +1868,57 @@ int main(int argc, char **argv)
 	// Write total design matrix to file
 	//-------------------------------------
 
+	inputData = allfMRINiftiImages[0];
+
 	if (WRITE_DESIGNMATRIX)
 	{
 		std::ofstream designmatrix;
-	    designmatrix.open("total_designmatrix.txt");  
+	    
+		const char* extension = "_total_designmatrix.txt";
+		char* filenameWithExtension;
+
+		// Find the dot in the original filename
+		if (!CHANGE_OUTPUT_FILENAME)
+		{
+		    const char* p = inputData->fname;
+		    int dotPosition = 0;
+		    while ( (p != NULL) && ((*p) != '.') )
+		    {
+		        p++;
+		        dotPosition++;
+		    }
+    	
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(inputData->fname) + strlen(extension) + 1);
+	
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,inputData->fname,dotPosition);
+    		filenameWithExtension[dotPosition] = '\0';
+		}
+		else
+		{
+		    const char* p = outputFilename;
+		    int dotPosition = 0;
+			int i = 0;
+		    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
+		    {
+		        p++;
+		        dotPosition++;
+				i++;
+		    }
+    
+		    // Allocate temporary array
+		    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
+	
+		    // Copy filename to the dot
+		    strncpy(filenameWithExtension,outputFilename,dotPosition);
+    		filenameWithExtension[dotPosition] = '\0';
+		}
+
+    	// Add the extension
+    	strcat(filenameWithExtension,extension);
+
+    	designmatrix.open(filenameWithExtension);    
 
 	    if ( designmatrix.good() )
 	    {
@@ -1588,12 +1931,13 @@ int main(int argc, char **argv)
 				designmatrix << std::endl;
 			}
 		    designmatrix.close();
-        } 	
+        }  	
 	    else
 	    {
 			designmatrix.close();
-	        printf("Could not open the file for writing the design matrix!\n");
+	        printf("Could not open the file for writing the total design matrix!\n");
 	    }
+		free(filenameWithExtension);
 	}
 
 	//-------------------------------------
@@ -1605,6 +1949,11 @@ int main(int argc, char **argv)
 	nifti_free_extensions(outputNifti);
     allNiftiImages[numberOfNiftiImages] = outputNifti;
 	numberOfNiftiImages++;
+
+	if (CHANGE_OUTPUT_FILENAME)
+	{
+		nifti_set_filenames(outputNifti, outputFilename, 0, 1);
+	}
 
     std::string beta = "_beta";
     std::string cope = "_cope";
