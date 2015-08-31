@@ -172,6 +172,7 @@ int main(int argc, char **argv)
         printf(" \nOptions for single subject analysis \n\n");
         printf(" -runs                      Number of runs \n");
         printf(" -rawregressors             Use raw regressor files (one per regressor)\n");
+        printf(" -detrendingregressors      Set the number of detrending regressors, 1-4 (default 4) \n");
         printf(" -temporalderivatives       Use temporal derivatives for the activity regressors (default no) \n");
         printf(" -regressmotion             Provide file with motion regressors to use in design matrix (default no) \n");
         printf(" -regressglobalmean         Include global mean in design matrix (default no) \n");
@@ -357,6 +358,28 @@ int main(int argc, char **argv)
         {
             RAW_REGRESSORS = true;
             i += 1;
+        }
+        else if (strcmp(input,"-detrendingregressors") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -detrendingregressors !\n");
+                return EXIT_FAILURE;
+			}
+
+            NUMBER_OF_DETRENDING_REGRESSORS = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Number of detrending regressors must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            if ((NUMBER_OF_DETRENDING_REGRESSORS < 1) || (NUMBER_OF_DETRENDING_REGRESSORS > 4))
+            {
+                printf("Number of detrending regressors must be >= 1 & <= 4!\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
         }
         else if (strcmp(input,"-betasonly") == 0)
         {
@@ -1423,6 +1446,8 @@ int main(int argc, char **argv)
 			{
 				for (size_t r = 0; r < NUMBER_OF_MOTION_REGRESSORS; r++)
 				{
+					h_Motion_Parameters[t + r * DATA_T] = 0.0f;
+
 					if (! (motionparameters >> h_Motion_Parameters[t + r * DATA_T]) )
 					{
 						motionparameters.close();
@@ -1781,6 +1806,7 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetEPIVoxelSizeX(VOXEL_SIZE_X);
 	        BROCCOLI.SetEPIVoxelSizeY(VOXEL_SIZE_Y);
 	        BROCCOLI.SetEPIVoxelSizeZ(VOXEL_SIZE_Z);  
+			BROCCOLI.SetNumberOfDetrendingRegressors(NUMBER_OF_DETRENDING_REGRESSORS);
 			BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
 			BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
 			BROCCOLI.SetRegressMotion(REGRESS_MOTION);
@@ -1811,6 +1837,7 @@ int main(int argc, char **argv)
 	        BROCCOLI.SetEPIVoxelSizeX(VOXEL_SIZE_X);
 	        BROCCOLI.SetEPIVoxelSizeY(VOXEL_SIZE_Y);
 	        BROCCOLI.SetEPIVoxelSizeZ(VOXEL_SIZE_Z);  
+			BROCCOLI.SetNumberOfDetrendingRegressors(NUMBER_OF_DETRENDING_REGRESSORS);
 			BROCCOLI.SetARSmoothingAmount(AR_SMOOTHING_AMOUNT);
 			BROCCOLI.SetTemporalDerivatives(USE_TEMPORAL_DERIVATIVES);
 			BROCCOLI.SetRegressMotion(REGRESS_MOTION);

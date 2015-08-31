@@ -260,6 +260,7 @@ int main(int argc, char **argv)
         printf("Statistical options:\n\n");
         printf(" -runs                      Analyze more than one run, provide number of runs (default false). \n");
         printf(" -preprocessingonly         Only perform preprocessing, no GLM or regression is performed (default no). \n");
+		printf(" -detrendingregressors      Set the number of detrending regressors, 1-4 (default 4) \n");
         printf(" -betasonly                 Only perform preprocessing and calculate beta values and contrasts, no t- or F-scores are calculated (default no). \n");
         printf(" -regressonly               Only perform preprocessing and regress nuisance variables, no beta values or contrasts are calculated (default no). \n");
 		printf("                            Regressor and contrast file not needed. \n");
@@ -757,6 +758,28 @@ int main(int argc, char **argv)
         
         // Statistical options
 
+        else if (strcmp(input,"-detrendingregressors") == 0)
+        {
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -detrendingregressors !\n");
+                return EXIT_FAILURE;
+			}
+
+            NUMBER_OF_DETRENDING_REGRESSORS = (int)strtol(argv[i+1], &p, 10);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("Number of detrending regressors must be an integer! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+            if ((NUMBER_OF_DETRENDING_REGRESSORS < 1) || (NUMBER_OF_DETRENDING_REGRESSORS > 4))
+            {
+                printf("Number of detrending regressors must be >= 1 & <= 4!\n");
+                return EXIT_FAILURE;
+            }
+            i += 2;
+        }
         else if (strcmp(input,"-betasonly") == 0)
         {
             BETAS_ONLY = true;
@@ -2918,6 +2941,7 @@ int main(int argc, char **argv)
         }
     
         BROCCOLI.SetNumberOfGLMRegressors(NUMBER_OF_GLM_REGRESSORS);
+		BROCCOLI.SetNumberOfDetrendingRegressors(NUMBER_OF_DETRENDING_REGRESSORS);
         BROCCOLI.SetNumberOfContrasts(NUMBER_OF_CONTRASTS);    
         BROCCOLI.SetDesignMatrix(h_X_GLM, h_xtxxt_GLM);
         BROCCOLI.SetContrasts(h_Contrasts);
