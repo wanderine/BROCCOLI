@@ -72,6 +72,46 @@ NumContrasts 9
 \end{verbatim}
 The user only has to define the contrast values for the original activity regressors. BROCCOLI will automatically add additional zeros for nuisance regressors (motion, global mean) and temporal derivatives.
 
+
+\subsection{Several runs}
+
+If several runs are available for one subject, they can be analyzed together as
+\begin{verbatim}
+FirstLevelAnalysis -runs 3 run1.nii run2.nii run3.nii T1_volume.nii MNI_volume.nii 
+regressors_run1.txt regressors_run2.txt regressors_run3.txt contrasts.txt [options]
+\end{verbatim}
+for a GLM, or as
+\begin{verbatim}
+FirstLevelAnalysis -runs 3 run1.nii run2.nii run3.nii 
+T1_volume.nii MNI_volume.nii -regressonly [options]
+\end{verbatim}
+if only preprocessing and regression of nuisance variables (mean, trends, (motion), (global mean)) is desired. \\
+
+\noindent If, for some reason, a subject did not do a specific task for one or several runs, this can be handled by using a dummy regressor, e.g.
+\begin{verbatim}
+NumRegressors 3
+
+task1.txt
+task2.txt
+dummy.txt
+\end{verbatim}
+where dummy.txt only contains
+\begin{verbatim}
+NumEvents 0
+\end{verbatim}
+
+\subsection{Checking the design matrix}
+
+To check if the design matrix looks correct, the options -savedesignmatrix and -saveoriginaldesignmatrix can be used. A text file will be generated with all the regressors (-savedesignmatrix), or only the task regressors (-saveoriginaldesignmatrix). If the AFNI software package is installed, these can for example be viewed as
+
+\begin{verbatim}
+1dplot fMRI_total_designmatrix.txt
+\end{verbatim}
+or
+\begin{verbatim}
+1dplot fMRI_original_designmatrix.txt
+\end{verbatim}
+
 \section{OpenCL options}
 
 The following OpenCL options are available
@@ -90,7 +130,6 @@ The following OpenCL options are available
 
 Several options can be used to control the image registration, see the chapter about image registration for further information.
 
-\newpage
 \section{Preprocessing options}
 
 The following preprocessing options are available
@@ -119,8 +158,6 @@ The following preprocessing options are available
 
 \item -smoothing 
 \newline \newline Set the amount of smoothing applied to \newline each fMRI volume (the default is 6 mm FWHM). 
-
-\newpage
 
 \item -slicecustom
 \newline \newline Provide a text file with the slice times, \newline
@@ -166,8 +203,6 @@ A text file with slice timing information can for example look like
 \end{verbatim}
 which means that the first slice was collected at time 0, the second slice was collected after 180 milli seconds, the third slice was collected after 362.5 milli seconds, and so on.
 
-\newpage
-
 
 \section{Statistical options}
 
@@ -175,8 +210,14 @@ The following statistical options are available
 
 \begin{itemize}
 
+\item -runs
+\newline \newline Number of fMRI runs that will be concatenated and analyzed together, necessary to provide one design file per run. Separate detrending regressors will be added for each run. The number of task regressors will not change compared to a single run, meaning that the contrast vectors are the same as for a single run.
+
 \item -preprocessingonly
 \newline \newline Only perform preprocessing, no GLM or regression is performed.
+
+\item -detrendingregressors
+\newline \newline Set the number of detrending regressors (per run), 1 - 4. 1 means a single regressor for the intercept, 2 means intercept + linear trends, 3 means intercept + linear trends + quadratic trends, 4 means intercept + linear trends + quadratic trends + cubic trends (the default is 4 detrending regressors).
 
 \item -betasonly
 \newline \newline Only perform preprocessing and calculate beta values and contrasts, no t- or F-scores are calculated. Possible to use the options -regressmotion and -regressglobalmean.
@@ -319,6 +360,8 @@ The following output options are available
 \item -saveall                   
 \newline \newline Save everything (default no). 
 
+\item -output 
+\newline \newline Set output filename (default fMRI\_).
 
 \end{itemize}
 

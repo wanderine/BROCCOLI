@@ -61,13 +61,50 @@ NumEvents 8
 \end{verbatim}
 For all first level analyses, BROCCOLI will automatically add detrending regressors and remove the mean of all the activity regressors. \newline 
 
+\subsection{Several runs}
+
+If several runs are available for one subject, they can be analyzed together as
+\begin{verbatim}
+GLM -runs 3 volumes1.nii volumes2.nii volumes3.nii -design design1.txt 
+design2.txt design3.txt -contrasts contrasts.txt -firstlevel [options]
+\end{verbatim}
+or
+\begin{verbatim}
+GLM -runs 3 volumes1.nii volumes2.nii volumes3.nii -designfiles regressors1.txt 
+regressors2.txt regressors3.txt -contrasts contrasts.txt -firstlevel [options]
+\end{verbatim}
+If, for some reason, a subject did not do a specific task for one or several runs, this can be handled by using a dummy regressor, e.g.
+\begin{verbatim}
+NumRegressors 3
+
+task1.txt
+task2.txt
+dummy.txt
+\end{verbatim}
+where dummy.txt only contains
+\begin{verbatim}
+NumEvents 0
+\end{verbatim}
+
+\subsection{Checking the design matrix}
+
+To check if the design matrix looks correct, the options -savedesignmatrix and -saveoriginaldesignmatrix can be used. A text file will be generated with all the regressors (-savedesignmatrix), or only the task regressors (-saveoriginaldesignmatrix). If the AFNI software package is installed, these can for example be viewed as
+
+\begin{verbatim}
+1dplot volumes_total_designmatrix.txt
+\end{verbatim}
+or
+\begin{verbatim}
+1dplot volumes_original_designmatrix.txt
+\end{verbatim}
+
+\subsection{Group analysis}
+
 \noindent For a group analysis, a GLM can be performed as
 \begin{verbatim}
 GLM volumes.nii -design design.txt -contrasts contrasts.txt -secondlevel
 \end{verbatim}
 where volumes.nii is a 4D file containing beta values from each subject.
-
-
 
 \section{OpenCL options}
 
@@ -127,6 +164,15 @@ The following single subject options are available
 
 \begin{itemize}
 
+\item -runs
+\newline \newline Number of fMRI runs that will be concatenated and analyzed together, necessary to provide one design file per run. Separate detrending regressors will be added for each run. The number of task regressors will not change compared to a single run, meaning that the contrast vectors are the same as for a single run.
+
+\item -rawregressors
+\newline \newline Use raw regressors (FSL format, one line per volume/TR). These regressors will not be convolved with any hemodynamic response function. Intended for -designfiles, not for -design.
+
+\item -detrendingregressors
+\newline \newline Set the number of detrending regressors (per run), 1 - 4. 1 means a single regressor for the intercept, 2 means intercept + linear trends, 3 means intercept + linear trends + quadratic trends, 4 means intercept + linear trends + quadratic trends + cubic trends (the default is 4 detrending regressors).
+
 \item -temporalderivatives
 \newline \newline Use temporal derivatives for the activity regressors (default no). The contrast vectors will automatically be extended with zeros for these additional regressors. Only possible for -designfiles, not for -design.
 
@@ -145,14 +191,14 @@ The following single subject options are available
 By default, the GLM function saves each beta value as 
 
 \begin{verbatim}
-volumes_beta_regressor001.nii ... volumes_beta_regressorR.nii
+volumes_beta_regressor001.nii ... volumes_beta_regressor00R.nii
 \end{verbatim}
 for R regressors. For each contrast, BROCCOLI also saves the contrast of parameter estimate (COPE) and the corresponding t-scores, e.g.
 
 \begin{verbatim}
-volumes_cope_contrast001.nii  - volumes_cope_contrastC.nii
+volumes_cope_contrast001.nii  - volumes_cope_contrast00C.nii
 
-volumes_tscores_contrast001.nii - volumes_tscores_contrastC.nii
+volumes_tscores_contrast001.nii - volumes_tscores_contrast00C.nii
 \end{verbatim}
 
 \section{Output options}

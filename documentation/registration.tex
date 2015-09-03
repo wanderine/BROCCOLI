@@ -27,7 +27,7 @@ The following registration options are available
 \begin{itemize}
 
 \item -iterationslinear          
-\newline \newline Number of iterations for the linear registration (default 10). 
+\newline \newline Number of iterations for the linear registration (default 10), 0 means that no linear registration is performed (the two volumes must then be of the same size).  
 
 \newpage
 
@@ -78,7 +78,7 @@ The following additional options are available
 \newline \newline Mask to apply after linear and non-linear registration, to the aligned volume. The option can for example be used to do a skullstrip (default none). 
 
 \item -maskoriginal                      
-\newline \newline Mask to apply after linear and non-linear registration. The option can for example be used to do a skullstrip. Returns the volume skullstripped and unregistered (but interpolated to the reference volume size) (default none). 
+\newline \newline Mask to apply after linear registration. The option can for example be used to do a skullstrip. Returns the volume skullstripped and unregistered (but interpolated to the reference volume size) (default none). 
 
 \item -quiet 
 \newline \newline Don't print anything to the terminal (default false). 
