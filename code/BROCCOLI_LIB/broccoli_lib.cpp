@@ -7813,6 +7813,30 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 		clReleaseMemObject(d_Total_Displacement_Field_Y);
 		clReleaseMemObject(d_Total_Displacement_Field_Z);
 	}
+	else
+	{
+		if (WRITE_DISPLACEMENT_FIELD)
+		{
+			d_Total_Displacement_Field_X = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+			d_Total_Displacement_Field_Y = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+			d_Total_Displacement_Field_Z = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+
+			SetMemory(d_Total_Displacement_Field_X, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+			SetMemory(d_Total_Displacement_Field_Y, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+			SetMemory(d_Total_Displacement_Field_Z, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
+
+			CreateCombinedDisplacementField(h_Registration_Parameters_T1_MNI_Out,d_Total_Displacement_Field_X,d_Total_Displacement_Field_Y,d_Total_Displacement_Field_Z,MNI_DATA_W,MNI_DATA_H,MNI_DATA_D);
+	
+			// Copy the displacement field to host
+			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
+		
+			clReleaseMemObject(d_Total_Displacement_Field_X);
+			clReleaseMemObject(d_Total_Displacement_Field_Y);
+			clReleaseMemObject(d_Total_Displacement_Field_Z);
+		}
+	}
 
 	if (DO_SKULLSTRIP)
 	{
@@ -9235,7 +9259,13 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 		}
 		else
 		{
+			// Copy fMRI volumes to device
+			clEnqueueWriteBuffer(commandQueue, d_fMRI_Volumes, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes, 0, NULL, NULL);
+			// Perform the regression
 			PerformRegression(d_Residuals, d_fMRI_Volumes, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T);
+			// Copy back the residuals to the host
+			clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_fMRI_Volumes, 0, NULL, NULL);
+
 			if (WRITE_ACTIVITY_EPI)
 			{
 				clEnqueueReadBuffer(commandQueue, d_Residuals, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float), h_Residuals_EPI, 0, NULL, NULL);
