@@ -2,6 +2,50 @@
 #include <time.h>
 #include <sys/time.h>
 
+void CreateFilename(char *& filenameWithExtension, nifti_image* inputNifti, const char* extension, bool CHANGE_OUTPUT_FILENAME, const char* outputFilename)
+{
+	// Find the dot in the original filename
+	if (!CHANGE_OUTPUT_FILENAME)
+	{
+	    const char* p = inputNifti->fname;
+	    int dotPosition = 0;
+	    while ( (p != NULL) && ((*p) != '.') )
+	    {
+	        p++;
+	        dotPosition++;
+	    }
+    		
+	    // Allocate temporary array
+	    filenameWithExtension = (char*)malloc(strlen(inputNifti->fname) + strlen(extension) + 1);
+		
+	    // Copy filename to the dot
+	    strncpy(filenameWithExtension,inputNifti->fname,dotPosition);
+		filenameWithExtension[dotPosition] = '\0';
+	}
+	else
+	{
+	    const char* p = outputFilename;
+	    int dotPosition = 0;
+		int i = 0;
+	    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
+	    {
+	        p++;
+	        dotPosition++;
+			i++;
+	    }
+    	
+	    // Allocate temporary array
+	    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
+		
+	    // Copy filename to the dot
+	    strncpy(filenameWithExtension,outputFilename,dotPosition);
+		filenameWithExtension[dotPosition] = '\0';
+	}
+	
+	// Add the extension
+	strcat(filenameWithExtension,extension);
+}
+
 void LowpassFilterRegressor(float* h_LowpassFiltered_Regressor, float* h_Regressor, int DATA_T, int HIGHRES_FACTOR, float TR)
 {
 	// Allocate memory for lowpass filter

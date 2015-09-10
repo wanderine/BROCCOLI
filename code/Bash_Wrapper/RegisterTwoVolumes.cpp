@@ -104,6 +104,7 @@ int main(int argc, char **argv)
     const char*     FILENAME_EXTENSION = "_MNI";
     bool            PRINT = true;
 	bool			VERBOS = false;
+    bool            WRITE_TRANSFORMATION_MATRIX = false;
     bool            WRITE_DISPLACEMENT_FIELD = false;
 	bool			WRITE_INTERPOLATED = false;
    	bool			CHANGE_OUTPUT_FILENAME = false;    
@@ -143,7 +144,7 @@ int main(int argc, char **argv)
         printf(" -mask                      Mask to apply after linear and non-linear registration, to for example do a skullstrip (default none) \n");        
         printf(" -maskoriginal              Mask to apply after linear registration, to for example do a skullstrip. Returns the volume skullstripped and unregistered (but interpolated to the reference volume size) (default none) \n");        
 
-
+		printf(" -savematrix                Saves the affine transformation matrix to file (default false) \n");        
 		printf(" -savefield                 Saves the displacement field to file (default false) \n");        
 		printf(" -saveinterpolated          Saves the input volume rescaled and resized to the size and resolution of the reference volume, before alignment (default false) \n");        
 		printf(" -output                    Set output filename (default input_volume_aligned_linear.nii and input_volume_aligned_nonlinear.nii) \n");
@@ -364,6 +365,11 @@ int main(int argc, char **argv)
             i += 2;
         }
 
+        else if (strcmp(input,"-savematrix") == 0)
+        {
+            WRITE_TRANSFORMATION_MATRIX = true;
+            i += 1;
+        }
         else if (strcmp(input,"-savefield") == 0)
         {
             WRITE_DISPLACEMENT_FIELD = true;
@@ -1132,26 +1138,34 @@ int main(int argc, char **argv)
 
 
     // Print registration parameters to file
-    /*
-    std::ofstream motion;
-    motion.open("motion.1D");      
-    if ( motion.good() )
-    {
-        //motion.setf(ios::scientific);
-        motion.precision(6);
-        for (int t = 0; t < DATA_T; t++)
-        {
-            //printf("X translation for timepoint %i is %f\n",t+1,h_Motion_Parameters[t + DATA_T]);
-            //motion << h_Motion_Parameters[t + 0*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 1*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 2*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 3*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 4*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 5*DATA_T] << std::endl;
-            motion << h_Motion_Parameters[t + 4*DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 3*DATA_T] << std::setw(2) << " " << h_Motion_Parameters[t + 5*DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 2*DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 0*DATA_T] << std::setw(2) << " " << -h_Motion_Parameters[t + 1*DATA_T] << std::endl;
-        }
-        motion.close();
-    }
-    else
-    {
-        printf("Could not open motion.1D for writing!\n");
-    }
-    */
+	if (WRITE_TRANSFORMATION_MATRIX)
+	{
+		// Add the provided filename extension to the original filename, before the dot
+
+		const char* extension = "_affinematrix.txt";
+		char* filenameWithExtension;
+
+		CreateFilename(filenameWithExtension, inputT1, extension, CHANGE_OUTPUT_FILENAME, outputFilename);
+
+	    std::ofstream matrix;
+	    matrix.open(filenameWithExtension);      
+	    if ( matrix.good() )
+	    {
+	        matrix.precision(6);
+
+	        matrix << h_Registration_Parameters[3]+1.0f << std::setw(2) << " " << h_Registration_Parameters[4] << std::setw(2) << " " << h_Registration_Parameters[5] << std::setw(2) << " " << h_Registration_Parameters[0] << std::endl;
+	        matrix << h_Registration_Parameters[6] << std::setw(2) << " " << h_Registration_Parameters[7] + 1.0f << std::setw(2) << " " << h_Registration_Parameters[8] << std::setw(2) << " " << h_Registration_Parameters[1] << std::endl;
+	        matrix << h_Registration_Parameters[9] << std::setw(2) << " " << h_Registration_Parameters[10] << std::setw(2) << " " << h_Registration_Parameters[11] + 1.0f << std::setw(2) << " " << h_Registration_Parameters[2] << std::endl;
+	        matrix << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 1.0f << std::endl;
+
+	        matrix.close();
+	    }
+	    else
+	    {
+	        printf("Could not open %s for writing!\n",filenameWithExtension);
+	    }
+		free(filenameWithExtension);
+	}
 
     // Create new nifti image
 	nifti_image *outputNifti = nifti_copy_nim_info(inputMNI);      

@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     // Input pointers
     
     float           *h_Input_Volume;
-    float           *h_Displacement_Field_X, *h_Displacement_Field_Y, *h_Displacement_Field_Z;            
+    float           *h_Displacement_Field_X, *h_Displacement_Field_Y, *h_Displacement_Field_Z, *h_Registration_Parameters;            
 
 	//--------------
 
@@ -66,6 +66,7 @@ int main(int argc, char **argv)
     
     // Default parameters
         
+	int 			NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS = 12;
     int             OPENCL_PLATFORM = 0;
     int             OPENCL_DEVICE = 0;
 	int				INTERPOLATION_MODE = 1;
@@ -73,13 +74,24 @@ int main(int argc, char **argv)
     bool            PRINT = true;
 	bool			CHANGE_OUTPUT_FILENAME = false;    
 	int 			MM_T1_Z_CUT = 0;
+	bool			LINEARTRANSFORMATION = false;
+	bool			NONLINEARTRANSFORMATION = false;
+	bool			SCALING = false;
+	float			SCALINGFACTOR = 1.0f;
+	bool			CENTERING = false;
+
+	const char*		matrixFilename;
+
+	const char*		xFieldFilename;
+	const char*		yFieldFilename;
+	const char*		zFieldFilename;
 
 	const char*		outputFilename;
 
 	bool			VERBOS = false;
 
     // Size parameters
-    size_t          INPUT_DATA_H, INPUT_DATA_W, INPUT_DATA_D;
+    size_t          INPUT_DATA_H, INPUT_DATA_W, INPUT_DATA_D, INPUT_DATA_T;
     size_t          REFERENCE_DATA_H, REFERENCE_DATA_W, REFERENCE_DATA_D;
            
 	float			INPUT_VOXEL_SIZE_X, INPUT_VOXEL_SIZE_Y, INPUT_VOXEL_SIZE_Z;
@@ -93,24 +105,29 @@ int main(int argc, char **argv)
     // No inputs, so print help text
     if (argc == 1)
     {   
-		printf("Transforms a volume using provided displacement fields, which have to be of the same size as the reference volume. The input volume is automagically resized and rescaled to match the input volume. \n\n");     
-        printf("Usage:\n\n");
-        printf("TransformVolume volume_to_transform.nii reference_volume.nii displacement_field_x.nii displacement_field_y.nii displacement_field_z.nii  [options]\n\n");
+		printf("Transforms volume(s) using provided transformation matrix or displacement fields (which have to be of the same size as the reference volume). The input volume is automagically resized and rescaled to match the input volume. \n\n");     
+        printf("Usage, transformation matrix:\n\n");
+        printf("TransformVolume volume_to_transform.nii reference_volume.nii -matrix affine_matrix.1D  [options]\n\n");
+        printf("Usage, scaling:\n\n");
+        printf("TransformVolume volume_to_transform.nii volume_to_transform.nii -scaling 2.3  [options]\n\n");
+        printf("Usage, centering:\n\n");
+        printf("TransformVolume volume_to_transform.nii volume_to_transform.nii -centering  [options]\n\n");
+        printf("Usage, displacement field:\n\n");
+        printf("TransformVolume volume_to_transform.nii reference_volume.nii -field displacement_field_x.nii displacement_field_y.nii displacement_field_z.nii  [options]\n\n");
         printf("Options:\n\n");
         printf(" -platform                  The OpenCL platform to use (default 0) \n");
         printf(" -device                    The OpenCL device to use for the specificed platform (default 0) \n");
-		printf(" -interpolation             The interpolation to use, 0 = nearest, 1 = trilinear (default 1) \n");
+        printf(" -matrix                    An affine transformation matrix (4 x 4) in a text file \n");
+        printf(" -scaling                   A scaling to apply to each dimension \n");
+        printf(" -centering                 Center the volume mass \n");
+        printf(" -field                     An arbitrary deformation field in three files \n");
+		printf(" -interpolation             The interpolation to use, 0 = nearest neighbour, 1 = trilinear (default 1) \n");
 		printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative (default 0). Should be the same as for the call to RegisterTwoVolumes\n"); 
 		printf(" -output                    Set output filename (default volume_to_transform_warped.nii) \n");
         printf(" -quiet                     Don't print anything to the terminal (default false) \n");
         printf("\n\n");
         
         return EXIT_SUCCESS;
-    }
-    else if (argc < 6)
-    {
-        printf("Need one volume to warp, one reference volume and three displacement field volumes!\n\n");
-		return EXIT_FAILURE;
     }
     // Try to open files
     else if (argc > 1)
@@ -130,34 +147,10 @@ int main(int argc, char **argv)
             return EXIT_FAILURE;
         }
         fclose(fp);   
-
-        fp = fopen(argv[3],"r");
-        if (fp == NULL)
-        {
-            printf("Could not open file %s !\n",argv[3]);
-            return EXIT_FAILURE;
-        }
-        fclose(fp);   
-
-        fp = fopen(argv[4],"r");
-        if (fp == NULL)
-        {
-            printf("Could not open file %s !\n",argv[4]);
-            return EXIT_FAILURE;
-        }
-        fclose(fp);   
-
-        fp = fopen(argv[5],"r");
-        if (fp == NULL)
-        {
-            printf("Could not open file %s !\n",argv[5]);
-            return EXIT_FAILURE;
-        }
-        fclose(fp);            
     }
     
     // Loop over additional inputs
-    int i = 6;
+    int i = 3;
     while (i < argc)
     {
         char *input = argv[i];
@@ -206,6 +199,79 @@ int main(int argc, char **argv)
             }
             i += 2;
         }
+
+        else if (strcmp(input,"-matrix") == 0)
+        {
+			LINEARTRANSFORMATION = true;
+			SCALING = false;
+
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read filename after -matrix !\n");
+                return EXIT_FAILURE;
+			}
+			
+            matrixFilename = argv[i+1];
+            i += 2;
+        }
+        else if (strcmp(input,"-scaling") == 0)
+        {
+			LINEARTRANSFORMATION = true;
+			SCALING = true;
+
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read value after -scaling !\n");
+                return EXIT_FAILURE;
+			}
+
+			SCALINGFACTOR = (float)strtod(argv[i+1], &p);
+
+			if (!isspace(*p) && *p != 0)
+		    {
+		        printf("scaling factor must be a float! You provided %s \n",argv[i+1]);
+				return EXIT_FAILURE;
+		    }
+  			else if ( SCALINGFACTOR <= 0.0f )
+            {
+                printf("scaling factor must be > 0.0 !\n");
+                return EXIT_FAILURE;
+            }
+			
+            i += 2;
+        }
+        else if (strcmp(input,"-centering") == 0)
+        {
+			LINEARTRANSFORMATION = true;
+			CENTERING = true;	
+            i += 1;
+        }
+        else if (strcmp(input,"-field") == 0)
+        {
+			NONLINEARTRANSFORMATION = true;
+
+			if ( (i+1) >= argc  )
+			{
+			    printf("Unable to read first filename after -field !\n");
+                return EXIT_FAILURE;
+			}
+			if ( (i+2) >= argc  )
+			{
+			    printf("Unable to read second filename after -field !\n");
+                return EXIT_FAILURE;
+			}
+			if ( (i+3) >= argc  )
+			{
+			    printf("Unable to read third filename after -field !\n");
+                return EXIT_FAILURE;
+			}
+		
+            xFieldFilename = argv[i+1];
+            yFieldFilename = argv[i+2];
+            zFieldFilename = argv[i+3];
+            i += 4;
+        }
+
 		else if (strcmp(input,"-interpolation") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -271,6 +337,18 @@ int main(int argc, char **argv)
         }                
     }
         
+	if (!LINEARTRANSFORMATION && !NONLINEARTRANSFORMATION)
+	{
+        printf("Have to provide affine matrix or deformation field!\n");
+        return EXIT_FAILURE;
+	}
+
+	if (LINEARTRANSFORMATION && NONLINEARTRANSFORMATION)
+	{
+        printf("Cannot provide both affine matrix and deformation field, pick one!\n");
+        return EXIT_FAILURE;
+	}
+
 	// Check if BROCCOLI_DIR variable is set
 	if (getenv("BROCCOLI_DIR") == NULL)
 	{
@@ -297,37 +375,42 @@ int main(int argc, char **argv)
    	allNiftiImages[numberOfNiftiImages] = referenceVolume;
 	numberOfNiftiImages++;
 
-    nifti_image *inputDisplacementX = nifti_image_read(argv[3],1);   
-    if (inputDisplacementX == NULL)
-    {
-        printf("Could not open displacement X volume!\n");
-        return EXIT_FAILURE;
-    }
-	allNiftiImages[numberOfNiftiImages] = inputDisplacementX;
-	numberOfNiftiImages++;
+	nifti_image *inputDisplacementX, *inputDisplacementY, *inputDisplacementZ;
+	if (NONLINEARTRANSFORMATION)
+	{
+    	inputDisplacementX = nifti_image_read(xFieldFilename,1);   
+	    if (inputDisplacementX == NULL)
+	    {
+	        printf("Could not open displacement X volume %s !\n",xFieldFilename);
+	        return EXIT_FAILURE;
+	    }
+		allNiftiImages[numberOfNiftiImages] = inputDisplacementX;
+		numberOfNiftiImages++;
 
-    nifti_image *inputDisplacementY = nifti_image_read(argv[4],1);   
-    if (inputDisplacementY == NULL)
-    {
-        printf("Could not open displacement Y volume!\n");
-        return EXIT_FAILURE;
-    }
-	allNiftiImages[numberOfNiftiImages] = inputDisplacementY;
-	numberOfNiftiImages++;
+    	inputDisplacementY = nifti_image_read(yFieldFilename,1);   
+    	if (inputDisplacementY == NULL)
+    	{
+    	    printf("Could not open displacement Y volume %s !\n",yFieldFilename);
+    	    return EXIT_FAILURE;
+    	}
+		allNiftiImages[numberOfNiftiImages] = inputDisplacementY;
+		numberOfNiftiImages++;
 
-    nifti_image *inputDisplacementZ = nifti_image_read(argv[5],1);   
-    if (inputDisplacementZ == NULL)
-    {
-        printf("Could not open displacement Z volume!\n");
-        return EXIT_FAILURE;
-    }
-	allNiftiImages[numberOfNiftiImages] = inputDisplacementZ;
-	numberOfNiftiImages++;
+    	inputDisplacementZ = nifti_image_read(zFieldFilename,1);   
+    	if (inputDisplacementZ == NULL)
+    	{
+    	    printf("Could not open displacement Z volume %s !\n",zFieldFilename);
+    	    return EXIT_FAILURE;
+    	}
+		allNiftiImages[numberOfNiftiImages] = inputDisplacementZ;
+		numberOfNiftiImages++;
+	}
     
     // Get data dimensions from input data
     INPUT_DATA_W = inputVolume->nx;
     INPUT_DATA_H = inputVolume->ny;
 	INPUT_DATA_D = inputVolume->nz;    
+	INPUT_DATA_T = inputVolume->nt;    
 
 	INPUT_VOXEL_SIZE_X = inputVolume->dx;
 	INPUT_VOXEL_SIZE_Y = inputVolume->dy;
@@ -344,46 +427,61 @@ int main(int argc, char **argv)
     // Check if the displacement volumes have the same size
 	int DISPLACEMENT_DATA_W, DISPLACEMENT_DATA_H, DISPLACEMENT_DATA_D;
 
-	DISPLACEMENT_DATA_W = inputDisplacementX->nx;
-	DISPLACEMENT_DATA_H = inputDisplacementX->ny;
-	DISPLACEMENT_DATA_D = inputDisplacementX->nz;
+	if (NONLINEARTRANSFORMATION)
+	{
+		DISPLACEMENT_DATA_W = inputDisplacementX->nx;
+		DISPLACEMENT_DATA_H = inputDisplacementX->ny;
+		DISPLACEMENT_DATA_D = inputDisplacementX->nz;
 	
-	if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
-	{
-        printf("Dimensions of displacement field X does not match the reference volume!\n");
-        return -1;
-	}
+		if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
+		{
+	        printf("Dimensions of displacement field X does not match the reference volume!\n");
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+		}
 
-	DISPLACEMENT_DATA_W = inputDisplacementY->nx;
-	DISPLACEMENT_DATA_H = inputDisplacementY->ny;
-	DISPLACEMENT_DATA_D = inputDisplacementY->nz;
+		DISPLACEMENT_DATA_W = inputDisplacementY->nx;
+		DISPLACEMENT_DATA_H = inputDisplacementY->ny;
+		DISPLACEMENT_DATA_D = inputDisplacementY->nz;
 
-	if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
-	{
-        printf("Dimensions of displacement field Y does not match the reference volume!\n");
-        return -1;
-	}
+		if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
+		{
+	        printf("Dimensions of displacement field Y does not match the reference volume!\n");
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+		}
 
-	DISPLACEMENT_DATA_W = inputDisplacementZ->nx;
-	DISPLACEMENT_DATA_H = inputDisplacementZ->ny;
-	DISPLACEMENT_DATA_D = inputDisplacementZ->nz;
+		DISPLACEMENT_DATA_W = inputDisplacementZ->nx;
+		DISPLACEMENT_DATA_H = inputDisplacementZ->ny;
+		DISPLACEMENT_DATA_D = inputDisplacementZ->nz;
 
-	if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
-	{
-        printf("Dimensions of displacement field Z does not match the reference volume!\n");
-        return -1;
+		if ( (DISPLACEMENT_DATA_W != REFERENCE_DATA_W) || (DISPLACEMENT_DATA_H != REFERENCE_DATA_H) || (DISPLACEMENT_DATA_D != REFERENCE_DATA_D) )
+		{
+	        printf("Dimensions of displacement field Z does not match the reference volume!\n");
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+		}
 	}
 
     // Calculate size, in bytes
     
-    int INPUT_VOLUME_SIZE = INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D * sizeof(float);
+    int INPUT_VOLUMES_SIZE = INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D * INPUT_DATA_T * sizeof(float);
+    int REFERENCE_VOLUMES_SIZE = REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D * INPUT_DATA_T * sizeof(float);
     int REFERENCE_VOLUME_SIZE = REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D * sizeof(float);
+	size_t IMAGE_REGISTRATION_PARAMETERS_SIZE = 16 * sizeof(float);
 
     // Print some info
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Input volume size: %zu x %zu x %zu \n",  INPUT_DATA_W, INPUT_DATA_H, INPUT_DATA_D);
+		if (INPUT_DATA_T == 1)
+		{
+	        printf("Input volume size: %zu x %zu x %zu \n",  INPUT_DATA_W, INPUT_DATA_H, INPUT_DATA_D);
+		}
+		else
+		{
+	        printf("Input volume size: %zu x %zu x %zu x %zu \n",  INPUT_DATA_W, INPUT_DATA_H, INPUT_DATA_D, INPUT_DATA_T);
+		}
         printf("Input volume voxel size: %f x %f x %f \n",  INPUT_VOXEL_SIZE_X, INPUT_VOXEL_SIZE_Y, INPUT_VOXEL_SIZE_Z);
         printf("Reference volume size: %zu x %zu x %zu \n",  REFERENCE_DATA_W, REFERENCE_DATA_H, REFERENCE_DATA_D);
         printf("Reference volume voxel size: %f x %f x %f \n",  REFERENCE_VOXEL_SIZE_X, REFERENCE_VOXEL_SIZE_Y, REFERENCE_VOXEL_SIZE_Z);
@@ -393,18 +491,23 @@ int main(int argc, char **argv)
     
     // Allocate memory on the host        
 
-	AllocateMemory(h_Input_Volume, INPUT_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INPUT_VOLUME");
-	AllocateMemory(h_Interpolated_Volume, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INTERPOLATED_VOLUME");
-	AllocateMemory(h_Displacement_Field_X, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_X");
-	AllocateMemory(h_Displacement_Field_Y, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_Y");
-	AllocateMemory(h_Displacement_Field_Z, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_Z");
+	AllocateMemory(h_Input_Volume, INPUT_VOLUMES_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INPUT_VOLUME");
+	AllocateMemory(h_Interpolated_Volume, REFERENCE_VOLUMES_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INTERPOLATED_VOLUME");
+   	AllocateMemory(h_Registration_Parameters, IMAGE_REGISTRATION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "REGISTRATION_PARAMETERS");
+
+	if (NONLINEARTRANSFORMATION)
+	{
+		AllocateMemory(h_Displacement_Field_X, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_X");
+		AllocateMemory(h_Displacement_Field_Y, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_Y");
+		AllocateMemory(h_Displacement_Field_Z, REFERENCE_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "DISPLACEMENT_FIELD_Z");
+	}
 			           
     // Convert data to floats
     if ( inputVolume->datatype == DT_SIGNED_SHORT )
     {
         short int *p = (short int*)inputVolume->data;
     
-        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
+        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D * INPUT_DATA_T; i++)
         {
             h_Input_Volume[i] = (float)p[i];
         }
@@ -413,7 +516,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputVolume->data;
     
-        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
+        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D * INPUT_DATA_T; i++)
         {
             h_Input_Volume[i] = p[i];
         }
@@ -422,7 +525,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputVolume->data;
     
-        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D; i++)
+        for (size_t i = 0; i < INPUT_DATA_W * INPUT_DATA_H * INPUT_DATA_D * INPUT_DATA_T; i++)
         {
             h_Input_Volume[i] = (float)p[i];
         }
@@ -435,83 +538,173 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     
-    if ( inputDisplacementX->datatype == DT_SIGNED_SHORT )
-    {
-        short int *p = (short int*)inputDisplacementX->data;
+	if (NONLINEARTRANSFORMATION)
+	{
+	    if ( inputDisplacementX->datatype == DT_SIGNED_SHORT )
+    	{
+    	    short int *p = (short int*)inputDisplacementX->data;
     
-        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
-        {
-            h_Displacement_Field_X[i] = (float)p[i];
-        }
-    }
-    else if ( inputDisplacementX->datatype == DT_FLOAT )
-    {
-        float *p = (float*)inputDisplacementX->data;
-    
-        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
-        {
-            h_Displacement_Field_X[i] = p[i];
-        }
-    }
-    else
-    {
-        printf("Unknown data type in displacement x volume, aborting!\n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-        return EXIT_FAILURE;
-    }
+    	    for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+    	    {
+    	        h_Displacement_Field_X[i] = (float)p[i];
+    	    }
+    	}
+    	else if ( inputDisplacementX->datatype == DT_FLOAT )
+    	{
+    	    float *p = (float*)inputDisplacementX->data;
+    	
+    	    for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+    	    {
+    	        h_Displacement_Field_X[i] = p[i];
+    	    }
+    	}
+    	else
+    	{
+    	    printf("Unknown data type in displacement x volume, aborting!\n");
+    	    FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    	    FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    	    return EXIT_FAILURE;
+    	}
 
-    if ( inputDisplacementY->datatype == DT_SIGNED_SHORT )
-    {
-        short int *p = (short int*)inputDisplacementY->data;
-    
-        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
-        {
-	        h_Displacement_Field_Y[i] = (float)p[i];
-        }
-    }
-    else if ( inputDisplacementY->datatype == DT_FLOAT )
-    {
-        float *p = (float*)inputDisplacementY->data;
-    
-        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
-        {
-            h_Displacement_Field_Y[i] = p[i];			
-        }
-    }
-    else
-    {
-        printf("Unknown data type in displacement y volume, aborting!\n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-        return EXIT_FAILURE;
-    }
+    	if ( inputDisplacementY->datatype == DT_SIGNED_SHORT )
+    	{
+    	    short int *p = (short int*)inputDisplacementY->data;
+    	
+    	    for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+    	    {
+		        h_Displacement_Field_Y[i] = (float)p[i];
+    	    }
+    	}
+    	else if ( inputDisplacementY->datatype == DT_FLOAT )
+    	{
+    	    float *p = (float*)inputDisplacementY->data;
+    	
+    	    for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+    	    {
+    	        h_Displacement_Field_Y[i] = p[i];			
+    	    }
+    	}
+    	else
+    	{
+    	    printf("Unknown data type in displacement y volume, aborting!\n");
+    	    FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    	    FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    	    return EXIT_FAILURE;
+    	}
 
-    if ( inputDisplacementZ->datatype == DT_SIGNED_SHORT )
-    {
-        short int *p = (short int*)inputDisplacementZ->data;
-    
-        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
-        {
-            h_Displacement_Field_Z[i] = (float)p[i];
-        }
-    }
-    else if ( inputDisplacementZ->datatype == DT_FLOAT )
-    {
-        float *p = (float*)inputDisplacementZ->data;
-    
-        for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
-        {
-            h_Displacement_Field_Z[i] = p[i];
-        }
-    }
-    else
-    {
-        printf("Unknown data type in displacement z volume, aborting!\n");
-        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-        return EXIT_FAILURE;
-    }
+    	if ( inputDisplacementZ->datatype == DT_SIGNED_SHORT )
+    	{
+    	    short int *p = (short int*)inputDisplacementZ->data;
+    	
+    	    for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+    	    {
+    	        h_Displacement_Field_Z[i] = (float)p[i];
+    	    }
+    	}
+    	else if ( inputDisplacementZ->datatype == DT_FLOAT )
+    	{
+    	    float *p = (float*)inputDisplacementZ->data;
+    	
+    	    for (size_t i = 0; i < REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D; i++)
+    	    {
+    	        h_Displacement_Field_Z[i] = p[i];
+    	    }
+    	}
+    	else
+    	{
+    	    printf("Unknown data type in displacement z volume, aborting!\n");
+    	    FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    	    FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    	    return EXIT_FAILURE;
+    	}
+	}
+
+	// Read transformation matrix from file
+	if (LINEARTRANSFORMATION && !SCALING && !CENTERING)
+	{
+		std::ifstream matrix;
+
+		// Open design file again
+		matrix.open(matrixFilename);
+
+	    if (!matrix.good())
+	    {
+	        matrix.close();
+	        printf("Unable to open affine matrix file %s. Aborting! \n",matrixFilename);
+			FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+	        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+	        return EXIT_FAILURE;
+	    }
+
+		std::vector<int> indices;
+		indices.push_back(3);
+		indices.push_back(4);
+		indices.push_back(5);
+		indices.push_back(0);
+		indices.push_back(6);
+		indices.push_back(7);
+		indices.push_back(8);
+		indices.push_back(1);
+		indices.push_back(9);
+		indices.push_back(10);
+		indices.push_back(11);
+		indices.push_back(2);
+		indices.push_back(12);
+		indices.push_back(13);
+		indices.push_back(14);
+		indices.push_back(15);
+
+		for (size_t p = 0; p < 16; p++)
+		{
+			if (! (matrix >> h_Registration_Parameters[indices[p]]) )
+			{
+				matrix.close();
+		        printf("Could not read all values of the affine matrix file %s, aborting! Stopped reading at value %zu. \n",matrixFilename,p);      
+		        FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+		        FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+		        return EXIT_FAILURE;
+			}
+		}
+		matrix.close();
+
+		h_Registration_Parameters[3] -= 1.0f;
+		h_Registration_Parameters[7] -= 1.0f;
+		h_Registration_Parameters[11] -= 1.0f;
+
+		if (PRINT)
+		{	
+			printf("\nAffine registration parameters\n");
+			printf(" %f %f %f %f\n", h_Registration_Parameters[3]+1.0f,h_Registration_Parameters[4],h_Registration_Parameters[5],h_Registration_Parameters[0]);
+			printf(" %f %f %f %f\n", h_Registration_Parameters[6],h_Registration_Parameters[7]+1.0f,h_Registration_Parameters[8],h_Registration_Parameters[1]);
+			printf(" %f %f %f %f\n", h_Registration_Parameters[9],h_Registration_Parameters[10],h_Registration_Parameters[11]+1.0f,h_Registration_Parameters[2]);
+			printf(" %f %f %f %f\n\n", 0.0f,0.0f,0.0f,1.0f);
+		}	
+	}
+	else if (LINEARTRANSFORMATION && SCALING && !CENTERING)
+	{
+		for (size_t p = 0; p < 16; p++)
+		{
+			h_Registration_Parameters[p] = 0.0f;
+		}
+
+		h_Registration_Parameters[3] = 1.0f/SCALINGFACTOR;
+		h_Registration_Parameters[7] = 1.0f/SCALINGFACTOR;
+		h_Registration_Parameters[11] = 1.0f/SCALINGFACTOR;
+		h_Registration_Parameters[15] = 1.0f;
+
+		h_Registration_Parameters[3] -= 1.0f;
+		h_Registration_Parameters[7] -= 1.0f;
+		h_Registration_Parameters[11] -= 1.0f;
+
+		if (PRINT)
+		{	
+			printf("\nAffine registration parameters\n");
+			printf(" %f %f %f %f\n", h_Registration_Parameters[3]+1.0f,h_Registration_Parameters[4],h_Registration_Parameters[5],h_Registration_Parameters[0]);
+			printf(" %f %f %f %f\n", h_Registration_Parameters[6],h_Registration_Parameters[7]+1.0f,h_Registration_Parameters[8],h_Registration_Parameters[1]);
+			printf(" %f %f %f %f\n", h_Registration_Parameters[9],h_Registration_Parameters[10],h_Registration_Parameters[11]+1.0f,h_Registration_Parameters[2]);
+			printf(" %f %f %f %f\n\n", 0.0f,0.0f,0.0f,1.0f);
+		}
+	}
             
     //------------------------
     
@@ -587,6 +780,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetT1Width(INPUT_DATA_W);
         BROCCOLI.SetT1Height(INPUT_DATA_H);
         BROCCOLI.SetT1Depth(INPUT_DATA_D);  
+        BROCCOLI.SetT1Timepoints(INPUT_DATA_T);  
 		BROCCOLI.SetT1VoxelSizeX(INPUT_VOXEL_SIZE_X);
 		BROCCOLI.SetT1VoxelSizeY(INPUT_VOXEL_SIZE_Y);
 		BROCCOLI.SetT1VoxelSizeZ(INPUT_VOXEL_SIZE_Z);
@@ -604,6 +798,8 @@ int main(int argc, char **argv)
         BROCCOLI.SetInterpolationMode(INTERPOLATION_MODE);  
 
 		BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);      
+		BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
+
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_Volume);
                 
         if (DEBUG)
@@ -612,7 +808,18 @@ int main(int argc, char **argv)
         }
                           
         // Run the actual transformation
-        BROCCOLI.TransformVolumesNonLinearWrapper();
+		if (CENTERING)
+		{
+			BROCCOLI.CenterVolumesWrapper();
+		}
+		else if (LINEARTRANSFORMATION)
+		{
+	        BROCCOLI.TransformVolumesLinearWrapper();
+		}
+		else 
+		{
+			BROCCOLI.TransformVolumesNonLinearWrapper();
+		}
 		
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
@@ -645,21 +852,45 @@ int main(int argc, char **argv)
         } 
     }        
    
-    // Copy information from input data
-	nifti_image* outputNifti = nifti_copy_nim_info(referenceVolume);    	
+    // Copy information from reference volume
+	nifti_image* outputNifti = nifti_copy_nim_info(referenceVolume);   
+	if (INPUT_DATA_T > 1)
+	{
+		outputNifti->ndim = 4;
+	    outputNifti->dim[0] = 4; 	
+	}
+    outputNifti->nt = INPUT_DATA_T;	
+    outputNifti->dim[4] = INPUT_DATA_T;
+    outputNifti->nvox = REFERENCE_DATA_W * REFERENCE_DATA_H * REFERENCE_DATA_D * INPUT_DATA_T;
 	allNiftiImages[numberOfNiftiImages] = outputNifti;
 	numberOfNiftiImages++;    
 
 	// Change filename and write transformed data to file
-	if (!CHANGE_OUTPUT_FILENAME)
+	if (!CENTERING)
 	{
-    	nifti_set_filenames(outputNifti, inputVolume->fname, 0, 1);
-	    WriteNifti(outputNifti,h_Interpolated_Volume,"_warped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		if (!CHANGE_OUTPUT_FILENAME)
+		{
+	    	nifti_set_filenames(outputNifti, inputVolume->fname, 0, 1);
+		    WriteNifti(outputNifti,h_Interpolated_Volume,"_warped",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+		else 
+		{
+	    	nifti_set_filenames(outputNifti, outputFilename, 0, 1);    	
+		    WriteNifti(outputNifti,h_Interpolated_Volume,"",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);    
+		}
 	}
-	else 
+	else
 	{
-    	nifti_set_filenames(outputNifti, outputFilename, 0, 1);    	
-	    WriteNifti(outputNifti,h_Interpolated_Volume,"",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);    
+		if (!CHANGE_OUTPUT_FILENAME)
+		{
+	    	nifti_set_filenames(outputNifti, inputVolume->fname, 0, 1);
+		    WriteNifti(outputNifti,h_Interpolated_Volume,"_centered",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+		}
+		else 
+		{
+	    	nifti_set_filenames(outputNifti, outputFilename, 0, 1);    	
+		    WriteNifti(outputNifti,h_Interpolated_Volume,"",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);    
+		}
 	}
                              
     // Free all memory

@@ -230,6 +230,7 @@ class BROCCOLI_LIB
 		void SetT1Width(size_t w);
 		void SetT1Height(size_t h);
 		void SetT1Depth(size_t d);
+		void SetT1Timepoints(size_t t);
 
 		// MNI data
 		void SetMNIVoxelSizeX(float value);
@@ -302,6 +303,8 @@ class BROCCOLI_LIB
 		void SetOutputAlignedT1VolumeNonLinear(float*);
 		void SetOutputAlignedEPIVolumeT1(float*);
 		void SetOutputAlignedEPIVolumeMNI(float*);
+		void SetOutputAlignedEPIVolumeMNILinear(float*);
+		void SetOutputAlignedEPIVolumeMNINonlinear(float*);
 		void SetOutputSkullstrippedT1Volume(float*);
 		void SetOutputInterpolatedT1Volume(float*);
 		void SetOutputInterpolatedEPIVolume(float*);
@@ -429,6 +432,8 @@ class BROCCOLI_LIB
 		// Wrappers
 		void PerformRegistrationTwoVolumesWrapper();
 		void TransformVolumesNonLinearWrapper();
+		void TransformVolumesLinearWrapper();
+		void CenterVolumesWrapper();
 		void PerformSliceTimingCorrectionWrapper();
 		void PerformMotionCorrectionWrapper();
 		void PerformSmoothingWrapper();
@@ -682,6 +687,7 @@ class BROCCOLI_LIB
 		void AddAffineRegistrationParameters(float* h_Old_Parameters, float* h_New_Parameters);
 		void AddAffineRegistrationParametersNextScale(float* h_Old_Parameters, float* h_New_Parameters);
 		void AddAffineRegistrationParameters(float* h_Resulting_Parameters, float* h_New_Parameters, float* h_Old_Parameters);
+		void ScaleAffineRegistrationParameters(float* h_Parameters, float OLD_VOXEL_SIZE_X, float OLD_VOXEL_SIZE_Y, float OLD_VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z);  
 		void CalculateRotationAnglesFromRotationMatrix(float* h_Rotations, float* h_Registration_Parameters);
 		void RemoveTransformationScaling(float* h_Registration_Parameters);
 
@@ -1164,7 +1170,7 @@ class BROCCOLI_LIB
 		size_t NUMBER_OF_RUNS;
 		size_t EPI_DATA_W, EPI_DATA_H, EPI_DATA_D, EPI_DATA_T;
 		size_t *EPI_DATA_T_PER_RUN;
-		size_t T1_DATA_W, T1_DATA_H, T1_DATA_D;
+		size_t T1_DATA_W, T1_DATA_H, T1_DATA_D, T1_DATA_T;
 		size_t MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
 		size_t CURRENT_DATA_W, CURRENT_DATA_H, CURRENT_DATA_D;
 
@@ -1286,7 +1292,8 @@ class BROCCOLI_LIB
 		float		*h_Aligned_T1_Volume_Linear;
 		float		*h_Aligned_T1_Volume_NonLinear;
 		float		*h_Aligned_EPI_Volume_T1;
-		float		*h_Aligned_EPI_Volume_MNI;
+		float		*h_Aligned_EPI_Volume_MNI_Linear;
+		float		*h_Aligned_EPI_Volume_MNI_Nonlinear;
 		float		*h_Skullstripped_T1_Volume;
 		float		*h_Interpolated_T1_Volume;
 		float		*h_Interpolated_EPI_Volume;
@@ -1314,6 +1321,8 @@ class BROCCOLI_LIB
 		double		 h_A_Matrix_double[144], h_h_Vector_double[12];
 
 		float 		 h_Registration_Parameters[12], h_Inverse_Registration_Parameters[12], h_Registration_Parameters_Old[12], h_Registration_Parameters_Temp[12];
+		float		 h_Center_Parameters[12], h_Match_Parameters[12];
+		float		 h_StartParameters_T1_MNI[12];
 		float		 h_StartParameters_EPI[12], h_StartParameters_EPI_Original[12], h_StartParameters_EPI_T1[12], h_StartParameters_EPI_T1_Original[12];
 		float		 h_Registration_Parameters_EPI_T1_Affine[12], h_Registration_Parameters_EPI_T1_Translation[12], h_Registration_Parameters_EPI_T1_Rigid[12], h_Registration_Parameters_EPI_MNI[12], h_Registration_Parameters_EPI_T1[6], *h_Registration_Parameters_EPI_T1_Out, *h_Registration_Parameters_EPI_MNI_Out;
 		float		 h_Registration_Parameters_EPI_T1_Affine_Original[12], h_Registration_Parameters_EPI_T1_Translation_Original[12], h_Registration_Parameters_EPI_T1_Rigid_Original[12];

@@ -38,7 +38,7 @@ int main(int argc, char **argv)
     //-----------------------
     // Input pointers
     
-    float           *h_fMRI_Volumes, *h_fMRI_Volumes_MNI, *h_T1_Volume, *h_Interpolated_T1_Volume, *h_Aligned_T1_Volume_Linear, *h_Aligned_T1_Volume_NonLinear, *h_MNI_Volume, *h_MNI_Brain_Volume, *h_MNI_Brain_Mask, *h_Aligned_EPI_Volume_T1, *h_Aligned_EPI_Volume_MNI; 
+    float           *h_fMRI_Volumes, *h_fMRI_Volumes_MNI, *h_T1_Volume, *h_Interpolated_T1_Volume, *h_Aligned_T1_Volume_Linear, *h_Aligned_T1_Volume_NonLinear, *h_MNI_Volume, *h_MNI_Brain_Volume, *h_MNI_Brain_Mask, *h_Aligned_EPI_Volume_T1, *h_Aligned_EPI_Volume_MNI_Linear, *h_Aligned_EPI_Volume_MNI_Nonlinear; 
   
     float           *h_Quadrature_Filter_1_Linear_Registration_Real, *h_Quadrature_Filter_2_Linear_Registration_Real, *h_Quadrature_Filter_3_Linear_Registration_Real, *h_Quadrature_Filter_1_Linear_Registration_Imag, *h_Quadrature_Filter_2_Linear_Registration_Imag, *h_Quadrature_Filter_3_Linear_Registration_Imag;
     float           *h_Quadrature_Filter_1_NonLinear_Registration_Real, *h_Quadrature_Filter_2_NonLinear_Registration_Real, *h_Quadrature_Filter_3_NonLinear_Registration_Real, *h_Quadrature_Filter_1_NonLinear_Registration_Imag, *h_Quadrature_Filter_2_NonLinear_Registration_Imag, *h_Quadrature_Filter_3_NonLinear_Registration_Imag;
@@ -180,6 +180,7 @@ int main(int argc, char **argv)
     float			SIGNIFICANCE_LEVEL = 0.05f;
 	int				TEST_STATISTICS = 0;
     
+	bool			WRITE_TRANSFORMATION_MATRICES = false;
     bool            WRITE_INTERPOLATED_T1 = false;
     bool            WRITE_ALIGNED_T1_MNI_LINEAR = false;
     bool            WRITE_ALIGNED_T1_MNI_NONLINEAR = false;
@@ -279,6 +280,7 @@ int main(int argc, char **argv)
 
         printf("Misc options:\n\n");
         //printf(" -savecompact               Save beta values, contrast results and t-/F-scores as single files, instead of one per regressor/contrast (default no)\n");
+        printf(" -savetransformations       Save all affine transformation matrices (T1-MNI,EPI-T1,EPI-MNI) (default no) \n");
         printf(" -savet1interpolated        Save T1 volume after resampling to MNI voxel size and resizing to MNI size (default no) \n");
         printf(" -savet1alignedlinear       Save T1 volume linearly aligned to the MNI volume (default no) \n");
         printf(" -savet1alignednonlinear    Save T1 volume non-linearly aligned to the MNI volume (default no) \n");
@@ -929,6 +931,11 @@ int main(int argc, char **argv)
         else if (strcmp(input,"-savecompact") == 0)
         {
             WRITE_COMPACT = true;
+            i += 1;
+        }
+        else if (strcmp(input,"-savetransformations") == 0)
+        {
+            WRITE_TRANSFORMATION_MATRICES = true;
             i += 1;
         }
         else if (strcmp(input,"-savet1interpolated") == 0)
@@ -1836,7 +1843,8 @@ int main(int argc, char **argv)
 	}
 	if (WRITE_ALIGNED_EPI_MNI)
 	{
-        AllocateMemory(h_Aligned_EPI_Volume_MNI, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "ALIGNED_EPI_MNI");
+        AllocateMemory(h_Aligned_EPI_Volume_MNI_Linear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "ALIGNED_EPI_MNI_Linear");
+        AllocateMemory(h_Aligned_EPI_Volume_MNI_Nonlinear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "ALIGNED_EPI_MNI_Nonlinear");
 	}
 
 	AllocateMemory(h_Quadrature_Filter_1_Linear_Registration_Real, FILTER_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "QUADRATURE_FILTER_1_LINEAR_REGISTRATION_REAL");    
@@ -2346,47 +2354,8 @@ int main(int argc, char **argv)
 			const char* extension = "_original_designmatrix.txt";
 			char* filenameWithExtension;
 
-			// Find the dot in the original filename
-			if (!CHANGE_OUTPUT_FILENAME)
-			{
-			    const char* p = inputfMRI->fname;
-			    int dotPosition = 0;
-			    while ( (p != NULL) && ((*p) != '.') )
-			    {
-			        p++;
-			        dotPosition++;
-			    }
-    		
-			    // Allocate temporary array
-			    filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
-		
-			    // Copy filename to the dot
-			    strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
-    			filenameWithExtension[dotPosition] = '\0';
-			}
-			else
-			{
-			    const char* p = outputFilename;
-			    int dotPosition = 0;
-				int i = 0;
-			    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
-			    {
-			        p++;
-			        dotPosition++;
-					i++;
-			    }
-    	
-			    // Allocate temporary array
-			    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
-		
-			    // Copy filename to the dot
-			    strncpy(filenameWithExtension,outputFilename,dotPosition);
-    			filenameWithExtension[dotPosition] = '\0';
-			}
-	
-    		// Add the extension
-    		strcat(filenameWithExtension,extension);
-	
+			CreateFilename(filenameWithExtension, inputfMRI, extension, CHANGE_OUTPUT_FILENAME, outputFilename);
+			
     		designmatrix.open(filenameWithExtension);    
 
 			if ( designmatrix.good() )
@@ -2960,7 +2929,8 @@ int main(int argc, char **argv)
         BROCCOLI.SetOutputAlignedT1VolumeLinear(h_Aligned_T1_Volume_Linear);
         BROCCOLI.SetOutputAlignedT1VolumeNonLinear(h_Aligned_T1_Volume_NonLinear);
         BROCCOLI.SetOutputAlignedEPIVolumeT1(h_Aligned_EPI_Volume_T1);
-        BROCCOLI.SetOutputAlignedEPIVolumeMNI(h_Aligned_EPI_Volume_MNI);
+        BROCCOLI.SetOutputAlignedEPIVolumeMNILinear(h_Aligned_EPI_Volume_MNI_Linear);
+        BROCCOLI.SetOutputAlignedEPIVolumeMNINonlinear(h_Aligned_EPI_Volume_MNI_Nonlinear);
         BROCCOLI.SetOutputEPIMask(h_EPI_Mask);
         BROCCOLI.SetOutputMNIMask(h_MNI_Mask);
         BROCCOLI.SetOutputSliceTimingCorrectedfMRIVolumes(h_Slice_Timing_Corrected_fMRI_Volumes);
@@ -3054,6 +3024,81 @@ int main(int argc, char **argv)
     
     startTime = GetWallTime();
 
+	if (WRITE_TRANSFORMATION_MATRICES)
+	{		
+		const char* extension1 = "_affinematrix_t1_mni.txt";
+		char* filenameWithExtension;
+
+		CreateFilename(filenameWithExtension, inputT1, extension1, CHANGE_OUTPUT_FILENAME, outputFilename);
+
+		std::ofstream matrix;
+	    matrix.open(filenameWithExtension);      
+	    if ( matrix.good() )
+	    {
+	        matrix.precision(6);
+
+	        matrix << h_T1_MNI_Registration_Parameters[3]+1.0f << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[4] << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[5] << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[0] << std::endl;
+	        matrix << h_T1_MNI_Registration_Parameters[6] << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[7] + 1.0f << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[8] << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[1] << std::endl;
+	        matrix << h_T1_MNI_Registration_Parameters[9] << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[10] << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[11] + 1.0f << std::setw(2) << " " << h_T1_MNI_Registration_Parameters[2] << std::endl;
+	        matrix << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 1.0f << std::endl;
+
+	        matrix.close();
+	    }
+	    else
+	    {
+	        printf("Could not open %s for writing!\n",filenameWithExtension);
+	    }
+		free(filenameWithExtension);
+
+
+
+		const char* extension2 = "_affinematrix_epi_t1.txt";
+		CreateFilename(filenameWithExtension, inputfMRI, extension2, CHANGE_OUTPUT_FILENAME, outputFilename);
+
+	    matrix.open(filenameWithExtension);      
+	    if ( matrix.good() )
+	    {
+	        matrix.precision(6);
+
+	        matrix << h_EPI_T1_Registration_Parameters[3]+1.0f << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[4] << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[5] << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[0] << std::endl;
+	        matrix << h_EPI_T1_Registration_Parameters[6] << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[7] + 1.0f << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[8] << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[1] << std::endl;
+	        matrix << h_EPI_T1_Registration_Parameters[9] << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[10] << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[11] + 1.0f << std::setw(2) << " " << h_EPI_T1_Registration_Parameters[2] << std::endl;
+	        matrix << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 1.0f << std::endl;
+
+	        matrix.close();
+	    }
+	    else
+	    {
+	        printf("Could not open %s for writing!\n",filenameWithExtension);
+	    }
+		free(filenameWithExtension);
+
+
+
+
+		const char* extension3 = "_affinematrix_epi_mni.txt";
+		CreateFilename(filenameWithExtension, inputfMRI, extension3, CHANGE_OUTPUT_FILENAME, outputFilename);
+
+	    matrix.open(filenameWithExtension);      
+	    if ( matrix.good() )
+	    {
+	        matrix.precision(6);
+
+	        matrix << h_EPI_MNI_Registration_Parameters[3]+1.0f << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[4] << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[5] << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[0] << std::endl;
+	        matrix << h_EPI_MNI_Registration_Parameters[6] << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[7] + 1.0f << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[8] << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[1] << std::endl;
+	        matrix << h_EPI_MNI_Registration_Parameters[9] << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[10] << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[11] + 1.0f << std::setw(2) << " " << h_EPI_MNI_Registration_Parameters[2] << std::endl;
+	        matrix << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 0.0f << std::setw(2) << " " << 1.0f << std::endl;
+
+	        matrix.close();
+	    }
+	    else
+	    {
+	        printf("Could not open %s for writing!\n",filenameWithExtension);
+	    }
+		free(filenameWithExtension);
+
+	}
+
 	inputfMRI = allfMRINiftiImages[0];
 
 	// Write total design matrix to file
@@ -3064,46 +3109,7 @@ int main(int argc, char **argv)
 		const char* extension = "_total_designmatrix.txt";
 		char* filenameWithExtension;
 
-		// Find the dot in the original filename
-		if (!CHANGE_OUTPUT_FILENAME)
-		{
-		    const char* p = inputfMRI->fname;
-		    int dotPosition = 0;
-		    while ( (p != NULL) && ((*p) != '.') )
-		    {
-		        p++;
-		        dotPosition++;
-		    }
-    	
-		    // Allocate temporary array
-		    filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
-	
-		    // Copy filename to the dot
-		    strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
-    		filenameWithExtension[dotPosition] = '\0';
-		}
-		else
-		{
-		    const char* p = outputFilename;
-		    int dotPosition = 0;
-			int i = 0;
-		    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
-		    {
-		        p++;
-		        dotPosition++;
-				i++;
-		    }
-    
-		    // Allocate temporary array
-		    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
-	
-		    // Copy filename to the dot
-		    strncpy(filenameWithExtension,outputFilename,dotPosition);
-    		filenameWithExtension[dotPosition] = '\0';
-		}
-
-    	// Add the extension
-    	strcat(filenameWithExtension,extension);
+		CreateFilename(filenameWithExtension, inputfMRI, extension, CHANGE_OUTPUT_FILENAME, outputFilename);
 
     	designmatrix.open(filenameWithExtension);    
 
@@ -3136,43 +3142,7 @@ int main(int argc, char **argv)
 	  	const char* extension = "_motionparameters.1D";
 		char* filenameWithExtension;
 
-		// Find the dot in the original filename
-		if (!CHANGE_OUTPUT_FILENAME)
-		{
-		    const char* p = inputfMRI->fname;
-		    int dotPosition = 0;
-		    while ( (p != NULL) && ((*p) != '.') )
-		    {
-		        p++;
-		        dotPosition++;
-		    }
-    	
-		    // Allocate temporary array
-		    filenameWithExtension = (char*)malloc(strlen(inputfMRI->fname) + strlen(extension) + 1);
-	
-		    // Copy filename to the dot
-		    strncpy(filenameWithExtension,inputfMRI->fname,dotPosition);
-    		filenameWithExtension[dotPosition] = '\0';
-		}
-		else
-		{
-		    const char* p = outputFilename;
-		    int dotPosition = 0;
-			int i = 0;
-		    while ( (p != NULL) && ((*p) != '.') && (i < strlen(outputFilename)) )
-		    {
-		        p++;
-		        dotPosition++;
-				i++;
-		    }
-    
-		    // Allocate temporary array
-		    filenameWithExtension = (char*)malloc(strlen(outputFilename) + strlen(extension) + 1);
-	
-		    // Copy filename to the dot
-		    strncpy(filenameWithExtension,outputFilename,dotPosition);
-    		filenameWithExtension[dotPosition] = '\0';
-		}
+		CreateFilename(filenameWithExtension, inputfMRI, extension, CHANGE_OUTPUT_FILENAME, outputFilename);
 
     	// Add the extension
     	strcat(filenameWithExtension,extension);
@@ -3261,7 +3231,8 @@ int main(int argc, char **argv)
 		}    
 		if (WRITE_ALIGNED_EPI_MNI)
 		{
-	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI,"_epi_aligned_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI_Linear,"_epi_aligned_mni_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI_Nonlinear,"_epi_aligned_mni_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		}    
 	}
 	else
@@ -3274,7 +3245,8 @@ int main(int argc, char **argv)
 		}    
 		if (WRITE_ALIGNED_EPI_MNI)
 		{
-	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI,"_aligned_mni",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI_Linear,"_aligned_mni_linear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
+	    	WriteNifti(outputNiftiEPI,h_Aligned_EPI_Volume_MNI_Nonlinear,"_aligned_mni_nonlinear",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 		}    
 	}
 

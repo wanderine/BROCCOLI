@@ -3819,6 +3819,11 @@ void BROCCOLI_LIB::SetT1Depth(size_t d)
 	T1_DATA_D = d;
 }
 
+void BROCCOLI_LIB::SetT1Timepoints(size_t t)
+{
+	T1_DATA_T = t;
+}
+
 void BROCCOLI_LIB::SetMNIWidth(size_t w)
 {
 	MNI_DATA_W = w;
@@ -4230,9 +4235,14 @@ void BROCCOLI_LIB::SetOutputAlignedEPIVolumeT1(float* aligned)
 	h_Aligned_EPI_Volume_T1 = aligned;
 }
 
-void BROCCOLI_LIB::SetOutputAlignedEPIVolumeMNI(float* aligned)
+void BROCCOLI_LIB::SetOutputAlignedEPIVolumeMNILinear(float* aligned)
 {
-	h_Aligned_EPI_Volume_MNI = aligned;
+	h_Aligned_EPI_Volume_MNI_Linear = aligned;
+}
+
+void BROCCOLI_LIB::SetOutputAlignedEPIVolumeMNINonlinear(float* aligned)
+{
+	h_Aligned_EPI_Volume_MNI_Nonlinear = aligned;
 }
 
 void BROCCOLI_LIB::SetOutputSkullstrippedT1Volume(float* skullstripped)
@@ -6964,6 +6974,88 @@ void BROCCOLI_LIB::ChangeVolumesResolutionAndSize(cl_mem d_New_Volumes,
 	clReleaseMemObject(d_Volume_Texture);
 }
 
+void BROCCOLI_LIB::ScaleAffineRegistrationParameters(float* h_Parameters, float OLD_VOXEL_SIZE_X, float OLD_VOXEL_SIZE_Y, float OLD_VOXEL_SIZE_Z, float NEW_VOXEL_SIZE_X, float NEW_VOXEL_SIZE_Y, float NEW_VOXEL_SIZE_Z)
+{
+	// Put parameters in 4 x 4 affine transformation matrix
+
+	// (p3 p4  p5  tx)
+	// (p6 p7  p8  ty)
+	// (p9 p10 p11 tz)
+	// (0  0   0   1 )
+
+	Eigen::MatrixXd Affine_Matrix(4,4);
+	Eigen::MatrixXd Scaling_Matrix(4,4);
+
+	// Put values into an Eigen matrix, and convert to double
+	// Add ones in the diagonal, to get a transformation matrix
+	// First row
+	Affine_Matrix(0,0) = (double)(h_Parameters[3] + 1.0f);
+	Affine_Matrix(0,1) = (double)h_Parameters[4];
+	Affine_Matrix(0,2) = (double)h_Parameters[5];
+	Affine_Matrix(0,3) = (double)h_Parameters[0];
+
+	// Second row
+	Affine_Matrix(1,0) = (double)h_Parameters[6];
+	Affine_Matrix(1,1) = (double)(h_Parameters[7] + 1.0f);
+	Affine_Matrix(1,2) = (double)h_Parameters[8];
+	Affine_Matrix(1,3) = (double)h_Parameters[1];
+
+	// Third row
+	Affine_Matrix(2,0)  = (double)h_Parameters[9];
+	Affine_Matrix(2,1)  = (double)h_Parameters[10];
+	Affine_Matrix(2,2) = (double)(h_Parameters[11] + 1.0f);
+	Affine_Matrix(2,3) = (double)h_Parameters[2];
+
+	// Fourth row
+	Affine_Matrix(3,0) = 0.0;
+	Affine_Matrix(3,1) = 0.0;
+	Affine_Matrix(3,2) = 0.0;
+	Affine_Matrix(3,3) = 1.0;
+
+	Scaling_Matrix(0,0) = NEW_VOXEL_SIZE_X/OLD_VOXEL_SIZE_X;
+	Scaling_Matrix(0,1) = 0.0f;
+	Scaling_Matrix(0,2) = 0.0f;
+	Scaling_Matrix(0,3) = 0.0f;
+
+	Scaling_Matrix(1,0) = 0.0f;
+	Scaling_Matrix(1,1) = NEW_VOXEL_SIZE_Y/OLD_VOXEL_SIZE_Y;
+	Scaling_Matrix(1,2) = 0.0f;
+	Scaling_Matrix(1,3) = 0.0f;
+
+	Scaling_Matrix(2,0) = 0.0f;
+	Scaling_Matrix(2,1) = 0.0f;
+	Scaling_Matrix(2,2) = NEW_VOXEL_SIZE_Z/OLD_VOXEL_SIZE_Z;
+	Scaling_Matrix(2,3) = 0.0f;
+
+	Scaling_Matrix(3,0) = 0.0f;
+	Scaling_Matrix(3,1) = 0.0f;
+	Scaling_Matrix(3,2) = 0.0f;
+	Scaling_Matrix(3,3) = 1.0f;
+
+	Eigen::MatrixXd Total_Matrix = Affine_Matrix * Scaling_Matrix;
+
+	// Subtract ones in the diagonal
+
+	// Put back translation parameters into array
+	h_Parameters[0] = (float)Total_Matrix(0,3);
+	h_Parameters[1] = (float)Total_Matrix(1,3);
+	h_Parameters[2] = (float)Total_Matrix(2,3);
+
+	// First row
+	h_Parameters[3] = (float)(Total_Matrix(0,0) - 1.0);
+	h_Parameters[4] = (float)Total_Matrix(0,1);
+	h_Parameters[5] = (float)Total_Matrix(0,2);
+
+	// Second row
+	h_Parameters[6] = (float)Total_Matrix(1,0);
+	h_Parameters[7] = (float)(Total_Matrix(1,1) - 1.0);
+	h_Parameters[8] = (float)Total_Matrix(1,2);
+
+	// Third row
+	h_Parameters[9] = (float)Total_Matrix(2,0);
+	h_Parameters[10] = (float)Total_Matrix(2,1);
+	h_Parameters[11] = (float)(Total_Matrix(2,2) - 1.0);
+}
 
 // Inverts parameters for affine transformation
 void BROCCOLI_LIB::InvertAffineRegistrationParameters(float* h_Inverse_Parameters, float* h_Parameters)
@@ -7636,12 +7728,13 @@ void BROCCOLI_LIB::PermuteMatrixDouble(cl_mem d_Permuted_Matrix, cl_mem d_Matrix
 void BROCCOLI_LIB::PerformRegistrationEPIT1()
 {
 	// Make sure that we start from the center, save the translation parameters
-	CenterVolumeMass(d_EPI_Volume, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
+	//CenterVolumeMass(d_EPI_Volume, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Reset total registration parameters
 	for (int p = 0; p < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; p++)
 	{
 		h_Registration_Parameters_EPI_T1_Affine[p] = 0.0f;
+		h_StartParameters_EPI[p] = 0.0f;
 	}
 
 	// Make a segmentation of the EPI volume first
@@ -7769,13 +7862,14 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
 	{
 		// Put input volume in the center of the volume
-		CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+		//CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+		//CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
 
     	// Change resolution and size of input volume
     	ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
 	
 		// Make sure that the two volumes overlap from start
-		MatchVolumeMasses(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+		MatchVolumeMasses(d_Input_Volume_Reference_Size, d_Reference_Volume, h_Match_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 		// Copy the interpolated volume to host
 		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
@@ -7791,23 +7885,33 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 		clEnqueueWriteBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
 	}
 
+	AddAffineRegistrationParameters(h_Registration_Parameters_T1_MNI_Out, h_Match_Parameters);
+
 	// Perform non-Linear registration
 	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
 	{
 		AlignTwoVolumesNonLinearSeveralScales(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
 
-		// Copy the non-linearly aligned volume to host
-		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonLinear, 0, NULL, NULL);
-
-		if (WRITE_DISPLACEMENT_FIELD)
+		// Do total interpolation in one step, to reduce smoothness
+		if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
 		{
 			CreateCombinedDisplacementField(h_Registration_Parameters_T1_MNI_Out,d_Total_Displacement_Field_X,d_Total_Displacement_Field_Y,d_Total_Displacement_Field_Z,MNI_DATA_W,MNI_DATA_H,MNI_DATA_D);
+
+			ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
 	
-			// Copy the displacement field to host
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
+			TransformVolumesNonLinear(d_Input_Volume_Reference_Size, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
 		}
+
+		// Copy the non-linearly aligned volume to host
+		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonLinear, 0, NULL, NULL);
+	}
+
+	if (WRITE_DISPLACEMENT_FIELD)
+	{		    	
+		// Copy the displacement field to host
+		clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
+		clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
 
 		clReleaseMemObject(d_Total_Displacement_Field_X);
 		clReleaseMemObject(d_Total_Displacement_Field_Y);
@@ -7815,28 +7919,11 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 	}
 	else
 	{
-		if (WRITE_DISPLACEMENT_FIELD)
-		{
-			d_Total_Displacement_Field_X = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-			d_Total_Displacement_Field_Y = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-			d_Total_Displacement_Field_Z = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-
-			SetMemory(d_Total_Displacement_Field_X, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
-			SetMemory(d_Total_Displacement_Field_Y, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
-			SetMemory(d_Total_Displacement_Field_Z, 0.0f, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D);
-
-			CreateCombinedDisplacementField(h_Registration_Parameters_T1_MNI_Out,d_Total_Displacement_Field_X,d_Total_Displacement_Field_Y,d_Total_Displacement_Field_Z,MNI_DATA_W,MNI_DATA_H,MNI_DATA_D);
-	
-			// Copy the displacement field to host
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
-		
-			clReleaseMemObject(d_Total_Displacement_Field_X);
-			clReleaseMemObject(d_Total_Displacement_Field_Y);
-			clReleaseMemObject(d_Total_Displacement_Field_Z);
-		}
+		clReleaseMemObject(d_Total_Displacement_Field_X);
+		clReleaseMemObject(d_Total_Displacement_Field_Y);
+		clReleaseMemObject(d_Total_Displacement_Field_Z);
 	}
+
 
 	if (DO_SKULLSTRIP)
 	{
@@ -7919,26 +8006,26 @@ void BROCCOLI_LIB::CreateCombinedDisplacementField(float* h_Registration_Paramet
 void BROCCOLI_LIB::TransformVolumesNonLinearWrapper()
 {
 	// Allocate memory for volume and displacement field
-	cl_mem d_Input_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
-	cl_mem d_Input_Volume_Reference_Size = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+	cl_mem d_Input_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float), NULL, NULL);
+	cl_mem d_Input_Volume_Reference_Size = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * T1_DATA_T * sizeof(float), NULL, NULL);
 	d_Total_Displacement_Field_X = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_Total_Displacement_Field_Y = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	d_Total_Displacement_Field_Z = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
 	// Copy data to device
-	clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float), h_T1_Volume , 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X , 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y , 0, NULL, NULL);
 	clEnqueueWriteBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z , 0, NULL, NULL);
 
 	// Change resolution and size of input volume
-	ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
+	ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, T1_DATA_T, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
 
 	// Apply the transformation
-	TransformVolumesNonLinear(d_Input_Volume_Reference_Size, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+	TransformVolumesNonLinear(d_Input_Volume_Reference_Size, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_DATA_T, INTERPOLATION_MODE);
 
 	// Copy the transformed volume to host
-	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
+	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * T1_DATA_T * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
 
 	// Release memory
 	clReleaseMemObject(d_Input_Volume);
@@ -7948,7 +8035,51 @@ void BROCCOLI_LIB::TransformVolumesNonLinearWrapper()
 	clReleaseMemObject(d_Total_Displacement_Field_Z);
 }
 
+void BROCCOLI_LIB::TransformVolumesLinearWrapper()
+{
+	// Allocate memory for volumes 
+	cl_mem d_Input_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float), NULL, NULL);
+	cl_mem d_Input_Volume_Reference_Size = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * T1_DATA_T * sizeof(float), NULL, NULL);
 
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+
+	// Change resolution and size of input volume
+	ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, T1_DATA_T, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
+
+	// Apply the transformation
+	TransformVolumesLinear(d_Input_Volume_Reference_Size, h_Registration_Parameters_T1_MNI_Out, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_DATA_T, INTERPOLATION_MODE);
+
+	// Copy the transformed volume to host
+	clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * T1_DATA_T * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
+
+	// Release memory
+	clReleaseMemObject(d_Input_Volume);
+	clReleaseMemObject(d_Input_Volume_Reference_Size);
+}
+
+void BROCCOLI_LIB::CenterVolumesWrapper()
+{
+	// Allocate memory for volumes 
+	cl_mem d_Input_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float), NULL, NULL);
+
+	// Copy data to device
+	clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+
+	CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+	
+	// Copy first volume again
+	clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+
+	// Apply the transformation to all volumes
+	TransformVolumesLinear(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D, T1_DATA_T, INTERPOLATION_MODE);
+
+	// Copy the centered volumes to host
+	clEnqueueReadBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
+
+	// Release memory
+	clReleaseMemObject(d_Input_Volume);
+}
 
 
 
@@ -7956,12 +8087,12 @@ void BROCCOLI_LIB::TransformVolumesNonLinearWrapper()
 void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstrip()
 {
 	// Make sure that we start from the center
-	CenterVolumeMass(d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+	//CenterVolumeMass(d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
 
 	ChangeVolumesResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
 
 	// Make sure that the volumes overlap from start
-	MatchVolumeMasses(d_MNI_T1_Volume, d_MNI_Brain_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+	MatchVolumeMasses(d_MNI_T1_Volume, d_MNI_Brain_Volume, h_StartParameters_T1_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
 	// Copy result to skullstripped T1 volume, which will be used for the EPI-T1 registration
 	clEnqueueCopyBuffer(commandQueue, d_MNI_T1_Volume, d_Skullstripped_T1_Volume, 0, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), 0, NULL, NULL);
@@ -8235,18 +8366,7 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	PerformRegistrationT1MNINoSkullstrip();
 
-	h_Registration_Parameters_T1_MNI_Out[0] = h_Registration_Parameters_T1_MNI[0];
-	h_Registration_Parameters_T1_MNI_Out[1] = h_Registration_Parameters_T1_MNI[1];
-	h_Registration_Parameters_T1_MNI_Out[2] = h_Registration_Parameters_T1_MNI[2];
-	h_Registration_Parameters_T1_MNI_Out[3] = h_Registration_Parameters_T1_MNI[3];
-	h_Registration_Parameters_T1_MNI_Out[4] = h_Registration_Parameters_T1_MNI[4];
-	h_Registration_Parameters_T1_MNI_Out[5] = h_Registration_Parameters_T1_MNI[5];
-	h_Registration_Parameters_T1_MNI_Out[6] = h_Registration_Parameters_T1_MNI[6];
-	h_Registration_Parameters_T1_MNI_Out[7] = h_Registration_Parameters_T1_MNI[7];
-	h_Registration_Parameters_T1_MNI_Out[8] = h_Registration_Parameters_T1_MNI[8];
-	h_Registration_Parameters_T1_MNI_Out[9] = h_Registration_Parameters_T1_MNI[9];
-	h_Registration_Parameters_T1_MNI_Out[10] = h_Registration_Parameters_T1_MNI[10];
-	h_Registration_Parameters_T1_MNI_Out[11] = h_Registration_Parameters_T1_MNI[11];
+	AddAffineRegistrationParameters(h_Registration_Parameters_T1_MNI_Out,h_Registration_Parameters_T1_MNI,h_StartParameters_T1_MNI);
 
 	// Cleanup
 	clReleaseMemObject(d_MNI_Brain_Volume);
@@ -8290,11 +8410,12 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 	if (WRITE_ALIGNED_EPI_MNI)
 	{
 		TransformVolumesLinear(d_T1_EPI_Volume, h_Registration_Parameters_T1_MNI, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+		clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume_MNI_Linear, 0, NULL, NULL);
 		if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
 		{
 			TransformVolumesNonLinear(d_T1_EPI_Volume, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
-		}
-		clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume_MNI, 0, NULL, NULL);
+			clEnqueueReadBuffer(commandQueue, d_T1_EPI_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_EPI_Volume_MNI_Nonlinear, 0, NULL, NULL);
+		}		
 	}
 
 	// Cleanup
@@ -8308,30 +8429,38 @@ void BROCCOLI_LIB::PerformFirstLevelAnalysisWrapper()
 
 	deviceMemoryDeallocations += 4;
 
-	PrintMemoryStatus("After EPI-T1 registration");
-
-	h_Registration_Parameters_EPI_T1_Out[0] = h_Registration_Parameters_EPI_T1[0];
-	h_Registration_Parameters_EPI_T1_Out[1] = h_Registration_Parameters_EPI_T1[1];
-	h_Registration_Parameters_EPI_T1_Out[2] = h_Registration_Parameters_EPI_T1[2];
-	h_Registration_Parameters_EPI_T1_Out[3] = h_Registration_Parameters_EPI_T1[3];
-	h_Registration_Parameters_EPI_T1_Out[4] = h_Registration_Parameters_EPI_T1[4];
-	h_Registration_Parameters_EPI_T1_Out[5] = h_Registration_Parameters_EPI_T1[5];
+	PrintMemoryStatus("After EPI-T1 registration");	
 
 	// Concatenate transformation between T1 and MNI, and fMRI and T1, to get registration between fMRI and MNI
 	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_MNI,h_Registration_Parameters_T1_MNI,h_Registration_Parameters_EPI_T1_Affine);
 
-	h_Registration_Parameters_EPI_MNI_Out[0] = h_Registration_Parameters_EPI_MNI[0];
-	h_Registration_Parameters_EPI_MNI_Out[1] = h_Registration_Parameters_EPI_MNI[1];
-	h_Registration_Parameters_EPI_MNI_Out[2] = h_Registration_Parameters_EPI_MNI[2];
-	h_Registration_Parameters_EPI_MNI_Out[3] = h_Registration_Parameters_EPI_MNI[3];
-	h_Registration_Parameters_EPI_MNI_Out[4] = h_Registration_Parameters_EPI_MNI[4];
-	h_Registration_Parameters_EPI_MNI_Out[5] = h_Registration_Parameters_EPI_MNI[5];
-	h_Registration_Parameters_EPI_MNI_Out[6] = h_Registration_Parameters_EPI_MNI[6];
-	h_Registration_Parameters_EPI_MNI_Out[7] = h_Registration_Parameters_EPI_MNI[7];
-	h_Registration_Parameters_EPI_MNI_Out[8] = h_Registration_Parameters_EPI_MNI[8];
-	h_Registration_Parameters_EPI_MNI_Out[9] = h_Registration_Parameters_EPI_MNI[9];
-	h_Registration_Parameters_EPI_MNI_Out[10] = h_Registration_Parameters_EPI_MNI[10];
-	h_Registration_Parameters_EPI_MNI_Out[11] = h_Registration_Parameters_EPI_MNI[11];
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Out,h_Registration_Parameters_EPI_T1_Affine,h_StartParameters_EPI_T1);
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_MNI_Out,h_Registration_Parameters_T1_MNI,h_Registration_Parameters_EPI_T1_Out);
+
+	//---------------------------------------------------------------------------------------------------------------------------------------
+	// EPI - T1 original
+	//---------------------------------------------------------------------------------------------------------------------------------------
+
+	// Allocate memory on device
+	d_T1_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+	d_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	d_T1_EPI_Volume = clCreateBuffer(context, CL_MEM_READ_WRITE,  T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), NULL, NULL);
+
+	// Copy original T1 volume to device
+	clEnqueueWriteBuffer(commandQueue, d_T1_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume, 0, NULL, NULL);
+
+	// Copy first fMRI volume to device
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Volume, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_fMRI_Volumes, 0, NULL, NULL);
+
+	// Register original fMRI volume to original T1 volume
+	PerformRegistrationEPIT1Original();
+
+	// Cleanup
+	clReleaseMemObject(d_T1_Volume);
+	clReleaseMemObject(d_EPI_Volume);
+	clReleaseMemObject(d_T1_EPI_Volume);
+
+	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Out,h_Registration_Parameters_EPI_T1_Affine_Original,h_StartParameters_EPI_T1_Original);
 
 	//---------------------------------------------------------------------------------------------------------------------------------------
 	// Slice timing correction
