@@ -47,7 +47,7 @@ The following registration options are available
 
 \section{Outputs}
 
-By default, the function saves the results as input\_volume\_aligned\_linear.nii (the result after linear registration) and input\_volume\_aligned\_nonlinear.nii (the result after non-linear registration). 
+By default, the function saves the results as input\_volume\_aligned\_linear.nii (the result after linear registration) and input\_volume\_aligned\_nonlinear.nii (the result after non-linear registration). If -savematrix is used, the estimated affine transformation matrix will be saved as input\_volume\_affinematrix.txt.
 
 %\newpage 
 
@@ -57,14 +57,17 @@ The following output options are available
 
 \begin{itemize}
 
+\item -savematrix
+\newline \newline Save the estimated affine transformation matrix to a textfile (default false). It can be used with the function TransformVolume.
+
 \item -savefield                 
-\newline \newline Save the estimated displacement field to file (default false). This will generate input\_volume\_displacement\_x.nii, input\_volume\_displacement\_y.nii.gz and input\_volume\_displacement\_z.nii.gz. They can be used with the function TransformVolume.
+\newline \newline Save the estimated non-linear displacement field to file (default false). This will generate input\_volume\_displacement\_x.nii,\\ input\_volume\_displacement\_y.nii.gz and input\_volume\_displacement\_z.nii.gz. They can be used with the function TransformVolume.
 
 \item -saveinterpolated          
 \newline \newline Save the input volume rescaled and resized to the size and resolution of the reference volume, before alignment (default false). 
 
 \item -output 
-\newline \newline Set output filename (default input\_volume\_aligned\_linear.nii and input\_volume\_aligned\_nonlinear.nii). 
+\newline \newline Set output filename prefix (default input\_volume\_aligned\_linear.nii and input\_volume\_aligned\_nonlinear.nii). 
 
 \end{itemize}
 

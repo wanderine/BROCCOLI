@@ -288,6 +288,9 @@ The following output options are available
 
 \begin{itemize}
 
+\item -savetransformations
+\newline \newline Save all affine transformation matrices (T1-MNI,EPI-T1,EPI-MNI). They can be used with the function TransformVolume (default no).
+
 \item -savet1interpolated        
 \newline \newline Save T1 volume after resampling to MNI voxel size and resizing to MNI size (default no). 
 
@@ -361,10 +364,11 @@ The following output options are available
 \newline \newline Save everything (default no). 
 
 \item -output 
-\newline \newline Set output filename (default fMRI\_).
+\newline \newline Set output filename prefix (default fMRI\_).
 
 \end{itemize}
 
+\newpage
 \section{Additional options}
 
 The following additional options are available
