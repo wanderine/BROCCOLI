@@ -1138,7 +1138,7 @@ int main(int argc, char **argv)
 
 
     // Print registration parameters to file
-	if (WRITE_TRANSFORMATION_MATRIX)
+	if (WRITE_TRANSFORMATION_MATRIX && (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0))
 	{
 		// Add the provided filename extension to the original filename, before the dot
 
@@ -1205,7 +1205,7 @@ int main(int argc, char **argv)
    		WriteNifti(outputNifti,h_Skullstripped_T1_Volume,"_masked",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 	}
               	
-	if (WRITE_DISPLACEMENT_FIELD)
+	if (WRITE_DISPLACEMENT_FIELD && (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0))
     {
         WriteNifti(outputNifti,h_Displacement_Field_X,"_displacement_x",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
         WriteNifti(outputNifti,h_Displacement_Field_Y,"_displacement_y",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
