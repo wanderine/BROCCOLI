@@ -116,7 +116,7 @@ int main(int argc, char **argv)
 	const char*		outputFilename;
 
     // Size parameters
-    size_t          T1_DATA_H, T1_DATA_W, T1_DATA_D;
+    size_t          T1_DATA_H, T1_DATA_W, T1_DATA_D, T1_DATA_T;
     size_t          MNI_DATA_W, MNI_DATA_H, MNI_DATA_D;
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
@@ -443,6 +443,42 @@ int main(int argc, char **argv)
 	allNiftiImages[numberOfNiftiImages] = inputT1;
 	numberOfNiftiImages++;
     
+	// Get data dimensions from input data
+    T1_DATA_W = inputT1->nx;
+    T1_DATA_H = inputT1->ny;
+    T1_DATA_D = inputT1->nz;    
+    T1_DATA_T = inputT1->nt;    
+
+	if (T1_DATA_T > 1)
+	{
+		if (MASK)
+		{
+			printf("The mask option is currently only valid for a single volume\n");
+			MASK = false;
+		}
+		else if (MASK_ORIGINAL)
+		{
+			printf("The mask original option is currently only valid for a single volume\n");
+			MASK_ORIGINAL = false;
+		}
+		else if (WRITE_TRANSFORMATION_MATRIX)
+		{
+			printf("The save matrix option is currently only valid for a single volume\n");
+			WRITE_TRANSFORMATION_MATRIX = false;
+		}
+		else if (WRITE_DISPLACEMENT_FIELD)
+		{
+			printf("The save displacement field option is currently only valid for a single volume\n");
+			WRITE_DISPLACEMENT_FIELD = false;
+		}
+		else if (WRITE_INTERPOLATED)
+		{
+			printf("The save interpolated option is currently only valid for a single volume\n");
+			WRITE_INTERPOLATED = false;
+		}
+	}
+
+
 	// -----------------------------------
 	// Read second volume (reference)
 	// -----------------------------------
@@ -480,12 +516,7 @@ int main(int argc, char **argv)
  	{
 		printf("It took %f seconds to read the two nifti files\n",(float)(endTime - startTime));
 	}
-
-    // Get data dimensions from input data
-    T1_DATA_W = inputT1->nx;
-    T1_DATA_H = inputT1->ny;
-    T1_DATA_D = inputT1->nz;    
-    
+        
     MNI_DATA_W = inputMNI->nx;
     MNI_DATA_H = inputMNI->ny;
     MNI_DATA_D = inputMNI->nz;    
@@ -561,7 +592,9 @@ int main(int argc, char **argv)
     size_t FILTER_SIZE = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(float);
     size_t FILTER_SIZE2 = IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * IMAGE_REGISTRATION_FILTER_SIZE * sizeof(cl_float2);
     size_t T1_VOLUME_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
+    size_t T1_VOLUMES_SIZE = T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T * sizeof(float);
     size_t MNI_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
+    size_t MNI_VOLUMES_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * T1_DATA_T * sizeof(float);
     size_t MNI2_VOLUME_SIZE = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(cl_float2);
     size_t INTERPOLATED_T1_VOLUME_SIZE = T1_DATA_W_INTERPOLATED * T1_DATA_H_INTERPOLATED * T1_DATA_D_INTERPOLATED * sizeof(float);
     size_t DOWNSAMPLED_VOLUME_SIZE = DOWNSAMPLED_DATA_W * DOWNSAMPLED_DATA_H * DOWNSAMPLED_DATA_D * sizeof(float);
@@ -572,7 +605,14 @@ int main(int argc, char **argv)
     if (PRINT)
     {
         printf("Authored by K.A. Eklund \n");
-        printf("Volume 1 size: %zu x %zu x %zu \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
+		if (T1_DATA_T == 1)
+		{
+	        printf("Volume 1 size: %zu x %zu x %zu \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
+		}
+		else
+		{
+	        printf("Volumes 1 size: %zu x %zu x %zu x %zu \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D, T1_DATA_T);
+		}
         printf("Volume 1 voxel size: %f x %f x %f mm \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);    
         printf("Volume 2 size: %zu x %zu x %zu \n",  MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
         printf("Volume 2 voxel size: %f x %f x %f mm \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);    
@@ -588,11 +628,11 @@ int main(int argc, char **argv)
 
 	startTime = GetWallTime();
     
-	AllocateMemory(h_T1_Volume, T1_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INPUT_VOLUME");
+	AllocateMemory(h_T1_Volume, T1_VOLUMES_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INPUT_VOLUME");
 	AllocateMemory(h_Interpolated_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "INTERPOLATED_INPUT_VOLUME");
 	AllocateMemory(h_MNI_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "REFERENCE_VOLUME");
-	AllocateMemory(h_Aligned_T1_Volume, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "LINEARLY_ALIGNED_INPUT_VOLUME");    
-   	AllocateMemory(h_Aligned_T1_Volume_NonLinear, MNI_VOLUME_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "NONLINEARLY_ALIGNED_INPUT_VOLUME");    
+	AllocateMemory(h_Aligned_T1_Volume, MNI_VOLUMES_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "LINEARLY_ALIGNED_INPUT_VOLUME");    
+   	AllocateMemory(h_Aligned_T1_Volume_NonLinear, MNI_VOLUMES_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "NONLINEARLY_ALIGNED_INPUT_VOLUME");    
    	AllocateMemory(h_Registration_Parameters, IMAGE_REGISTRATION_PARAMETERS_SIZE, allMemoryPointers, numberOfMemoryPointers, allNiftiImages, numberOfNiftiImages, allocatedHostMemory, "REGISTRATION_PARAMETERS");    
         
 	if (MASK || MASK_ORIGINAL)
@@ -678,7 +718,7 @@ int main(int argc, char **argv)
     {
         short int *p = (short int*)inputT1->data;
     
-        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T; i++)
         {
             h_T1_Volume[i] = (float)p[i];
         }
@@ -687,7 +727,7 @@ int main(int argc, char **argv)
     {
         unsigned char *p = (unsigned char*)inputT1->data;
     
-        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T; i++)
         {
             h_T1_Volume[i] = (float)p[i];
         }
@@ -696,7 +736,7 @@ int main(int argc, char **argv)
     {
         float *p = (float*)inputT1->data;
     
-        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D; i++)
+        for (size_t i = 0; i < T1_DATA_W * T1_DATA_H * T1_DATA_D * T1_DATA_T; i++)
         {
             h_T1_Volume[i] = p[i];
         }
@@ -1015,6 +1055,7 @@ int main(int argc, char **argv)
         BROCCOLI.SetT1Width(T1_DATA_W);
         BROCCOLI.SetT1Height(T1_DATA_H);
         BROCCOLI.SetT1Depth(T1_DATA_D);
+        BROCCOLI.SetT1Timepoints(T1_DATA_T);
         BROCCOLI.SetT1VoxelSizeX(T1_VOXEL_SIZE_X);
         BROCCOLI.SetT1VoxelSizeY(T1_VOXEL_SIZE_Y);
         BROCCOLI.SetT1VoxelSizeZ(T1_VOXEL_SIZE_Z);   
@@ -1127,7 +1168,7 @@ int main(int argc, char **argv)
     }        
            
 
-	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0 && PRINT)
+	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0 && PRINT && (T1_DATA_T == 1))
 	{
 		printf("\nAffine registration parameters\n");
 		printf(" %f %f %f %f\n", h_Registration_Parameters[3]+1.0f,h_Registration_Parameters[4],h_Registration_Parameters[5],h_Registration_Parameters[0]);
@@ -1171,6 +1212,15 @@ int main(int argc, char **argv)
 	nifti_image *outputNifti = nifti_copy_nim_info(inputMNI);      
 	allNiftiImages[numberOfNiftiImages] = outputNifti;
 	numberOfNiftiImages++;    
+
+	if (T1_DATA_T > 1)
+	{
+		outputNifti->nt = T1_DATA_T;
+		outputNifti->ndim = 4;
+		outputNifti->dim[0] = 4;
+	    outputNifti->dim[4] = T1_DATA_T;
+	    outputNifti->nvox = MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * T1_DATA_T;
+	}
 
     // Copy information from input data    	
 	if (!CHANGE_OUTPUT_FILENAME)

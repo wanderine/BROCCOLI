@@ -7854,107 +7854,119 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 	allocatedDeviceMemory += T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float);
 	allocatedDeviceMemory += 2 * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float);
 	deviceMemoryAllocations += 3;
-	
-	// Copy data to device
-    clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
+
     clEnqueueWriteBuffer(commandQueue, d_Reference_Volume, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Volume , 0, NULL, NULL);
 
-	if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
-	{
-		// Put input volume in the center of the volume
-		//CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
-		//CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+	for (int t = 0; t < T1_DATA_T; t++)
+	{	
+		if (T1_DATA_T > 1)
+		{
+			printf("Registering volume %i \n",t+1);
+		}
 
-    	// Change resolution and size of input volume
-    	ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
-	
-		// Make sure that the two volumes overlap from start
-		MatchVolumeMasses(d_Input_Volume_Reference_Size, d_Reference_Volume, h_Match_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+		// Copy data to device
+	    clEnqueueWriteBuffer(commandQueue, d_Input_Volume, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), &h_T1_Volume[t * T1_DATA_W * T1_DATA_H * T1_DATA_D] , 0, NULL, NULL);
 
-		// Copy the interpolated volume to host
-		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
-
-		// Do Linear registration between the two volumes
-		AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
-
-		// Copy the linearly aligned volume to host
-		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_Linear, 0, NULL, NULL);
-	}
-	else
-	{
-		clEnqueueWriteBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
-	}
-
-	AddAffineRegistrationParameters(h_Registration_Parameters_T1_MNI_Out, h_Match_Parameters);
-
-	// Perform non-Linear registration
-	if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
-	{
-		AlignTwoVolumesNonLinearSeveralScales(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
-
-		// Do total interpolation in one step, to reduce smoothness
 		if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
 		{
-			CreateCombinedDisplacementField(h_Registration_Parameters_T1_MNI_Out,d_Total_Displacement_Field_X,d_Total_Displacement_Field_Y,d_Total_Displacement_Field_Z,MNI_DATA_W,MNI_DATA_H,MNI_DATA_D);
+			// Put input volume in the center of the volume
+			//CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+			//CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
 
-			ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
+    		// Change resolution and size of input volume
+    		ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
 	
-			TransformVolumesNonLinear(d_Input_Volume_Reference_Size, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+			// Make sure that the two volumes overlap from start
+			MatchVolumeMasses(d_Input_Volume_Reference_Size, d_Reference_Volume, h_Match_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+
+			// Copy the interpolated volume to host
+			clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume, 0, NULL, NULL);
+
+			// Do Linear registration between the two volumes
+			AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_T1_MNI_Out, h_Rotations, d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
+
+			// Copy the linearly aligned volume to host
+			clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), &h_Aligned_T1_Volume_Linear[t * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D], 0, NULL, NULL);
+		}
+		else
+		{
+			clEnqueueWriteBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, T1_DATA_W * T1_DATA_H * T1_DATA_D * sizeof(float), h_T1_Volume , 0, NULL, NULL);
 		}
 
-		// Copy the non-linearly aligned volume to host
-		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Aligned_T1_Volume_NonLinear, 0, NULL, NULL);
+		AddAffineRegistrationParameters(h_Registration_Parameters_T1_MNI_Out, h_Match_Parameters);
 
-		if (WRITE_DISPLACEMENT_FIELD)
-		{		    	
-			// Copy the displacement field to host
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
-			clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
-		}
+		// Perform non-Linear registration
+		if (NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION > 0)
+		{
+			AlignTwoVolumesNonLinearSeveralScales(d_Input_Volume_Reference_Size, d_Reference_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_T1_MNI, NUMBER_OF_ITERATIONS_FOR_NONLINEAR_IMAGE_REGISTRATION, DO_OVERWRITE, INTERPOLATION_MODE, KEEP_DISPLACEMENT_FIELD);
+
+			// Do total interpolation in one step, to reduce smoothness
+			if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
+			{
+				CreateCombinedDisplacementField(h_Registration_Parameters_T1_MNI_Out,d_Total_Displacement_Field_X,d_Total_Displacement_Field_Y,d_Total_Displacement_Field_Z,MNI_DATA_W,MNI_DATA_H,MNI_DATA_D);
 	
-		clReleaseMemObject(d_Total_Displacement_Field_X);
-		clReleaseMemObject(d_Total_Displacement_Field_Y);
-		clReleaseMemObject(d_Total_Displacement_Field_Z);
+				ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
+	
+				TransformVolumesNonLinear(d_Input_Volume_Reference_Size, d_Total_Displacement_Field_X, d_Total_Displacement_Field_Y, d_Total_Displacement_Field_Z, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
+			}
+
+			// Copy the non-linearly aligned volume to host
+			clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), &h_Aligned_T1_Volume_NonLinear[t * MNI_DATA_W * MNI_DATA_H * MNI_DATA_D], 0, NULL, NULL);
+
+			if (WRITE_DISPLACEMENT_FIELD && (T1_DATA_T == 1))
+			{		    	
+				// Copy the displacement field to host
+				clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_X, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_X, 0, NULL, NULL);
+				clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Y, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Y, 0, NULL, NULL);
+				clEnqueueReadBuffer(commandQueue, d_Total_Displacement_Field_Z, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Displacement_Field_Z, 0, NULL, NULL);
+			}
+		
+			clReleaseMemObject(d_Total_Displacement_Field_X);
+			clReleaseMemObject(d_Total_Displacement_Field_Y);
+			clReleaseMemObject(d_Total_Displacement_Field_Z);
+		}
 	}
 
 
-	if (DO_SKULLSTRIP)
+	if (T1_DATA_T == 1)
 	{
-		// Copy brain mask from host
-		cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-		clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask, 0, NULL, NULL);
+		if (DO_SKULLSTRIP)
+		{
+			// Copy brain mask from host
+			cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+			clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask, 0, NULL, NULL);
+	
+			// Multiply the non-linearly aligned volume with the brain mask
+			MultiplyVolumes(d_Input_Volume_Reference_Size, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
-		// Multiply the non-linearly aligned volume with the brain mask
-		MultiplyVolumes(d_Input_Volume_Reference_Size, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			// Copy the skullstripped volume to host
+			clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
 
-		// Copy the skullstripped volume to host
-		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
+			clReleaseMemObject(d_MNI_Brain_Mask);
+		}
+		else if (DO_SKULLSTRIP_ORIGINAL && (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0))
+		{
+			// Copy brain mask from host
+			cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+			clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask, 0, NULL, NULL);
 
-		clReleaseMemObject(d_MNI_Brain_Mask);
-	}
-	else if (DO_SKULLSTRIP_ORIGINAL && (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0))
-	{
-		// Copy brain mask from host
-		cl_mem d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE,  MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
-		clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask, 0, NULL, NULL);
+			// Copy back the interpolated volume from host
+			clEnqueueWriteBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume , 0, NULL, NULL);
 
-		// Copy back the interpolated volume from host
-		clEnqueueWriteBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Interpolated_T1_Volume , 0, NULL, NULL);
+			// Calculate inverse affine transform between T1 and MNI
+			InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI_Out);
 
-		// Calculate inverse affine transform between T1 and MNI
-		InvertAffineRegistrationParameters(h_Inverse_Registration_Parameters, h_Registration_Parameters_T1_MNI_Out);
+			// Now apply the inverse transformation between MNI and T1, to transform the MNI brain mask to original T1 space
+			TransformVolumesLinear(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, NEAREST);
 
-		// Now apply the inverse transformation between MNI and T1, to transform the MNI brain mask to original T1 space
-		TransformVolumesLinear(d_MNI_Brain_Mask, h_Inverse_Registration_Parameters, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, NEAREST);
+			// Multiply the interpolated volume with the inverse transformed brain mask
+			MultiplyVolumes(d_Input_Volume_Reference_Size, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
-		// Multiply the interpolated volume with the inverse transformed brain mask
-		MultiplyVolumes(d_Input_Volume_Reference_Size, d_MNI_Brain_Mask, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+			// Copy the skullstripped volume to host
+			clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
 
-		// Copy the skullstripped volume to host
-		clEnqueueReadBuffer(commandQueue, d_Input_Volume_Reference_Size, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Skullstripped_T1_Volume, 0, NULL, NULL);
-
-		clReleaseMemObject(d_MNI_Brain_Mask);
+			clReleaseMemObject(d_MNI_Brain_Mask);
+		}
 	}
 
 	// Cleanup
