@@ -78,11 +78,17 @@ g++ ICA.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPEN
 
 g++ GLM.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lclBLAS -lniftiio -lznz -lz ${FLAGS} -o GLM &
 
+g++ MakeROI.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib  -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lniftiio -lznz -lz ${FLAGS} -o MakeROI &
+
+g++ ExtractTimeseries.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib  -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lniftiio -lznz -lz ${FLAGS} -o ExtractTimeseries &
+
 wait
 
 
 # Move compiled files to correct directory
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
+	mv MakeROI ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv ExtractTimeseries ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv CombineAffineTransforms ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
@@ -96,6 +102,8 @@ if [ "$COMPILATION" -eq "$RELEASE" ] ; then
 	mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv GLM ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
+	mv MakeROI ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv ExtractTimeseries ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv CombineAffineTransforms ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
