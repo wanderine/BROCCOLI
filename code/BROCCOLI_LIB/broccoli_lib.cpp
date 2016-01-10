@@ -348,7 +348,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	error = 0;
 
-	NUMBER_OF_OPENCL_KERNELS = 100;
+	NUMBER_OF_OPENCL_KERNELS = 101;
 
 	commandQueue = NULL;
 	program = NULL;
@@ -485,7 +485,8 @@ void BROCCOLI_LIB::SetStartValues()
 	createKernelErrorRemoveLinearFit = 0;
 	createKernelErrorRemoveLinearFitSlice = 0;
 	createKernelErrorCalculatePermutationPValuesVoxelLevelInference = 0;
-	createKernelErrorCalculatePermutationPValuesClusterLevelInference = 0;
+	createKernelErrorCalculatePermutationPValuesClusterExtentInference = 0;
+	createKernelErrorCalculatePermutationPValuesClusterMassInference = 0;
 
 	// Reset run kernel errors
 	runKernelErrorNonseparableConvolution3DComplexThreeFilters = 0;
@@ -573,7 +574,8 @@ void BROCCOLI_LIB::SetStartValues()
 	runKernelErrorRemoveLinearFit = 0;
 	runKernelErrorRemoveLinearFitSlice = 0;
 	runKernelErrorCalculatePermutationPValuesVoxelLevelInference = 0;
-	runKernelErrorCalculatePermutationPValuesClusterLevelInference = 0;
+	runKernelErrorCalculatePermutationPValuesClusterExtentInference = 0;
+	runKernelErrorCalculatePermutationPValuesClusterMassInference = 0;
 
 	getPlatformIDsError = 0;
 	getDeviceIDsError = 0;		
@@ -1682,7 +1684,9 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	CalculateLargestClusterKernel = clCreateKernel(OpenCLPrograms[2],"CalculateLargestCluster",&createKernelErrorCalculateLargestCluster);
 	CalculateTFCEValuesKernel = clCreateKernel(OpenCLPrograms[2],"CalculateTFCEValues",&createKernelErrorCalculateTFCEValues);
 	CalculatePermutationPValuesVoxelLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesVoxelLevelInference",&createKernelErrorCalculatePermutationPValuesVoxelLevelInference);
-	CalculatePermutationPValuesClusterLevelInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesClusterLevelInference",&createKernelErrorCalculatePermutationPValuesClusterLevelInference);
+	CalculatePermutationPValuesClusterExtentInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesClusterExtentInference",&createKernelErrorCalculatePermutationPValuesClusterExtentInference);
+	CalculatePermutationPValuesClusterMassInferenceKernel = clCreateKernel(OpenCLPrograms[2],"CalculatePermutationPValuesClusterMassInference",&createKernelErrorCalculatePermutationPValuesClusterMassInference);
+
 
 	OpenCLKernels[63] = SetStartClusterIndicesKernel;
 	OpenCLKernels[64] = ClusterizeScanKernel;
@@ -1692,7 +1696,8 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[68] = CalculateLargestClusterKernel;
 	OpenCLKernels[69] = CalculateTFCEValuesKernel;
 	OpenCLKernels[70] = CalculatePermutationPValuesVoxelLevelInferenceKernel;
-	OpenCLKernels[71] = CalculatePermutationPValuesClusterLevelInferenceKernel;
+	OpenCLKernels[71] = CalculatePermutationPValuesClusterExtentInferenceKernel;
+	OpenCLKernels[72] = CalculatePermutationPValuesClusterMassInferenceKernel;
 
 	// Statistical kernels
 	CalculateBetaWeightsGLMKernel = clCreateKernel(OpenCLPrograms[4],"CalculateBetaWeightsGLM",&createKernelErrorCalculateBetaWeightsGLM);
@@ -1718,33 +1723,33 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	RemoveLinearFitKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
 	RemoveLinearFitSliceKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFitSlice",&createKernelErrorRemoveLinearFitSlice);
 
-	OpenCLKernels[72] = CalculateBetaWeightsGLMKernel;
-	OpenCLKernels[73] = CalculateBetaWeightsGLMSliceKernel;
-	OpenCLKernels[74] = CalculateBetaWeightsAndContrastsGLMKernel;
-	OpenCLKernels[75] = CalculateBetaWeightsAndContrastsGLMSliceKernel;
-	OpenCLKernels[76] = CalculateBetaWeightsGLMFirstLevelKernel;
-	OpenCLKernels[77] = CalculateBetaWeightsGLMFirstLevelSliceKernel;
-	OpenCLKernels[78] = CalculateGLMResidualsKernel;
-	OpenCLKernels[79] = CalculateGLMResidualsSliceKernel;
-	OpenCLKernels[80] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
-	OpenCLKernels[81] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
-	OpenCLKernels[82] = CalculateStatisticalMapsGLMTTestFirstLevelSliceKernel;
-	OpenCLKernels[83] = CalculateStatisticalMapsGLMFTestFirstLevelSliceKernel;
-	OpenCLKernels[84] = CalculateStatisticalMapsGLMTTestKernel;
-	OpenCLKernels[85] = CalculateStatisticalMapsGLMFTestKernel;
-	OpenCLKernels[86] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
-	OpenCLKernels[87] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
-	OpenCLKernels[88] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
-	OpenCLKernels[89] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
-	OpenCLKernels[90] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
-	OpenCLKernels[91] = TransformDataKernel;
-	OpenCLKernels[92] = RemoveLinearFitKernel;
-	OpenCLKernels[93] = RemoveLinearFitSliceKernel;
+	OpenCLKernels[73] = CalculateBetaWeightsGLMKernel;
+	OpenCLKernels[74] = CalculateBetaWeightsGLMSliceKernel;
+	OpenCLKernels[75] = CalculateBetaWeightsAndContrastsGLMKernel;
+	OpenCLKernels[76] = CalculateBetaWeightsAndContrastsGLMSliceKernel;
+	OpenCLKernels[77] = CalculateBetaWeightsGLMFirstLevelKernel;
+	OpenCLKernels[78] = CalculateBetaWeightsGLMFirstLevelSliceKernel;
+	OpenCLKernels[79] = CalculateGLMResidualsKernel;
+	OpenCLKernels[80] = CalculateGLMResidualsSliceKernel;
+	OpenCLKernels[81] = CalculateStatisticalMapsGLMTTestFirstLevelKernel;
+	OpenCLKernels[82] = CalculateStatisticalMapsGLMFTestFirstLevelKernel;
+	OpenCLKernels[83] = CalculateStatisticalMapsGLMTTestFirstLevelSliceKernel;
+	OpenCLKernels[84] = CalculateStatisticalMapsGLMFTestFirstLevelSliceKernel;
+	OpenCLKernels[85] = CalculateStatisticalMapsGLMTTestKernel;
+	OpenCLKernels[86] = CalculateStatisticalMapsGLMFTestKernel;
+	OpenCLKernels[87] = CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel;
+	OpenCLKernels[88] = CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel;
+	OpenCLKernels[89] = CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel;
+	OpenCLKernels[90] = CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel;
+	OpenCLKernels[91] = CalculateStatisticalMapsMeanSecondLevelPermutationKernel;
+	OpenCLKernels[92] = TransformDataKernel;
+	OpenCLKernels[93] = RemoveLinearFitKernel;
+	OpenCLKernels[94] = RemoveLinearFitSliceKernel;
 
 	// Bayesian kernels
 	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(OpenCLPrograms[7],"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
 
-	OpenCLKernels[94] = CalculateStatisticalMapsGLMBayesianKernel;
+	OpenCLKernels[95] = CalculateStatisticalMapsGLMBayesianKernel;
 
 	// Whitening kernels	
 	EstimateAR4ModelsKernel = clCreateKernel(OpenCLPrograms[6],"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
@@ -1753,11 +1758,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	ApplyWhiteningAR4SliceKernel = clCreateKernel(OpenCLPrograms[6],"ApplyWhiteningAR4Slice",&createKernelErrorApplyWhiteningAR4Slice);
 	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(OpenCLPrograms[6],"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
 
-	OpenCLKernels[95] = EstimateAR4ModelsKernel;
-	OpenCLKernels[96] = EstimateAR4ModelsSliceKernel;
-	OpenCLKernels[97] = ApplyWhiteningAR4Kernel;
-	OpenCLKernels[98] = ApplyWhiteningAR4SliceKernel;
-	OpenCLKernels[99] = GeneratePermutedVolumesFirstLevelKernel;
+	OpenCLKernels[96] = EstimateAR4ModelsKernel;
+	OpenCLKernels[97] = EstimateAR4ModelsSliceKernel;
+	OpenCLKernels[98] = ApplyWhiteningAR4Kernel;
+	OpenCLKernels[99] = ApplyWhiteningAR4SliceKernel;
+	OpenCLKernels[100] = GeneratePermutedVolumesFirstLevelKernel;
 
 	OPENCL_INITIATED = true;
 
@@ -2012,92 +2017,95 @@ const char* BROCCOLI_LIB::GetOpenCLKernelName(int kernel)
 			return "CalculatePermutationPValuesVoxelLevelInference";
 			break;
 		case 71:
-			return "CalculatePermutationPValuesClusterLevelInference";
+			return "CalculatePermutationPValuesClusterExtentInference";
+			break;
+		case 72:
+			return "CalculatePermutationPValuesClusterMassInference";
 			break;
 
-		case 72:
+		case 73:
 			return "CalculateBetaWeightsGLM";
 			break;
-		case 73:
+		case 74:
 			return "CalculateBetaWeightsGLMSlice";
 			break;
-		case 74:
+		case 75:
 			return "CalculateBetaWeightsAndContrastsGLM";
 			break;
-		case 75:
+		case 76:
 			return "CalculateBetaWeightsAndContrastsGLMSlice";
 			break;
-		case 76:
+		case 77:
 			return "CalculateBetaWeightsGLMFirstLevel";
 			break;
-		case 77:
+		case 78:
 			return "CalculateBetaWeightsGLMFirstLevelSlice";
 			break;
-		case 78:
+		case 79:
 			return "CalculateGLMResiduals";
 			break;
-		case 79:
+		case 80:
 			return "CalculateGLMResidualsSlice";
 			break;
-		case 80:
+		case 81:
 			return "CalculateStatisticalMapsGLMTTestFirstLevel";
 			break;
-		case 81:
+		case 82:
 			return "CalculateStatisticalMapsGLMFTestFirstLevel";
 			break;
-		case 82:
+		case 83:
 			return "CalculateStatisticalMapsGLMTTestFirstLevelSlice";
 			break;
-		case 83:
+		case 84:
 			return "CalculateStatisticalMapsGLMFTestFirstLevelSlice";
 			break;
-		case 84:
+		case 85:
 			return "CalculateStatisticalMapsGLMTTest";
 			break;
-		case 85:
+		case 86:
 			return "CalculateStatisticalMapsGLMFTest";
 			break;
-		case 86:
+		case 87:
 			return "CalculateStatisticalMapsGLMTTestFirstLevelPermutation";
 			break;
-		case 87:
+		case 88:
 			return "CalculateStatisticalMapsGLMFTestFirstLevelPermutation";
 			break;
-		case 88:
+		case 89:
 			return "CalculateStatisticalMapsGLMTTestSecondLevelPermutation";
 			break;
-		case 89:
+		case 90:
 			return "CalculateStatisticalMapsGLMFTestSecondLevelPermutation";
 			break;
-		case 90:
+		case 91:
 			return "CalculateStatisticalMapsMeanSecondLevelPermutation";
 			break;
-		case 91:
+		case 92:
 			return "TransformData";
 			break;
-		case 92:
+		case 93:
 			return "RemoveLinearFit";
 			break;
-		case 93:
+		case 94:
 			return "RemoveLinearFitSlice";
 			break;
 
-		case 94:
+		case 95:
 			return "CalculateStatisticalMapsGLMBayesian";
 			break;
-		case 95:
+		case 96:
 			return "EstimateAR4Models";
 			break;
-		case 96:
+		case 97:
 			return "EstimateAR4ModelsSlice";
 			break;
-		case 97:
+		case 98:
 			return "ApplyWhiteningAR4";
 			break;
-		case 98:
+		case 99:
 			return "ApplyWhiteningAR4Slice";
 			break;
-		case 99:
+		case 100:
 			return "GeneratePermutedVolumesFirstLevel";
 			break;
 
@@ -2184,38 +2192,39 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 	OpenCLCreateKernelErrors[68] = createKernelErrorCalculateLargestCluster;
 	OpenCLCreateKernelErrors[69] = createKernelErrorCalculateTFCEValues;
 	OpenCLCreateKernelErrors[70] = createKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLCreateKernelErrors[71] = createKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLCreateKernelErrors[71] = createKernelErrorCalculatePermutationPValuesClusterExtentInference;
+	OpenCLCreateKernelErrors[72] = createKernelErrorCalculatePermutationPValuesClusterMassInference;
 
-	OpenCLCreateKernelErrors[72] = createKernelErrorCalculateBetaWeightsGLM;
-	OpenCLCreateKernelErrors[73] = createKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLCreateKernelErrors[74] = createKernelErrorCalculateBetaWeightsAndContrastsGLM;
-	OpenCLCreateKernelErrors[75] = createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
-	OpenCLCreateKernelErrors[76] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLCreateKernelErrors[77] = createKernelErrorCalculateBetaWeightsGLMFirstLevelSlice;
-	OpenCLCreateKernelErrors[78] = createKernelErrorCalculateGLMResiduals;
-	OpenCLCreateKernelErrors[79] = createKernelErrorCalculateGLMResidualsSlice;
-	OpenCLCreateKernelErrors[80] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLCreateKernelErrors[81] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLCreateKernelErrors[82] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelSlice;
-	OpenCLCreateKernelErrors[83] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelSlice;
-	OpenCLCreateKernelErrors[84] = createKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLCreateKernelErrors[85] = createKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLCreateKernelErrors[86] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[87] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLCreateKernelErrors[88] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[89] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLCreateKernelErrors[90] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLCreateKernelErrors[91] = createKernelErrorTransformData;
-	OpenCLCreateKernelErrors[92] = createKernelErrorRemoveLinearFit;
-	OpenCLCreateKernelErrors[93] = createKernelErrorRemoveLinearFitSlice;
+	OpenCLCreateKernelErrors[73] = createKernelErrorCalculateBetaWeightsGLM;
+	OpenCLCreateKernelErrors[74] = createKernelErrorCalculateBetaWeightsGLMSlice;
+	OpenCLCreateKernelErrors[75] = createKernelErrorCalculateBetaWeightsAndContrastsGLM;
+	OpenCLCreateKernelErrors[76] = createKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLCreateKernelErrors[77] = createKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLCreateKernelErrors[78] = createKernelErrorCalculateBetaWeightsGLMFirstLevelSlice;
+	OpenCLCreateKernelErrors[79] = createKernelErrorCalculateGLMResiduals;
+	OpenCLCreateKernelErrors[80] = createKernelErrorCalculateGLMResidualsSlice;
+	OpenCLCreateKernelErrors[81] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLCreateKernelErrors[82] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLCreateKernelErrors[83] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelSlice;
+	OpenCLCreateKernelErrors[84] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelSlice;
+	OpenCLCreateKernelErrors[85] = createKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLCreateKernelErrors[86] = createKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLCreateKernelErrors[87] = createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[88] = createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLCreateKernelErrors[89] = createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[90] = createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLCreateKernelErrors[91] = createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLCreateKernelErrors[92] = createKernelErrorTransformData;
+	OpenCLCreateKernelErrors[93] = createKernelErrorRemoveLinearFit;
+	OpenCLCreateKernelErrors[94] = createKernelErrorRemoveLinearFitSlice;
 
-	OpenCLCreateKernelErrors[94] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLCreateKernelErrors[95] = createKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLCreateKernelErrors[95] = createKernelErrorEstimateAR4Models;
-	OpenCLCreateKernelErrors[96] = createKernelErrorEstimateAR4ModelsSlice;
-	OpenCLCreateKernelErrors[97] = createKernelErrorApplyWhiteningAR4;
-	OpenCLCreateKernelErrors[98] = createKernelErrorApplyWhiteningAR4Slice;
-	OpenCLCreateKernelErrors[99] = createKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLCreateKernelErrors[96] = createKernelErrorEstimateAR4Models;
+	OpenCLCreateKernelErrors[97] = createKernelErrorEstimateAR4ModelsSlice;
+	OpenCLCreateKernelErrors[98] = createKernelErrorApplyWhiteningAR4;
+	OpenCLCreateKernelErrors[99] = createKernelErrorApplyWhiteningAR4Slice;
+	OpenCLCreateKernelErrors[100] = createKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLCreateKernelErrors;
 }
@@ -2298,38 +2307,39 @@ int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
 	OpenCLRunKernelErrors[68] = runKernelErrorCalculateLargestCluster;
 	OpenCLRunKernelErrors[69] = runKernelErrorCalculateTFCEValues;
 	OpenCLRunKernelErrors[70] = runKernelErrorCalculatePermutationPValuesVoxelLevelInference;
-	OpenCLRunKernelErrors[71] = runKernelErrorCalculatePermutationPValuesClusterLevelInference;
+	OpenCLRunKernelErrors[71] = runKernelErrorCalculatePermutationPValuesClusterExtentInference;
+	OpenCLRunKernelErrors[72] = runKernelErrorCalculatePermutationPValuesClusterMassInference;
 
-	OpenCLRunKernelErrors[72] = runKernelErrorCalculateBetaWeightsGLM;
-	OpenCLRunKernelErrors[73] = runKernelErrorCalculateBetaWeightsGLMSlice;
-	OpenCLRunKernelErrors[74] = runKernelErrorCalculateBetaWeightsAndContrastsGLM;
-	OpenCLRunKernelErrors[75] = runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
-	OpenCLRunKernelErrors[76] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
-	OpenCLRunKernelErrors[77] = runKernelErrorCalculateBetaWeightsGLMFirstLevelSlice;
-	OpenCLRunKernelErrors[78] = runKernelErrorCalculateGLMResiduals;
-	OpenCLRunKernelErrors[79] = runKernelErrorCalculateGLMResidualsSlice;
-	OpenCLRunKernelErrors[80] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
-	OpenCLRunKernelErrors[81] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
-	OpenCLRunKernelErrors[82] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelSlice;
-	OpenCLRunKernelErrors[83] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelSlice;
-	OpenCLRunKernelErrors[84] = runKernelErrorCalculateStatisticalMapsGLMTTest;
-	OpenCLRunKernelErrors[85] = runKernelErrorCalculateStatisticalMapsGLMFTest;
-	OpenCLRunKernelErrors[86] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[87] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
-	OpenCLRunKernelErrors[88] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[89] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
-	OpenCLRunKernelErrors[90] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
-	OpenCLRunKernelErrors[91] = runKernelErrorTransformData;
-	OpenCLRunKernelErrors[92] = runKernelErrorRemoveLinearFit;
-	OpenCLRunKernelErrors[93] = runKernelErrorRemoveLinearFitSlice;
+	OpenCLRunKernelErrors[73] = runKernelErrorCalculateBetaWeightsGLM;
+	OpenCLRunKernelErrors[74] = runKernelErrorCalculateBetaWeightsGLMSlice;
+	OpenCLRunKernelErrors[75] = runKernelErrorCalculateBetaWeightsAndContrastsGLM;
+	OpenCLRunKernelErrors[76] = runKernelErrorCalculateBetaWeightsAndContrastsGLMSlice;
+	OpenCLRunKernelErrors[77] = runKernelErrorCalculateBetaWeightsGLMFirstLevel;
+	OpenCLRunKernelErrors[78] = runKernelErrorCalculateBetaWeightsGLMFirstLevelSlice;
+	OpenCLRunKernelErrors[79] = runKernelErrorCalculateGLMResiduals;
+	OpenCLRunKernelErrors[80] = runKernelErrorCalculateGLMResidualsSlice;
+	OpenCLRunKernelErrors[81] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevel;
+	OpenCLRunKernelErrors[82] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevel;
+	OpenCLRunKernelErrors[83] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelSlice;
+	OpenCLRunKernelErrors[84] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelSlice;
+	OpenCLRunKernelErrors[85] = runKernelErrorCalculateStatisticalMapsGLMTTest;
+	OpenCLRunKernelErrors[86] = runKernelErrorCalculateStatisticalMapsGLMFTest;
+	OpenCLRunKernelErrors[87] = runKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[88] = runKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation;
+	OpenCLRunKernelErrors[89] = runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[90] = runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation;
+	OpenCLRunKernelErrors[91] = runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation;
+	OpenCLRunKernelErrors[92] = runKernelErrorTransformData;
+	OpenCLRunKernelErrors[93] = runKernelErrorRemoveLinearFit;
+	OpenCLRunKernelErrors[94] = runKernelErrorRemoveLinearFitSlice;
 
-	OpenCLRunKernelErrors[94] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
+	OpenCLRunKernelErrors[95] = runKernelErrorCalculateStatisticalMapsGLMBayesian;
 
-	OpenCLRunKernelErrors[95] = runKernelErrorEstimateAR4Models;
-	OpenCLRunKernelErrors[96] = runKernelErrorEstimateAR4ModelsSlice;
-	OpenCLRunKernelErrors[97] = runKernelErrorApplyWhiteningAR4;
-	OpenCLRunKernelErrors[98] = runKernelErrorApplyWhiteningAR4Slice;
-	OpenCLRunKernelErrors[99] = runKernelErrorGeneratePermutedVolumesFirstLevel;
+	OpenCLRunKernelErrors[96] = runKernelErrorEstimateAR4Models;
+	OpenCLRunKernelErrors[97] = runKernelErrorEstimateAR4ModelsSlice;
+	OpenCLRunKernelErrors[98] = runKernelErrorApplyWhiteningAR4;
+	OpenCLRunKernelErrors[99] = runKernelErrorApplyWhiteningAR4Slice;
+	OpenCLRunKernelErrors[100] = runKernelErrorGeneratePermutedVolumesFirstLevel;
 
 	return OpenCLRunKernelErrors;
 }
@@ -7727,15 +7737,15 @@ void BROCCOLI_LIB::PermuteMatrixDouble(cl_mem d_Permuted_Matrix, cl_mem d_Matrix
 // Not fully optimized, T1 is of MNI size
 void BROCCOLI_LIB::PerformRegistrationEPIT1()
 {
-	// Make sure that we start from the center, save the translation parameters
-	//CenterVolumeMass(d_EPI_Volume, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
-
 	// Reset total registration parameters
 	for (int p = 0; p < NUMBER_OF_IMAGE_REGISTRATION_PARAMETERS; p++)
 	{
 		h_Registration_Parameters_EPI_T1_Affine[p] = 0.0f;
 		h_StartParameters_EPI[p] = 0.0f;
 	}
+
+	// Make sure that we start from the center, save the translation parameters
+	CenterVolumeMass(d_EPI_Volume, h_StartParameters_EPI, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Make a segmentation of the EPI volume first
 	//SegmentEPIData(d_EPI_Volume);
@@ -7747,9 +7757,11 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1()
 	// Make sure that the volumes overlap from start, save the translation parameters
 	MatchVolumeMasses(d_T1_EPI_Volume, d_Skullstripped_T1_Volume, h_StartParameters_EPI_T1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
+	
 	cl_mem d_T1_EPI_Tensor_Magnitude = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 	cl_mem d_Skullstripped_T1_Tensor_Magnitude = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
 
+/*
 	CalculateTensorMagnitude(d_T1_EPI_Tensor_Magnitude, d_T1_EPI_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 	CalculateTensorMagnitude(d_Skullstripped_T1_Tensor_Magnitude, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
 
@@ -7769,6 +7781,9 @@ void BROCCOLI_LIB::PerformRegistrationEPIT1()
 	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Rigid, h_Rotations, d_T1_EPI_Tensor_Magnitude, d_Skullstripped_T1_Tensor_Magnitude, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 2, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
 	TransformVolumesLinear(d_T1_EPI_Volume, h_Registration_Parameters_EPI_T1_Rigid, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, 1, INTERPOLATION_MODE);
 	AddAffineRegistrationParameters(h_Registration_Parameters_EPI_T1_Affine,h_Registration_Parameters_EPI_T1_Rigid);
+	*/
+
+	AlignTwoVolumesLinearSeveralScales(h_Registration_Parameters_EPI_T1_Affine, h_Rotations, d_T1_EPI_Volume, d_Skullstripped_T1_Volume, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, COARSEST_SCALE_EPI_T1, NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION, AFFINE, DO_OVERWRITE, INTERPOLATION_MODE);
 
 	h_Registration_Parameters_EPI_T1[0] = h_Registration_Parameters_EPI_T1_Translation[0] + h_Registration_Parameters_EPI_T1_Rigid[0];
 	h_Registration_Parameters_EPI_T1[1] = h_Registration_Parameters_EPI_T1_Translation[1] + h_Registration_Parameters_EPI_T1_Rigid[1];
@@ -7870,8 +7885,8 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 		if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
 		{
 			// Put input volume in the center of the volume
-			//CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
-			//CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+			CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+			CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
 
     		// Change resolution and size of input volume
     		ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
@@ -8093,7 +8108,7 @@ void BROCCOLI_LIB::CenterVolumesWrapper()
 void BROCCOLI_LIB::PerformRegistrationT1MNINoSkullstrip()
 {
 	// Make sure that we start from the center
-	//CenterVolumeMass(d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+	CenterVolumeMass(d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
 
 	ChangeVolumesResolutionAndSize(d_MNI_T1_Volume, d_T1_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);
 
@@ -16628,22 +16643,40 @@ void BROCCOLI_LIB::CalculatePermutationPValues(cl_mem d_Mask, int DATA_W, int DA
 			clSetKernelArg(CalculatePermutationPValuesVoxelLevelInferenceKernel, 8, sizeof(int),    &NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
 			runKernelErrorCalculatePermutationPValuesVoxelLevelInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesVoxelLevelInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
 		}
-		else if ( (INFERENCE_MODE == CLUSTER_EXTENT) || (INFERENCE_MODE == CLUSTER_MASS) )
+		else if (INFERENCE_MODE == CLUSTER_EXTENT)
 		{
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 0, sizeof(cl_mem), &d_P_Values);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 2, sizeof(cl_mem), &d_Cluster_Indices);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 3, sizeof(cl_mem), &d_Cluster_Sizes);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 4, sizeof(cl_mem), &d_Mask);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 5, sizeof(cl_mem), &c_Permutation_Distribution);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 6, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 7, sizeof(int),    &contrast);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 8, sizeof(int),    &DATA_W);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 9, sizeof(int),    &DATA_H);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 10, sizeof(int),   &DATA_D);
-			clSetKernelArg(CalculatePermutationPValuesClusterLevelInferenceKernel, 11, sizeof(int),   &NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
-			runKernelErrorCalculatePermutationPValuesClusterLevelInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesClusterLevelInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 0, sizeof(cl_mem), &d_P_Values);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 2, sizeof(cl_mem), &d_Cluster_Indices);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 3, sizeof(cl_mem), &d_Cluster_Sizes);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 4, sizeof(cl_mem), &d_Mask);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 5, sizeof(cl_mem), &c_Permutation_Distribution);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 6, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 7, sizeof(int),    &contrast);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 8, sizeof(int),    &DATA_W);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 9, sizeof(int),    &DATA_H);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 10, sizeof(int),   &DATA_D);
+			clSetKernelArg(CalculatePermutationPValuesClusterExtentInferenceKernel, 11, sizeof(int),   &NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
+			runKernelErrorCalculatePermutationPValuesClusterExtentInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesClusterExtentInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
 		}
+		else if (INFERENCE_MODE == CLUSTER_MASS)
+		{
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 0, sizeof(cl_mem), &d_P_Values);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 1, sizeof(cl_mem), &d_Statistical_Maps);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 2, sizeof(cl_mem), &d_Cluster_Indices);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 3, sizeof(cl_mem), &d_Cluster_Sizes);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 4, sizeof(cl_mem), &d_Mask);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 5, sizeof(cl_mem), &c_Permutation_Distribution);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 6, sizeof(float),  &CLUSTER_DEFINING_THRESHOLD);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 7, sizeof(int),    &contrast);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 8, sizeof(int),    &DATA_W);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 9, sizeof(int),    &DATA_H);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 10, sizeof(int),   &DATA_D);
+			clSetKernelArg(CalculatePermutationPValuesClusterMassInferenceKernel, 11, sizeof(int),   &NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
+			runKernelErrorCalculatePermutationPValuesClusterMassInference = clEnqueueNDRangeKernel(commandQueue, CalculatePermutationPValuesClusterMassInferenceKernel, 3, NULL, globalWorkSizeCalculatePermutationPValues, localWorkSizeCalculatePermutationPValues, 0, NULL, NULL);
+
+		}
+
 		clReleaseMemObject(c_Permutation_Distribution);
 	}
 }

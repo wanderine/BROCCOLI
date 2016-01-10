@@ -551,7 +551,7 @@ __kernel void CalculatePermutationPValuesVoxelLevelInference(__global float* P_V
     }
 }
 
-__kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P_Values,
+__kernel void CalculatePermutationPValuesClusterExtentInference(__global float* P_Values,
 															   __global const float* Test_Values,
 															   __global const unsigned int* Cluster_Indices,
 															   __global const unsigned int* Cluster_Sizes,
@@ -576,7 +576,7 @@ __kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P
     	// Check if the current voxel belongs to a cluster
     	if ( Test_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] > threshold )
     	{
-    		// Get cluster extent or cluster mass of current cluster
+    		// Get cluster extent of current cluster
     		float Test_Value = (float)Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)]];
 
     		float sum = 0.0f;
@@ -600,4 +600,58 @@ __kernel void CalculatePermutationPValuesClusterLevelInference(__global float* P
     	P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
     }
 }
+
+__kernel void CalculatePermutationPValuesClusterMassInference(__global float* P_Values,
+														      __global const float* Test_Values,
+															  __global const unsigned int* Cluster_Indices,
+															  __global const unsigned int* Cluster_Sizes,
+							   	   	   	   	   	  	  	  	  __global const float* Mask,
+							   	   	   	   	   	  	  	  	  __global const float* c_Max_Values,
+							   	   	   	   	   	  	  	  	  __private float threshold,
+							   	   	   	   	   	  	  	  	  __private int contrast,
+							   	   	   	   	   	  	  	  	  __private int DATA_W,
+							   	   	   	   	   	  	  	  	  __private int DATA_H,
+							   	   	   	   	   	  	  	  	  __private int DATA_D,
+							   	   	   	   	   	  	  	  	  __private int NUMBER_OF_PERMUTATIONS)
+{
+	int x = get_global_id(0);
+	int y = get_global_id(1);
+	int z = get_global_id(2);
+
+    if (x >= DATA_W || y >= DATA_H || z >= DATA_D)
+        return;
+
+    if ( Mask[Calculate3DIndex(x, y, z, DATA_W, DATA_H)] == 1.0f )
+	{
+    	// Check if the current voxel belongs to a cluster
+    	if ( Test_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] > threshold )
+    	{
+    		// Get cluster mass of current cluster, divide by 10 000 as 10 000 is multiplied with in the CalculateClusterMasses kernel
+    		float Test_Value = ((float)Cluster_Sizes[Cluster_Indices[Calculate3DIndex(x, y, z, DATA_W, DATA_H)]]) / 10000.0f;
+
+    		float sum = 0.0f;
+    		for (int p = 0; p < NUMBER_OF_PERMUTATIONS; p++)
+    		{
+    			if (Test_Value > c_Max_Values[p])
+    			{
+    				sum += 1.0f;
+    			}
+    		}
+    		P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = sum / (float)NUMBER_OF_PERMUTATIONS;
+    	}
+    	// Voxel is not part of a cluster, so p-value should be 0
+    	else
+    	{
+    		P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
+    	}
+	}
+    else
+    {
+    	P_Values[Calculate4DIndex(x, y, z, contrast, DATA_W, DATA_H, DATA_D)] = 0.0f;
+    }
+}
+
+
+
+
 
