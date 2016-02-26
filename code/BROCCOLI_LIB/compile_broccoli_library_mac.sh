@@ -8,7 +8,9 @@ COMPILATION=$RELEASE
 BROCCOLI_GIT_DIRECTORY=`git rev-parse --show-toplevel`
 
 # Set directory containing opencl.h
-OPENCL_HEADER_DIRECTORY=/System/Library/Frameworks/OpenCL.framework/Headers
+#OPENCL_HEADER_DIRECTORY=/System/Library/Frameworks/OpenCL.framework/Headers
+OPENCL_HEADER_DIRECTORY=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.11.sdk/System/Library/Frameworks/OpenCL.framework/Versions/A/Headers/
+
 
 # Compile BROCCOLI
 
