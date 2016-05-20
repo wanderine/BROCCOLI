@@ -760,7 +760,7 @@ class BROCCOLI_LIB
 		cl_program programWhitening;
 		cl_program programBayesian;
 
-		cl_program OpenCLPrograms[10];
+		cl_program OpenCLPrograms[20];
 	
 
 		cl_ulong localMemorySize;
@@ -792,9 +792,9 @@ class BROCCOLI_LIB
 		cl_int createCommandQueueError;
 		cl_int createProgramError;
 		cl_int buildProgramError;
-		cl_int binaryBuildProgramErrors[10];
-		cl_int sourceBuildProgramErrors[10];
-		cl_int createProgramErrors[10];
+		cl_int binaryBuildProgramErrors[20];
+		cl_int sourceBuildProgramErrors[20];
+		cl_int createProgramErrors[20];
 		cl_int getProgramBuildInfoError;
 
 		int NUMBER_OF_OPENCL_KERNELS;

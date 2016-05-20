@@ -631,7 +631,7 @@ void BROCCOLI_LIB::SetStartValues()
 	buildProgramError = 0;
 	getProgramBuildInfoError = 0;
 
-	NUMBER_OF_KERNEL_FILES = 8;
+	NUMBER_OF_KERNEL_FILES = 11;
 
 	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
 	{
@@ -646,10 +646,13 @@ void BROCCOLI_LIB::SetStartValues()
 	kernelFileNames.push_back("kernelMisc.cpp");
 	kernelFileNames.push_back("kernelStatistics1.cpp");
 	kernelFileNames.push_back("kernelStatistics2.cpp");
+    kernelFileNames.push_back("kernelStatistics3.cpp");
+    kernelFileNames.push_back("kernelStatistics4.cpp");
+    kernelFileNames.push_back("kernelStatistics5.cpp");
 	kernelFileNames.push_back("kernelWhitening.cpp");
 	kernelFileNames.push_back("kernelBayesian.cpp");
 
-	buildInfo.resize(10);
+	buildInfo.resize(11);
 }
 
 
@@ -1759,12 +1762,17 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	CalculateStatisticalMapsGLMFTestFirstLevelSliceKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMFTestFirstLevelSlice",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelSlice);
 	CalculateStatisticalMapsGLMTTestKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMTTest",&createKernelErrorCalculateStatisticalMapsGLMTTest);
 	CalculateStatisticalMapsGLMFTestKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMFTest",&createKernelErrorCalculateStatisticalMapsGLMFTest);
-	CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMTTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation);
-	CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel = clCreateKernel(OpenCLPrograms[4],"CalculateStatisticalMapsGLMFTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation);
+	
+    
+    CalculateStatisticalMapsGLMTTestFirstLevelPermutationKernel = clCreateKernel(OpenCLPrograms[6],"CalculateStatisticalMapsGLMTTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestFirstLevelPermutation);
+	CalculateStatisticalMapsGLMFTestFirstLevelPermutationKernel = clCreateKernel(OpenCLPrograms[8],"CalculateStatisticalMapsGLMFTestFirstLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestFirstLevelPermutation);
+    
+    
 	CalculateStatisticalMapsGLMTTestSecondLevelPermutationKernel = clCreateKernel(OpenCLPrograms[5],"CalculateStatisticalMapsGLMTTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation);
-	CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel = clCreateKernel(OpenCLPrograms[5],"CalculateStatisticalMapsGLMFTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation);
+	CalculateStatisticalMapsGLMFTestSecondLevelPermutationKernel = clCreateKernel(OpenCLPrograms[7],"CalculateStatisticalMapsGLMFTestSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation);
 	CalculateStatisticalMapsMeanSecondLevelPermutationKernel = clCreateKernel(OpenCLPrograms[5],"CalculateStatisticalMapsMeanSecondLevelPermutation",&createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation);
-	TransformDataKernel = clCreateKernel(OpenCLPrograms[4],"TransformData",&createKernelErrorTransformData);
+	
+    TransformDataKernel = clCreateKernel(OpenCLPrograms[4],"TransformData",&createKernelErrorTransformData);
 	RemoveLinearFitKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFit",&createKernelErrorRemoveLinearFit);
 	RemoveLinearFitSliceKernel = clCreateKernel(OpenCLPrograms[4],"RemoveLinearFitSlice",&createKernelErrorRemoveLinearFitSlice);
 
@@ -1792,16 +1800,16 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[94] = RemoveLinearFitSliceKernel;
 
 	// Bayesian kernels
-	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(OpenCLPrograms[7],"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
+	CalculateStatisticalMapsGLMBayesianKernel = clCreateKernel(OpenCLPrograms[10],"CalculateStatisticalMapsGLMBayesian",&createKernelErrorCalculateStatisticalMapsGLMBayesian);
 
 	OpenCLKernels[95] = CalculateStatisticalMapsGLMBayesianKernel;
 
 	// Whitening kernels	
-	EstimateAR4ModelsKernel = clCreateKernel(OpenCLPrograms[6],"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
-	EstimateAR4ModelsSliceKernel = clCreateKernel(OpenCLPrograms[6],"EstimateAR4ModelsSlice",&createKernelErrorEstimateAR4ModelsSlice);
-	ApplyWhiteningAR4Kernel = clCreateKernel(OpenCLPrograms[6],"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
-	ApplyWhiteningAR4SliceKernel = clCreateKernel(OpenCLPrograms[6],"ApplyWhiteningAR4Slice",&createKernelErrorApplyWhiteningAR4Slice);
-	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(OpenCLPrograms[6],"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
+	EstimateAR4ModelsKernel = clCreateKernel(OpenCLPrograms[9],"EstimateAR4Models",&createKernelErrorEstimateAR4Models);
+	EstimateAR4ModelsSliceKernel = clCreateKernel(OpenCLPrograms[9],"EstimateAR4ModelsSlice",&createKernelErrorEstimateAR4ModelsSlice);
+	ApplyWhiteningAR4Kernel = clCreateKernel(OpenCLPrograms[9],"ApplyWhiteningAR4",&createKernelErrorApplyWhiteningAR4);
+	ApplyWhiteningAR4SliceKernel = clCreateKernel(OpenCLPrograms[9],"ApplyWhiteningAR4Slice",&createKernelErrorApplyWhiteningAR4Slice);
+	GeneratePermutedVolumesFirstLevelKernel = clCreateKernel(OpenCLPrograms[9],"GeneratePermutedVolumesFirstLevel",&createKernelErrorGeneratePermutedVolumesFirstLevel);
 
 	OpenCLKernels[96] = EstimateAR4ModelsKernel;
 	OpenCLKernels[97] = EstimateAR4ModelsSliceKernel;
