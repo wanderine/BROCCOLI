@@ -348,7 +348,7 @@ void BROCCOLI_LIB::SetStartValues()
 
 	error = 0;
 
-	NUMBER_OF_OPENCL_KERNELS = 101;
+	NUMBER_OF_OPENCL_KERNELS = 102;
 
 	commandQueue = NULL;
 	program = NULL;
@@ -497,6 +497,7 @@ void BROCCOLI_LIB::SetStartValues()
     createKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation = 0;
     createKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation = 0;
     createKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation = 0;
+    createKernelErrorCalculateStatisticalMapSearchlight = 0;
     createKernelErrorTransformData = 0;
     createKernelErrorRemoveLinearFit = 0;
     createKernelErrorRemoveLinearFitSlice = 0;
@@ -610,6 +611,7 @@ void BROCCOLI_LIB::SetStartValues()
     runKernelErrorCalculateStatisticalMapsGLMTTestSecondLevelPermutation = 0;
     runKernelErrorCalculateStatisticalMapsGLMFTestSecondLevelPermutation = 0;
     runKernelErrorCalculateStatisticalMapsMeanSecondLevelPermutation = 0;
+    runKernelErrorCalculateStatisticalMapSearchlight = 0;
     runKernelErrorTransformData = 0;
     runKernelErrorRemoveLinearFit = 0;
     runKernelErrorRemoveLinearFitSlice = 0;
@@ -631,7 +633,7 @@ void BROCCOLI_LIB::SetStartValues()
 	buildProgramError = 0;
 	getProgramBuildInfoError = 0;
 
-	NUMBER_OF_KERNEL_FILES = 11;
+	NUMBER_OF_KERNEL_FILES = 12;
 
 	for (int k = 0; k < NUMBER_OF_KERNEL_FILES; k++)
 	{
@@ -651,8 +653,9 @@ void BROCCOLI_LIB::SetStartValues()
     kernelFileNames.push_back("kernelStatistics5.cpp");
 	kernelFileNames.push_back("kernelWhitening.cpp");
 	kernelFileNames.push_back("kernelBayesian.cpp");
-
-	buildInfo.resize(11);
+    kernelFileNames.push_back("kernelSearchlight.cpp");
+    
+	buildInfo.resize(12);
 }
 
 
@@ -1817,6 +1820,11 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	OpenCLKernels[99] = ApplyWhiteningAR4SliceKernel;
 	OpenCLKernels[100] = GeneratePermutedVolumesFirstLevelKernel;
 
+    // Searchlight kernels
+    CalculateStatisticalMapSearchlightKernel = clCreateKernel(OpenCLPrograms[11],"CalculateStatisticalMapSearchlight",&createKernelErrorCalculateStatisticalMapSearchlight);
+    
+    OpenCLKernels[101] = CalculateStatisticalMapSearchlightKernel;
+    
 	OPENCL_INITIATED = true;
 
 	// Set all create kernel errors into an array
@@ -2161,7 +2169,11 @@ const char* BROCCOLI_LIB::GetOpenCLKernelName(int kernel)
 		case 100:
 			return "GeneratePermutedVolumesFirstLevel";
 			break;
-
+        case 101:
+            return "CalculateStatisticalMapSearchlight";
+            break;
+            
+            
 		default:
 			return "Unrecognized BROCCOLI kernel";
 	}
@@ -2278,7 +2290,9 @@ int* BROCCOLI_LIB::GetOpenCLCreateKernelErrors()
 	OpenCLCreateKernelErrors[98] = createKernelErrorApplyWhiteningAR4;
 	OpenCLCreateKernelErrors[99] = createKernelErrorApplyWhiteningAR4Slice;
 	OpenCLCreateKernelErrors[100] = createKernelErrorGeneratePermutedVolumesFirstLevel;
-
+    
+    OpenCLCreateKernelErrors[101] = createKernelErrorCalculateStatisticalMapSearchlight;
+    
 	return OpenCLCreateKernelErrors;
 }
 
@@ -2393,7 +2407,9 @@ int* BROCCOLI_LIB::GetOpenCLRunKernelErrors()
 	OpenCLRunKernelErrors[98] = runKernelErrorApplyWhiteningAR4;
 	OpenCLRunKernelErrors[99] = runKernelErrorApplyWhiteningAR4Slice;
 	OpenCLRunKernelErrors[100] = runKernelErrorGeneratePermutedVolumesFirstLevel;
-
+    
+    OpenCLRunKernelErrors[101] = runKernelErrorCalculateStatisticalMapSearchlight;
+    
 	return OpenCLRunKernelErrors;
 }
 
@@ -3364,6 +3380,22 @@ void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesStatisticalCalculations(int DATA_W,
 
 
 
+void BROCCOLI_LIB::SetGlobalAndLocalWorkSizesSearchlight(int DATA_W, int DATA_H, int DATA_D)
+{
+    localWorkSizeCalculateStatisticalMapSearchlight[0] = 32;
+    localWorkSizeCalculateStatisticalMapSearchlight[1] = 16;
+    localWorkSizeCalculateStatisticalMapSearchlight[2] = 1;
+    
+    // Calculate how many blocks are required
+    xBlocks = (size_t)ceil((float)DATA_W / (float)localWorkSizeCalculateStatisticalMapSearchlight[0]);
+    yBlocks = (size_t)ceil((float)DATA_H / (float)localWorkSizeCalculateStatisticalMapSearchlight[1]);
+    zBlocks = (size_t)ceil((float)DATA_D / (float)localWorkSizeCalculateStatisticalMapSearchlight[2]);
+    
+    // Calculate total number of threads (this is done to guarantee that total number of threads is multiple of local work size, required by OpenCL)
+    globalWorkSizeCalculateStatisticalMapSearchlight[0] = xBlocks * localWorkSizeCalculateStatisticalMapSearchlight[0];
+    globalWorkSizeCalculateStatisticalMapSearchlight[1] = yBlocks * localWorkSizeCalculateStatisticalMapSearchlight[1];
+    globalWorkSizeCalculateStatisticalMapSearchlight[2] = zBlocks * localWorkSizeCalculateStatisticalMapSearchlight[2];
+}
 
 
 
@@ -3554,6 +3586,13 @@ void BROCCOLI_LIB::SetDesignMatrix(float* data1, float* data2)
 	h_X_GLM_In = data1;
 	h_xtxxt_GLM_In = data2;
 }
+
+void BROCCOLI_LIB::SetCorrectClasses(float* data1, float* data2)
+{
+    h_Correct_Classes_In = data1;
+    h_d_In = data2;
+}
+
 
 void BROCCOLI_LIB::SetPermutationMatrix(unsigned short int* matrix)
 {
@@ -13004,6 +13043,64 @@ void BROCCOLI_LIB::PerformGLMFTestSecondLevelWrapper()
 	clReleaseMemObject(d_Statistical_Maps);
 	clReleaseMemObject(d_Residuals);
 	clReleaseMemObject(d_Residual_Variances);
+}
+
+
+
+
+void BROCCOLI_LIB::PerformSearchlightWrapper()
+{
+    // Allocate memory for volumes
+    d_First_Level_Results = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+    d_MNI_Brain_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+    
+    // Allocate memory for classes
+    c_Correct_Classes = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+    c_d = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+    
+    // Allocate memory for results
+    d_Statistical_Maps = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), NULL, NULL);
+    
+    // Copy data to device
+    clEnqueueWriteBuffer(commandQueue, d_First_Level_Results, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_SUBJECTS * sizeof(float), h_First_Level_Results , 0, NULL, NULL);
+    clEnqueueWriteBuffer(commandQueue, d_MNI_Brain_Mask, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_MNI_Brain_Mask , 0, NULL, NULL);
+
+    // Copy model to constant memory
+    clEnqueueWriteBuffer(commandQueue, c_Correct_Classes, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(float), h_Correct_Classes_In , 0, NULL, NULL);
+    clEnqueueWriteBuffer(commandQueue, c_d, CL_TRUE, 0, NUMBER_OF_SUBJECTS * sizeof(float), h_d_In , 0, NULL, NULL);
+    
+    // Run searchlight
+    SetGlobalAndLocalWorkSizesSearchlight(MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    
+    float n = 0.001;
+    int EPOCS = 1;
+    
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 0, sizeof(cl_mem),  &d_Statistical_Maps);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 1, sizeof(cl_mem),  &d_First_Level_Results);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 2, sizeof(cl_mem),  &d_MNI_Brain_Mask);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 3, sizeof(cl_mem),  &c_d);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 4, sizeof(cl_mem),  &c_Correct_Classes);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 5, sizeof(int),     &MNI_DATA_W);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 6, sizeof(int),     &MNI_DATA_H);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 7, sizeof(int),     &MNI_DATA_D);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 8, sizeof(int),     &NUMBER_OF_SUBJECTS);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 9, sizeof(float),   &n);
+    clSetKernelArg(CalculateStatisticalMapSearchlightKernel, 10, sizeof(int),    &EPOCS);
+    
+    runKernelErrorCalculateStatisticalMapSearchlight = clEnqueueNDRangeKernel(commandQueue, CalculateStatisticalMapSearchlightKernel, 3, NULL, globalWorkSizeCalculateStatisticalMapSearchlight, localWorkSizeCalculateStatisticalMapSearchlight, 0, NULL, NULL);
+    clFinish(commandQueue);
+
+    // Copy results to  host
+    clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
+    
+    // Release memory
+    clReleaseMemObject(d_First_Level_Results);
+    clReleaseMemObject(d_MNI_Brain_Mask);
+    
+    clReleaseMemObject(c_Correct_Classes);
+    clReleaseMemObject(c_d);
+    
+    clReleaseMemObject(d_Statistical_Maps);
 }
 
 
