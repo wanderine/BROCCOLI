@@ -12224,6 +12224,13 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 {
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 
+	// Copy mask to device
+	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
+
+	deviceMemoryAllocations += 1;
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
 	CalculateNumberOfBrainVoxels(d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Check amount of global memory, compared to required memory
@@ -12286,18 +12293,15 @@ void BROCCOLI_LIB::PerformGLMTTestFirstLevelWrapper()
 		allocatedDeviceMemory += 2 * EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T * sizeof(float);
 		deviceMemoryAllocations += 2;
 	}
-
-
 	
-	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 	d_Contrast_Volumes = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
-	deviceMemoryAllocations += 6;
-	allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(2 + NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS + NUMBER_OF_CONTRASTS + 1) * sizeof(float);
+	deviceMemoryAllocations += 5;
+	allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(1 + NUMBER_OF_TOTAL_GLM_REGRESSORS + NUMBER_OF_CONTRASTS + NUMBER_OF_CONTRASTS + 1) * sizeof(float);
 
 	d_AR1_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_AR2_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
@@ -12481,6 +12485,13 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 {
 	NUMBER_OF_TOTAL_GLM_REGRESSORS = NUMBER_OF_GLM_REGRESSORS*(USE_TEMPORAL_DERIVATIVES+1) + NUMBER_OF_DETRENDING_REGRESSORS*NUMBER_OF_RUNS + REGRESS_GLOBALMEAN + NUMBER_OF_MOTION_REGRESSORS * REGRESS_MOTION;
 
+	// Copy mask to device
+	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
+	clEnqueueWriteBuffer(commandQueue, d_EPI_Mask, CL_TRUE, 0, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), h_EPI_Mask , 0, NULL, NULL);
+
+	deviceMemoryAllocations += 1;
+	allocatedDeviceMemory += EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float);
+
 	CalculateNumberOfBrainVoxels(d_EPI_Mask, EPI_DATA_W, EPI_DATA_H, EPI_DATA_D);
 
 	// Check amount of global memory, compared to required memory
@@ -12529,14 +12540,13 @@ void BROCCOLI_LIB::PerformGLMFTestFirstLevelWrapper()
 		deviceMemoryAllocations += 2;
 	}
 
-	d_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Smoothed_EPI_Mask = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
 	d_Statistical_Maps = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_Residual_Variances = clCreateBuffer(context, CL_MEM_WRITE_ONLY, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 
-	deviceMemoryAllocations += 5;
-	allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(2 + NUMBER_OF_TOTAL_GLM_REGRESSORS + 1 + 1) * sizeof(float);
+	deviceMemoryAllocations += 4;
+	allocatedDeviceMemory += (EPI_DATA_W * EPI_DATA_H * EPI_DATA_D)*(1 + NUMBER_OF_TOTAL_GLM_REGRESSORS + 1 + 1) * sizeof(float);
 
 	d_AR1_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
 	d_AR2_Estimates = clCreateBuffer(context, CL_MEM_READ_WRITE, EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * sizeof(float), NULL, NULL);
