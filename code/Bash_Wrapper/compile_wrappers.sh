@@ -53,7 +53,6 @@ else
     echo "Unknown compilation mode"
 fi
 
-g++ CombineAffineTransforms.cpp -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -o CombineAffineTransforms &
 
 g++ GetOpenCLInfo.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -lBROCCOLI_LIB -lOpenCL -lclBLAS ${FLAGS} -o GetOpenCLInfo &
 
@@ -74,22 +73,26 @@ g++ SliceTimingCorrection.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DI
 
 g++ Smoothing.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lclBLAS -lniftiio -lznz -lz ${FLAGS} -o Smoothing &
 
-g++ ICA.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lclBLAS -lniftiio -lznz -lz ${FLAGS} -o ICA &
-
 g++ GLM.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lclBLAS -lniftiio -lznz -lz ${FLAGS} -o GLM &
 
-g++ MakeROI.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib  -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lniftiio -lznz -lz ${FLAGS} -o MakeROI &
+g++ ICA.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lclBLAS -lniftiio -lznz -lz ${FLAGS} -o ICA &
 
-g++ ExtractTimeseries.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib  -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lniftiio -lznz -lz ${FLAGS} -o ExtractTimeseries &
+g++ Searchlight.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -L${OPENCL_LIBRARY_DIRECTORY} -L${CLBLAS_LIBRARY_DIRECTORY} -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_LIBRARY_DIRECTORY} -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lBROCCOLI_LIB -lOpenCL -lclBLAS -lniftiio -lznz -lz ${FLAGS} -o Searchlight &
+
+
+
+#g++ CombineAffineTransforms.cpp -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen ${FLAGS} -o CombineAffineTransforms &
+
+
+#g++ MakeROI.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib  -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lniftiio -lznz -lz ${FLAGS} -o MakeROI &
+
+#g++ ExtractTimeseries.cpp -I${OPENCL_HEADER_DIRECTORY1} -I${OPENCL_HEADER_DIRECTORY2} -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/niftilib -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/Eigen -I${BROCCOLI_GIT_DIRECTORY}/code/BROCCOLI_LIB/ -L${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/lib  -I${BROCCOLI_GIT_DIRECTORY}/code/Bash_Wrapper/nifticlib-2.0.0/znzlib -lniftiio -lznz -lz ${FLAGS} -o ExtractTimeseries &
 
 wait
 
 
 # Move compiled files to correct directory
 if [ "$COMPILATION" -eq "$RELEASE" ] ; then
-	mv MakeROI ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
-	mv ExtractTimeseries ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
-	mv CombineAffineTransforms ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
@@ -99,12 +102,13 @@ if [ "$COMPILATION" -eq "$RELEASE" ] ; then
 	mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv Smoothing ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
-	mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 	mv GLM ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	mv Searchlight ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	#mv MakeROI ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	#mv ExtractTimeseries ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
+	#mv CombineAffineTransforms ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Release
 elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
-	mv MakeROI ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
-	mv ExtractTimeseries ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
-	mv CombineAffineTransforms ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv GetOpenCLInfo ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv GetBandwidth ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv MotionCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
@@ -114,8 +118,12 @@ elif [ "$COMPILATION" -eq "$DEBUG" ] ; then
 	mv FirstLevelAnalysis ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv SliceTimingCorrection ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv Smoothing ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
-	mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 	mv GLM ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv ICA ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	mv Searchlight ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	#mv MakeROI ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	#mv ExtractTimeseries ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
+	#mv CombineAffineTransforms ${BROCCOLI_GIT_DIRECTORY}/compiled/Bash/Linux/Debug
 fi
 
 

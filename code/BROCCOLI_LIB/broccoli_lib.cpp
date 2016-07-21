@@ -13102,7 +13102,8 @@ void BROCCOLI_LIB::PerformSearchlightWrapper()
 
     // Copy results to  host
     clEnqueueReadBuffer(commandQueue, d_Statistical_Maps, CL_TRUE, 0, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * sizeof(float), h_Statistical_Maps_MNI, 0, NULL, NULL);
-    
+    clFinish(commandQueue);    
+
     // Release memory
     clReleaseMemObject(d_First_Level_Results);
     clReleaseMemObject(d_MNI_Brain_Mask);

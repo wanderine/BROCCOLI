@@ -521,20 +521,6 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 		
-	    
-    // ------------------------------------------------
-  
-	
-		
-    // ------------------------------------------------
-
-    // Print some info
-    if (PRINT)
-    {
-        printf("Authored by K.A. Eklund \n");
-        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, NUMBER_OF_VOLUMES);
-        //printf("Number of regressors: %zu \n",  NUMBER_OF_GLM_REGRESSORS);
-    }
 	
     // ------------------------------------------------
 
@@ -588,17 +574,25 @@ int main(int argc, char **argv)
     }
     design.close();
 
+	int uncensoredVolumes = 0;
+
     for (size_t v = 0; v < NUMBER_OF_VOLUMES; v++)
     {
         if (h_Correct_Classes[v] == 0.0f)
         {
-            h_d[v] = -1.0f;
+            h_d[v] = 1.0f;
         }
         else
         {
-            h_d[v] = 1.0f;
+            h_d[v] = -1.0f;
         }
+
+		if (h_Correct_Classes[v] != 9999.0f)
+		{
+			uncensoredVolumes++;
+		}
     }
+
 	
 	
     NUMBER_OF_STATISTICAL_MAPS = 1;
@@ -655,6 +649,8 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     
+	int maskVoxels = 0;
+
 	// Mask is provided by user
 	if (MASK)
 	{
@@ -692,6 +688,15 @@ int main(int argc, char **argv)
 			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 	        return EXIT_FAILURE;
 	    }
+
+        for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+        {
+            if (h_Mask[i] == 1.0f)
+			{
+				maskVoxels++;
+			}
+        }
+
 	}
 	// Mask is NOT provided by user, set all mask voxels to 1
 	else
@@ -701,6 +706,19 @@ int main(int argc, char **argv)
             h_Mask[i] = 1.0f;
         }
 	}
+
+    // Print some info
+    if (PRINT)
+    {
+        printf("Authored by K.A. Eklund \n");
+        printf("Data size: %zu x %zu x %zu x %zu \n",  DATA_W, DATA_H, DATA_D, NUMBER_OF_VOLUMES);
+	    printf("Uncensored volumes: %i\n",uncensoredVolumes);
+		if (MASK)
+		{
+			printf("Voxels in mask: %i\n",maskVoxels);
+		}
+    }
+
 
 	endTime = GetWallTime();
 
@@ -820,7 +838,7 @@ int main(int argc, char **argv)
 
 		if (VERBOS)
 	 	{
-			printf("\nIt took %f seconds to run the search light\n",(float)(endTime - startTime));
+			printf("\nIt took %f seconds to run the searchlight\n",(float)(endTime - startTime));
 		}
 
         // Print create buffer errors
@@ -883,7 +901,6 @@ int main(int argc, char **argv)
     startTime = GetWallTime(); 
         
     WriteNifti(outputNifti,h_Classifier_Performance,"_classifier_performance",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
-    //WriteNifti(outputNifti,h_P_Values,"_perm_pvalues",ADD_FILENAME,DONT_CHECK_EXISTING_FILE);
 
 	endTime = GetWallTime();
 
