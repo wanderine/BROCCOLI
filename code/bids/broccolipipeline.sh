@@ -140,6 +140,7 @@ if [ "$analysis_type" == "participant" ]; then
     # participant given, analyze single subject
     if [ "$single_subject" -eq "1" ]; then
         subject=sub-$participant
+        echo "Analyzing subject $subject"
         analyze_subject $bids_dir $output_dir $studyname $subject
     # participant not given, analyze all subjects
     else
@@ -153,6 +154,7 @@ if [ "$analysis_type" == "participant" ]; then
             else
                 subject=sub-$s
             fi
+            echo "Analyzing subject $subject"
             analyze_subject $bids_dir $output_dir $studyname $subject
         done
     fi
