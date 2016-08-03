@@ -1,11 +1,95 @@
 #!/bin/bash
 
+function analyze_subject {
+
+    bids_dir=$1
+    output_dir=$2
+    studyname=$3
+    subject=$4
+
+    one=1
+
+    mkdir $output_dir/$subject
+
+    # convert BIDS csv to FSL format
+    ./BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${studyname}_events.tsv $output_dir/$subject/cond
+
+    # count number of trial types
+    num_trial_types=`ls $output_dir/$subject/cond* | wc -l`
+    cond_files=`ls $output_dir/$subject/cond*`
+
+    Files=()
+    string=${cond_files[$((0))]}
+    Files+=($string)
+
+    echo "Cond files are $cond_files"
+
+    ((num_trial_types--))
+
+    for f in $(seq 0 $num_trial_types); do
+        # Get current file
+        File=${Files[$((f))]}
+        # Get number of events
+        events=`cat $File | wc -l`
+        ((events--))
+        ((events++))
+#echo "File is $File"
+#       echo "Number of events is $events"
+        #sed -i "1s/^/NumEvents $events \n\n/" $File
+    done
+
+    events=32
+    #sed -i "1s/^/NumEvents $events \n\n/" $output_dir/$subject/cond_pseudoword.txt
+    #   sed -i "1s/^/NumEvents $events \n\n/" $output_dir/$subject/cond_word.txt
+
+
+    ((num_trial_types++))
+
+    # create regressors file in BROCCOLI format
+    touch $output_dir/$subject/regressors.txt
+    echo "NumRegressors $num_trial_types" > $output_dir/$subject/regressors.txt
+    echo "" >> $output_dir/$subject/regressors.txt
+
+    # add cond files to regressors.txt
+    ls $output_dir/$subject/cond* >> $output_dir/$subject/regressors.txt
+
+    # create contrasts file in BROCCOLI format
+    touch $output_dir/$subject/contrasts.txt
+    echo "NumRegressors $num_trial_types" > $output_dir/$subject/contrasts.txt
+    echo "NumContrasts $((num_trial_types-one))" >> $output_dir/$subject/contrasts.txt
+
+    num_zeros=$((num_trial_types-one))
+    zeros=""
+    for f in $(seq 1 $num_zeros); do
+        zeros="$zeros 0"
+    done
+    echo "1 $zeros" >> $output_dir/$subject/contrasts.txt
+
+    # make brain segmentation
+    bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
+
+    #fslreorient2std
+
+    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject/$subject -device 2 -savemnimask -saveallaligned
+
+}
+
+
+
+
+
+
+
 # check that we have at least 3 arguments
 
 if [ $# -lt 3 ]; then
     echo "usage: broccolipipeline bids_dir output_dir analysis_type [participant(s)]"
     exit 1
 fi
+
+zero=0
+one=1
+ten=10
 
 # first argument, bids_dir
 bids_dir=$1
@@ -63,77 +147,21 @@ studyname=rhymejudgment
 
 # participant given, analyze single subject
 if [ "$single_subject" -eq "1" ]; then
-
     subject=sub-$participant
-
-    mkdir $output_dir/$subject
-
-    # convert BIDS events to FSL standard
-    ./BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${studyname}_events.tsv $output_dir/$subject/cond
-
-    # count number of trial types
-    num_trial_types=`ls $output_dir/$subject/cond* | wc -l`
-    cond_files=`ls $output_dir/$subject/cond*`
-
-    Files=()
-    string=${cond_files[$((0))]}
-    Files+=($string)
-
-    echo "Cond files are $cond_files"
-
-    ((num_trial_types--))
-
-    for f in $(seq 0 $num_trial_types); do
-        # Get current file
-        File=${Files[$((f))]}
-        # Get number of events
-        events=`cat $File | wc -l`
-        ((events--))
-        ((events++))
-        echo "File is $File"
-        echo "Number of events is $events"
-        sed -i "1s/^/NumEvents $events \n\n/" $File
-   done
-
-    ((num_trial_types++))
-
-    # create regressors file in BROCCOLI format
-    touch $output_dir/$subject/regressors.txt
-    echo "NumRegressors $num_trial_types" > $output_dir/$subject/regressors.txt
-    echo "" >> $output_dir/$subject/regressors.txt
-
-    # add cond files to regressors.txt
-    ls $output_dir/$subject/cond* >> $output_dir/$subject/regressors.txt
-
-    # create contrasts file in BROCCOLI format
-    touch $output_dir/$subject/contrasts.txt
-    echo "NumRegressors $num_trial_types" > $output_dir/$subject/contrasts.txt
-    echo "NumContrasts $num_trial_types" >> $output_dir/$subject/contrasts.txt
-
-    # make brain segmentation
-    bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
-
-    #fslreorient2std
-
-    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject -device 2
-
+    analyze_subject $bids_dir $output_dir $studyname $subject
 # participant not given, analyze all subjects
 else
     # get number of subjects
-    number_of_subjects=`cat $bids_dir/participants.tsv  | wc -l`
-    ((number_ob_subjects--))
+    num_subjects=`cat $bids_dir/participants.tsv  | wc -l`
+    ((num_subjects--))
 
-    for subject in $(seq 1 $number_of_subjects); do
-
-        mkdir $output_dir/$subject
-
-        # create regressors file in BROCCOLI format
-        touch $output_dir/$subject/regressors.txt
-
-        # create contrasts file in BROCCOLI format
-        touch $output_dir/$subject/contrasts.txt
-
-        echo "Subject $subject"
+    for s in $(seq 1 $num_subjects); do
+        if [ "$s" -lt "$ten" ]; then
+            subject=sub-$zero$s
+        else
+            subject=sub-$s
+        fi
+        analyze_subject $bids_dir $output_dir $studyname $subject
     done
 fi
 
