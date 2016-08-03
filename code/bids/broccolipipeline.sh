@@ -22,8 +22,6 @@ function analyze_subject {
     string=${cond_files[$((0))]}
     Files+=($string)
 
-    echo "Cond files are $cond_files"
-
     ((num_trial_types--))
 
     for f in $(seq 0 $num_trial_types); do
@@ -175,7 +173,7 @@ elif [ "$analysis_type" == "group" ]; then
         else
             subject=sub-$s
         fi
-        allmasks="$allmasks $output_dir/$subject/$subject_epimask.nii.gz"
+        allmasks="$allmasks $output_dir/$subject/$subject_mask_mni.nii"
     done
 
     fslmerge -t $output_dir/group/mask $allmasks
@@ -189,7 +187,7 @@ elif [ "$analysis_type" == "group" ]; then
     else
         subject=sub-$s
     fi
-        allcopes="$allcopes $output_dir/$subject/$subject_cope1.nii.gz"
+        allcopes="$allcopes $output_dir/$subject/$subject_cope_contrast0001_MNI.nii"
     done
 
     fslmerge -t $output_dir/group/copes $allcopes

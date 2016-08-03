@@ -157,7 +157,7 @@ for E in "${EventNms[@]}" ; do
 	Out="$OutBase"_"$(echo $E | sed 's/ /'$SpaceReplace'/g')"."$ThreeColExt"
     fi
 
-    echo "Creating '$Out'... "
+    #echo "Creating '$Out'... "
 
     if [ "$HeightNm" = "" ] ; then
 
