@@ -33,15 +33,10 @@ function analyze_subject {
         events=`cat $File | wc -l`
         ((events--))
         ((events++))
-#echo "File is $File"
-#       echo "Number of events is $events"
-        #sed -i "1s/^/NumEvents $events \n\n/" $File
+        #echo "File is $File"
+        #echo "Number of events is $events"
+        sed -i "1s/^/NumEvents $events \n\n/" $File
     done
-
-    events=32
-    #sed -i "1s/^/NumEvents $events \n\n/" $output_dir/$subject/cond_pseudoword.txt
-    #   sed -i "1s/^/NumEvents $events \n\n/" $output_dir/$subject/cond_word.txt
-
 
     ((num_trial_types++))
 
@@ -66,11 +61,11 @@ function analyze_subject {
     echo "1 $zeros" >> $output_dir/$subject/contrasts.txt
 
     # make brain segmentation
-    bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
+    /usr/local/fsl/bin/bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
 
     #fslreorient2std
 
-    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject/$subject -device 2 -savemnimask -saveallaligned
+    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject/$subject -device 0 -savemnimask -saveallaligned
 
 }
 
@@ -143,26 +138,65 @@ fi
 
 studyname=rhymejudgment
 
-# Run the actual first level analysis
+if [ "$analysis_type" == "participant" ]; then
+    # participant given, analyze single subject
+    if [ "$single_subject" -eq "1" ]; then
+        subject=sub-$participant
+        analyze_subject $bids_dir $output_dir $studyname $subject
+    # participant not given, analyze all subjects
+    else
+        # get number of subjects
+        num_subjects=`cat $bids_dir/participants.tsv  | wc -l`
+        ((num_subjects--))
 
-# participant given, analyze single subject
-if [ "$single_subject" -eq "1" ]; then
-    subject=sub-$participant
-    analyze_subject $bids_dir $output_dir $studyname $subject
-# participant not given, analyze all subjects
-else
+        for s in $(seq 1 $num_subjects); do
+            if [ "$s" -lt "$ten" ]; then
+                subject=sub-$zero$s
+            else
+                subject=sub-$s
+            fi
+            analyze_subject $bids_dir $output_dir $studyname $subject
+        done
+    fi
+elif [ "$analysis_type" == "group" ]; then
+
+    mkdir $output_dir/group
+
+    # merge masks from first level analyses
+
     # get number of subjects
     num_subjects=`cat $bids_dir/participants.tsv  | wc -l`
     ((num_subjects--))
 
+    allmasks=""
     for s in $(seq 1 $num_subjects); do
         if [ "$s" -lt "$ten" ]; then
             subject=sub-$zero$s
         else
             subject=sub-$s
         fi
-        analyze_subject $bids_dir $output_dir $studyname $subject
+        allmasks="$allmasks $output_dir/$subject/$subject_epimask.nii.gz"
     done
+
+    fslmerge -t $output_dir/group/mask $allmasks
+
+    # merge copes from first level analyses
+
+    allcopes=""
+    for s in $(seq 1 $num_subjects); do
+    if [ "$s" -lt "$ten" ]; then
+        subject=sub-$zero$s
+    else
+        subject=sub-$s
+    fi
+        allcopes="$allcopes $output_dir/$subject/$subject_cope1.nii.gz"
+    done
+
+    fslmerge -t $output_dir/group/copes $allcopes
+
+
+    RandomiseGroupLevel allcopes -groupmean -mask MNI152_T1_2mm_brain_mask.nii.gz -output $output_dir/group/
+
 fi
 
 
