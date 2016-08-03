@@ -59,9 +59,10 @@ RUN rm /bin/sh && \
     chmod +x fslinstaller.py && \
     ENV SHELL /bin/bash && \
     python2.6 fslinstaller.py -q -d /usr/local && \
-    ENV PATH $PATH:/usr/local/fsl/bin && \
     ENV FSLDIR /usr/local/fsl && \
-    . ${FSLDIR}/etc/fslconf/fsl.sh 
+    . ${FSLDIR}/etc/fslconf/fsl.sh && \
+    ENV PATH $PATH:/usr/local/fsl/bin 
+    
 
 
 
