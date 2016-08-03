@@ -63,7 +63,7 @@ function analyze_subject {
 
     #fslreorient2std
 
-    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject/$subject -device 0 -savemnimask -saveallaligned
+    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject/$subject -device 0 -savemnimask -saveallaligned
 
 }
 
