@@ -51,10 +51,19 @@ RUN rm /bin/sh && \
     cd compiled/Bash/Linux/Release/ && \
     export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/Downloads/BROCCOLI/code/BROCCOLI_LIB/clBLASLinux && \
     export BROCCOLI_DIR=/Downloads/BROCCOLI/ && \
+    export PATH=$PATH:/Downloads/BROCCOLI/compiled/Bash/Linux/Release/ && \
+    export PATH=$PATH:/usr/local/fsl && \
+    export FSLDIR=/usr/local/fsl && \
+    . ${FSLDIR}/etc/fslconf/fsl.sh && \ 
     ./GetOpenCLInfo && \
     cp /Downloads/BROCCOLI/test_data/fcon1000/classic/Beijing/sub00440/func/rest.nii.gz . && \
     ./Smoothing rest.nii.gz -verbose && \
-    ./MotionCorrection rest.nii.gz 
+    cd /Downloads/BROCCOLI/code/bids && \
+    chmod +x fslinstaller.py && \
+    export SHELL=/bin/bash && \
+    python2.6 fslinstaller.py -q -d /usr/local 
+
+
 
 
 
