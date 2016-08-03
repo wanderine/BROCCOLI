@@ -20,7 +20,7 @@ RUN rm /bin/sh && \
     yum -y install libXp.x86_64 && \
     yum -y install gcc-c++ && \
     yum -y install libXmu.x86_64 && \
-    yum -y install kernel-devel.x86_64 && \ 
+    yum -y update && \
     mkdir Downloads && \
     cd Downloads && \
     wget https://dl.dropboxusercontent.com/u/4494604/opencl_runtime_15.1_x64_5.0.0.57.tar && \
@@ -49,19 +49,19 @@ RUN rm /bin/sh && \
     cd .. && \
     cd .. && \
     cd compiled/Bash/Linux/Release/ && \
-    export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/Downloads/BROCCOLI/code/BROCCOLI_LIB/clBLASLinux && \
-    export BROCCOLI_DIR=/Downloads/BROCCOLI/ && \
-    export PATH=$PATH:/Downloads/BROCCOLI/compiled/Bash/Linux/Release/ && \
-    export PATH=$PATH:/usr/local/fsl && \
-    export FSLDIR=/usr/local/fsl && \
-    . ${FSLDIR}/etc/fslconf/fsl.sh && \ 
+    ENV LD_LIBRARY_PATH /Downloads/BROCCOLI/code/BROCCOLI_LIB/clBLASLinux && \
+    ENV BROCCOLI_DIR /Downloads/BROCCOLI/ && \
+    ENV PATH $PATH:/Downloads/BROCCOLI/compiled/Bash/Linux/Release/ && \
     ./GetOpenCLInfo && \
     cp /Downloads/BROCCOLI/test_data/fcon1000/classic/Beijing/sub00440/func/rest.nii.gz . && \
     ./Smoothing rest.nii.gz -verbose && \
     cd /Downloads/BROCCOLI/code/bids && \
     chmod +x fslinstaller.py && \
-    export SHELL=/bin/bash && \
-    python2.6 fslinstaller.py -q -d /usr/local 
+    ENV SHELL /bin/bash && \
+    python2.6 fslinstaller.py -q -d /usr/local && \
+    ENV PATH $PATH:/usr/local/fsl/bin && \
+    ENV FSLDIR /usr/local/fsl && \
+    . ${FSLDIR}/etc/fslconf/fsl.sh 
 
 
 
