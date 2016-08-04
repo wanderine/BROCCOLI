@@ -20,6 +20,7 @@ RUN rm /bin/sh && \
     yum -y install libXp.x86_64 && \
     yum -y install gcc-c++ && \
     yum -y install libXmu.x86_64 && \
+    yum -y install bc-1.06.95-1.el6.x86_64 && \
     yum -y update && \
     mkdir Downloads && \
     cd Downloads && \
