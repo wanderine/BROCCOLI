@@ -1,5 +1,12 @@
 FROM centos:6.8
 
+ENV LD_LIBRARY_PATH /Downloads/BROCCOLI/code/BROCCOLI_LIB/clBLASLinux 
+ENV BROCCOLI_DIR /Downloads/BROCCOLI/ 
+ENV PATH $PATH:/Downloads/BROCCOLI/compiled/Bash/Linux/Release/ 
+ENV SHELL /bin/bash
+ENV FSLDIR /usr/local/fsl 
+ENV PATH $PATH:/usr/local/fsl/bin 
+
 RUN mkdir /oasis
 
 RUN mkdir /projects
@@ -21,8 +28,9 @@ RUN rm /bin/sh && \
     yum -y install gcc-c++ && \
     yum -y install libXmu.x86_64 && \
     yum -y install bc-1.06.95-1.el6.x86_64 && \
-    yum -y update && \
-    mkdir Downloads && \
+    yum -y update 
+
+RUN mkdir Downloads && \
     cd Downloads && \
     wget https://dl.dropboxusercontent.com/u/4494604/opencl_runtime_15.1_x64_5.0.0.57.tar && \
     tar -xf opencl_runtime_15.1_x64_5.0.0.57.tar && \
@@ -31,13 +39,18 @@ RUN rm /bin/sh && \
     sed -i 's/decline/accept/g' silent.cfg && \
     ./install.sh -s silent.cfg && \
     cd .. && \
-    wget https://dl.dropboxusercontent.com/u/4494604/intel_code_builder_for_opencl_2015_5.0.0.62_x64.tar && \
+    rm opencl_runtime_15.1_x64_5.0.0.57.tar
+
+RUN wget https://dl.dropboxusercontent.com/u/4494604/intel_code_builder_for_opencl_2015_5.0.0.62_x64.tar && \
     tar -xf intel_code_builder_for_opencl_2015_5.0.0.62_x64.tar && \
     cd intel_code_builder_for_opencl_2015_5.0.0.62_x64 && \
     sed -i 's/decline/accept/g' silent.cfg && \
     chmod +x install.sh && \
     ./install.sh -s silent.cfg && \
     cd .. && \
+    rm intel_code_builder_for_opencl_2015_5.0.0.62_x64.tar
+
+RUN cd /Downloads && \
     mkdir BROCCOLI && \
     cd BROCCOLI && \
     git clone --depth 1 https://github.com/wanderine/BROCCOLI.git . && \
@@ -50,19 +63,18 @@ RUN rm /bin/sh && \
     cd .. && \
     cd .. && \
     cd compiled/Bash/Linux/Release/ && \
-    ENV LD_LIBRARY_PATH /Downloads/BROCCOLI/code/BROCCOLI_LIB/clBLASLinux && \
-    ENV BROCCOLI_DIR /Downloads/BROCCOLI/ && \
-    ENV PATH $PATH:/Downloads/BROCCOLI/compiled/Bash/Linux/Release/ && \
     ./GetOpenCLInfo && \
     cp /Downloads/BROCCOLI/test_data/fcon1000/classic/Beijing/sub00440/func/rest.nii.gz . && \
     ./Smoothing rest.nii.gz -verbose && \
-    cd /Downloads/BROCCOLI/code/bids && \
+    rm rest.nii.gz && \
+    rm rest_sm.nii.gz
+
+RUN cd /Downloads/BROCCOLI/code/bids && \
     chmod +x fslinstaller.py && \
-    ENV SHELL /bin/bash && \
     python2.6 fslinstaller.py -q -d /usr/local && \
-    ENV FSLDIR /usr/local/fsl && \
-    . ${FSLDIR}/etc/fslconf/fsl.sh && \
-    ENV PATH $PATH:/usr/local/fsl/bin 
+    . /usr/local/fsl/etc/fslconf/fsl.sh 
+    
+ENTRYPOINT [“/Downloads/BROCCOLI/code/bids/broccolipipeline.sh”]
     
 
 
