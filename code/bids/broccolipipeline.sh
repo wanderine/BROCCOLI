@@ -12,7 +12,7 @@ function analyze_subject {
     mkdir $output_dir/$subject
 
     # convert BIDS csv to FSL format
-    BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${studyname}_events.tsv $output_dir/$subject/cond
+    /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${studyname}_events.tsv $output_dir/$subject/cond
 
     # count number of trial types
     num_trial_types=`ls $output_dir/$subject/cond* | wc -l`
