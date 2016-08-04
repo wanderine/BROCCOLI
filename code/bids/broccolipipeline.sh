@@ -61,7 +61,7 @@ function analyze_subject {
     # make brain segmentation
     /usr/local/fsl/bin/bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
 
-    fslreorient2std $output_dir/$subject/${subject}_T1w_brain.nii.gz
+    #fslreorient2std $output_dir/$subject/${subject}_T1w_brain.nii.gz
 
     FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject/$subject -device 0 -savemnimask -saveallaligned
 
