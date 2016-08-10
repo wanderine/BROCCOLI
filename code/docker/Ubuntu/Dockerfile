@@ -1,8 +1,9 @@
-FROM ubuntu:16.04
+FROM ubuntu:14.04
 
 ENV LD_LIBRARY_PATH /Downloads/BROCCOLI/code/BROCCOLI_LIB/clBLASLinux 
 ENV BROCCOLI_DIR /Downloads/BROCCOLI/ 
 ENV PATH $PATH:/Downloads/BROCCOLI/compiled/Bash/Linux/Release/ 
+ENV PATH $PATH:/Downloads/BROCCOLI/code/bids
 ENV FSLDIR /usr/share/fsl/5.0
 ENV FSLOUTPUTTYPE NIFTI_GZ
 ENV PATH /usr/lib/fsl/5.0:$PATH
@@ -12,15 +13,18 @@ ENV LD_LIBRARY_PATH /usr/lib/fsl/5.0:$LD_LIBRARY_PATH
 ENV FSLTCLSH /usr/bin/tclsh
 ENV FSLWISH /usr/bin/wish
 
-# Enable NeuroDebian repository (if needed)
-RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive \
-       NEURODEBIAN_ENABLE=yes NEURODEBIAN_MIRROR=origin NEURODEBIAN_FLAVOR=full NEURODEBIAN_UPDATE=0 \
-       apt-get install -y neurodebian
+RUN apt-get update && \
+    apt-get upgrade -y
 
-# Run apt-get calls
-RUN apt-get update \
-    && apt-get install -y fsl-5.0-core
+RUN apt-get -f install 
+
+RUN apt-get install -y wget && \
+    apt-get install -y git && \
+    apt-get install -y g++ && \
+    apt-get install -y xorg && \
+    apt-get install -y zlib1g-dev 
+
+
 
 RUN mkdir /oasis
 RUN mkdir /projects
@@ -30,14 +34,32 @@ RUN mkdir /local-scratch
 
 RUN mkdir Downloads && \
     cd Downloads && \
-    wget https://dl.dropboxusercontent.com/u/4494604/intel_code_builder_for_opencl_2015_ubuntu_5.0.0.43_x64.tgz && \
-    tar -xf intel_code_builder_for_opencl_2015_ubuntu_5.0.0.43_x64.tgz && \
-    cd  intel_code_builder_for_opencl_2015_ubuntu_5.0.0.43_x64 && \
+    wget https://dl.dropboxusercontent.com/u/4494604/intel_sdk_for_opencl_2016_ubuntu_6.2.0.1760_x64.tar && \
+    tar -xf intel_sdk_for_opencl_2016_ubuntu_6.2.0.1760_x64.tar && \
+    cd intel_sdk_for_opencl_2016_ubuntu_6.2.0.1760_x64 && \
     chmod +x install.sh && \
     sed -i 's/decline/accept/g' silent.cfg && \
+    sed -i 's/RPM/NONRPM/g' silent.cfg && \
     ./install.sh -s silent.cfg && \
     cd .. && \
-    rm intel_code_builder_for_opencl_2015_ubuntu_5.0.0.43_x64.tgz
+    rm intel_sdk_for_opencl_2016_ubuntu_6.2.0.1760_x64.tar && \
+    mv /opt/intel/intel-opencl-1.2-6.2.0.1760/opencl-sdk /opt/intel/ && \
+    rm -rf intel_sdk_for_opencl_2016_ubuntu_6.2.0.1760_x64
+
+
+RUN cd /Downloads && \
+    wget https://dl.dropboxusercontent.com/u/4494604/opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25.tgz  && \
+    tar -xf opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25.tgz && \
+    cd opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25 && \
+    chmod +x install.sh && \
+    sed -i 's/decline/accept/g' silent.cfg && \
+    sed -i 's/RPM/NONRPM/g' silent.cfg && \
+    ./install.sh -s silent.cfg && \
+    cd .. && \
+    rm opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25.tgz && \
+    rm -rf opencl_runtime_16.1.1_x64_ubuntu_6.4.0.25
+
+
 
 RUN cd /Downloads && \
     mkdir BROCCOLI && \
@@ -59,4 +81,5 @@ RUN cd /Downloads && \
     rm rest_sm.nii.gz
 
 
+ENTRYPOINT ["/Downloads/BROCCOLI/code/bids/broccolipipeline.sh"]
 
