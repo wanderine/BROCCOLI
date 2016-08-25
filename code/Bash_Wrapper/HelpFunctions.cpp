@@ -1,6 +1,32 @@
 
 #include <time.h>
+#include <string.h>
 #include <sys/time.h>
+
+void CheckFileExtension(const char* filename, bool& extensionOK, std::string& extension)
+{
+    const char* p = filename;
+    int dotPosition = 0;
+    while ( (p != NULL) && ((*p) != '.') )
+    {
+        p++;
+    }
+	extension = "";
+	extension.append(p);
+        
+	// Compare extension to OK values
+	std::string extension1 = ".nii";
+	std::string extension2 = ".nii.gz";
+
+	if ( (extension.compare(extension1) != 0) && (extension.compare(extension2) != 0) )
+	{
+		extensionOK = false;
+	}
+	else
+	{
+		extensionOK = true;			
+	}
+}
 
 void CreateFilename(char *& filenameWithExtension, nifti_image* inputNifti, const char* extension, bool CHANGE_OUTPUT_FILENAME, const char* outputFilename)
 {

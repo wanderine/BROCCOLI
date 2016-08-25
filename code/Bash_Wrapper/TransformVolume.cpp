@@ -132,6 +132,17 @@ int main(int argc, char **argv)
     // Try to open files
     else if (argc > 1)
     {        
+		// Check that file extension is .nii or .nii.gz
+		std::string extension;
+		bool extensionOK;
+		CheckFileExtension(argv[1],extensionOK,extension);
+		if (!extensionOK)
+		{
+            printf("File extension is not .nii or .nii.gz, %s is not allowed!\n",extension.c_str());
+            return EXIT_FAILURE;
+		}
+
+
         fp = fopen(argv[1],"r");
         if (fp == NULL)
         {
@@ -140,6 +151,16 @@ int main(int argc, char **argv)
         }
         fclose(fp);     
         
+
+		// Check that file extension is .nii or .nii.gz
+		CheckFileExtension(argv[2],extensionOK,extension);
+		if (!extensionOK)
+		{
+            printf("File extension is not .nii or .nii.gz, %s is not allowed!\n",extension.c_str());
+            return EXIT_FAILURE;
+		}
+
+
         fp = fopen(argv[2],"r");
         if (fp == NULL)
         {

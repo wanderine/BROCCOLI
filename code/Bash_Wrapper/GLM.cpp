@@ -686,6 +686,16 @@ int main(int argc, char **argv)
 
 	if (!MULTIPLE_RUNS)
 	{
+		// Check that file extension is .nii or .nii.gz
+		std::string extension;
+		bool extensionOK;
+		CheckFileExtension(argv[1],extensionOK,extension);
+		if (!extensionOK)
+		{
+            printf("File extension is not .nii or .nii.gz, %s is not allowed!\n",extension.c_str());
+            return EXIT_FAILURE;
+		}
+
 		inputData = nifti_image_read(argv[1],1);
 	    allfMRINiftiImages.push_back(inputData);
 
@@ -701,6 +711,17 @@ int main(int argc, char **argv)
 	{
 		for (int i = 0; i < NUMBER_OF_RUNS; i++)
 		{
+			// Check that file extension is .nii or .nii.gz
+			std::string extension;
+			bool extensionOK;
+			CheckFileExtension(argv[3+i],extensionOK,extension);
+			if (!extensionOK)
+			{
+	            printf("File extension is not .nii or .nii.gz, %s is not allowed!\n",extension.c_str());
+	            return EXIT_FAILURE;
+			}
+
+
 			inputData = nifti_image_read(argv[3+i],1);
 			allfMRINiftiImages.push_back(inputData);    
 
@@ -718,11 +739,23 @@ int main(int argc, char **argv)
 	nifti_image *inputMask;
 	if (MASK)
 	{
+		// Check that file extension is .nii or .nii.gz
+		std::string extension;
+		bool extensionOK;
+		CheckFileExtension(MASK_NAME,extensionOK,extension);
+		if (!extensionOK)
+		{
+            printf("File extension is not .nii or .nii.gz, %s is not allowed!\n",extension.c_str());
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+            return EXIT_FAILURE;
+		}
+
 	    inputMask = nifti_image_read(MASK_NAME,1);
     
 	    if (inputMask == NULL)
 	    {
         	printf("Could not open mask volume!\n");
+			FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
 	        return EXIT_FAILURE;
 	    }
 		allNiftiImages[numberOfNiftiImages] = inputMask;
