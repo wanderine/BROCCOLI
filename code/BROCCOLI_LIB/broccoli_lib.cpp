@@ -13212,7 +13212,9 @@ void BROCCOLI_LIB::PerformGLMTTestSecondLevelPermutationWrapper()
 	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), NULL, NULL);
-	c_Transformation_Matrix = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+
+	// Not using constant memory for transformation matrix, as it will be too small for > 130 subjects
+	c_Transformation_Matrix = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_SUBJECTS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
 
 	// Allocate memory for results
 	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
@@ -13288,7 +13290,9 @@ void BROCCOLI_LIB::PerformGLMFTestSecondLevelPermutationWrapper()
 	c_Contrasts = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_TOTAL_GLM_REGRESSORS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	c_ctxtxc_GLM = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_CONTRASTS * NUMBER_OF_CONTRASTS * sizeof(float), NULL, NULL);
 	c_Permutation_Vector = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * sizeof(unsigned short int), NULL, NULL);
-	c_Transformation_Matrix = clCreateBuffer(context, CL_MEM_READ_ONLY, NUMBER_OF_SUBJECTS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
+
+	// Not using constant memory for transformation matrix, as it will be too small for > 130 subjects
+	c_Transformation_Matrix = clCreateBuffer(context, CL_MEM_READ_WRITE, NUMBER_OF_SUBJECTS * NUMBER_OF_SUBJECTS * sizeof(float), NULL, NULL);
 
 	// Allocate memory for results
 	d_Beta_Volumes = clCreateBuffer(context, CL_MEM_READ_WRITE, MNI_DATA_W * MNI_DATA_H * MNI_DATA_D * NUMBER_OF_TOTAL_GLM_REGRESSORS * sizeof(float), NULL, NULL);
