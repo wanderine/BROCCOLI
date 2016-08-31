@@ -109,8 +109,8 @@ single_subject=0
 if [ $# -ge 4 ]; then
     fourth_argument=$4
 
-    if [ "$fourth_argument" != "--participant-label" ]; then
-        echo "Fourth argument must be '--participant-label'"
+    if [ "$fourth_argument" != "--participant_label" ]; then
+        echo "Fourth argument must be '--participant_label'"
         exit 1
     else
         single_subject=1
@@ -119,7 +119,7 @@ fi
 
 
 if [ $# -eq 4 ]; then
-    echo "participant-label cannot be empty!"
+    echo "participant_label cannot be empty!"
     exit 1
 fi
 
