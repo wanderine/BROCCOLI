@@ -94,6 +94,15 @@ output_dir=$2
 # third argument, participant or group
 analysis_type=$3
 
+# Run the validator (if it exists) for the BIDS directory
+if [ -e "bids-validator" ]; then
+    echo "Running the BIDS validator for the dataset"
+	bids-validator $bids_dir
+else
+	echo "Could not find BIDS validator!"
+fi
+
+
 # check if analysis type is valid
 if [ "$analysis_type" == "participant" ]; then
     echo "Analyzing single participant"
