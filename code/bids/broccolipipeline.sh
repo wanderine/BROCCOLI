@@ -55,7 +55,7 @@ function analyze_subject {
     for f in $(seq 1 $num_zeros); do
         zeros="$zeros 0"
     done
-    echo "1 $zeros" >> $output_dir/$subject/contrasts.txt   
+    echo "1 $zeros" >> $output_dir/$subject/$task_name/contrasts.txt
 
     FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${task_name}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/$task_name/regressors.txt $output_dir/$subject/$task_name/contrasts.txt -output $output_dir/$subject/$task_name/$subject -device 0 -savemnimask -saveallaligned
 
