@@ -5,19 +5,17 @@ function analyze_subject {
 
     bids_dir=$1
     output_dir=$2
-    studyname=$3
-    subject=$4
+    subject=$3
+    task_name=$4
 
-    one=1
-
-    mkdir $output_dir/$subject
+    one=1   
 
     # convert BIDS csv to FSL format
-    /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${studyname}_events.tsv $output_dir/$subject/cond
+    /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_events.tsv $output_dir/$subject/$task_name/cond
 
     # count number of trial types
-    num_trial_types=`ls $output_dir/$subject/cond* | wc -l`
-    cond_files=`ls $output_dir/$subject/cond*`
+    num_trial_types=`ls $output_dir/$subject/$task_name/cond* | wc -l`
+    cond_files=`ls $output_dir/$subject/$task_name/cond*`
 
     Files=()
     string=${cond_files[$((0))]}
@@ -40,31 +38,26 @@ function analyze_subject {
     ((num_trial_types++))
 
     # create regressors file in BROCCOLI format
-    touch $output_dir/$subject/regressors.txt
-    echo "NumRegressors $num_trial_types" > $output_dir/$subject/regressors.txt
-    echo "" >> $output_dir/$subject/regressors.txt
+    touch $output_dir/$subject/$task_name/regressors.txt
+    echo "NumRegressors $num_trial_types" > $output_dir/$subject/$task_name/regressors.txt
+    echo "" >> $output_dir/$subject/$task_name/regressors.txt
 
     # add cond files to regressors.txt
-    ls $output_dir/$subject/cond* >> $output_dir/$subject/regressors.txt
+    ls $output_dir/$subject/$task_name/cond* >> $output_dir/$subject/$task_name/regressors.txt
 
     # create contrasts file in BROCCOLI format
-    touch $output_dir/$subject/contrasts.txt
-    echo "NumRegressors $num_trial_types" > $output_dir/$subject/contrasts.txt
-    echo "NumContrasts $((num_trial_types-one))" >> $output_dir/$subject/contrasts.txt
+    touch $output_dir/$subject/$task_name/contrasts.txt
+    echo "NumRegressors $num_trial_types" > $output_dir/$subject/$task_name/contrasts.txt
+    echo "NumContrasts $((num_trial_types-one))" >> $output_dir/$subject/$task_name/contrasts.txt
 
     num_zeros=$((num_trial_types-one))
     zeros=""
     for f in $(seq 1 $num_zeros); do
         zeros="$zeros 0"
     done
-    echo "1 $zeros" >> $output_dir/$subject/contrasts.txt
+    echo "1 $zeros" >> $output_dir/$subject/contrasts.txt   
 
-    # make brain segmentation
-    /usr/local/fsl/bin/bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
-
-    #fslreorient2std $output_dir/$subject/${subject}_T1w_brain.nii.gz
-
-    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${studyname}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/regressors.txt $output_dir/$subject/contrasts.txt -output $output_dir/$subject/$subject -device 0 -savemnimask -saveallaligned
+    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${task_name}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/$task_name/regressors.txt $output_dir/$subject/$task_name/contrasts.txt -output $output_dir/$subject/$task_name/$subject -device 0 -savemnimask -saveallaligned
 
 }
 
@@ -95,9 +88,9 @@ output_dir=$2
 analysis_type=$3
 
 # Run the validator (if it exists) for the BIDS directory
-if [ -e "bids-validator" ]; then
+if [ -e "/usr/bin/bids-validator" ]; then
     echo "Running the BIDS validator for the dataset"
-	bids-validator $bids_dir
+	/usr/bin/bids-validator $bids_dir
 else
 	echo "Could not find BIDS validator!"
 fi
@@ -144,28 +137,70 @@ elif [ $# -eq 5 ]; then
     echo "bids_dir is $bids_dir, output_dir is $output_dir, analysis type is $analysis_type, participant is $participant"
 fi
 
-studyname=rhymejudgment
+
+# Get number of task names
+num_tasks=`find $bids_dir -name "*_bold.nii*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq | wc -l`
+((num_tasks--))
+
+# Get all task names
+temp=`find $bids_dir -name "*_bold.nii*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq`
+task_names=()
+string=${temp[$((0))]}
+task_names+=($string)
+
+#studyname=rhymejudgment
 
 if [ "$analysis_type" == "participant" ]; then
     # participant given, analyze single subject
     if [ "$single_subject" -eq "1" ]; then
+
         subject=sub-$participant
-        echo -e "\n\nAnalyzing subject $subject\n\n"
-        analyze_subject $bids_dir $output_dir $studyname $subject
+
+		# Make a new directory
+		mkdir $output_dir/$subject
+
+		# make brain segmentation
+	    /usr/local/fsl/bin/bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
+
+	    #fslreorient2std $output_dir/$subject/${subject}_T1w_brain.nii.gz	
+
+		# Run analyze_subject once per task
+	    for t in $(seq 0 $num_tasks); do
+			task_name=${task_names[$((t))]}
+	        echo -e "\n\nAnalyzing subject $subject task $task_name \n\n"
+    	    analyze_subject $bids_dir $output_dir $subject $task_name
+		done
+
     # participant not given, analyze all subjects
     else
+
         # get number of subjects
         num_subjects=`cat $bids_dir/participants.tsv  | wc -l`
         ((num_subjects--))
 
         for s in $(seq 1 $num_subjects); do
+
             if [ "$s" -lt "$ten" ]; then
                 subject=sub-$zero$s
             else
                 subject=sub-$s
             fi
+
             echo -e "\n\nAnalyzing subject $subject\n\n"
-            analyze_subject $bids_dir $output_dir $studyname $subject
+
+			# Make a new directory
+			mkdir $output_dir/$subject
+
+			# make brain segmentation
+		    /usr/local/fsl/bin/bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
+
+			# Run analyze_subject once per task
+		    for t in $(seq 0 $num_tasks); do
+				task_name=${task_names[$((t))]}
+		        echo -e "\n\nAnalyzing subject $subject task $task_name \n\n"
+	    	    analyze_subject $bids_dir $output_dir $subject $task_name
+			done
+
         done
     fi
 elif [ "$analysis_type" == "group" ]; then
