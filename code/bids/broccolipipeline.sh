@@ -88,12 +88,12 @@ output_dir=$2
 analysis_type=$3
 
 # Run the validator (if it exists) for the BIDS directory
-if [ -e "/usr/bin/bids-validator" ]; then
-    echo "Running the BIDS validator for the dataset"
-	/usr/bin/bids-validator $bids_dir
-else
-	echo "Could not find BIDS validator!"
-fi
+#if [ -e "/usr/bin/bids-validator" ]; then
+#    echo "Running the BIDS validator for the dataset"
+#	/usr/bin/bids-validator $bids_dir
+#else
+#	echo "Could not find BIDS validator!"
+#fi
 
 
 # check if analysis type is valid
@@ -148,7 +148,6 @@ task_names=()
 string=${temp[$((0))]}
 task_names+=($string)
 
-#studyname=rhymejudgment
 
 if [ "$analysis_type" == "participant" ]; then
     # participant given, analyze single subject
