@@ -217,7 +217,7 @@ if [ "${analysis_type}" == "participant" ]; then
             echo -e "\n\nAnalyzing subject ${subject}\n\n"
 
 			# Make a new directory
-			mkdir ${output_dir/${subject
+            mkdir ${output_dir}/${subject}
 
 			# make brain segmentation
             /usr/local/fsl/bin/bet ${bids_dir}/${subject/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
