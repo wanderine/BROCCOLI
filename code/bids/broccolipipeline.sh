@@ -220,7 +220,7 @@ if [ "${analysis_type}" == "participant" ]; then
             mkdir ${output_dir}/${subject}
 
 			# make brain segmentation
-            /usr/local/fsl/bin/bet ${bids_dir}/${subject/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
+            /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
 
 			# Run analyze_subject once per task
 		    for t in $(seq 0 ${num_tasks}); do
