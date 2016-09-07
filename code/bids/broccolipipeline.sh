@@ -71,8 +71,13 @@ function analyze_subject {
     done
     echo "1 $zeros" >> $output_dir/$subject/$task_name/contrasts.txt
 
-    FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${task_name}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/$task_name/regressors.txt $output_dir/$subject/$task_name/contrasts.txt -output $output_dir/$subject/$task_name/$subject -device 0 -savemnimask -saveallaligned
-
+    # Single run
+    if [ "$single_run" -eq "1" ]; then
+        FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${task_name}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/$task_name/regressors.txt $output_dir/$subject/$task_name/contrasts.txt -output $output_dir/$subject/$task_name/$subject -device 0 -savemnimask -saveallaligned
+    # Several runs
+    elif [ "$single_run" -eq "0" ]; then
+        FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${task_name}_run-01_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/$task_name/regressors.txt $output_dir/$subject/$task_name/contrasts.txt -output $output_dir/$subject/$task_name/$subject -device 0 -savemnimask -saveallaligned
+    fi
 }
 
 
