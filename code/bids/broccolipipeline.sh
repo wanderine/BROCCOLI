@@ -8,10 +8,24 @@ function analyze_subject {
     subject=$3
     task_name=$4
 
-    one=1   
+    one=1
+
+    # Check if there is more than one run
+    if ls $bids_dir/$subject/func/${subject}_task-${task_name}* | grep run; then
+        single_run=0
+    else
+        single_run=1
+    fi
 
     # convert BIDS csv to FSL format
-    /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_events.tsv $output_dir/$subject/$task_name/cond
+
+    # Single run
+    if [ "$single_run" -eq "1" ]
+        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_events.tsv $output_dir/$subject/$task_name/cond
+    # Several runs
+    elif [ "$single_run" -eq "0" ]
+        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_run-01_events.tsv $output_dir/$subject/$task_name/cond
+    fi
 
     # count number of trial types
     num_trial_types=`ls $output_dir/$subject/$task_name/cond* | wc -l`
@@ -98,7 +112,7 @@ analysis_type=$3
 
 # check if analysis type is valid
 if [ "$analysis_type" == "participant" ]; then
-    echo "Analyzing single participant"
+    echo "Doing first level analysis"
 elif [ "$analysis_type" == "group" ]; then
     echo "Doing group analysis"
 else
@@ -167,6 +181,7 @@ if [ "$analysis_type" == "participant" ]; then
 	    for t in $(seq 0 $num_tasks); do
 			task_name=${task_names[$((t))]}
 	        echo -e "\n\nAnalyzing subject $subject task $task_name \n\n"
+            mkdir $output_dir/$subject/$task_name
     	    analyze_subject $bids_dir $output_dir $subject $task_name
 		done
 
@@ -197,6 +212,7 @@ if [ "$analysis_type" == "participant" ]; then
 		    for t in $(seq 0 $num_tasks); do
 				task_name=${task_names[$((t))]}
 		        echo -e "\n\nAnalyzing subject $subject task $task_name \n\n"
+                mkdir $output_dir/$subject/$task_name
 	    	    analyze_subject $bids_dir $output_dir $subject $task_name
 			done
 
