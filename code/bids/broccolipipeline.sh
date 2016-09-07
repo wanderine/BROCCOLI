@@ -10,8 +10,10 @@ function analyze_subject {
 
     one=1
 
+    runoutput=`ls $bids_dir/$subject/func/${subject}_task-${task_name}*`
+    echo $runoutput | grep -q run
     # Check if there is more than one run
-    if ls $bids_dir/$subject/func/${subject}_task-${task_name}* | grep run; then
+    if [ $? -eq 0 ]; then
         single_run=0
     else
         single_run=1
@@ -117,9 +119,9 @@ analysis_type=$3
 
 # check if analysis type is valid
 if [ "$analysis_type" == "participant" ]; then
-    echo "Doing first level analysis"
+    echo -e "\nDoing first level analysis \n"
 elif [ "$analysis_type" == "group" ]; then
-    echo "Doing group analysis"
+    echo -e "\nDoing group analysis \n"
 else
     echo "analysis_type must be 'participant' or 'group'"
     exit 1
@@ -151,15 +153,14 @@ if [ $# -eq 5 ]; then
 fi
 
 if [ $# -eq 3 ]; then
-    echo "bids_dir is $bids_dir, output_dir is $output_dir, analysis type is $analysis_type"
+    echo -e "\nbids_dir is $bids_dir, output_dir is $output_dir, analysis type is $analysis_type\n"
 elif [ $# -eq 5 ]; then
-    echo "bids_dir is $bids_dir, output_dir is $output_dir, analysis type is $analysis_type, participant is $participant"
+    echo -e "\nbids_dir is $bids_dir, output_dir is $output_dir, analysis type is $analysis_type, participant is $participant\n"
 fi
 
 
 # Get number of task names
 num_tasks=`find $bids_dir -maxdepth 1 -name "*bold*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq | wc -l`
-echo -e "\n\nFound $num_tasks task names \n\n"
 ((num_tasks--))
 
 # Get all task names
@@ -168,12 +169,12 @@ task_names=()
 string=${temp[$((0))]}
 task_names+=($string)
 
-echo -e "\n\nTask names are \n\n"
+echo -e "\nTask names are \n"
 for t in $(seq 0 $num_tasks); do
     task_name=${task_names[$((t))]}
     echo -e "$task_name"
 done
-echo -e "\n\n"
+echo -e "\n"
 
 
 if [ "$analysis_type" == "participant" ]; then
