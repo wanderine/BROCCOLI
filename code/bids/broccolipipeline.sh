@@ -167,7 +167,13 @@ temp=`find $bids_dir -maxdepth 1 -name "*bold*" | grep -oP "task-([a-zA-Z0-9]+)"
 task_names=()
 string=${temp[$((0))]}
 task_names+=($string)
-echo -e "\n\nTask names are $task_names \n\n"
+
+echo -e "\n\nTask names are \n\n"
+for t in $(seq 0 $num_tasks); do
+    task_name=${task_names[$((t))]}
+    echo -e "$task_name"
+done
+echo -e "\n\n"
 
 
 if [ "$analysis_type" == "participant" ]; then
