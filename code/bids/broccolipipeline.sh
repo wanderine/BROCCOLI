@@ -62,7 +62,7 @@ function analyze_subject {
     # create contrasts file in BROCCOLI format
     touch $output_dir/$subject/$task_name/contrasts.txt
     echo "NumRegressors $num_trial_types" > $output_dir/$subject/$task_name/contrasts.txt
-    echo "NumContrasts $((num_trial_types-one))" >> $output_dir/$subject/$task_name/contrasts.txt
+    echo "NumContrasts 1" >> $output_dir/$subject/$task_name/contrasts.txt
 
     num_zeros=$((num_trial_types-one))
     zeros=""
