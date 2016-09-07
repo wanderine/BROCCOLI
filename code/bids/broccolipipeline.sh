@@ -158,14 +158,16 @@ fi
 
 
 # Get number of task names
-num_tasks=`find $bids_dir -name "*_bold.nii*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq | wc -l`
+num_tasks=`find $bids_dir/sub-01 -maxdepth 1 -name "bold*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq | wc -l`
+echo -e "\n\nFound $num_tasks tasks \n\n"
 ((num_tasks--))
 
 # Get all task names
-temp=`find $bids_dir -name "*_bold.nii*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq`
+temp=`find $bids_dir/sub-01 -maxdepth 1 -name "bold*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq`
 task_names=()
 string=${temp[$((0))]}
 task_names+=($string)
+echo -e "\n\nTask names are $task_names \n\n"
 
 
 if [ "$analysis_type" == "participant" ]; then
