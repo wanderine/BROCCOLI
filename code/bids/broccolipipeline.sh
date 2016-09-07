@@ -20,10 +20,10 @@ function analyze_subject {
     # convert BIDS csv to FSL format
 
     # Single run
-    if [ "$single_run" -eq "1" ]
+    if [ "$single_run" -eq "1" ]; then
         /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_events.tsv $output_dir/$subject/$task_name/cond
     # Several runs
-    elif [ "$single_run" -eq "0" ]
+    elif [ "$single_run" -eq "0" ]; then
         /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_run-01_events.tsv $output_dir/$subject/$task_name/cond
     fi
 
