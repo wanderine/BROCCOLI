@@ -10,8 +10,8 @@ function analyze_subject {
 
     one=1
 
-    runoutput=`ls $bids_dir/$subject/func/${subject}_task-${task_name}*`
-    echo $runoutput | grep -q run
+    runoutput=`ls ${bids_dir}/${subject}/func/${subject}_task-${task_name}*`
+    echo ${runoutput} | grep -q run
     # Check if there is more than one run
     if [ $? -eq 0 ]; then
         single_run=0
@@ -22,16 +22,16 @@ function analyze_subject {
     # convert BIDS csv to FSL format
 
     # Single run
-    if [ "$single_run" -eq "1" ]; then
-        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_events.tsv $output_dir/$subject/$task_name/cond
+    if [ "${single_run}" -eq "1" ]; then
+        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_events.tsv ${output_dir}/${subject}/${task_name}/cond
     # Several runs
-    elif [ "$single_run" -eq "0" ]; then
-        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh $bids_dir/$subject/func/${subject}_task-${task_name}_run-01_events.tsv $output_dir/$subject/$task_name/cond
+    elif [ "${single_run}" -eq "0" ]; then
+        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_events.tsv ${output_dir}/${subject}/${task_name}/cond
     fi
 
     # count number of trial types
-    num_trial_types=`ls $output_dir/$subject/$task_name/cond* | wc -l`
-    cond_files=`ls $output_dir/$subject/$task_name/cond*`
+    num_trial_types=`ls ${output_dir}/${subject}/${task_name}/cond* | wc -l`
+    cond_files=`ls ${output_dir}/${subject}/${task_name}/cond*`
 
     Files=()
     string=${cond_files[$((0))]}
@@ -54,31 +54,31 @@ function analyze_subject {
     ((num_trial_types++))
 
     # create regressors file in BROCCOLI format
-    touch $output_dir/$subject/$task_name/regressors.txt
-    echo "NumRegressors $num_trial_types" > $output_dir/$subject/$task_name/regressors.txt
-    echo "" >> $output_dir/$subject/$task_name/regressors.txt
+    touch ${output_dir}/${subject}/${task_name}/regressors.txt
+    echo "NumRegressors $num_trial_types" > ${output_dir}/${subject}/${task_name}/regressors.txt
+    echo "" >> ${output_dir}/${subject}/${task_name}/regressors.txt
 
     # add cond files to regressors.txt
-    ls $output_dir/$subject/$task_name/cond* >> $output_dir/$subject/$task_name/regressors.txt
+    ls ${output_dir}/${subject}/${task_name}/cond* >> ${output_dir}/${subject}/${task_name}/regressors.txt
 
     # create contrasts file in BROCCOLI format
-    touch $output_dir/$subject/$task_name/contrasts.txt
-    echo "NumRegressors $num_trial_types" > $output_dir/$subject/$task_name/contrasts.txt
-    echo "NumContrasts 1" >> $output_dir/$subject/$task_name/contrasts.txt
+    touch ${output_dir}/${subject}/${task_name}/contrasts.txt
+    echo "NumRegressors $num_trial_types" > ${output_dir}/${subject}/${task_name}/contrasts.txt
+    echo "NumContrasts 1" >> ${output_dir}/${subject}/${task_name}/contrasts.txt
 
     num_zeros=$((num_trial_types-one))
     zeros=""
     for f in $(seq 1 $num_zeros); do
         zeros="$zeros 0"
     done
-    echo "1 $zeros" >> $output_dir/$subject/$task_name/contrasts.txt
+    echo "1 $zeros" >> ${output_dir}/${subject}/${task_name}/contrasts.txt
 
     # Single run
-    if [ "$single_run" -eq "1" ]; then
-        FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${task_name}_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/$task_name/regressors.txt $output_dir/$subject/$task_name/contrasts.txt -output $output_dir/$subject/$task_name/$subject -device 0 -savemnimask -saveallaligned
+    if [ "${single_run}" -eq "1" ]; then
+        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned
     # Several runs
-    elif [ "$single_run" -eq "0" ]; then
-        FirstLevelAnalysis $bids_dir/$subject/func/${subject}_task-${task_name}_run-01_bold.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz $output_dir/$subject/$task_name/regressors.txt $output_dir/$subject/$task_name/contrasts.txt -output $output_dir/$subject/$task_name/$subject -device 0 -savemnimask -saveallaligned
+    elif [ "${single_run}" -eq "0" ]; then
+        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned
     fi
 }
 
@@ -111,16 +111,16 @@ analysis_type=$3
 # Run the validator (if it exists) for the BIDS directory
 #if [ -e "/usr/bin/bids-validator" ]; then
 #    echo "Running the BIDS validator for the dataset"
-#	/usr/bin/bids-validator $bids_dir
+#	/usr/bin/bids-validator ${bids_dir}
 #else
 #	echo "Could not find BIDS validator!"
 #fi
 
 
 # check if analysis type is valid
-if [ "$analysis_type" == "participant" ]; then
+if [ "${analysis_type}" == "participant" ]; then
     echo -e "\nDoing first level analysis \n"
-elif [ "$analysis_type" == "group" ]; then
+elif [ "${analysis_type}" == "group" ]; then
     echo -e "\nDoing group analysis \n"
 else
     echo "analysis_type must be 'participant' or 'group'"
@@ -153,60 +153,60 @@ if [ $# -eq 5 ]; then
 fi
 
 if [ $# -eq 3 ]; then
-    echo -e "\nbids_dir is $bids_dir, output_dir is $output_dir, analysis type is $analysis_type\n"
+    echo -e "\nbids_dir is ${bids_dir}, output_dir is ${output_dir}, analysis type is ${analysis_type}\n"
 elif [ $# -eq 5 ]; then
-    echo -e "\nbids_dir is $bids_dir, output_dir is $output_dir, analysis type is $analysis_type, participant is $participant\n"
+    echo -e "\nbids_dir is ${bids_dir}, output_dir is ${output_dir}, analysis type is ${analysis_type}, participant is $participant\n"
 fi
 
 
 # Get number of task names
-num_tasks=`find $bids_dir -maxdepth 1 -name "*bold*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq | wc -l`
+num_tasks=`find ${bids_dir} -maxdepth 1 -name "*bold*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq | wc -l`
 ((num_tasks--))
 
 # Get all task names
-temp=`find $bids_dir -maxdepth 1 -name "*bold*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq`
+temp=`find ${bids_dir} -maxdepth 1 -name "*bold*" | grep -oP "task-([a-zA-Z0-9]+)" | cut -d "-" -f 2 | uniq`
 task_names=()
 string=${temp[$((0))]}
 task_names+=($string)
 
 echo -e "\nTask names are \n"
-for t in $(seq 0 $num_tasks); do
+for t in $(seq 0 ${num_tasks}); do
     task_name=${task_names[$((t))]}
-    echo -e "$task_name"
+    echo -e "${task_name}"
 done
 echo -e "\n"
 
 
-if [ "$analysis_type" == "participant" ]; then
+if [ "${analysis_type}" == "participant" ]; then
     # participant given, analyze single subject
     if [ "$single_subject" -eq "1" ]; then
 
         subject=sub-$participant
 
 		# Make a new directory
-		mkdir $output_dir/$subject
+		mkdir ${output_dir}/${subject}
 
 		# make brain segmentation
-	    /usr/local/fsl/bin/bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
+	    /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
 
-	    #fslreorient2std $output_dir/$subject/${subject}_T1w_brain.nii.gz	
+	    #fslreorient2std ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz	
 
 		# Run analyze_subject once per task
-	    for t in $(seq 0 $num_tasks); do
+	    for t in $(seq 0 ${num_tasks}); do
 			task_name=${task_names[$((t))]}
-	        echo -e "\n\nAnalyzing subject $subject task $task_name \n\n"
-            mkdir $output_dir/$subject/$task_name
-    	    analyze_subject $bids_dir $output_dir $subject $task_name
+	        echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+            mkdir ${output_dir}/${subject}/${task_name}
+    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
 		done
 
     # participant not given, analyze all subjects
     else
 
         # get number of subjects
-        num_subjects=`cat $bids_dir/participants.tsv  | wc -l`
+        num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
         ((num_subjects--))
 
-        for s in $(seq 1 $num_subjects); do
+        for s in $(seq 1 ${num_subjects}); do
 
             if [ "$s" -lt "$ten" ]; then
                 subject=sub-$zero$s
@@ -214,62 +214,62 @@ if [ "$analysis_type" == "participant" ]; then
                 subject=sub-$s
             fi
 
-            echo -e "\n\nAnalyzing subject $subject\n\n"
+            echo -e "\n\nAnalyzing subject ${subject}\n\n"
 
 			# Make a new directory
-			mkdir $output_dir/$subject
+			mkdir ${output_dir/${subject
 
 			# make brain segmentation
-		    /usr/local/fsl/bin/bet $bids_dir/$subject/anat/${subject}_T1w.nii.gz $output_dir/$subject/${subject}_T1w_brain.nii.gz
+            /usr/local/fsl/bin/bet ${bids_dir}/${subject/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
 
 			# Run analyze_subject once per task
-		    for t in $(seq 0 $num_tasks); do
+		    for t in $(seq 0 ${num_tasks}); do
 				task_name=${task_names[$((t))]}
-		        echo -e "\n\nAnalyzing subject $subject task $task_name \n\n"
-                mkdir $output_dir/$subject/$task_name
-	    	    analyze_subject $bids_dir $output_dir $subject $task_name
+		        echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+                mkdir ${output_dir}/${subject}/${task_name}
+	    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
 			done
 
         done
     fi
-elif [ "$analysis_type" == "group" ]; then
+elif [ "${analysis_type}" == "group" ]; then
 
-    mkdir $output_dir/group
+    mkdir ${output_dir}/group
 
     # merge masks from first level analyses
 
     # get number of subjects
-    num_subjects=`cat $bids_dir/participants.tsv  | wc -l`
+    num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
     ((num_subjects--))
 
     allmasks=""
-    for s in $(seq 1 $num_subjects); do
+    for s in $(seq 1 ${num_subjects}); do
         if [ "$s" -lt "$ten" ]; then
             subject=sub-$zero$s
         else
             subject=sub-$s
         fi
-        allmasks="$allmasks $output_dir/$subject/$subject_mask_mni.nii"
+        allmasks="$allmasks ${output_dir}/${subject}/${subject}_mask_mni.nii"
     done
 
-    fslmerge -t $output_dir/group/mask $allmasks
+    fslmerge -t ${output_dir}/group/mask $allmasks
 
     # merge copes from first level analyses
 
     allcopes=""
-    for s in $(seq 1 $num_subjects); do
+    for s in $(seq 1 ${num_subjects}); do
     if [ "$s" -lt "$ten" ]; then
         subject=sub-$zero$s
     else
         subject=sub-$s
     fi
-        allcopes="$allcopes $output_dir/$subject/$subject_cope_contrast0001_MNI.nii"
+        allcopes="$allcopes ${output_dir}/${subject}/${subject}_cope_contrast0001_MNI.nii"
     done
 
-    fslmerge -t $output_dir/group/copes $allcopes
+    fslmerge -t ${output_dir}/group/copes $allcopes
 
 
-    RandomiseGroupLevel allcopes -groupmean -mask MNI152_T1_2mm_brain_mask.nii.gz -output $output_dir/group/
+    RandomiseGroupLevel allcopes -groupmean -mask MNI152_T1_2mm_brain_mask.nii.gz -output ${output_dir}/group/
 
 fi
 
