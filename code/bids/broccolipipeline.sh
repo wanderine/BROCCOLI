@@ -10,56 +10,58 @@ function analyze_subject {
 
     one=1
 
-    runoutput=`ls ${bids_dir}/${subject}/func/${subject}_task-${task_name}*`
-    echo ${runoutput} | grep -q run
-    # Check if there is more than one run
-    if [ $? -eq 0 ]; then
-        single_run=0
-    else
-        single_run=1
+    single_run=1
+    if [ -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_events.tsv" ]; then
+	single_run=0
     fi
+
+    num_runs=1
+    # Get number of runs
+    if [ "${single_run}" -eq "0" ]; then
+	num_runs=`ls ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-*_events.tsv | wc -l`
+    fi
+    echo -e "Number of runs is $num_runs \n"
 
     # convert BIDS csv to FSL format
 
     # Single run
     if [ "${single_run}" -eq "1" ]; then
-        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_events.tsv ${output_dir}/${subject}/${task_name}/cond
+        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_events.tsv ${output_dir}/${subject}/${task_name}/cond_run1
     # Several runs
     elif [ "${single_run}" -eq "0" ]; then
-        /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_events.tsv ${output_dir}/${subject}/${task_name}/cond
+        for r in $(seq 1 $num_runs); do
+            /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-0${r}_events.tsv ${output_dir}/${subject}/${task_name}/cond_run${r}
+        done
+    else
+	echo "Unknown number of runs!"
     fi
 
-    # count number of trial types
-    num_trial_types=`ls ${output_dir}/${subject}/${task_name}/cond* | wc -l`
-    cond_files=`ls ${output_dir}/${subject}/${task_name}/cond*`
+    # Modify the cond files to BROCCOLI format
+    for r in $(seq 1 $num_runs); do        
+        num_trial_types=`ls ${output_dir}/${subject}/${task_name}/cond_run${r}* | wc -l`
+        cond_files=`ls ${output_dir}/${subject}/${task_name}/cond_run${r}*`
+        Files=()
+        string=${cond_files[$((0))]}
+        Files+=($string)
 
-    Files=()
-    string=${cond_files[$((0))]}
-    Files+=($string)
+	# Put NumEvents into each cond file
+        ((num_trial_types--))        
+        for f in $(seq 0 $num_trial_types); do
+            # Get current file
+            File=${Files[$((f))]}
+            # Get number of events
+            events=`cat $File | wc -l`
+            sed -i "1s/^/NumEvents $events \n\n/" $File
+        done
+        ((num_trial_types++))
 
-    ((num_trial_types--))
-
-    for f in $(seq 0 $num_trial_types); do
-        # Get current file
-        File=${Files[$((f))]}
-        # Get number of events
-        events=`cat $File | wc -l`
-        ((events--))
-        ((events++))
-        #echo "File is $File"
-        #echo "Number of events is $events"
-        sed -i "1s/^/NumEvents $events \n\n/" $File
+        # create regressors file in BROCCOLI format
+        touch ${output_dir}/${subject}/${task_name}/regressors_run${r}.txt
+        echo "NumRegressors $num_trial_types" > ${output_dir}/${subject}/${task_name}/regressors_run${r}.txt
+        echo "" >> ${output_dir}/${subject}/${task_name}/regressors_run${r}.txt
+        # add cond files to regressors.txt
+        ls ${output_dir}/${subject}/${task_name}/cond_run${r}* >> ${output_dir}/${subject}/${task_name}/regressors_run${r}.txt
     done
-
-    ((num_trial_types++))
-
-    # create regressors file in BROCCOLI format
-    touch ${output_dir}/${subject}/${task_name}/regressors.txt
-    echo "NumRegressors $num_trial_types" > ${output_dir}/${subject}/${task_name}/regressors.txt
-    echo "" >> ${output_dir}/${subject}/${task_name}/regressors.txt
-
-    # add cond files to regressors.txt
-    ls ${output_dir}/${subject}/${task_name}/cond* >> ${output_dir}/${subject}/${task_name}/regressors.txt
 
     # create contrasts file in BROCCOLI format
     touch ${output_dir}/${subject}/${task_name}/contrasts.txt
@@ -73,12 +75,24 @@ function analyze_subject {
     done
     echo "1 $zeros" >> ${output_dir}/${subject}/${task_name}/contrasts.txt
 
+
+    # Run the actual analysis
+
     # Single run
     if [ "${single_run}" -eq "1" ]; then
-        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned
+        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors_run1.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix -savemotionparameters
     # Several runs
     elif [ "${single_run}" -eq "0" ]; then
-        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned
+
+        # Put all bold files and all regressor files into one string
+        bold_files=""
+        regressor_files=""
+        for r in $(seq 1 $num_runs); do
+            bold_files="$bold_files ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-0${r}_bold.nii.gz" 
+            regressor_files="$regressor_files  ${output_dir}/${subject}/${task_name}/regressors_run${r}.txt"
+        done
+
+        FirstLevelAnalysis -runs ${num_runs} ${bold_files} ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${regressor_files} ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix -savemotionparameters
     fi
 }
 
@@ -183,21 +197,21 @@ if [ "${analysis_type}" == "participant" ]; then
 
         subject=sub-$participant
 
-		# Make a new directory
-		mkdir ${output_dir}/${subject}
+        # Make a new directory
+	mkdir ${output_dir}/${subject}
 
-		# make brain segmentation
-	    /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
+	# make brain segmentation
+	/usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
 
-	    #fslreorient2std ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz	
+	#fslreorient2std ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz	
 
-		# Run analyze_subject once per task
-	    for t in $(seq 0 ${num_tasks}); do
-			task_name=${task_names[$((t))]}
-	        echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+	# Run analyze_subject once per task
+	for t in $(seq 0 ${num_tasks}); do
+	    task_name=${task_names[$((t))]}
+	    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
             mkdir ${output_dir}/${subject}/${task_name}
     	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
-		done
+	done
 
     # participant not given, analyze all subjects
     else
@@ -216,19 +230,19 @@ if [ "${analysis_type}" == "participant" ]; then
 
             echo -e "\n\nAnalyzing subject ${subject}\n\n"
 
-			# Make a new directory
+	    # Make a new directory
             mkdir ${output_dir}/${subject}
 
-			# make brain segmentation
+	    # make brain segmentation
             /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
 
-			# Run analyze_subject once per task
-		    for t in $(seq 0 ${num_tasks}); do
-				task_name=${task_names[$((t))]}
-		        echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+	    # Run analyze_subject once per task
+	    for t in $(seq 0 ${num_tasks}); do
+		task_name=${task_names[$((t))]}
+	        echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
                 mkdir ${output_dir}/${subject}/${task_name}
-	    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
-			done
+	        analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
+	    done
 
         done
     fi
