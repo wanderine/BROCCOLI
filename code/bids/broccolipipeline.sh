@@ -271,9 +271,9 @@ elif [ "${analysis_type}" == "group" ]; then
     		fi
 
 			if [ -e "${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii" ]; then
-	    	    allcopes="$allcopes ${output_dir}/${task_name}/${subject}/${subject}_cope_contrast0001_MNI.nii"
+	    	    allcopes="$allcopes ${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii"
 			else
-				echo "Could not find ${output_dir}/${task_name}/${subject}/${subject}_cope_contrast0001_MNI.nii, skipping subject"
+				echo "Could not find ${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii, skipping subject"
 			fi
     	done
 
