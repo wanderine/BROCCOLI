@@ -12,13 +12,13 @@ function analyze_subject {
 
     single_run=1
     if [ -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_events.tsv" ]; then
-	single_run=0
+		single_run=0
     fi
 
     num_runs=1
     # Get number of runs
     if [ "${single_run}" -eq "0" ]; then
-	num_runs=`ls ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-*_events.tsv | wc -l`
+		num_runs=`ls ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-*_events.tsv | wc -l`
     fi
     echo -e "Number of runs is $num_runs \n"
 
@@ -33,7 +33,7 @@ function analyze_subject {
             /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-0${r}_events.tsv ${output_dir}/${subject}/${task_name}/cond_run${r}
         done
     else
-	echo "Unknown number of runs!"
+		echo "Unknown number of runs!"
     fi
 
     # Modify the cond files to BROCCOLI format
@@ -44,7 +44,7 @@ function analyze_subject {
         string=${cond_files[$((0))]}
         Files+=($string)
 
-	# Put NumEvents into each cond file
+		# Put NumEvents into each cond file
         ((num_trial_types--))        
         for f in $(seq 0 $num_trial_types); do
             # Get current file
@@ -198,20 +198,20 @@ if [ "${analysis_type}" == "participant" ]; then
         subject=sub-$participant
 
         # Make a new directory
-	mkdir ${output_dir}/${subject}
+		mkdir ${output_dir}/${subject}
 
-	# make brain segmentation
-	/usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
+		# make brain segmentation
+		/usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
 
-	#fslreorient2std ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz	
+		#fslreorient2std ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz	
 
-	# Run analyze_subject once per task
-	for t in $(seq 0 ${num_tasks}); do
-	    task_name=${task_names[$((t))]}
-	    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+		# Run analyze_subject once per task
+		for t in $(seq 0 ${num_tasks}); do
+		    task_name=${task_names[$((t))]}
+		    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
             mkdir ${output_dir}/${subject}/${task_name}
     	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
-	done
+		done
 
     # participant not given, analyze all subjects
     else
@@ -230,60 +230,58 @@ if [ "${analysis_type}" == "participant" ]; then
 
             echo -e "\n\nAnalyzing subject ${subject}\n\n"
 
-	    # Make a new directory
+	    	# Make a new directory
             mkdir ${output_dir}/${subject}
 
-	    # make brain segmentation
+	    	# make brain segmentation
             /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
 
-	    # Run analyze_subject once per task
-	    for t in $(seq 0 ${num_tasks}); do
-		task_name=${task_names[$((t))]}
-	        echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
-                mkdir ${output_dir}/${subject}/${task_name}
-	        analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
-	    done
+	    	# Run analyze_subject once per task
+	    	for t in $(seq 0 ${num_tasks}); do
+				task_name=${task_names[$((t))]}
+	    	    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+        	    mkdir ${output_dir}/${subject}/${task_name}
+	    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
+	    	done
 
         done
     fi
 elif [ "${analysis_type}" == "group" ]; then
 
-    mkdir ${output_dir}/group
-
-    # merge masks from first level analyses
+    mkdir ${output_dir}/groupanalyses
 
     # get number of subjects
     num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
     ((num_subjects--))
 
-    allmasks=""
-    for s in $(seq 1 ${num_subjects}); do
-        if [ "$s" -lt "$ten" ]; then
-            subject=sub-$zero$s
-        else
-            subject=sub-$s
-        fi
-        allmasks="$allmasks ${output_dir}/${subject}/${subject}_mask_mni.nii"
-    done
+    # Run group analysis for each task
+    for t in $(seq 0 ${num_tasks}); do
 
-    fslmerge -t ${output_dir}/group/mask $allmasks
+		task_name=${task_names[$((t))]}
+        echo -e "\n\nAnalyzing task ${task_name} \n\n"
+        mkdir ${output_dir}/groupanalyses/${task_name}
 
-    # merge copes from first level analyses
+		# Merge copes from first level analysis
+	    allcopes=""
+    	for s in $(seq 1 ${num_subjects}); do
+	    	if [ "$s" -lt "$ten" ]; then
+    	    	subject=sub-$zero$s
+		    else
+		        subject=sub-$s
+    		fi
 
-    allcopes=""
-    for s in $(seq 1 ${num_subjects}); do
-    if [ "$s" -lt "$ten" ]; then
-        subject=sub-$zero$s
-    else
-        subject=sub-$s
-    fi
-        allcopes="$allcopes ${output_dir}/${subject}/${subject}_cope_contrast0001_MNI.nii"
-    done
+			if [ -e "${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii" ]; then
+	    	    allcopes="$allcopes ${output_dir}/${task_name}/${subject}/${subject}_cope_contrast0001_MNI.nii"
+			else
+				echo "Could not find ${output_dir}/${task_name}/${subject}/${subject}_cope_contrast0001_MNI.nii, skipping subject"
+			fi
+    	done
 
-    fslmerge -t ${output_dir}/group/copes $allcopes
+	    /usr/local/fsl/bin/fslmerge -t ${output_dir}/groupanalyses/${task_name}/copes $allcopes
 
-
-    RandomiseGroupLevel allcopes -groupmean -mask MNI152_T1_2mm_brain_mask.nii.gz -output ${output_dir}/group/
+		# Run permutation test
+	    RandomiseGroupLevel ${output_dir}/groupanalyses/${task_name}/copes.nii.gz -groupmean -mask /usr/local/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz 
+	done
 
 fi
 
