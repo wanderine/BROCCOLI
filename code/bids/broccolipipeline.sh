@@ -80,7 +80,7 @@ function analyze_subject {
 
     # Single run
     if [ "${single_run}" -eq "1" ]; then
-        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors_run1.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix -savemotionparameters
+        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors_run1.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix 
     # Several runs
     elif [ "${single_run}" -eq "0" ]; then
 
@@ -92,7 +92,7 @@ function analyze_subject {
             regressor_files="$regressor_files  ${output_dir}/${subject}/${task_name}/regressors_run${r}.txt"
         done
 
-        FirstLevelAnalysis -runs ${num_runs} ${bold_files} ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${regressor_files} ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix -savemotionparameters
+        FirstLevelAnalysis -runs ${num_runs} ${bold_files} ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${regressor_files} ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix 
     fi
 }
 
