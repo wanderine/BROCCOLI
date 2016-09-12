@@ -62,7 +62,7 @@ function analyze_subject {
 		if [ "${all_runs_equal}" -eq "0" ]; then
 
 			# Get all event names for run with largest number of event types
-	        cond_files=`ls ${output_dir}/${subject}/${task_name}/cond_run${max_run}* | grep -oP "run${max_run}_([a-zA-Z0-9]+)" | cut -d "_" -f 2`
+	        cond_files=`ls ${output_dir}/${subject}/${task_name}/cond_run${max_run}* | grep -oP "run${max_run}_([a-zA-Z0-9-_]+)" | sed -e "s/run${max_run}_/@/g" | cut -d "@" -f 2`
 	        event_names=()
 	        string=${cond_files[$((0))]}
 	        event_names+=($string)
@@ -104,7 +104,13 @@ function analyze_subject {
             File=${Files[$((f))]}
             # Get number of events
             events=`cat $File | wc -l`
-            sed -i "1s/^/NumEvents $events \n\n/" $File
+			# Check if file is a dummy file
+			if [ "$events" -eq "0" ] ; then
+				echo "NumEvents 0" >> $File
+				echo "" >> $File
+			else
+	            sed -i "1s/^/NumEvents $events \n\n/" $File
+			fi
         done
         ((num_trial_types++))
 

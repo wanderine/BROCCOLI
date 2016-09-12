@@ -9,6 +9,9 @@
 # Extension to give created 3 column files
 ThreeColExt="txt"
 
+# Replace slashes in event names with this character.
+SlashReplace=""
+
 # To avoid headaches with spaces in filenames, replace spaces in event names 
 # with this character.
 SpaceReplace="_"
@@ -28,7 +31,6 @@ AwkHd='{sub(/\r$/,"")};'
 shopt -s nullglob # No-match globbing expands to null
 Tmp=/tmp/`basename $0`-${$}-
 trap CleanUp INT
-
 ###############################################################################
 #
 # Functions
@@ -40,22 +42,18 @@ cat <<EOF
 Usage: `basename $0` [options] BidsTSV OutBase 
 
 Reads BidsTSV and then creates 3 column event files, one per event
-type; files are named as basename OutBase and appended with the event
-name. By default, all event types are used, and the height value (3rd
-column) is 1.0.  
-
-Assumes the presense of a (BIDS optional) "trial_type" column.  Use -t 
-option to set a different name for this column, or -s to ignore trial
-type. 
+type if a "$TypeNm" column is found.  Files are named as OutBase
+and, if "$TypeNm" is present, appended with the event name. 
+By default, all rows and event types are used, and the height value
+(3rd column) is 1.0.   
 
 Options
+  -s             Even if "$TypeNm" column is found, ignore and process
+                 all rows as a single event type.
   -e EventName   Instead of all event types, only use the given event
                  type. 
-  -s EventName   Treat all rows as a single event type; specify the
-                 EventName to be used when creating the file name for
-                 the 3 column file. 
-  -n             When only one event type (e.g. when -e or -s option
-                 used) do not append the event name to OutBase. 
+  -E EventName   Same as -e, except output file name does not have
+                 EventName appended.
   -h HtColName   Instead of using 1.0, get height value from given
                  column; two files are written, the unmodulated (with
                  1.0 in 3rd column) and the modulated one, having a
@@ -66,7 +64,7 @@ Options
                  column, use this column.
   -N             By default, when creating 3 column files any spaces
                  in the event name are replaced with "$SpaceReplace";
-                 use this option to prevent this replacement.
+                 use this option to suppress this replacement.
 EOF
 exit
 }
@@ -87,19 +85,21 @@ while (( $# > 1 )) ; do
         "-help")
             Usage
             ;;
+        "-s")
+            shift
+            AllEvents=1
+            shift
+            ;;
         "-e")
             shift
             EventNm="$1"
             shift
             ;;
-        "-s")
+        "-E")
             shift
-            SingEventNm="$1"
+            EventNm="$1"
+	    NoAppend=1
             shift
-            ;;
-        "-n")
-            shift
-            NoAppend=1
             ;;
         "-h")
             shift
@@ -109,6 +109,11 @@ while (( $# > 1 )) ; do
         "-d")
             shift
             DurNm="$1"
+            shift
+            ;;
+        "-t")
+            shift
+            TypeNm="$1"
             shift
             ;;
         "-N")
@@ -160,14 +165,14 @@ fi
 # Validate trial_type column name
 TypeCol=$( awk -F'\t' "$AwkHd"'(NR==1){for(i=1;i<=NF;i++){if($i=="'"$TypeNm"'")print i}}' "$TSV")
 if [ "$TypeCol" = "" ] ; then
-    echo "ERROR: Column '$TypeNm' not found in TSV file."
-    CleanUp
+    echo "WARNING: Column '$TypeNm' not found in TSV file; using all rows."
+    AllEvents=1
+    NoAppend=1
 fi
 
+if [[ "$AllEvents" = "1" ]] ; then
 
-if [ "$SingEventNm" != "" ] ; then
-
-    EventNms=("$SingEventNm")
+    EventNms=("*")
 
 else
 
@@ -205,17 +210,13 @@ if [ "$HeightNm" != "" ] ; then
     fi
 fi
 
-if [ ${#EventNms[*]} -gt 1 ] && [ "$NoAppend" = 1 ] ; then
-    echo "ERROR: No append option (-n) cannot be used with multiple event types."
-    CleanUp
-fi
-
-
 for E in "${EventNms[@]}" ; do
 
     if [ "$NoAppend" = 1 ] ; then
 	App=""
     else
+	E="$(echo "$E" | sed 's@/@'$SlashReplace'@g')"
+
 	if [ "$NoSpaceRepl" = 1 ] ; then
 	    App="_${E}"
 	else
@@ -228,14 +229,23 @@ for E in "${EventNms[@]}" ; do
 
     echo "Creating '$Out'... "
 
-    if [ "$SingEventNm" = "" ] ; then
-	AwkSel='$'"$TypeCol"'~/^'"$E"'$/'
-    else
+    if [ "$AllEvents" = "1" ] ; then
 	AwkSel="(NR>1)"
+    else
+	AwkSel='$'"$TypeCol"'~/^'"$E"'$/'
     fi
 
 
     awk -F'\t' "$AwkHd""$AwkSel"'{printf("%s	%s	1.0\n",$1,$'"$DurCol"')}'                "$TSV" > "$Out"
+
+    # Validate duration values (if non-standard duration used)
+    if [ "$DurNm" != "" ] ; then
+	Nev="$(cat "$Out" | wc -l)"
+	Nnum="$(awk '{print $2}' "$Out" | grep -E '^[-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?$' | wc -l )"
+	if [ "$Nev" != "$Nnum" ] ; then
+            echo "	WARNING: Event '$E' has non-numeric durations from '$DurNm'"
+	fi
+    fi
 
     if [ "$HeightNm" != "" ] ; then
 
