@@ -2204,6 +2204,7 @@ int main(int argc, char **argv)
 						}
 
     			        // Put values into highres GLM
+						bool warning = false;
     			        for (size_t i = 0; i < activityLength; i++)
     			        {
     			            if ((start + i) < (EPI_DATA_T_PER_RUN[run] * HIGHRES_FACTOR) )
@@ -2212,14 +2213,20 @@ int main(int argc, char **argv)
     			            }
     			            else
     			            {
-								regressor.close();
-    			                design.close();
-    			                printf("For run %i, the activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! Check the regressor file .\n",run+1,e,filename.c_str());	
-    			                FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
-    			                FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
-    			                return EXIT_FAILURE;
+								warning = true;
+ 			                    //regressor.close();
+    			                //design.close();
+    			                //printf("For run %i, the activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, aborting! Check the regressor file .\n",run+1,e,filename.c_str());	
+    			                //FreeAllMemory(allMemoryPointers,numberOfMemoryPointers);
+    			                //FreeAllNiftiImages(allNiftiImages,numberOfNiftiImages);
+    			                //return EXIT_FAILURE;
     			            }
-    			        }            
+    			        }           
+						if (warning)
+						{ 
+				            printf("Warning:  For run %i, the activity start or duration for event %i in regressor file %s is longer than the duration of the fMRI data, ignoring the part after the experiment end. \n",run+1,e+1,filename.c_str());	
+						}
+
     			    }
 					regressor.close();	
 				}
