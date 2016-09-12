@@ -203,36 +203,45 @@ else
     exit 1
 fi
 
-single_subject=0
-
-# fourth optional argument, participant label
+# fourth optional argument, participant label(s)
 if [ $# -ge 4 ]; then
     fourth_argument=$4
 
     if [ "$fourth_argument" != "--participant_label" ]; then
         echo "Fourth argument must be '--participant_label'"
         exit 1
-    else
-        single_subject=1
     fi
 fi
-
 
 if [ $# -eq 4 ]; then
     echo "participant_label cannot be empty!"
     exit 1
 fi
 
-# participant label
-if [ $# -eq 5 ]; then
-    participant=$5
+# Analyze some subjects
+if [ $# -ge 5 ]; then
+	# Get participant label(s)
+	temp="${@:5}"
+	participants=()
+	string=${temp[$((0))]}
+	participants+=($string)
+	num_subjects=`echo ${#participants[@]}`
+# Analyze all subjects
+else
+	num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
+    ((num_subjects--))
+	participants=()
+	for s in $(seq 1 ${num_subjects}); do
+		if [ "$s" -lt "10" ] ; then
+			participants+=(0$s)
+		else
+			participants+=($s)
+		fi
+	done
 fi
 
-if [ $# -eq 3 ]; then
-    echo -e "\nbids_dir is ${bids_dir}, output_dir is ${output_dir}, analysis type is ${analysis_type}\n"
-elif [ $# -eq 5 ]; then
-    echo -e "\nbids_dir is ${bids_dir}, output_dir is ${output_dir}, analysis type is ${analysis_type}, participant is $participant\n"
-fi
+
+echo -e "\nbids_dir is ${bids_dir}, output_dir is ${output_dir}, analysis type is ${analysis_type}, participants are ${participants[@]} \n"
 
 
 # Get number of task names
@@ -252,25 +261,27 @@ for t in $(seq 0 ${num_tasks}); do
 done
 echo -e "\n"
 
+((num_subjects--))
 
+# First level analysis
 if [ "${analysis_type}" == "participant" ]; then
-    # participant given, analyze single subject
-    if [ "$single_subject" -eq "1" ]; then
 
-        subject=sub-$participant
+    for s in $(seq 0 ${num_subjects}); do
 
-        # Make a new directory
-		mkdir ${output_dir}/${subject}
+		subject=sub-${participants[$((s))]}
 
-		# make brain segmentation
-		/usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
+        echo -e "\n\nAnalyzing subject ${subject}\n\n"
 
-		#fslreorient2std ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz	
+	  	# Make a new directory
+        mkdir ${output_dir}/${subject}
 
-		# Run analyze_subject once per task
-		for t in $(seq 0 ${num_tasks}); do
-		    task_name=${task_names[$((t))]}
-		    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+	   	# make brain segmentation
+        /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
+
+	   	# Run analyze_subject once per task
+    	for t in $(seq 0 ${num_tasks}); do
+			task_name=${task_names[$((t))]}
+    	    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
 			# Check if BOLD file exists
 			if [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz" ]  && [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz" ] ; then
 				echo "BOLD file does not exist for subject ${subject} task ${task_name}, skipping analysis"
@@ -278,53 +289,12 @@ if [ "${analysis_type}" == "participant" ]; then
         	    mkdir ${output_dir}/${subject}/${task_name}
 	    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
 			fi
-		done
-
-    # participant not given, analyze all subjects
-    else
-
-        # get number of subjects
-        num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
-        ((num_subjects--))
-
-        for s in $(seq 1 ${num_subjects}); do
-
-            if [ "$s" -lt "$ten" ]; then
-                subject=sub-$zero$s
-            else
-                subject=sub-$s
-            fi
-
-            echo -e "\n\nAnalyzing subject ${subject}\n\n"
-
-	    	# Make a new directory
-            mkdir ${output_dir}/${subject}
-
-	    	# make brain segmentation
-            /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
-
-	    	# Run analyze_subject once per task
-	    	for t in $(seq 0 ${num_tasks}); do
-				task_name=${task_names[$((t))]}
-	    	    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
-				# Check if BOLD file exists
-				if [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz" ]  && [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz" ] ; then
-					echo "BOLD file does not exist for subject ${subject} task ${task_name}, skipping analysis"
-				else
-	        	    mkdir ${output_dir}/${subject}/${task_name}
-		    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
-				fi
-	    	done
-
-        done
-    fi
+    	done
+    done
+# Group analysis
 elif [ "${analysis_type}" == "group" ]; then
 
     mkdir ${output_dir}/groupanalyses
-
-    # get number of subjects
-    num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
-    ((num_subjects--))
 
     # Run group analysis for each task
     for t in $(seq 0 ${num_tasks}); do
@@ -335,13 +305,8 @@ elif [ "${analysis_type}" == "group" ]; then
 
 		# Merge copes from first level analysis
 	    allcopes=""
-    	for s in $(seq 1 ${num_subjects}); do
-	    	if [ "$s" -lt "$ten" ]; then
-    	    	subject=sub-$zero$s
-		    else
-		        subject=sub-$s
-    		fi
-
+		for s in $(seq 0 ${num_subjects}); do
+			subject=sub-${participants[$((s))]}
 			if [ -e "${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii" ]; then
 	    	    allcopes="$allcopes ${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii"
 			else
