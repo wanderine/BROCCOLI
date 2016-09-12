@@ -36,6 +36,59 @@ function analyze_subject {
 		echo "Unknown number of runs!"
     fi
 
+	# Check if all event types are present for all runs
+	if [ "${single_run}" -eq "0" ]; then
+
+		all_runs_equal=1
+		max_run=1
+        
+		# Check number of event types for first run		
+		num_trial_types_run1=`ls ${output_dir}/${subject}/${task_name}/cond_run1* | wc -l`
+		max_num_trial_types=$num_trial_types_run1
+		# Check number of event types for all other runs
+	    for r in $(seq 2 $num_runs); do        
+	        num_trial_types=`ls ${output_dir}/${subject}/${task_name}/cond_run${r}* | wc -l`
+			if [ "$num_trial_types_run1" -ne "$num_trial_types" ]; then
+				all_runs_equal=0
+			fi
+			# Save run with largest number of event types
+			if [ "$num_trial_types" -gt "$max_num_trial_types" ]; then
+				max_run=$r
+				max_num_trial_types=$num_trial_types
+			fi
+		done
+
+		# Add missing cond files
+		if [ "${all_runs_equal}" -eq "0" ]; then
+
+			# Get all event names for run with largest number of event types
+	        cond_files=`ls ${output_dir}/${subject}/${task_name}/cond_run${max_run}* | grep -oP "run${max_run}_([a-zA-Z0-9]+)" | cut -d "_" -f 2`
+	        event_names=()
+	        string=${cond_files[$((0))]}
+	        event_names+=($string)
+	
+		    for r in $(seq 1 $num_runs); do        
+
+				# Skip run with largest number of event types
+				if [ "$r" -ne "$max_run" ] ; then
+
+					# Compare with run with largest number of event types
+					((max_num_trial_types--))
+					# Check if each event type exists
+				    for t in $(seq 0 $max_num_trial_types); do        
+						event_name=${event_names[$((t))]}
+						if [ ! -e ${output_dir}/${subject}/${task_name}/cond_run${r}_${event_name}.txt ] ; then
+							touch ${output_dir}/${subject}/${task_name}/cond_run${r}_${event_name}.txt
+							echo "Adding dummy file for run $r event ${event_name}"
+						fi						
+					done
+					((max_num_trial_types++))
+
+				fi		
+			done
+		fi
+	fi
+
     # Modify the cond files to BROCCOLI format
     for r in $(seq 1 $num_runs); do        
         num_trial_types=`ls ${output_dir}/${subject}/${task_name}/cond_run${r}* | wc -l`
@@ -80,7 +133,7 @@ function analyze_subject {
 
     # Single run
     if [ "${single_run}" -eq "1" ]; then
-        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors_run1.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix 
+        FirstLevelAnalysis ${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${output_dir}/${subject}/${task_name}/regressors_run1.txt ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix -regressmotion
     # Several runs
     elif [ "${single_run}" -eq "0" ]; then
 
@@ -92,7 +145,7 @@ function analyze_subject {
             regressor_files="$regressor_files  ${output_dir}/${subject}/${task_name}/regressors_run${r}.txt"
         done
 
-        FirstLevelAnalysis -runs ${num_runs} ${bold_files} ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${regressor_files} ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix 
+        FirstLevelAnalysis -runs ${num_runs} ${bold_files} ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz /usr/local/fsl/data/standard/MNI152_T1_2mm_brain.nii.gz ${regressor_files} ${output_dir}/${subject}/${task_name}/contrasts.txt -output ${output_dir}/${subject}/${task_name}/${subject} -device 0 -savemnimask -saveallaligned -savedesignmatrix -saveoriginaldesignmatrix -regressmotion
     fi
 }
 
