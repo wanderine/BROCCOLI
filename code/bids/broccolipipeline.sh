@@ -36,6 +36,9 @@ function analyze_subject {
 		echo "Unknown number of runs!"
     fi
 
+	# Remove any "na" files
+	rm ${output_dir}/${subject}/${task_name}/cond_run*_na.txt
+
 	# Check if all event types are present for all runs
 	if [ "${single_run}" -eq "0" ]; then
 
@@ -268,8 +271,13 @@ if [ "${analysis_type}" == "participant" ]; then
 		for t in $(seq 0 ${num_tasks}); do
 		    task_name=${task_names[$((t))]}
 		    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
-            mkdir ${output_dir}/${subject}/${task_name}
-    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
+			# Check if BOLD file exists
+			if [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz" ]  && [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz" ] ; then
+				echo "BOLD file does not exist for subject ${subject} task ${task_name}, skipping analysis"
+			else
+        	    mkdir ${output_dir}/${subject}/${task_name}
+	    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
+			fi
 		done
 
     # participant not given, analyze all subjects
@@ -299,8 +307,13 @@ if [ "${analysis_type}" == "participant" ]; then
 	    	for t in $(seq 0 ${num_tasks}); do
 				task_name=${task_names[$((t))]}
 	    	    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
-        	    mkdir ${output_dir}/${subject}/${task_name}
-	    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
+				# Check if BOLD file exists
+				if [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz" ]  && [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz" ] ; then
+					echo "BOLD file does not exist for subject ${subject} task ${task_name}, skipping analysis"
+				else
+	        	    mkdir ${output_dir}/${subject}/${task_name}
+		    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
+				fi
 	    	done
 
         done
