@@ -37,7 +37,7 @@ function analyze_subject {
     fi
 
 	# Remove any "na" files
-	rm ${output_dir}/${subject}/${task_name}/cond_run*_na.txt
+	rm -f ${output_dir}/${subject}/${task_name}/cond_run*_na.txt
 
 	# Check if all event types are present for all runs
 	if [ "${single_run}" -eq "0" ]; then
