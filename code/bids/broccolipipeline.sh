@@ -12,13 +12,13 @@ function analyze_subject {
 
     single_run=1
     if [ -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_events.tsv" ]; then
-		single_run=0
+	single_run=0
     fi
 
     num_runs=1
     # Get number of runs
     if [ "${single_run}" -eq "0" ]; then
-		num_runs=`ls ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-*_events.tsv | wc -l`
+	num_runs=`ls ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-*_events.tsv | wc -l`
     fi
     echo -e "Number of runs is $num_runs \n"
 
@@ -33,64 +33,64 @@ function analyze_subject {
             /Downloads/BROCCOLI/code/bids/BIDSto3col.sh ${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-0${r}_events.tsv ${output_dir}/${subject}/${task_name}/cond_run${r}
         done
     else
-		echo "Unknown number of runs!"
+	echo "Unknown number of runs!"
     fi
 
-	# Remove any "na" files
-	rm -f ${output_dir}/${subject}/${task_name}/cond_run*_na.txt
+    # Remove any "na" files
+    rm -f ${output_dir}/${subject}/${task_name}/cond_run*_na.txt
 
-	# Check if all event types are present for all runs
-	if [ "${single_run}" -eq "0" ]; then
+    # Check if all event types are present for all runs
+    if [ "${single_run}" -eq "0" ]; then
 
-		all_runs_equal=1
-		max_run=1
+	all_runs_equal=1
+	max_run=1
         
-		# Check number of event types for first run		
-		num_trial_types_run1=`ls ${output_dir}/${subject}/${task_name}/cond_run1* | wc -l`
-		max_num_trial_types=$num_trial_types_run1
-		# Check number of event types for all other runs
-	    for r in $(seq 2 $num_runs); do        
-	        num_trial_types=`ls ${output_dir}/${subject}/${task_name}/cond_run${r}* | wc -l`
-			if [ "$num_trial_types_run1" -ne "$num_trial_types" ]; then
-				all_runs_equal=0
-			fi
-			# Save run with largest number of event types
-			if [ "$num_trial_types" -gt "$max_num_trial_types" ]; then
-				max_run=$r
-				max_num_trial_types=$num_trial_types
-			fi
-		done
+	# Check number of event types for first run		
+	num_trial_types_run1=`ls ${output_dir}/${subject}/${task_name}/cond_run1* | wc -l`
+	max_num_trial_types=$num_trial_types_run1
+	# Check number of event types for all other runs
+        for r in $(seq 2 $num_runs); do        
+            num_trial_types=`ls ${output_dir}/${subject}/${task_name}/cond_run${r}* | wc -l`
+            if [ "$num_trial_types_run1" -ne "$num_trial_types" ]; then
+		all_runs_equal=0
+	    fi
+	    # Save run with largest number of event types
+	    if [ "$num_trial_types" -gt "$max_num_trial_types" ]; then
+	       max_run=$r
+	       max_num_trial_types=$num_trial_types
+	    fi
+	done
 
-		# Add missing cond files
-		if [ "${all_runs_equal}" -eq "0" ]; then
+	# Add missing cond files
+	if [ "${all_runs_equal}" -eq "0" ]; then
 
-			# Get all event names for run with largest number of event types
-	        cond_files=`ls ${output_dir}/${subject}/${task_name}/cond_run${max_run}* | grep -oP "run${max_run}_([a-zA-Z0-9-_]+)" | sed -e "s/run${max_run}_/@/g" | cut -d "@" -f 2`
-	        event_names=()
-	        string=${cond_files[$((0))]}
-	        event_names+=($string)
+	    # Get all event names for run with largest number of event types
+	    cond_files=`ls ${output_dir}/${subject}/${task_name}/cond_run${max_run}* | grep -oP "run${max_run}_([a-zA-Z0-9-_]+)" | sed -e "s/run${max_run}_/@/g" | cut -d "@" -f 2`
+	    event_names=()
+	    string=${cond_files[$((0))]}
+	    event_names+=($string)
 	
-		    for r in $(seq 1 $num_runs); do        
+	    for r in $(seq 1 $num_runs); do        
 
-				# Skip run with largest number of event types
-				if [ "$r" -ne "$max_run" ] ; then
+	        # Skip run with largest number of event types
+		if [ "$r" -ne "$max_run" ] ; then
 
-					# Compare with run with largest number of event types
-					((max_num_trial_types--))
-					# Check if each event type exists
-				    for t in $(seq 0 $max_num_trial_types); do        
-						event_name=${event_names[$((t))]}
-						if [ ! -e ${output_dir}/${subject}/${task_name}/cond_run${r}_${event_name}.txt ] ; then
-							touch ${output_dir}/${subject}/${task_name}/cond_run${r}_${event_name}.txt
-							echo "Adding dummy file for run $r event ${event_name}"
-						fi						
-					done
-					((max_num_trial_types++))
+		    # Compare with run with largest number of event types
+		    ((max_num_trial_types--))
+		    # Check if each event type exists
+		    for t in $(seq 0 $max_num_trial_types); do        
+		        event_name=${event_names[$((t))]}
+			if [ ! -e ${output_dir}/${subject}/${task_name}/cond_run${r}_${event_name}.txt ] ; then
+			    touch ${output_dir}/${subject}/${task_name}/cond_run${r}_${event_name}.txt
+			    echo "Adding dummy file for run $r event ${event_name}"
+			fi						
+		    done
+		    ((max_num_trial_types++))
 
-				fi		
-			done
-		fi
+		fi		
+	    done
 	fi
+    fi
 
     # Modify the cond files to BROCCOLI format
     for r in $(seq 1 $num_runs); do        
@@ -100,20 +100,20 @@ function analyze_subject {
         string=${cond_files[$((0))]}
         Files+=($string)
 
-		# Put NumEvents into each cond file
+	# Put NumEvents into each cond file
         ((num_trial_types--))        
         for f in $(seq 0 $num_trial_types); do
             # Get current file
             File=${Files[$((f))]}
             # Get number of events
             events=`cat $File | wc -l`
-			# Check if file is a dummy file
-			if [ "$events" -eq "0" ] ; then
-				echo "NumEvents 0" >> $File
-				echo "" >> $File
-			else
-	            sed -i "1s/^/NumEvents $events \n\n/" $File
-			fi
+ 	    # Check if file is a dummy file
+	    if [ "$events" -eq "0" ] ; then
+	        echo "NumEvents 0" >> $File
+		echo "" >> $File
+	    else
+	        sed -i "1s/^/NumEvents $events \n\n/" $File
+	    fi
         done
         ((num_trial_types++))
 
@@ -185,12 +185,12 @@ output_dir=$2
 analysis_type=$3
 
 # Run the validator (if it exists) for the BIDS directory
-#if [ -e "/usr/bin/bids-validator" ]; then
-#    echo "Running the BIDS validator for the dataset"
-#	/usr/bin/bids-validator ${bids_dir}
-#else
-#	echo "Could not find BIDS validator!"
-#fi
+if [ -e "/usr/bin/bids-validator" ]; then
+    echo "Running the BIDS validator for the dataset"
+	/usr/bin/bids-validator ${bids_dir}
+else
+	echo "Could not find BIDS validator!"
+fi
 
 
 # check if analysis type is valid
@@ -220,24 +220,24 @@ fi
 
 # Analyze some subjects
 if [ $# -ge 5 ]; then
-	# Get participant label(s)
-	temp="${@:5}"
-	participants=()
-	string=${temp[$((0))]}
-	participants+=($string)
-	num_subjects=`echo ${#participants[@]}`
+    # Get participant label(s)
+    temp="${@:5}"
+    participants=()
+    string=${temp[$((0))]}
+    participants+=($string)
+    num_subjects=`echo ${#participants[@]}`
 # Analyze all subjects
 else
-	num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
+    num_subjects=`cat ${bids_dir}/participants.tsv  | wc -l`
     ((num_subjects--))
-	participants=()
-	for s in $(seq 1 ${num_subjects}); do
-		if [ "$s" -lt "10" ] ; then
-			participants+=(0$s)
-		else
-			participants+=($s)
-		fi
-	done
+    participants=()
+    for s in $(seq 1 ${num_subjects}); do
+	if [ "$s" -lt "10" ] ; then
+  	    participants+=(0$s)
+	else
+	    participants+=($s)
+	fi
+    done
 fi
 
 
@@ -268,28 +268,34 @@ if [ "${analysis_type}" == "participant" ]; then
 
     for s in $(seq 0 ${num_subjects}); do
 
-		subject=sub-${participants[$((s))]}
+	subject=sub-${participants[$((s))]}
 
         echo -e "\n\nAnalyzing subject ${subject}\n\n"
 
-	  	# Make a new directory
+  	# Make a new directory
         mkdir ${output_dir}/${subject}
 
-	   	# make brain segmentation
-        /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
+   	# Check if anatomical volume exists
+	if [ -e "${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz" ]; then
 
-	   	# Run analyze_subject once per task
-    	for t in $(seq 0 ${num_tasks}); do
-			task_name=${task_names[$((t))]}
-    	    echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
-			# Check if BOLD file exists
-			if [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz" ]  && [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz" ] ; then
-				echo "BOLD file does not exist for subject ${subject} task ${task_name}, skipping analysis"
-			else
-        	    mkdir ${output_dir}/${subject}/${task_name}
-	    	    analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
-			fi
-    	done
+            # make brain segmentation
+            /usr/local/fsl/bin/bet ${bids_dir}/${subject}/anat/${subject}_T1w.nii.gz ${output_dir}/${subject}/${subject}_T1w_brain.nii.gz
+
+   	    # Run analyze_subject once per task
+    	    for t in $(seq 0 ${num_tasks}); do
+ 	        task_name=${task_names[$((t))]}
+    	        echo -e "\n\nAnalyzing subject ${subject} task ${task_name} \n\n"
+	        # Check if BOLD file exists
+	        if [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_bold.nii.gz" ]  && [ ! -e "${bids_dir}/${subject}/func/${subject}_task-${task_name}_run-01_bold.nii.gz" ] ; then
+	            echo "BOLD file does not exist for subject ${subject} task ${task_name}, skipping analysis"
+	        else
+                    mkdir ${output_dir}/${subject}/${task_name}
+	            analyze_subject ${bids_dir} ${output_dir} ${subject} ${task_name}
+	        fi
+            done
+        else
+            echo "T1w file does not exist for subject ${subject}, skipping analysis"
+	fi    	
     done
 # Group analysis
 elif [ "${analysis_type}" == "group" ]; then
@@ -299,27 +305,26 @@ elif [ "${analysis_type}" == "group" ]; then
     # Run group analysis for each task
     for t in $(seq 0 ${num_tasks}); do
 
-		task_name=${task_names[$((t))]}
+	task_name=${task_names[$((t))]}
         echo -e "\n\nAnalyzing task ${task_name} \n\n"
         mkdir ${output_dir}/groupanalyses/${task_name}
 
-		# Merge copes from first level analysis
-	    allcopes=""
-		for s in $(seq 0 ${num_subjects}); do
-			subject=sub-${participants[$((s))]}
-			if [ -e "${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii" ]; then
-	    	    allcopes="$allcopes ${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii"
-			else
-				echo "Could not find ${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii, skipping subject"
-			fi
+	# Merge copes from first level analysis
+	allcopes=""
+	for s in $(seq 0 ${num_subjects}); do
+	    subject=sub-${participants[$((s))]}
+	    if [ -e "${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii" ]; then
+	        allcopes="$allcopes ${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii"
+	    else
+	        echo "Could not find ${output_dir}/${subject}/${task_name}/${subject}_cope_contrast0001_MNI.nii, skipping subject"
+	    fi
     	done
 
-	    /usr/local/fsl/bin/fslmerge -t ${output_dir}/groupanalyses/${task_name}/copes $allcopes
+	/usr/local/fsl/bin/fslmerge -t ${output_dir}/groupanalyses/${task_name}/copes $allcopes
 
-		# Run permutation test
-	    RandomiseGroupLevel ${output_dir}/groupanalyses/${task_name}/copes.nii.gz -groupmean -mask /usr/local/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz 
-	done
-
+	# Run permutation test
+	RandomiseGroupLevel ${output_dir}/groupanalyses/${task_name}/copes.nii.gz -groupmean -mask /usr/local/fsl/data/standard/MNI152_T1_2mm_brain_mask.nii.gz 
+    done
 fi
 
 
