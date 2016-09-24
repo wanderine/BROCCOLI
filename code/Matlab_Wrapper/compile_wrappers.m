@@ -1,4 +1,5 @@
 close all
+clear all
 clc
 
 if ispc
@@ -13,17 +14,18 @@ if ispc
     % Remove '\code\Matlab_Wrapper'
     BROCCOLI_DIRECTORY=BROCCOLI_DIRECTORY(1:end-20);
         
-    BROCCOLI_LIBRARY_DIRECTORY=[BROCCOLI_DIRECTORY '\code\BROCCOLI_LIB\Compiled\Windows\Release'];
+    BROCCOLI_LIBRARY_DIRECTORY=[BROCCOLI_DIRECTORY '\compiled\BROCCOLI_LIB\Windows\Release'];
     BROCCOLI_HEADER_DIRECTORY=[BROCCOLI_DIRECTORY '\code\BROCCOLI_LIB'];
     EIGEN_DIRECTORY=[BROCCOLI_DIRECTORY '\code\BROCCOLI_LIB\Eigen'];
+    CLBLAS_DIRECTORY=[BROCCOLI_DIRECTORY '\code\BROCCOLI_LIB\clBLASWindows'];
     NIFTI_DIRECTORY=[BROCCOLI_DIRECTORY '\code\Bash_Wrapper\nifticlib-2.0.0\niftilib'];
     ZNZ_DIRECTORY=[BROCCOLI_DIRECTORY '\code\Bash_Wrapper\nifticlib-2.0.0\znzlib'];
-
+    
     error = 0;
     
     try
         disp('Compiling GetOpenCLInfo.cpp')
-        cmd = sprintf('mex GetOpenCLInfo.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, EIGEN_DIRECTORY);
+        cmd = sprintf('mex GetOpenCLInfo.cpp -lOpenCL -lBROCCOLI_LIB  -I%s -I%s -L%s -L%s -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, EIGEN_DIRECTORY);
         eval(cmd)
     catch
         error = 1;

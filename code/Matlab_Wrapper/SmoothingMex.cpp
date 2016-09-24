@@ -19,6 +19,7 @@
 #include "mex.h"
 #include "help_functions.cpp"
 #include "broccoli_lib.h"
+#include <stdlib.h> 
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
@@ -28,29 +29,27 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double		    *h_fMRI_Volumes_double;
     float           *h_fMRI_Volumes;
     
-    double	        *h_Smoothing_Filter_X_double, *h_Smoothing_Filter_Y_double, *h_Smoothing_Filter_Z_double;
-    float		    *h_Smoothing_Filter_X, *h_Smoothing_Filter_Y, *h_Smoothing_Filter_Z;       
-    
-    float           Smoothing_FWHM, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, SMOOTHING_TYPE;
+    float           *h_Certainty;
+        
+    float           EPI_SMOOTHING_AMOUNT, EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z, SMOOTHING_TYPE;
     
     int             OPENCL_PLATFORM, OPENCL_DEVICE;
+        
+    const char*     BROCCOLI_LOCATION;
     
     //-----------------------
     // Output pointers
     
     double     		*h_Filter_Response_double;
-    float    		*h_Filter_Response;
-    
-    double          *convolution_time;
-    
+        
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<11)
+    if(nrhs<8)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>11)
+    if(nrhs>8)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -62,25 +61,21 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     {
         mexErrMsgTxt("Too many output arguments.");
     }
-    
+        
     /* Input arguments */
     
     // The data
     h_fMRI_Volumes_double =  (double*)mxGetData(prhs[0]);
-    h_Smoothing_Filter_X_double = (double*)mxGetData(prhs[1]);
-    h_Smoothing_Filter_Y_double = (double*)mxGetData(prhs[2]);
-    h_Smoothing_Filter_Z_double = (double*)mxGetData(prhs[3]);
-    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[4]);
-    EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[5]);
-    EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[6]);
-    Smoothing_FWHM = (float)mxGetScalar(prhs[7]);
-    SMOOTHING_TYPE = (int)mxGetScalar(prhs[8]);
-    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[9]);
-    OPENCL_DEVICE  = (int)mxGetScalar(prhs[10]);
+    EPI_VOXEL_SIZE_X = (float)mxGetScalar(prhs[1]);
+    EPI_VOXEL_SIZE_Y = (float)mxGetScalar(prhs[2]);
+    EPI_VOXEL_SIZE_Z = (float)mxGetScalar(prhs[3]);
+    EPI_SMOOTHING_AMOUNT = (float)mxGetScalar(prhs[4]);
+    OPENCL_PLATFORM  = (int)mxGetScalar(prhs[5]);
+    OPENCL_DEVICE  = (int)mxGetScalar(prhs[6]);
+    BROCCOLI_LOCATION  = mxArrayToString(prhs[7]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
-    const int *ARRAY_DIMENSIONS_FILTER = mxGetDimensions(prhs[1]);
     
     int DATA_H, DATA_W, DATA_D, DATA_T, FILTER_LENGTH;
     
@@ -89,13 +84,14 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     DATA_D = ARRAY_DIMENSIONS_DATA[2];
     DATA_T = ARRAY_DIMENSIONS_DATA[3];
     
-    FILTER_LENGTH = ARRAY_DIMENSIONS_FILTER[0];
-            
+    size_t			allocatedHostMemory = 0;
+    bool			AUTO_MASK = false;
+    
     int DATA_SIZE = DATA_W * DATA_H * DATA_D * DATA_T * sizeof(float);
-    int FILTER_SIZE = FILTER_LENGTH * sizeof(float);
+    int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
             
     mexPrintf("Data size : %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
-    
+        
     //-------------------------------------------------
     // Output to Matlab
     
@@ -113,43 +109,73 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // ------------------------------------------------
     
     // Allocate memory on the host
-    h_fMRI_Volumes                 = (float *)mxMalloc(DATA_SIZE);
-    h_Smoothing_Filter_X           = (float *)mxMalloc(FILTER_SIZE);
-    h_Smoothing_Filter_Y           = (float *)mxMalloc(FILTER_SIZE);
-    h_Smoothing_Filter_Z           = (float *)mxMalloc(FILTER_SIZE);
-    h_Filter_Response              = (float *)mxMalloc(DATA_SIZE);
+    h_fMRI_Volumes                 = (float *)mxMalloc(DATA_SIZE);    
+    h_Certainty                 = (float *)mxMalloc(VOLUME_SIZE);
+    
+    allocatedHostMemory += (size_t)DATA_SIZE;
+    allocatedHostMemory += (size_t)VOLUME_SIZE;
+    
+    for (size_t i = 0; i < DATA_W * DATA_H * DATA_D; i++)
+    {
+        h_Certainty[i] = 1.0f;
+    }
     
     // Pack data (reorder from y,x,z to x,y,z and cast from double to float)
     pack_double2float_volumes(h_fMRI_Volumes, h_fMRI_Volumes_double, DATA_W, DATA_H, DATA_D, DATA_T);
-    pack_double2float(h_Smoothing_Filter_X, h_Smoothing_Filter_X_double, FILTER_LENGTH);
-    pack_double2float(h_Smoothing_Filter_Y, h_Smoothing_Filter_Y_double, FILTER_LENGTH);
-    pack_double2float(h_Smoothing_Filter_Z, h_Smoothing_Filter_Z_double, FILTER_LENGTH);
     
     //------------------------
+            
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,BROCCOLI_LOCATION); 
+        
+    // Print build info to file (always)
+	std::vector<std::string> buildInfo = BROCCOLI.GetOpenCLBuildInfo();
+	std::vector<std::string> kernelFileNames = BROCCOLI.GetKernelFileNames();
+
+	std::string buildInfoPath;
+	buildInfoPath.append(BROCCOLI_LOCATION);
+	buildInfoPath.append("compiled/Kernels/");
     
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE);
+    FILE *fp = NULL;
     
+    for (int k = 0; k < BROCCOLI.GetNumberOfKernelFiles(); k++)
+	{
+		std::string temp = buildInfoPath;
+		temp.append("buildInfo_");
+		temp.append(BROCCOLI.GetOpenCLPlatformName());
+		temp.append("_");	
+		temp.append(BROCCOLI.GetOpenCLDeviceName());
+		temp.append("_");	
+		std::string name = kernelFileNames[k];
+		// Remove "kernel" and ".cpp" from kernel filename
+		name = name.substr(0,name.size()-4);
+		name = name.substr(6,name.size());
+		temp.append(name);
+		temp.append(".txt");
+		fp = fopen(temp.c_str(),"w");
+		if (fp == NULL)
+		{     
+		    mexPrintf("Could not open %s for writing ! \n",temp.c_str());
+		}
+		else
+		{	
+			if (buildInfo[k].c_str() != NULL)
+			{
+			    int error = fputs(buildInfo[k].c_str(),fp);
+			    if (error == EOF)
+			    {
+			        mexPrintf("Could not write to %s ! \n",temp.c_str());
+			    }
+			}
+			fclose(fp);
+		}
+	}
+                
     // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated() == 0)
+    if (!BROCCOLI.GetOpenCLInitiated())
     { 
-        int getPlatformIDsError = BROCCOLI.GetOpenCLPlatformIDsError();
-        int getDeviceIDsError = BROCCOLI.GetOpenCLDeviceIDsError();		
-        int createContextError = BROCCOLI.GetOpenCLCreateContextError();
-        int getContextInfoError = BROCCOLI.GetOpenCLContextInfoError();
-        int createCommandQueueError = BROCCOLI.GetOpenCLCreateCommandQueueError();
-        int createProgramError = BROCCOLI.GetOpenCLCreateProgramError();
-        int buildProgramError = BROCCOLI.GetOpenCLBuildProgramError();
-        int getProgramBuildInfoError = BROCCOLI.GetOpenCLProgramBuildInfoError();
-          
-        mexPrintf("Get platform IDs error is %d \n",getPlatformIDsError);
-        mexPrintf("Get device IDs error is %d \n",getDeviceIDsError);
-        mexPrintf("Create context error is %d \n",createContextError);
-        mexPrintf("Get create context info error is %d \n",getContextInfoError);
-        mexPrintf("Create command queue error is %d \n",createCommandQueueError);
-        mexPrintf("Create program error is %d \n",createProgramError);
-        mexPrintf("Build program error is %d \n",buildProgramError);
-        mexPrintf("Get program build info error is %d \n",getProgramBuildInfoError);
-    
+        mexPrintf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError().c_str());
+		mexPrintf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
+
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
@@ -158,36 +184,38 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             {
                 mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }
-        
-        mexPrintf("OPENCL initialization failed, aborting \n");  
+        }                        
+                
+        mexPrintf("OpenCL initialization failed, aborting! \nSee buildInfo* for output of OpenCL compilation!\n");         
     }
-    else if (BROCCOLI.GetOpenCLInitiated() == 1)
+    else
     {    
+        // Set all necessary pointers and values
+        BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
+		BROCCOLI.SetAutoMask(AUTO_MASK);
+		BROCCOLI.SetInputCertainty(h_Certainty);
+
+        BROCCOLI.SetEPISmoothingAmount(EPI_SMOOTHING_AMOUNT);
+		BROCCOLI.SetAllocatedHostMemory(allocatedHostMemory);
+
         BROCCOLI.SetEPIWidth(DATA_W);
         BROCCOLI.SetEPIHeight(DATA_H);
         BROCCOLI.SetEPIDepth(DATA_D);
-        BROCCOLI.SetEPITimepoints(DATA_T);
-        
+        BROCCOLI.SetEPITimepoints(DATA_T);  
+
         BROCCOLI.SetEPIVoxelSizeX(EPI_VOXEL_SIZE_X);
         BROCCOLI.SetEPIVoxelSizeY(EPI_VOXEL_SIZE_Y);
-        BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z);
-        
-        BROCCOLI.SetInputfMRIVolumes(h_fMRI_Volumes);
-        BROCCOLI.SetOutputSmoothedfMRIVolumes(h_Filter_Response);
-        BROCCOLI.SetSmoothingFilters(h_Smoothing_Filter_X, h_Smoothing_Filter_Y, h_Smoothing_Filter_Z);
-        BROCCOLI.SetEPISmoothingAmount(Smoothing_FWHM);
-        BROCCOLI.SetSmoothingType(SMOOTHING_TYPE);
-    
-        BROCCOLI.PerformSmoothingWrapper();            
-        
+        BROCCOLI.SetEPIVoxelSizeZ(EPI_VOXEL_SIZE_Z); 
+                                
+        BROCCOLI.PerformSmoothingNormalizedHostWrapper(); 
+                
         // Print create buffer errors
         int* createBufferErrors = BROCCOLI.GetOpenCLCreateBufferErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
             if (createBufferErrors[i] != 0)
             {
-                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+                mexPrintf("Create buffer error %i is %s \n",i,BROCCOLI.GetOpenCLErrorMessage(createBufferErrors[i]));
             }
         }
         
@@ -199,8 +227,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             {
                 mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }
-        
+        } 
+
         // Print run kernel errors
         int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
@@ -211,19 +239,13 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             }
         } 
     }
-    
-    // Print build info
-    mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());  
-    
+        
     // Change from floats back to doubles
-    unpack_float2double_volumes(h_Filter_Response_double, h_Filter_Response, DATA_W, DATA_H, DATA_D, DATA_T);
+    unpack_float2double_volumes(h_Filter_Response_double, h_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
                 
     // Free all the allocated memory on the host
     mxFree(h_fMRI_Volumes);
-    mxFree(h_Smoothing_Filter_X);
-    mxFree(h_Smoothing_Filter_Y);
-    mxFree(h_Smoothing_Filter_Z);
-    mxFree(h_Filter_Response);
+    mxFree(h_Certainty);
         
     return;
 }
