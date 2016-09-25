@@ -40,16 +40,7 @@ if ispc
         error = 1;
         disp('Failed to compile SmoothingMex.cpp')
     end
-
-    try
-        disp('Compiling RegisterTwoVolumesMex.cpp')
-        cmd = sprintf('mex RegisterTwoVolumesMex.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
-        eval(cmd)
-    catch
-        error = 1;
-        disp('Failed to compile RegisterTwoVolumesMex.cpp')
-    end
-
+    
     try
         disp('Compiling MotionCorrectionMex.cpp')
         cmd = sprintf('mex MotionCorrectionMex.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
@@ -60,27 +51,36 @@ if ispc
     end
 
     try
-        disp('Compiling SliceTimingCorrectionMex.cpp')
-        cmd = sprintf('mex SliceTimingCorrectionMex.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
+        disp('Compiling RegisterTwoVolumesMex.cpp')
+        cmd = sprintf('mex RegisterTwoVolumesMex.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
         eval(cmd)
     catch
         error = 1;
-        disp('Failed to compile SliceTimingCorrectionMex.cpp')
-    end
-
-    try
-        %disp('Compiling RandomiseGroupLevelMex.cpp')
-        cmd = sprintf('mex GLMTTest_SecondLevel_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
-        eval(cmd)
-    catch
-        error = 1;
-    end
+        disp('Failed to compile RegisterTwoVolumesMex.cpp')
+    end   
+% 
+%     try
+%         disp('Compiling SliceTimingCorrectionMex.cpp')
+%         cmd = sprintf('mex SliceTimingCorrectionMex.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
+%         eval(cmd)
+%     catch
+%         error = 1;
+%         disp('Failed to compile SliceTimingCorrectionMex.cpp')
+%     end
+% 
+%     try
+%         %disp('Compiling RandomiseGroupLevelMex.cpp')
+%         cmd = sprintf('mex GLMTTest_SecondLevel_Permutation.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
+%         eval(cmd)
+%     catch
+%         error = 1;
+%     end
 
     %disp('Compiling FirstLevelAnalysisMex.cpp')
     %cmd = sprintf('mex FirstLevelAnalysisMex.cpp -lOpenCL -lBROCCOLI_LIB -I%s -I%s -L%s -L%s -I%s -I%s  -I%s -I%s',OPENCL_INCLUDE_DIRECTORY1, OPENCL_INCLUDE_DIRECTORY2, OPENCL_LIBRARY_DIRECTORY, BROCCOLI_LIBRARY_DIRECTORY, BROCCOLI_HEADER_DIRECTORY, NIFTI_DIRECTORY, ZNZ_DIRECTORY, EIGEN_DIRECTORY);
     %eval(cmd)
     
-    if error == 0
+    if error == 0        
         disp('Successfully compiled all wrappers!')
     end
     
