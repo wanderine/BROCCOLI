@@ -54,6 +54,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     double          *h_Filter_Directions_X_double, *h_Filter_Directions_Y_double, *h_Filter_Directions_Z_double;
     float           *h_Filter_Directions_X, *h_Filter_Directions_Y, *h_Filter_Directions_Z;
     
+    const char*     BROCCOLI_LOCATION;
+    
     int             T1_DATA_H, T1_DATA_W, T1_DATA_D, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, NUMBER_OF_AFFINE_IMAGE_REGISTRATION_PARAMETERS;
     
     float           T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z;
@@ -73,11 +75,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<32)
+    if(nrhs<33)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>32)
+    if(nrhs>33)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -134,6 +136,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     SIGMA  = (float)mxGetScalar(prhs[29]);
     OPENCL_PLATFORM  = (int)mxGetScalar(prhs[30]);
     OPENCL_DEVICE  = (int)mxGetScalar(prhs[31]);
+    BROCCOLI_LOCATION  = mxArrayToString(prhs[32]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_T1 = mxGetDimensions(prhs[0]);
@@ -190,6 +193,8 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     mexPrintf("Source volume size : %i x %i x %i \n",  T1_DATA_W, T1_DATA_H, T1_DATA_D);
     mexPrintf("Reference volume size : %i x %i x %i \n",  MNI_DATA_W, MNI_DATA_H, MNI_DATA_D);
+    mexPrintf("Source volume voxel size : %f x %f x %f \n", T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z);
+    mexPrintf("Reference volume voxel size : %f x %f x %f \n", MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z);
     mexPrintf("Coarsest scale set to : %i \n", COARSEST_SCALE);
     
     //-------------------------------------------------
@@ -323,14 +328,57 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM, OPENCL_DEVICE);
-      
-    // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated() == 0)
-    {    
-        printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
-        printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
+   BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,BROCCOLI_LOCATION); 
         
+    // Print build info to file (always)
+	std::vector<std::string> buildInfo = BROCCOLI.GetOpenCLBuildInfo();
+	std::vector<std::string> kernelFileNames = BROCCOLI.GetKernelFileNames();
+
+	std::string buildInfoPath;
+	buildInfoPath.append(BROCCOLI_LOCATION);
+	buildInfoPath.append("compiled/Kernels/");
+    
+    FILE *fp = NULL;
+    
+    for (int k = 0; k < BROCCOLI.GetNumberOfKernelFiles(); k++)
+	{
+		std::string temp = buildInfoPath;
+		temp.append("buildInfo_");
+		temp.append(BROCCOLI.GetOpenCLPlatformName());
+		temp.append("_");	
+		temp.append(BROCCOLI.GetOpenCLDeviceName());
+		temp.append("_");	
+		std::string name = kernelFileNames[k];
+		// Remove "kernel" and ".cpp" from kernel filename
+		name = name.substr(0,name.size()-4);
+		name = name.substr(6,name.size());
+		temp.append(name);
+		temp.append(".txt");
+		fp = fopen(temp.c_str(),"w");
+		if (fp == NULL)
+		{     
+		    mexPrintf("Could not open %s for writing ! \n",temp.c_str());
+		}
+		else
+		{	
+			if (buildInfo[k].c_str() != NULL)
+			{
+			    int error = fputs(buildInfo[k].c_str(),fp);
+			    if (error == EOF)
+			    {
+			        mexPrintf("Could not write to %s ! \n",temp.c_str());
+			    }
+			}
+			fclose(fp);
+		}
+	}
+                
+    // Something went wrong...
+    if (!BROCCOLI.GetOpenCLInitiated())
+    { 
+        mexPrintf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError().c_str());
+		mexPrintf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
+
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
@@ -339,14 +387,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             {
                 mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }                
-        
-        mexPrintf("OPENCL initialization failed, aborting \n");        
-        
-        // Print build info
-        mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());       
+        }                        
+                
+        mexPrintf("OpenCL initialization failed, aborting! \nSee buildInfo* for output of OpenCL compilation!\n");         
     }
-    else if (BROCCOLI.GetOpenCLInitiated() == 1)
+    else
     {
         BROCCOLI.SetInputT1Volume(h_T1_Volume);
         BROCCOLI.SetInputMNIBrainVolume(h_MNI_Volume);
@@ -354,6 +399,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetT1Width(T1_DATA_W);
         BROCCOLI.SetT1Height(T1_DATA_H);
         BROCCOLI.SetT1Depth(T1_DATA_D);
+        BROCCOLI.SetT1Timepoints(1);
         
         BROCCOLI.SetT1VoxelSizeX(T1_VOXEL_SIZE_X);
         BROCCOLI.SetT1VoxelSizeY(T1_VOXEL_SIZE_Y);
@@ -385,15 +431,23 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetCoarsestScaleT1MNI(COARSEST_SCALE);
         BROCCOLI.SetMMT1ZCUT(MM_T1_Z_CUT);   
         
-        BROCCOLI.SetOutputAlignedT1VolumeLinear(h_Aligned_T1_Volume_Linear);
-        BROCCOLI.SetOutputAlignedT1VolumeNonLinear(h_Aligned_T1_Volume_NonLinear);
         BROCCOLI.SetOutputInterpolatedT1Volume(h_Interpolated_T1_Volume);
+        BROCCOLI.SetOutputAlignedT1VolumeLinear(h_Aligned_T1_Volume_Linear);
+        BROCCOLI.SetOutputAlignedT1VolumeNonLinear(h_Aligned_T1_Volume_NonLinear);        
         BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
         BROCCOLI.SetOutputDisplacementField(h_Displacement_Field_X,h_Displacement_Field_Y,h_Displacement_Field_Z);
                             
         BROCCOLI.SetTsigma(SIGMA);
 		BROCCOLI.SetEsigma(SIGMA);
 		BROCCOLI.SetDsigma(SIGMA);
+        
+        BROCCOLI.SetDoSkullstrip(false);
+		BROCCOLI.SetDoSkullstripOriginal(false);
+
+		BROCCOLI.SetSaveDisplacementField(true);
+		BROCCOLI.SetSaveInterpolatedT1(true);
+		BROCCOLI.SetSaveAlignedT1MNILinear(true);
+		BROCCOLI.SetSaveAlignedT1MNINonLinear(true);
         
         BROCCOLI.PerformRegistrationTwoVolumesWrapper();     
         
@@ -403,11 +457,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         {
             if (createBufferErrors[i] != 0)
             {
-                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+                mexPrintf("Create buffer error %i is %s \n",i,BROCCOLI.GetOpenCLErrorMessage(createBufferErrors[i]));
             }
         }
         
-        // Print run kernel errors
+        // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
         {
@@ -416,7 +470,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
                 mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
         } 
-        
+
         // Print run kernel errors
         int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)

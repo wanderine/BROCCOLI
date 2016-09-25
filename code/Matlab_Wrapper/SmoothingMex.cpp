@@ -91,6 +91,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
             
     mexPrintf("Data size : %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
+    mexPrintf("Voxel size : %f x %f x %f mm \n",  EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
         
     //-------------------------------------------------
     // Output to Matlab

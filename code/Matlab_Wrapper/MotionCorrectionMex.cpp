@@ -27,6 +27,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     
     double		    *h_fMRI_Volumes_double, *h_Quadrature_Filter_1_Real_double, *h_Quadrature_Filter_2_Real_double, *h_Quadrature_Filter_3_Real_double, *h_Quadrature_Filter_1_Imag_double, *h_Quadrature_Filter_2_Imag_double, *h_Quadrature_Filter_3_Imag_double;
     float           *h_fMRI_Volumes, *h_Quadrature_Filter_1_Real, *h_Quadrature_Filter_2_Real, *h_Quadrature_Filter_3_Real, *h_Quadrature_Filter_1_Imag, *h_Quadrature_Filter_2_Imag, *h_Quadrature_Filter_3_Imag;
+    const char*     BROCCOLI_LOCATION;
     int             MOTION_CORRECTION_FILTER_SIZE, NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION;
     int             OPENCL_PLATFORM,OPENCL_DEVICE;
     float           EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z;
@@ -35,16 +36,16 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     // Output pointers        
     
     double     		*h_Motion_Corrected_fMRI_Volumes_double, *h_Motion_Parameters_double;
-    float           *h_Motion_Corrected_fMRI_Volumes, *h_Motion_Parameters;
+    float           *h_Motion_Parameters;
     
     //---------------------
     
     /* Check the number of input and output arguments. */
-    if(nrhs<10)
+    if(nrhs<11)
     {
         mexErrMsgTxt("Too few input arguments.");
     }
-    if(nrhs>10)
+    if(nrhs>11)
     {
         mexErrMsgTxt("Too many input arguments.");
     }
@@ -73,6 +74,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION  = (int)mxGetScalar(prhs[7]);
     OPENCL_PLATFORM  = (int)mxGetScalar(prhs[8]);
     OPENCL_DEVICE  = (int)mxGetScalar(prhs[9]);
+    BROCCOLI_LOCATION  = mxArrayToString(prhs[10]);
     
     int NUMBER_OF_DIMENSIONS = mxGetNumberOfDimensions(prhs[0]);
     const int *ARRAY_DIMENSIONS_DATA = mxGetDimensions(prhs[0]);
@@ -94,9 +96,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     int VOLUME_SIZE = DATA_W * DATA_H * DATA_D * sizeof(float);
     
     mexPrintf("Data size : %i x %i x %i x %i \n",  DATA_W, DATA_H, DATA_D, DATA_T);
-    mexPrintf("Voxel size : %f x %f x %f \n",  EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
-    mexPrintf("Filter size : %i x %i x %i \n",  MOTION_CORRECTION_FILTER_SIZE,MOTION_CORRECTION_FILTER_SIZE,MOTION_CORRECTION_FILTER_SIZE);
-    mexPrintf("Number of iterations : %i \n",  NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);
+    mexPrintf("Voxel size : %f x %f x %f mm \n",  EPI_VOXEL_SIZE_X, EPI_VOXEL_SIZE_Y, EPI_VOXEL_SIZE_Z);
     
     //-------------------------------------------------
     // Output to Matlab
@@ -130,7 +130,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     h_Quadrature_Filter_2_Imag             = (float *)mxMalloc(FILTER_SIZE);    
     h_Quadrature_Filter_3_Real             = (float *)mxMalloc(FILTER_SIZE);
     h_Quadrature_Filter_3_Imag             = (float *)mxMalloc(FILTER_SIZE);    
-    h_Motion_Corrected_fMRI_Volumes        = (float *)mxMalloc(DATA_SIZE);
     h_Motion_Parameters                    = (float *)mxMalloc(MOTION_PARAMETERS_SIZE);    
     
     // Pack data (reorder from y,x,z to x,y,z and cast from double to float)
@@ -144,14 +143,57 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 
     //------------------------
     
-    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE);
-    
-    // Something went wrong...
-    if (BROCCOLI.GetOpenCLInitiated() == 0)
-    {    
-        printf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError());
-        printf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
+    BROCCOLI_LIB BROCCOLI(OPENCL_PLATFORM,OPENCL_DEVICE,BROCCOLI_LOCATION); 
         
+    // Print build info to file (always)
+	std::vector<std::string> buildInfo = BROCCOLI.GetOpenCLBuildInfo();
+	std::vector<std::string> kernelFileNames = BROCCOLI.GetKernelFileNames();
+
+	std::string buildInfoPath;
+	buildInfoPath.append(BROCCOLI_LOCATION);
+	buildInfoPath.append("compiled/Kernels/");
+    
+    FILE *fp = NULL;
+    
+    for (int k = 0; k < BROCCOLI.GetNumberOfKernelFiles(); k++)
+	{
+		std::string temp = buildInfoPath;
+		temp.append("buildInfo_");
+		temp.append(BROCCOLI.GetOpenCLPlatformName());
+		temp.append("_");	
+		temp.append(BROCCOLI.GetOpenCLDeviceName());
+		temp.append("_");	
+		std::string name = kernelFileNames[k];
+		// Remove "kernel" and ".cpp" from kernel filename
+		name = name.substr(0,name.size()-4);
+		name = name.substr(6,name.size());
+		temp.append(name);
+		temp.append(".txt");
+		fp = fopen(temp.c_str(),"w");
+		if (fp == NULL)
+		{     
+		    mexPrintf("Could not open %s for writing ! \n",temp.c_str());
+		}
+		else
+		{	
+			if (buildInfo[k].c_str() != NULL)
+			{
+			    int error = fputs(buildInfo[k].c_str(),fp);
+			    if (error == EOF)
+			    {
+			        mexPrintf("Could not write to %s ! \n",temp.c_str());
+			    }
+			}
+			fclose(fp);
+		}
+	}
+                
+    // Something went wrong...
+    if (!BROCCOLI.GetOpenCLInitiated())
+    { 
+        mexPrintf("Initialization error is \"%s\" \n",BROCCOLI.GetOpenCLInitializationError().c_str());
+		mexPrintf("OpenCL error is \"%s\" \n",BROCCOLI.GetOpenCLError());
+
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
@@ -160,14 +202,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             {
                 mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }                
-        
-        mexPrintf("OPENCL initialization failed, aborting \n");        
-        
-        // Print build info
-        mexPrintf("Build info \n \n %s \n", BROCCOLI.GetOpenCLBuildInfoChar());      
-    }
-    else if (BROCCOLI.GetOpenCLInitiated() == 1)
+        }                        
+                
+        mexPrintf("OpenCL initialization failed, aborting! \nSee buildInfo* for output of OpenCL compilation!\n");         
+    }        
+    else
     {
         BROCCOLI.SetEPIWidth(DATA_W);
         BROCCOLI.SetEPIHeight(DATA_H);
@@ -182,9 +221,9 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         BROCCOLI.SetImageRegistrationFilterSize(MOTION_CORRECTION_FILTER_SIZE);
         BROCCOLI.SetLinearImageRegistrationFilters(h_Quadrature_Filter_1_Real, h_Quadrature_Filter_1_Imag, h_Quadrature_Filter_2_Real, h_Quadrature_Filter_2_Imag, h_Quadrature_Filter_3_Real, h_Quadrature_Filter_3_Imag);
         BROCCOLI.SetNumberOfIterationsForMotionCorrection(NUMBER_OF_ITERATIONS_FOR_MOTION_CORRECTION);
-        BROCCOLI.SetOutputMotionCorrectedfMRIVolumes(h_Motion_Corrected_fMRI_Volumes);
         BROCCOLI.SetOutputMotionParameters(h_Motion_Parameters);
              
+        mexPrintf("Running motion correction \n");
         BROCCOLI.PerformMotionCorrectionWrapper();        
     
         // Print create buffer errors
@@ -193,10 +232,10 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         {
             if (createBufferErrors[i] != 0)
             {
-                mexPrintf("Create buffer error %i is %d \n",i,createBufferErrors[i]);
+                mexPrintf("Create buffer error %i is %s \n",i,BROCCOLI.GetOpenCLErrorMessage(createBufferErrors[i]));
             }
         }
-
+        
         // Print create kernel errors
         int* createKernelErrors = BROCCOLI.GetOpenCLCreateKernelErrors();
         for (int i = 0; i < BROCCOLI.GetNumberOfOpenCLKernels(); i++)
@@ -205,7 +244,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             {
                 mexPrintf("Create kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(createKernelErrors[i]));
             }
-        }                
+        } 
 
         // Print run kernel errors
         int* runKernelErrors = BROCCOLI.GetOpenCLRunKernelErrors();
@@ -215,11 +254,11 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
             {
                 mexPrintf("Run kernel error for kernel '%s' is '%s' \n",BROCCOLI.GetOpenCLKernelName(i),BROCCOLI.GetOpenCLErrorMessage(runKernelErrors[i]));
             }
-        } 
+        }
     }
     
     // Unpack results to Matlab
-    unpack_float2double_volumes(h_Motion_Corrected_fMRI_Volumes_double, h_Motion_Corrected_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
+    unpack_float2double_volumes(h_Motion_Corrected_fMRI_Volumes_double, h_fMRI_Volumes, DATA_W, DATA_H, DATA_D, DATA_T);
     unpack_float2double(h_Motion_Parameters_double, h_Motion_Parameters, NUMBER_OF_MOTION_CORRECTION_PARAMETERS * DATA_T);
     
     // Free all the allocated memory on the host
@@ -230,7 +269,6 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
     mxFree(h_Quadrature_Filter_2_Imag);
     mxFree(h_Quadrature_Filter_3_Real);
     mxFree(h_Quadrature_Filter_3_Imag);
-    mxFree(h_Motion_Corrected_fMRI_Volumes); 
     mxFree(h_Motion_Parameters);        
     
     return;
