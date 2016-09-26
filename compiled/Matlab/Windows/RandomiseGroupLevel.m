@@ -2,8 +2,8 @@ function [statistical_maps, p_values] = RandomiseGroupLevel(volumes,design_matri
 
 % The function performs permutation testing at the group level.
 %
-% [statistical_maps, p_values, null_distribution] = ...
-% RandomiseGroupLevel(volumes,design_matrix, analysis_type, contrasts, ...
+% [statistical_maps, p_values] = ...
+% RandomiseGroupLevel(volumes,design_matrix,analysis_type,contrasts, ...
 % broccoli_location, brain_mask, ...
 % number_of_permutations, inference_mode, cluster_defining_threshold, ...
 % opencl_platform,opencl_device)
@@ -11,7 +11,7 @@ function [statistical_maps, p_values] = RandomiseGroupLevel(volumes,design_matri
 % Required input parameters
 %
 % volumes       - Volumes to permute (filenames or 4D Matlab array)
-% design_matrix - The design matrix to apply, use [] for group mean
+% design_matrix - The design matrix to apply (number of subjects rows and number of regressors columns), use [] for group mean
 % analysis_type - t-test (0), F-test (1), group mean (2)
 % contrasts     - The contrasts to use, one contrast per row, use [] for group mean
 % broccoli_location - Where BROCCOLI is installed, a string
