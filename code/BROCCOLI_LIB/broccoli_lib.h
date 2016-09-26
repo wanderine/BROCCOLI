@@ -112,6 +112,7 @@ class BROCCOLI_LIB
 		// Constructors & destructor
 		BROCCOLI_LIB();
 		BROCCOLI_LIB(cl_uint platform, cl_uint device);
+		BROCCOLI_LIB(cl_uint platform, cl_uint device, const char* location);
 		BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper, bool verbos);
 		~BROCCOLI_LIB();
 
@@ -1129,6 +1130,8 @@ class BROCCOLI_LIB
 		//------------------------------------------------
 		// General variables
 		//------------------------------------------------
+
+		const char* BROCCOLI_LOCATION;
 
 		int BETA_SPACE;
 		int FILE_TYPE, DATA_TYPE;

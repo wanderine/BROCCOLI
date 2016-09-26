@@ -23,7 +23,7 @@
     DEALINGS IN THE SOFTWARE.
 */
 
-#include <Eigen/Eigenvalues> 
+#include <Eigenvalues> 
 #include <limits>
 #include <Dense>
 #include <stdio.h>
@@ -140,6 +140,14 @@ BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device)
 	SUCCESSFUL_INITIALIZATION = OpenCLInitiate(platform,device);
 }
 
+BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device, const char* location)
+{
+	SetStartValues();
+	OPENCL_INITIATED = false;
+	BROCCOLI_LOCATION = location;
+	SUCCESSFUL_INITIALIZATION = OpenCLInitiate(platform,device);
+}
+
 BROCCOLI_LIB::BROCCOLI_LIB(cl_uint platform, cl_uint device, int wrapper, bool verbos)
 {
 	SetStartValues();
@@ -240,6 +248,8 @@ void BROCCOLI_LIB::SetStartValues()
 {
 	INITIALIZATION_ERROR = "";
 	OPENCL_ERROR = "";
+
+	BROCCOLI_LOCATION = NULL;
 
 	localMemorySize = 0;
 	maxThreadsPerBlock = 0;
@@ -1369,9 +1379,13 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	std::string binaryPathAndFileName;
 	if (WRAPPER == BASH)
 	{
-		binaryPathAndFilename.append(GetBROCCOLIDirectory());
-		binaryPathAndFilename.append("compiled/Kernels/");
+		binaryPathAndFilename.append(GetBROCCOLIDirectory());		
 	}
+	else
+	{
+		binaryPathAndFilename.append(BROCCOLI_LOCATION);		
+	}
+	binaryPathAndFilename.append("compiled/Kernels/");
 	binaryPathAndFilename.append(binaryFilename);
 
 	// First try to compile from binary file for the selected device and platform
@@ -1409,9 +1423,13 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 	std::string OpenCLPath;
 	if (WRAPPER == BASH)
 	{	
-		OpenCLPath.append(GetBROCCOLIDirectory());
-		OpenCLPath.append("code/Kernels/");
+		OpenCLPath.append(GetBROCCOLIDirectory());		
 	}
+	else
+	{
+		OpenCLPath.append(BROCCOLI_LOCATION);		
+	}
+	OpenCLPath.append("code/Kernels/");
 
 	std::vector<std::string> kernelPathAndFileNames;
 
@@ -1432,7 +1450,7 @@ bool BROCCOLI_LIB::OpenCLInitiate(cl_uint OPENCL_PLATFORM, cl_uint OPENCL_DEVICE
 			if ( !file.good() )
 			{
 				std::string temp = "Unable to open ";
-				temp.append(kernelFileNames[k]);
+				temp.append(kernelPathAndFileNames[k]);
 				INITIALIZATION_ERROR = temp;
 				OPENCL_ERROR = "";
 				return false;
@@ -16935,8 +16953,6 @@ void BROCCOLI_LIB::GeneratePermutationMatrixSecondLevelTwoSample(int contrast)
 			group2Subject++;
 		}			
 	}
-
-	printf("Number of permutations is %zu \n",NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]);
 
 	// Loop over all remaining permutations
 	for (int p = 1; p < NUMBER_OF_PERMUTATIONS_PER_CONTRAST[contrast]; p++)
