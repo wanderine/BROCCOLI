@@ -112,6 +112,7 @@ int main(int argc, char **argv)
 	bool			MASK = false;
 	bool			MASK_ORIGINAL = false;
 	const char* 	MASK_NAME;
+	bool			PRECENTER_REGISTRATION = false;
 
 	const char*		outputFilename;
 
@@ -141,6 +142,7 @@ int main(int argc, char **argv)
 
         printf(" -sigma                     Amount of Gaussian smoothing applied for regularization of the displacement field, defined as sigma of the Gaussian kernel (default 5.0)  \n");        
         printf(" -zcut                      Number of mm to cut from the bottom of the input volume, can be negative, useful if the head in the volume is placed very high or low (default 0) \n");        
+        printf(" -precenter                 Center the input volume before the registration starts (default off) \n");        
         printf(" -mask                      Mask to apply after linear and non-linear registration, to for example do a skullstrip (default none) \n");        
         printf(" -maskoriginal              Mask to apply after linear registration, to for example do a skullstrip. Returns the volume skullstripped and unregistered (but interpolated to the reference volume size) (default none) \n");        
 
@@ -359,6 +361,12 @@ int main(int argc, char **argv)
 
             i += 2;
         }
+		else if (strcmp(input,"-precenter") == 0)
+        {
+			PRECENTER_REGISTRATION = true;
+            i += 1;
+		}
+
 		else if (strcmp(input,"-mask") == 0)
         {
 			if ( (i+1) >= argc  )
@@ -1122,6 +1130,8 @@ int main(int argc, char **argv)
 		BROCCOLI.SetOutputSkullstrippedT1Volume(h_Skullstripped_T1_Volume);
         BROCCOLI.SetOutputT1MNIRegistrationParameters(h_Registration_Parameters);
         
+		BROCCOLI.SetPrecenterRegistration(PRECENTER_REGISTRATION);
+
 		BROCCOLI.SetDoSkullstrip(MASK);
 		BROCCOLI.SetDoSkullstripOriginal(MASK_ORIGINAL);
 

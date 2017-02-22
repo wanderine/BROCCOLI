@@ -257,7 +257,7 @@ void BROCCOLI_LIB::SetStartValues()
 	maxThreadsPerDimension[1] = 0;
 	maxThreadsPerDimension[2] = 0;
 
-	
+	PRECENTER_REGISTRATION = false;
 
 	DEBUG = false;
 	WRAPPER = -1;
@@ -3693,6 +3693,11 @@ void BROCCOLI_LIB::SetSmoothingFilters(float* Smoothing_Filter_X, float* Smoothi
 	h_Smoothing_Filter_X_In = Smoothing_Filter_X;
 	h_Smoothing_Filter_Y_In = Smoothing_Filter_Y;
 	h_Smoothing_Filter_Z_In = Smoothing_Filter_Z;
+}
+
+void BROCCOLI_LIB::SetPrecenterRegistration(bool center)
+{
+	PRECENTER_REGISTRATION = center;
 }
 
 void BROCCOLI_LIB::SetImageRegistrationFilterSize(int N)
@@ -7995,8 +8000,11 @@ void BROCCOLI_LIB::PerformRegistrationTwoVolumesWrapper()
 		if (NUMBER_OF_ITERATIONS_FOR_LINEAR_IMAGE_REGISTRATION > 0)
 		{
 			// Put input volume in the center of the volume
-			CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
-			CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+			if (PRECENTER_REGISTRATION)
+			{
+				CenterVolumeMass(d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+				CenterVolumeMass(d_Input_Volume, h_Center_Parameters, T1_DATA_W, T1_DATA_H, T1_DATA_D);
+			}
 
     		// Change resolution and size of input volume
     		ChangeVolumesResolutionAndSize(d_Input_Volume_Reference_Size, d_Input_Volume, T1_DATA_W, T1_DATA_H, T1_DATA_D, 1, MNI_DATA_W, MNI_DATA_H, MNI_DATA_D, T1_VOXEL_SIZE_X, T1_VOXEL_SIZE_Y, T1_VOXEL_SIZE_Z, MNI_VOXEL_SIZE_X, MNI_VOXEL_SIZE_Y, MNI_VOXEL_SIZE_Z, MM_T1_Z_CUT, INTERPOLATION_MODE, 0);

@@ -178,6 +178,7 @@ class BROCCOLI_LIB
 		void SetApplySmoothing(bool);
 
 		// Image registration
+		void SetPrecenterRegistration(bool center);
 		void SetImageRegistrationFilterSize(int N);
 		void SetLinearImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* qf3r, float* qf3i);
 		void SetNonLinearImageRegistrationFilters(float* qf1r, float* qf1i, float* qf2r, float* qf2i, float* q3r, float* q3i, float* qf4r, float* qf4i, float* qf5r, float* qf5i, float* q6r, float* q6i);
@@ -1197,6 +1198,7 @@ class BROCCOLI_LIB
 		int SLICE_CUSTOM_REF;
 
 		// Image registration variables
+		bool PRECENTER_REGISTRATION;
 		bool CHANGE_MOTION_CORRECTION_REFERENCE_VOLUME;
 		int INTERPOLATION_MODE;
 		int IMAGE_REGISTRATION_FILTER_SIZE;
