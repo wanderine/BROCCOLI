@@ -3263,6 +3263,9 @@ int main(int argc, char **argv)
     
     // Create new nifti image	
     nifti_image *outputNiftifMRI = nifti_copy_nim_info(inputfMRI);
+	outputNiftifMRI->nt = EPI_DATA_T;
+    outputNiftifMRI->dim[4] = EPI_DATA_T;
+    outputNiftifMRI->nvox = EPI_DATA_W * EPI_DATA_H * EPI_DATA_D * EPI_DATA_T;
     allNiftiImages[numberOfNiftiImages] = outputNiftifMRI;
 	numberOfNiftiImages++;
     
