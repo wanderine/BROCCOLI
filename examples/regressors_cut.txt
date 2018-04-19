@@ -1,5 +1,0 @@
-NumRegressors 2
-
-task1_cut.txt
-task2_cut.txt
-

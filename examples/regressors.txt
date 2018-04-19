@@ -1,5 +1,4 @@
 NumRegressors 2
 
-cond001.txt
-cond002.txt
-
+tasks_pseudoword.txt
+tasks_word.txt

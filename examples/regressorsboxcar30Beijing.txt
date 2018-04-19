@@ -1,3 +1,0 @@
-NumRegressors 1
-
-boxcar30Beijing.txt
