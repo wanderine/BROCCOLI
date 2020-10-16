@@ -8,4 +8,4 @@ Top-level namespace for BROCCOLI.
 
 from .base import (BROCCOLICommand, Info)
 from .preprocess import (RegisterTwoVolumes,Smoothing,MotionCorrection)
-
+from .stats import (RandomiseGroupLevel)
